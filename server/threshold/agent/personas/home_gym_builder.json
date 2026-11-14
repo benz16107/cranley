@@ -1,0 +1,16 @@
+{
+  "id": "home_gym_builder",
+  "title": "Home gym in the garage",
+  "who": "Wants a squat rack and room to press overhead in the garage, maybe with one car still parked.",
+  "tools": [
+    "garage_fit"
+  ],
+  "thresholds": {
+    "garage.count": 0,
+    "garage.uses": ["squat_rack", "workbench", "bikes"]
+  },
+  "layout": {
+    "view": "scene",
+    "lead_tool": "garage_fit"
+  }
+}

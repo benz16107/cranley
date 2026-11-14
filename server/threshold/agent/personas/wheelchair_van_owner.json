@@ -1,0 +1,21 @@
+{
+  "id": "wheelchair_van_owner",
+  "title": "Wheelchair van owner",
+  "who": "Drives a side-entry wheelchair van and needs about 8 ft beside it for the ramp, and a door the van clears.",
+  "tools": [
+    "garage_fit",
+    "driveway_fit",
+    "step_free_route",
+    "door_widths"
+  ],
+  "thresholds": {
+    "garage.vehicle": "wheelchair_van",
+    "garage.count": 1,
+    "driveway.vehicle": "wheelchair_van",
+    "access.door_width_m": 0.813
+  },
+  "layout": {
+    "view": "scene",
+    "lead_tool": "garage_fit"
+  }
+}

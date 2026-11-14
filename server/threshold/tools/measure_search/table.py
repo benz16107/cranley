@@ -82,6 +82,8 @@ FIELDS: dict[str, tuple[str, str, str, str]] = {
     "step_free_bath": ("Step-free way to a bathroom", "", "flag", "No doorway step on the way"),
     "wheelchair_bath": ("Wheelchair reaches a bathroom", "", "flag", "Step-free and 0.815 m doors all the way"),
 }
+from ..garage_fit.measures import FIELDS as _GARAGE, garage_measures  # noqa: E402  (garage_fit owns these columns)
+FIELDS.update(_GARAGE)
 META = ["sid", "name", "kind", "city", "address", "lat", "lon", "segment", "walls", "polygons", "labels", "panos",
         "error"]
 
@@ -111,6 +113,7 @@ def measure(plan: dict) -> dict:
     if areas:
         a, big = max(areas, key=lambda x: x[0])
         out["largest_room_area"], out["largest_room_label"] = round(a, 2) or None, big.get("label")
+    out.update(garage_measures(plan))
     hs = [r["height"] for r in rs if r.get("height")]
     if hs:
         out.update(ceiling_median=round(statistics.median(hs), 3), ceiling_min=round(min(hs), 3),
