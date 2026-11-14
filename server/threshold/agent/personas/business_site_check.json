@@ -1,0 +1,16 @@
+{
+  "id": "business_site_check",
+  "title": "Business checking a site",
+  "who": "Wants to open or move a business and needs to know whether the use is allowed, what was permitted there, who lives around it and how people get there.",
+  "tools": [
+    "zoning_check",
+    "permit_history",
+    "area_profile",
+    "connectivity"
+  ],
+  "thresholds": {},
+  "layout": {
+    "view": "map",
+    "lead_tool": "zoning_check"
+  }
+}
