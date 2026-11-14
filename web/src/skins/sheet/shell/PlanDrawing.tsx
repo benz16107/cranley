@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Anchor, BuildingSceneProps, Overlay, Pt, ScanPlan, Status } from '../../../core/types.ts'
+import { anchorFloor, type Anchor, type Overlay, type Pt, type ScanPlan, type Status } from '../../../core/index.ts'
 
 /* A floor plan drawn from the wall graph in the manner of an architect's sheet: walls at their real thickness,
    door swings, room names and areas. It stands where <BuildingScene> will go (same props) until the scene
    workstream lands, and it stays as the FloorPlanMini block. Metres, y flipped so north-ish is up. */
 
+type PlanView = { mode: 'dollhouse' | 'plan' | 'pano'; floor?: string; focus?: Anchor | null; agentAt?: Anchor | null }
+type BuildingSceneProps = { plan: ScanPlan; overlays: Overlay[]; view: PlanView; onPick: (anchor: Anchor) => void }
 type Box = [x: number, y: number, w: number, h: number]
 const flip = ([x, y]: Pt | [number, number, number]): Pt => [x, -y]
 
@@ -15,14 +17,6 @@ export function anchorPoint(plan: ScanPlan, a: Anchor | null | undefined): Pt | 
   if ('room' in a) return centroid(plan.rooms.find((r) => r.id === a.room)?.polygon ?? [])
   if ('wall' in a) { const w = plan.walls.find((x) => x.id === a.wall); return w ? [(w.a[0] + w.b[0]) / 2, (w.a[1] + w.b[1]) / 2] : null }
   if ('pano' in a) { const p = plan.panos.find((x) => x.id === a.pano); return p ? [p.position[0], p.position[1]] : null }
-  return null
-}
-export function anchorFloor(plan: ScanPlan, a: Anchor | null | undefined): string | null {
-  if (!a || !('sid' in a)) return null
-  if ('opening' in a) return plan.openings.find((o) => o.id === a.opening)?.floor ?? null
-  if ('room' in a) return plan.rooms.find((r) => r.id === a.room)?.floor ?? null
-  if ('wall' in a) return plan.walls.find((w) => w.id === a.wall)?.floor ?? null
-  if ('pano' in a) return plan.panos.find((p) => p.id === a.pano)?.floor ?? null
   return null
 }
 function centroid(poly: Pt[]): Pt | null {

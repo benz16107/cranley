@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { toast } from 'sonner'
+import { notify } from './notices.ts'
 import { useWorkspace } from './store.ts'
 import type { Op } from './types.ts'
 import { toDoc, toServerOp, type J, type Manifest, type Names } from './serverDoc.ts'
@@ -80,7 +80,7 @@ async function ensure(): Promise<boolean> {
 export async function post(ops: J | J[]): Promise<boolean> {
   if (!(await ensure())) return false
   const r = await fetch(`/api/workspace/${id}/ops`, { method: 'POST', headers: json, body: JSON.stringify(ops) }).catch(() => null)
-  if (!r?.ok) { toast.error('The server did not take that change.', { description: r ? ((await r.json().catch(() => ({}))) as J).detail : 'It is not answering.' }); void sync(); return false }
+  if (!r?.ok) { notify.error('The server did not take that change.', { description: r ? ((await r.json().catch(() => ({}))) as J).detail : 'It is not answering.' }); void sync(); return false }
   show(await r.json())
   return true
 }
@@ -108,7 +108,7 @@ export async function turn(body: { text?: string; sids?: string[] }): Promise<J 
         if (['plan.set', 'run.start'].includes(data.op?.op) && currentRoute().path === '/') navigate('/map', {}, { keep: true })
         soon()
       } else if (kind === 'done') done = data
-      else if (kind === 'error') toast.error('The agent stopped.', { description: data.message })
+      else if (kind === 'error') notify.error('The agent stopped.', { description: data.message })
     }
   }
   streaming = false
@@ -118,7 +118,7 @@ export async function turn(body: { text?: string; sids?: string[] }): Promise<J 
 
 /** Run one tool on one scan, from the dock, a panel action or a moved control. */
 export async function runTool(tool: string, sid: string, inputs: J = {}): Promise<void> {
-  if (!(await ensure())) { toast.error('The server is not answering.'); return }
+  if (!(await ensure())) { notify.error('The server is not answering.'); return }
   const m = manifests().get(tool), props = m?.inputs.properties ?? {}
   const sids: string[] = ws!.brief?.scope?.sids ?? []
   const setup: J[] = []
@@ -136,8 +136,8 @@ export async function runTool(tool: string, sid: string, inputs: J = {}): Promis
     ask = { tool, sid }
     await post(missing.map((k) => ({ op: 'question.ask', question: { id: `q_${props[k]['x-pref'] ?? `${tool}.${k}`}`, key: props[k]['x-pref'] ?? `${tool}.${k}`, text: props[k]['x-ask'], tools: [tool],
       input: Object.fromEntries(Object.entries(props[k]).filter(([x]) => x !== 'x-ask' && x !== 'title')) } })))
-    toast(`${m?.title ?? tool} needs an answer first.`, { description: 'The question is in the brief, on the left.' })
-  } else if (out.error) toast.error(`${m?.title ?? tool} did not run.`, { description: out.error })
+    notify(`${m?.title ?? tool} needs an answer first.`, { description: 'The question is in the brief, on the left.' })
+  } else if (out.error) notify.error(`${m?.title ?? tool} did not run.`, { description: out.error })
 }
 
 /** What the server should hear about a user op the shell has already applied. */

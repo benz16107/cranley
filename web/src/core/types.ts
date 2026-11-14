@@ -1,7 +1,6 @@
-/* Every shared type the shell codes against, in one file, so it can be swapped for the agent workstream's
-   docs/contracts/workspace.ts when that lands. Contracts 1, 3, 4 and 5 of docs/ARCHITECTURE.md, plus the
-   panel block catalog from the research report. Where the contract leaves a shape open, the shell's reading
-   of it is marked "shell's reading". */
+/* Every type a look renders, in one file: Contracts 1, 3, 4 and 5 of docs/ARCHITECTURE.md plus the panel block
+   catalog, in the form the web app shows them (blocks carry their data; serverDoc.ts fills them from the
+   server's document, whose blocks name runs and findings by id). */
 
 export type Status = 'pass' | 'warn' | 'fail' | 'unknown'
 
@@ -56,10 +55,6 @@ export type Overlay =
   | { kind: 'route'; floor: string; points: [number, number, number][]; chokes: { point: [number, number, number]; width: number; status: Status }[]; label: string }
   | { kind: 'water'; level_m: number; datum: 'scan_z' }
   | { kind: 'box'; center: [number, number, number]; size: [number, number, number]; yaw_deg: number; label: string; status: Status }
-
-/** The scene workstream's component. `view` is the shell's reading: which presentation, which floor, where to look. */
-export type SceneView = { mode: 'dollhouse' | 'plan' | 'pano'; floor?: string; focus?: Anchor | null; agentAt?: Anchor | null }
-export type BuildingSceneProps = { plan: ScanPlan; overlays: Overlay[]; view: SceneView; onPick: (anchor: Anchor) => void }
 
 /* ---------- The panel block catalog (twelve blocks, each built once) ---------- */
 export type Block =

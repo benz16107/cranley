@@ -2,9 +2,9 @@ import { useEffect, useRef, type RefObject } from 'react'
 import { create } from 'zustand'
 import { MapLibreOverlay } from '@deck.gl/maplibre'
 import { ContourLayer, PathLayer, ScatterplotLayer, TextLayer } from 'deck.gl'
-import { Map as MapLibre } from '../../../core/maplibre.ts'
-import { mapStyle } from '../../../core/basemap.ts'
-import { CITIES, type Building, type CityId } from '../../../core/buildings.ts'
+import { MapLibre, type GeoMarks } from '../../../core/index.ts'
+import { mapStyle } from '../../../core/index.ts'
+import { CITIES, type Building, type CityId } from '../../../core/index.ts'
 import { tokenCss, tokenRgba } from '../design/ui.tsx'
 
 /** The live map and a counter that ticks when the view moves, for the furniture drawn around it. */
@@ -17,7 +17,6 @@ const palette = () => ({
 })
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-export type GeoMarks = { paths: [number, number][][]; pins: { lon: number; lat: number; status: 'pass' | 'warn' | 'fail' | 'unknown' }[] }
 const NO_GEO: GeoMarks = { paths: [], pins: [] }
 
 type Props = {

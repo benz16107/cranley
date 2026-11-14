@@ -1,4 +1,4 @@
-import { toast } from 'sonner'
+import { notify } from './notices.ts'
 import { dispatch, useWorkspace } from './store.ts'
 import type { Action, Block, Doc, Op, OpInput, Panel, Question, ScanPlan, ToolResult } from './types.ts'
 import * as server from './server.ts'
@@ -25,9 +25,9 @@ async function serverTurn(body: { text?: string; sids?: string[] } = {}): Promis
   if (!(await server.connect())) return false
   try {
     const done = await server.turn(body)
-    if (done?.status === 'needs_scope') { navigate('/map', {}, { keep: true }); toast('Pick a building to look at.', { description: 'Open a scan from the map, then run a tool from the dock or ask again.' }) }
-    if (done?.budget?.stopped_by) toast(`The agent stopped at its limit of ${done.budget.stopped_by}.`, { description: 'Ask again to carry on from here.' })
-  } catch { toast.error('The agent server did not answer.') }
+    if (done?.status === 'needs_scope') { navigate('/map', {}, { keep: true }); notify('Pick a building to look at.', { description: 'Open a scan from the map, then run a tool from the dock or ask again.' }) }
+    if (done?.budget?.stopped_by) notify(`The agent stopped at its limit of ${done.budget.stopped_by}.`, { description: 'Ask again to carry on from here.' })
+  } catch { notify.error('The agent server did not answer.') }
   return true
 }
 
@@ -67,7 +67,7 @@ export async function investigate() {
   const d = doc()
   if (server.isLive()) { // unanswered questions take the value on offer; the server will not start with one open
     const open = d.questions.filter((q) => q.answer == null)
-    if (open.some((q) => q.hint == null)) { toast('Answer the questions first.', { description: 'The tools cannot run without them.' }); return }
+    if (open.some((q) => q.hint == null)) { notify('Answer the questions first.', { description: 'The tools cannot run without them.' }); return }
     for (const q of open) dispatch({ op: 'question.answer', by: 'user', id: q.id, answer: q.hint! })
     await new Promise((r) => setTimeout(r, open.length ? 600 : 0)) // let the answers land before the turn reads them
     void serverTurn()
@@ -77,7 +77,7 @@ export async function investigate() {
   const need = matchNeed(d.brief?.text ?? '')
   if (!need.scripted || !d.tools.some((t) => t.id === 'access')) {
     navigate('/map', { city: need.city })
-    toast('The tools are in the dock, ready.', { description: 'Without the agent server, only the step-free access investigation plays back.' })
+    notify('The tools are in the dock, ready.', { description: 'Without the agent server, only the step-free access investigation plays back.' })
     return
   }
   await playAccess({ city: need.city })
@@ -137,7 +137,7 @@ export async function playAccess(opts: { sids?: string[]; city?: Need['city']; q
     // Many unit scans carry rooms but no wall outline. Probe one scan per address, nearest the centre first
     // and at most ten, until one has doorways to measure. Each probe is one cached request.
     const tries = candidateAddresses(all, opts.city ?? 'hou')
-    if (!tries.length) { toast.error('No one-bedroom units found to compare in this city.'); say({ op: 'plan.set', steps: [] }); return }
+    if (!tries.length) { notify.error('No one-bedroom units found to compare in this city.'); say({ op: 'plan.set', steps: [] }); return }
     navigate('/map', { city: opts.city ?? 'hou' }, { keep: true })
     await wait(700 * pace)
     for (const t of tries) {
@@ -173,7 +173,7 @@ export async function playAccess(opts: { sids?: string[]; city?: Need['city']; q
     } catch (e) { say({ op: 'run.finish', id, status: 'failed', summary: (e as Error).message }) }
   }
   if (!alive()) return
-  if (!plans.length) { toast.error('None of the plans loaded.', { description: 'Check that the data server is running.' }); return }
+  if (!plans.length) { notify.error('None of the plans loaded.', { description: 'Check that the data server is running.' }); return }
   log.push({ id: 'l2', label: STEPS[1], detail: `${plans.length} of ${sids.length} loaded`, ms: performance.now() - t0 })
 
   say({ op: 'plan.set', steps: planSteps(2) })
@@ -252,12 +252,12 @@ export async function runAction(action: Action, panel: Panel) {
     if (sid) void server.runTool(action.id === 'rerun' ? panel.tool : action.tool ?? panel.tool, sid, action.id === 'rerun' ? {} : inputs)
     return
   }
-  if (panel.tool !== 'access') { toast('This action needs the agent server.'); return }
+  if (panel.tool !== 'access') { notify('This action needs the agent server.'); return }
   if (action.id === 'rerun') { void playAccess({ sids: lastSids.length ? lastSids : panel.sid ? [panel.sid] : [], quick: true }); return }
   if (action.id === 'compare_address' && panel.sid) {
     const b = buildingOf(await buildings(), panel.sid)
     const sids = b?.scans.filter((s) => s.kind === 'apartment' || s.kind === 'home').slice(0, 4).map((s) => s.sid) ?? []
-    if (sids.length < 2) { toast('This address has no other unit to compare.'); return }
+    if (sids.length < 2) { notify('This address has no other unit to compare.'); return }
     void playAccess({ sids: [panel.sid, ...sids.filter((s) => s !== panel.sid)].slice(0, 4), quick: true })
   }
 }
@@ -265,7 +265,7 @@ export async function runAction(action: Action, panel: Panel) {
 /** Run a tool on the scan in view, from the dock. */
 export function runToolHere(tool: string, sid: string) {
   if (server.isLive()) { void server.runTool(tool, sid); return }
-  if (tool !== 'access') { toast(`${TOOLS[tool]?.title ?? tool} needs the agent server.`, { description: 'Fixtures mode plays only the step-free access audit.' }); return }
+  if (tool !== 'access') { notify(`${TOOLS[tool]?.title ?? tool} needs the agent server.`, { description: 'Fixtures mode plays only the step-free access audit.' }); return }
   void playAccess({ sids: [sid], quick: true })
 }
 
@@ -274,5 +274,5 @@ export async function ask(text: string) {
   const sid = currentRoute().sid, known: string[] = server.serverDoc()?.brief?.scope?.sids ?? []
   if (await serverTurn({ text, sids: sid && !known.includes(sid) ? [...known, sid] : undefined })) return
   if (/access|wheel|door|step/i.test(text) && currentRoute().sid) { runToolHere('access', currentRoute().sid!); return }
-  toast('The agent server is not connected.', { description: 'Fixtures mode can replay the step-free access audit. Open a scan and add that tool from the dock.' })
+  notify('The agent server is not connected.', { description: 'Fixtures mode can replay the step-free access audit. Open a scan and add that tool from the dock.' })
 }

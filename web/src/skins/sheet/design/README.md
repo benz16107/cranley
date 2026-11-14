@@ -43,7 +43,7 @@ drawings on paper and as a video game on black. "Sheet" keeps a dark scheme, as 
    (`.arrive`, 260 ms, 6 px). Nothing the user placed moves. Keyboard actions do not animate. The flight
    between the two cities is the one long move. Under `prefers-reduced-motion` nothing travels.
 10. **Loading is hatching** (`.skeleton`), in the shape of what is coming. No spinners.
-11. **Panels are built from the twelve blocks** in `web/src/workspace/blocks.tsx`. A tool does not draw its
+11. **Panels are built from the twelve blocks** in `web/src/skins/sheet/blocks/blocks.tsx`. A tool does not draw its
     own panel. If a block is missing something, ask for it; do not build a thirteenth.
 12. **Hit areas** are at least 40 px on desktop and 44 px on the phone, even when the visible control is
     smaller. Focus is always visible (`:focus-visible`, 2 px accent).

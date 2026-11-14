@@ -4,10 +4,10 @@ import { Popover } from '@base-ui/react/popover'
 import { Slider } from '@base-ui/react/slider'
 import { toast } from 'sonner'
 import { useMap } from './CityMap.tsx'
-import { CITIES, KINDS, ROOMS_MAX, search, type Building, type CityId, type Filters, type Kind } from '../../../core/buildings.ts'
+import { CITIES, KINDS, ROOMS_MAX, search, type Building, type CityId, type Filters, type Kind } from '../../../core/index.ts'
 import { Icon, SourceChip } from '../design/ui.tsx'
-import { navigate, setQuery } from '../../../core/router.ts'
-import { useWorkspace, userOp } from '../../../core/store.ts'
+import { navigate, orthoImage, setQuery } from '../../../core/index.ts'
+import { useWorkspace, userOp } from '../../../core/index.ts'
 
 /* ---------- the neatline: a frame with coordinate ticks, as on a printed map sheet ---------- */
 const STEPS = [60, 30, 20, 10, 5, 2, 1, 0.5, 0.25, 1 / 12] // arc minutes
@@ -292,7 +292,7 @@ export function AerialToggle({ b }: { b: Building | null }) {
     if (!map || !on || !b) return
     const size = 160, dLat = size / 2 / 111320, dLon = dLat / Math.cos((b.lat * Math.PI) / 180)
     let url = '', gone = false
-    fetch(`/api/aerial/ortho?lat=${b.lat}&lon=${b.lon}&size_m=${size}&px=1024`).then((r) => { if (!r.ok) throw new Error(); return r.blob() }).then((blob) => {
+    fetch(orthoImage(b.lat, b.lon, size, 1024)).then((r) => { if (!r.ok) throw new Error(); return r.blob() }).then((blob) => {
       if (gone) return
       url = URL.createObjectURL(blob)
       map.addSource('aerial', { type: 'image', url, coordinates: [[b.lon - dLon, b.lat + dLat], [b.lon + dLon, b.lat + dLat], [b.lon + dLon, b.lat - dLat], [b.lon - dLon, b.lat - dLat]] })

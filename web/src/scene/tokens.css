@@ -1,6 +1,12 @@
-/* Scene tokens. Stand-ins until the shell publishes web/src/design/: swap the values here, nothing else reads raw colours.
-   Colours the 3D renderer reads (tokens.ts) must be 6-digit hex. */
-.th-scene {
+/* Scene tokens: the scene's defaults. Nothing else in the scene reads a raw colour.
+   A look overrides any of them from outside, on the scene element or any ancestor's rule for it, for example
+     .my-look .th-scene { --scene-stage: #0b0f14; --scene-ink: #e8eef5; }
+   or by giving <BuildingScene className="my-scene"> and setting them on .my-scene. The defaults are wrapped in
+   :where(), so any such rule wins without a specificity fight. A standalone <FloorPlan> gets the defaults from an
+   ancestor with class "th-scene-tokens".
+   Colours the 3D renderer reads (tokens.ts) must be 6-digit hex, and they are read when the scene mounts: change
+   them, then remount the scene (a new `key`). */
+:where(.th-scene, .th-scene-tokens) {
   --scene-stage: #e7e4dc;      /* behind the building: warm drafting paper, never pure white */
   --scene-paper: #f7f4ed;      /* wall faces, label chips */
   --scene-ink: #20242b;        /* cut faces of walls, linework, text */

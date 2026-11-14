@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import NumberFlow from '@number-flow/react'
-import { NEEDS, TOOLS } from '../../../core/fixtures/catalog.ts'
-import { compose, investigate, startOver } from '../../../core/agent.ts'
-import { useWorkspace } from '../../../core/store.ts'
+import { NEEDS, TOOLS } from '../../../core/index.ts'
+import { compose, investigate, startOver } from '../../../core/index.ts'
+import { useWorkspace } from '../../../core/index.ts'
 import { ToolKey } from '../design/ui.tsx'
-import { navigate } from '../../../core/router.ts'
+import { navigate } from '../../../core/index.ts'
 import { QuestionForm } from '../shell/Case.tsx'
 
 /* The front door, set as the cover sheet of a drawing set: say who you are in a sentence, or pick a starting

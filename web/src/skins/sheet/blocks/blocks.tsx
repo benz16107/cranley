@@ -3,26 +3,19 @@ import NumberFlow from '@number-flow/react'
 import { Popover } from '@base-ui/react/popover'
 import { Slider } from '@base-ui/react/slider'
 import { Switch } from '@base-ui/react/switch'
-import type { Action, Anchor, Block, Doc, Finding, Panel, ScanPlan, Status } from '../../../core/types.ts'
-import { useWorkspace, userOp } from '../../../core/store.ts'
+import type { Action, Block, Doc, Finding, Panel, ScanPlan, Status } from '../../../core/index.ts'
+import { focusAnchor, focusFinding, useWorkspace, userOp } from '../../../core/index.ts'
 import { Icon, SourceChip, StatusGlyph, statusWord, ToolKey } from '../design/ui.tsx'
-import { fetchPlan, panoFace } from '../../../core/api.ts'
-import { navigate } from '../../../core/router.ts'
+import { fetchPlan, panoFace } from '../../../core/index.ts'
+import { navigate } from '../../../core/index.ts'
 import { PlanDrawing } from '../shell/PlanDrawing.tsx'
-import { runAction } from '../../../core/agent.ts'
+import { runAction } from '../../../core/index.ts'
 
 /* The twelve panel blocks. A panel is only ever built from these, each designed once.
    Numbers arrive in the block's data from a tool result and are printed as they are; no text is parsed. */
 
 const fmt = (v: number | null | undefined, digits?: number) =>
   v == null ? '–' : new Intl.NumberFormat('en', { maximumFractionDigits: digits ?? (Math.abs(v) >= 100 ? 0 : Math.abs(v) >= 10 ? 1 : 2) }).format(v)
-
-/** Looking at a finding: the building view frames its anchor and the matching rows light up. */
-export function focusFinding(f: Finding | undefined) {
-  if (!f?.anchor) return
-  userOp({ op: 'camera.focus', anchor: f.anchor, finding: f.id })
-}
-export function focusAnchor(anchor: Anchor) { userOp({ op: 'camera.focus', anchor }) }
 
 type Ctx = { doc: Doc; panel: Panel }
 

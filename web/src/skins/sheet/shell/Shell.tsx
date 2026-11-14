@@ -1,35 +1,17 @@
-import { Component, lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { Drawer } from 'vaul'
-import { CityMap, useMap, type GeoMarks } from '../map/CityMap.tsx'
+import { CityMap, useMap } from '../map/CityMap.tsx'
 import { AddressSearch, BuildingCard, Callout, FilterBar, HoverTip, Neatline, TitleBlock } from '../map/MapFurniture.tsx'
-import { CITIES, matches, readFilters, useBuildings, type CityId } from '../../../core/buildings.ts'
 import { Icon, Mark } from '../design/ui.tsx'
-import { navigate, setQuery, useRoute } from '../../../core/router.ts'
-import { fetchPlan } from '../../../core/api.ts'
-import { useWorkspace, userOp } from '../../../core/store.ts'
-import type { Anchor, ScanPlan } from '../../../core/types.ts'
-import type { Mode, Overlay as SceneOverlay, Pick, ScanPlan as ScenePlan, View } from '../../../scene/types.ts'
-import { PanelView, focusAnchor, focusFinding } from '../blocks/blocks.tsx'
-import { replayDemo } from '../../../core/agent.ts'
+import { CITIES, Scene, SceneBoundary, currentRoute, navigate, setQuery, useBuildingView, useMapModel, useRoute, useWorkspace, type CityId, type SceneMode } from '../../../core/index.ts'
+import { PanelView } from '../blocks/blocks.tsx'
 import { BriefCard, Dock, LearnedCard, PlanCard } from './Case.tsx'
-import { anchorFloor } from './PlanDrawing.tsx'
 import { CommandMenu } from './CommandMenu.tsx'
 import { FrontDoor } from '../door/FrontDoor.tsx'
 import { useScheme, useTheme } from './theme.ts'
 
-/* The scene workstream's <BuildingScene plan overlays view onPick />. The shell never reaches into three.js. */
-const BuildingScene = lazy(() => import('../../../scene/BuildingScene.tsx').then((m) => ({ default: m.BuildingScene })))
-const MODES: [Mode, string][] = [['dollhouse', '3D'], ['plan', 'Plan'], ['pano', 'Inside'], ['splat', 'Drone']]
-
-/** A fault inside the 3D view stays inside it: the panels, the map and the dock keep working. */
-class SceneGuard extends Component<{ children: ReactNode; onRetry: () => void }, { failed: boolean }> {
-  state = { failed: false }
-  static getDerivedStateFromError() { return { failed: true } }
-  componentDidCatch(e: unknown) { console.error('[scene]', e) }
-  render() {
-    return this.state.failed ? <div className="state"><p>The building view stopped on this scan.</p><button className="btn" onClick={this.props.onRetry}>Try again</button></div> : this.props.children
-  }
-}
+/* The building view is the shared <Scene>, driven through core's useBuildingView. The shell never reaches into three.js. */
+const MODES: Record<SceneMode, string> = { dollhouse: '3D', plan: 'Plan', pano: 'Inside', splat: 'Drone' }
 
 const SNAPS = ['112px', 0.55, 0.94]
 
@@ -53,46 +35,8 @@ function CitySwitch({ city }: { city: CityId }) {
 }
 
 function ScanStage({ sid, frame }: { sid: string; frame: React.RefObject<HTMLDivElement | null> }) {
-  const [plan, setPlan] = useState<ScanPlan | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [look, setLook] = useState<View>({ mode: 'dollhouse' }) // what the person chose: mode, floor, cut, position
-  const [tries, setTries] = useState(0)
-  const doc = useWorkspace((s) => s.doc)
+  const { plan, error, retry, modes, mode, setMode, sceneProps, sceneKey, kept, toggleKeep } = useBuildingView(sid)
   const { q } = useRoute()
-  useEffect(() => {
-    let on = true
-    setPlan(null); setError(null); setLook({ mode: 'dollhouse' })
-    fetchPlan(sid).then((p) => on && setPlan(p), (e: Error) => on && setError(e.message))
-    return () => { on = false }
-  }, [sid, tries])
-  useEffect(() => { if (q.get('demo') === 'access') replayDemo(sid) }, [sid, q])
-
-  // what is given in map coordinates (an outdoor path, a pin on the roof) is the map's to draw, not the building's
-  const overlays = useMemo(() => doc.overlays.filter((o) => !o.sid || o.sid === sid).map((o) => o.overlay)
-    .map((o) => (o.kind === 'pins' ? { ...o, pins: o.pins.filter((p) => !('geo' in p.anchor)) } : o))
-    .filter((o) => !(o.kind === 'route' && o.floor === 'geo') && !(o.kind === 'pins' && !o.pins.length)), [doc.overlays, sid])
-  const cam = doc.camera && 'sid' in doc.camera.anchor && doc.camera.anchor.sid === sid ? doc.camera.anchor : null
-  const kept = doc.shortlist.some((s) => s.sid === sid)
-  // Where the camera is told to look: its floor comes up, and a panorama anchor means "stand there and look that way".
-  const camKey = cam ? JSON.stringify(cam) : ''
-  useEffect(() => {
-    if (!plan || !cam) return
-    const floor = anchorFloor(plan, cam)
-    setLook((v) => ('pano' in cam ? { ...v, mode: 'pano', pano: cam.pano } : { ...v, mode: v.mode === 'pano' || v.mode === 'splat' ? 'dollhouse' : v.mode, floor: floor && plan.floors.length > 1 ? floor : v.floor }))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [camKey, plan])
-  const view = useMemo<View>(() => ({ ...look, focus: cam && !('point' in cam && cam.point.every((n) => n === 0)) ? cam : null }), [look, camKey]) // eslint-disable-line react-hooks/exhaustive-deps
-  const onPick = (p: Pick) => {
-    if (p.kind === 'pano') return // the scene walks there itself
-    const anchor: Anchor | undefined = p.kind === 'pin'
-      ? overlays.flatMap((o) => (o.kind === 'pins' ? o.pins : [])).find((x) => x.id === p.id)?.anchor
-      : p.kind === 'room' ? { sid, room: p.id } : p.kind === 'opening' ? { sid, opening: p.id } : { sid, wall: p.id }
-    if (!anchor) return
-    const same = (a: Anchor | null) => !!a && JSON.stringify({ ...a, sid }) === JSON.stringify({ ...anchor, sid })
-    const f = doc.findings.find((x) => same(x.anchor))
-    if (f) focusFinding(f); else focusAnchor({ ...anchor, sid } as Anchor)
-  }
-  const scenePlan = plan as unknown as ScenePlan // one ScanPlan, read through the scene's own (wider) type
   return (
     <div className="scan" ref={frame}>
       <header className="pane scanhead">
@@ -103,24 +47,24 @@ function ScanStage({ sid, frame }: { sid: string; frame: React.RefObject<HTMLDiv
         </div>
         {plan && (
           <div className="floors" role="group" aria-label="View">
-            {MODES.filter(([m]) => (m !== 'splat' || plan.has.splat) && (m !== 'pano' || plan.panos.length > 0)).map(([m, name]) => (
-              <button key={m} className="chip" aria-pressed={look.mode === m} onClick={() => setLook((v) => ({ ...v, mode: m, pano: m === 'pano' ? v.pano ?? plan.panos[0]?.id : v.pano }))}>{name}</button>
-            ))}
+            {modes.map((m) => <button key={m} className="chip" aria-pressed={mode === m} onClick={() => setMode(m)}>{MODES[m]}</button>)}
           </div>
         )}
         {plan && (
-          <button className="btn sm" aria-pressed={kept} onClick={() => userOp(kept ? { op: 'shortlist.remove', sid } : { op: 'shortlist.add', item: { sid, name: plan.name, address: plan.address ?? '' } })}>
+          <button className="btn sm" aria-pressed={kept} onClick={toggleKeep}>
             <Icon name="keep" size={14} /> {kept ? 'Kept' : 'Keep'}
           </button>
         )}
       </header>
       <div className="scene">
-        {error && <div className="state"><p>{error}</p><button className="btn" onClick={() => setTries(tries + 1)}>Try again</button></div>}
+        {error && <div className="state"><p>{error}</p><button className="btn" onClick={retry}>Try again</button></div>}
         {!plan && !error && <div className="state skeleton" aria-label="Loading the plan" />}
-        {plan && (
+        {sceneProps && (
           <Suspense fallback={<div className="state skeleton" />}>
             {/* keyed by scan: the scene builds its model for one plan, so a new scan gets a new scene */}
-            <SceneGuard key={`${plan.sid}:${tries}`} onRetry={() => setTries(tries + 1)}><BuildingScene plan={scenePlan} overlays={overlays as SceneOverlay[]} view={view} onPick={onPick} onViewChange={({ focus: _f, ...v }) => setLook(v)} /></SceneGuard>
+            <SceneBoundary key={sceneKey} fallback={<div className="state"><p>The building view stopped on this scan.</p><button className="btn" onClick={retry}>Try again</button></div>}>
+              <Scene {...sceneProps} />
+            </SceneBoundary>
           </Suspense>
         )}
       </div>
@@ -130,8 +74,7 @@ function ScanStage({ sid, frame }: { sid: string; frame: React.RefObject<HTMLDiv
 
 export function Shell() {
   const route = useRoute()
-  const { all, state, load } = useBuildings()
-  useEffect(load, [load])
+  const { all, state, reload: load, filters, shown, selected, select, marks, geo, look } = useMapModel()
   const { theme, cycle } = useTheme()
   const scheme = useScheme(theme)
   const phone = useIsPhone()
@@ -139,42 +82,16 @@ export function Shell() {
   const [menu, setMenu] = useState<false | 'all' | 'tools'>(false)
   const [caseOpen, setCaseOpen] = useState(false)
 
-  const doc = useWorkspace((s) => s.doc), follow = useWorkspace((s) => s.follow), undo = useWorkspace((s) => s.undo)
-  const filters = useMemo(() => readFilters(route.q), [route.q])
-  const shown = useMemo(() => all.filter((b) => matches(b, filters)), [all, filters])
-  const selected = useMemo(() => all.find((b) => b.id === route.q.get('b')) ?? (route.sid ? all.find((b) => b.scans.some((x) => x.sid === route.sid)) : undefined) ?? null, [all, route.q, route.sid])
-  const marks = useMemo(() => {
-    const sids = new Set([...doc.panels.map((p) => p.sid), ...doc.shortlist.map((s) => s.sid)])
-    return all.filter((b) => b.scans.some((s) => sids.has(s.sid)))
-  }, [all, doc.panels, doc.shortlist])
-  const geo = useMemo<GeoMarks>(() => ({
-    paths: doc.overlays.flatMap(({ overlay: o }) => (o.kind === 'route' && o.floor === 'geo' ? [o.points.map(([x, y]): [number, number] => [x, y])] : [])),
-    pins: doc.overlays.flatMap(({ overlay: o }) => (o.kind === 'pins' ? o.pins.flatMap((p) => ('geo' in p.anchor ? [{ lon: p.anchor.geo[0], lat: p.anchor.geo[1], status: p.status }] : [])) : [])),
-  }), [doc.overlays])
+  const doc = useWorkspace((s) => s.doc), undo = useWorkspace((s) => s.undo)
   const view = route.path === '/scan' ? 'scan' : route.path === '/map' ? 'map' : 'door'
   const hasRail = view !== 'door' && (doc.panels.length > 0 || doc.runs.some((r) => r.status === 'running'))
-
-  // Where the camera is told to look, the view goes: the agent's moves only while "follow" is on.
-  const cam = doc.camera
-  useEffect(() => {
-    if (!cam || (cam.by === 'agent' && !follow)) return
-    const a = cam.anchor
-    if ('geo' in a) {
-      // the building it belongs to: the nearest within about 200 m (a pool or a dock is not at the address point)
-      const d = (b: { lon: number; lat: number }) => Math.hypot((b.lon - a.geo[0]) * Math.cos((a.geo[1] * Math.PI) / 180), b.lat - a.geo[1])
-      const near = all.reduce<(typeof all)[number] | undefined>((best, b) => (d(b) < 0.002 && (!best || d(b) < d(best)) ? b : best), undefined)
-      navigate('/map', { b: near?.id, city: near?.metro ?? undefined }, { keep: true })
-    } else if (route.sid !== a.sid) navigate(`/scan/${a.sid}`, { f: cam.finding }, { keep: true })
-    else setQuery({ f: cam.finding })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cam])
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey
       if (mod && e.key.toLowerCase() === 'k') { e.preventDefault(); setMenu((m) => (m ? false : 'all')) }
       if (mod && e.key.toLowerCase() === 'z' && !/input|textarea/i.test((e.target as HTMLElement).tagName)) { e.preventDefault(); undo() }
-      if (e.key === 'Escape' && !e.defaultPrevented && !document.querySelector('[data-open], [cmdk-root]') && new URLSearchParams(window.location.search).has('b') && window.location.pathname === '/map') setQuery({ b: null }, false)
+      if (e.key === 'Escape' && !e.defaultPrevented && !document.querySelector('[data-open], [cmdk-root]') && currentRoute().q.has('b') && currentRoute().path === '/map') setQuery({ b: null }, false)
     }
     window.addEventListener('keydown', key)
     return () => window.removeEventListener('keydown', key)
@@ -202,7 +119,7 @@ export function Shell() {
 
       <main className="stage" id="stage" tabIndex={-1}>
         <div className="mapwrap" data-inset={view === 'scan'}>
-          <CityMap buildings={shown} selected={selected} marks={marks} geo={geo} look={cam && 'geo' in cam.anchor ? cam.anchor.geo : null} city={filters.city} scheme={scheme} inset={view === 'scan'} frame={frame} onSelect={(b) => setQuery({ b: b?.id }, false)} />
+          <CityMap buildings={shown} selected={selected} marks={marks} geo={geo} look={look} city={filters.city} scheme={scheme} inset={view === 'scan'} frame={frame} onSelect={select} />
           {view === 'scan' && <button className="keyplan" onClick={() => navigate('/map', { b: route.q.get('b'), city: route.q.get('city') })}><span className="label">Key plan</span><span className="sr">Back to the map</span></button>}
         </div>
         {state === 'error' && <div className="pane mapstate" role="alert"><p>The building list did not load. Is the data server running?</p><button className="btn" onClick={load}>Try again</button></div>}

@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Popover } from '@base-ui/react/popover'
 import { Switch } from '@base-ui/react/switch'
-import { useWorkspace, userOp } from '../../../core/store.ts'
-import type { Pref, Question, Run } from '../../../core/types.ts'
-import { answerPref, ask, compose, investigate, runToolHere } from '../../../core/agent.ts'
+import { useWorkspace, userOp } from '../../../core/index.ts'
+import type { Pref, Question, Run } from '../../../core/index.ts'
+import { answerPref, ask, compose, investigate, runToolHere } from '../../../core/index.ts'
 import { Icon, ToolKey } from '../design/ui.tsx'
-import { navigate, useRoute } from '../../../core/router.ts'
+import { navigate, useRoute } from '../../../core/index.ts'
 
 const prefText = (p: Pick<Pref, 'value' | 'unit'>) => (typeof p.value === 'boolean' ? (p.value ? 'yes' : 'no') : `${p.value}${p.unit ? ' ' + p.unit : ''}`)
 

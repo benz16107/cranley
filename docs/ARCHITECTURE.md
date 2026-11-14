@@ -43,7 +43,8 @@ Data facts that shape everything (measured on 2026-11-13):
 | geometry | `server/threshold/geometry/`, `server/tests/geometry/` |
 | perception | `server/threshold/vision/`, `server/threshold/aerial/`, `server/tests/perception/` |
 | agent | `server/threshold/agent/`, `server/threshold/tools/` (registry, manifest and result types, one reference tool), `server/threshold/api/agent.py`, `server/tests/agent/` |
-| shell | `web/` except `web/src/scene/` |
+| shell (wave 1), then the integrator | `web/src/core/`, `web/src/main.tsx`, `web/src/skins/registry.ts`, `web/src/skins/sheet/` |
+| one per look | `web/src/skins/<look>/` only; the contract is `web/src/core/README.md` |
 | scene | `web/src/scene/`, `web/scene-lab.html` |
 | later: one per flagship tool | `server/threshold/tools/<tool>/`, `web/src/tools/<tool>/` |
 

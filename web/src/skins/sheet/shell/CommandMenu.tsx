@@ -1,20 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Command } from 'cmdk'
-import { search, CITIES, type Building, type CityId } from '../../../core/buildings.ts'
-import { TOOLS } from '../../../core/fixtures/catalog.ts'
-import { useWorkspace, userOp } from '../../../core/store.ts'
-import { useCatalog } from '../../../core/server.ts'
-import { startOver } from '../../../core/agent.ts'
-import { navigate } from '../../../core/router.ts'
+import { search, CITIES, type Building, type CityId } from '../../../core/index.ts'
+import { useWorkspace, userOp } from '../../../core/index.ts'
+import { useToolCatalog } from '../../../core/index.ts'
+import { startOver } from '../../../core/index.ts'
+import { navigate } from '../../../core/index.ts'
 import { ToolKey } from '../design/ui.tsx'
 
 /** Ctrl K. Also where a tool is added by hand. It opens and closes without animation: it is used too often for one. */
 export function CommandMenu({ open, onClose, all }: { open: false | 'all' | 'tools'; onClose: () => void; all: Building[] }) {
   const [q, setQ] = useState('')
   const tools = useWorkspace((s) => s.doc.tools), undo = useWorkspace((s) => s.undo)
-  // the server's tools when it answers (planned ones last), else the fixture list
-  const served = useCatalog((s) => s.tools)
-  const catalog = useMemo(() => (served.length ? [...served].sort((a, b) => Number(a.status === 'planned') - Number(b.status === 'planned')).map((m) => ({ id: m.id, title: m.title, code: undefined, summary: m.status === 'planned' ? `Planned, not built yet. ${m.summary}` : m.summary })) : Object.values(TOOLS)), [served])
+  const catalog = useToolCatalog()
   useEffect(() => { if (open) setQ('') }, [open])
   const hits = useMemo(() => (q.length >= 3 ? search(all, q, 6) : []), [all, q])
   const run = (fn: () => void) => () => { fn(); onClose() }
@@ -28,7 +25,7 @@ export function CommandMenu({ open, onClose, all }: { open: false | 'all' | 'too
           {catalog.map((t) => {
             const on = tools.some((x) => x.id === t.id)
             return (
-              <Command.Item key={t.id} value={`tool ${t.title} ${t.summary}`} onSelect={run(() => userOp(on ? { op: 'tool.disable', id: t.id } : { op: 'tool.enable', tool: { ...t, reason: 'You added it from the command menu.' } }))}>
+              <Command.Item key={t.id} value={`tool ${t.title} ${t.summary}`} onSelect={run(() => userOp(on ? { op: 'tool.disable', id: t.id } : { op: 'tool.enable', tool: { id: t.id, title: t.title, code: t.code, summary: t.summary, coverage: t.coverage, reason: 'You added it from the command menu.' } }))}>
                 <ToolKey id={t.id} title={t.title} code={t.code} /><span className="grow">{t.title}<small>{t.summary}</small></span><span className="label">{on ? 'Remove' : 'Add'}</span>
               </Command.Item>
             )

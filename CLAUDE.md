@@ -43,8 +43,8 @@ workspace of tools for anyone whose need involves a building. Read `docs/ARCHITE
 Ben wants this to look as good as possible and unlike a generic AI-built dashboard. Before UI work, load
 the design skills (`interfaces:build-design`, `tastemaker:tastemaker`, `emil-design-eng`,
 `make-interfaces-feel-better`) and read `~/.claude/rules/design-tells.md` and `~/.claude/rules/ui-libraries.md`.
-The design tokens and component rules are in `web/src/design/` once the shell workstream lands them; use
-them and add nothing ad hoc.
+The web app is a shared core and one folder per look: read `web/src/core/README.md` first. A look keeps its tokens
+and component rules in its own folder under `web/src/skins/`; use them and add nothing ad hoc.
 
 ## Final report (your last message)
 
