@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Tabs } from '@base-ui/react/tabs'
 import { toast } from 'sonner'
+import { DownloadReport } from '../report/DownloadReport.tsx'
 import { focusFinding, investigate, shareWorkspace, useBuildings, useCatalog, useWorkspace, userOp, type Doc, type Run, type Status } from '../../../core/index.ts'
 import { PanelView } from '../blocks/blocks.tsx'
 import { DataTable, Empty, Icon, IconBtn, RunState, Seg, SourceChip, St, Stats, ToolKey, statusWord, type Col } from '../design/ui.tsx'
@@ -187,6 +188,7 @@ export function Investigation({ id }: { id: string }) {
       <header className="pagehead inv-head">
         <div className="ttl"><h2 className="trunc">{doc.brief?.text ?? 'Untitled investigation'}</h2><p className="muted">{shared ? `Read-only link${shared.expires ? ` · works until ${clock(Date.parse(shared.expires))}` : ''}` : seen ? `First seen here ${clock(seen.first)} · last change ${ago(seen.last)}` : 'Not started'}</p></div>
         <button className="btn" onClick={() => void copyLink()} title="Copy a link that lets someone look, not change anything"><Icon name="link" size={13} />Copy read-only link</button>
+        <DownloadReport workspace={doc.id} name={doc.brief?.text} disabled={!doc.runs.some((r) => r.status === 'done')} />
         <button className="btn" aria-pressed={runOpen} onClick={() => useUi.getState().setRun(!runOpen)}><Icon name="runs" size={14} />Agent panel</button>
       </header>
       <div className="inv-stats">

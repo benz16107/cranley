@@ -12,6 +12,10 @@ final class AppModel {
   /// Ids of the scans this phone uploaded: the server lists every phone's scans, and "Sent from this phone" means this one.
   var mine: [String] { didSet { UserDefaults.standard.set(mine, forKey: "mine") } }
   var lastError: String?
+  /// Field visits started from this phone, newest first.
+  var visits: [VisitRecord] {
+    didSet { UserDefaults.standard.set(try? JSONEncoder().encode(visits), forKey: "visits") }
+  }
 
   init() {
     let saved = UserDefaults.standard.string(forKey: "server").flatMap(URL.init(string:))
@@ -19,6 +23,7 @@ final class AppModel {
     server = saved ?? URL(string: "https://linuxbox.<tailnet>:8470")!
     workspace = UserDefaults.standard.string(forKey: "workspace")
     mine = UserDefaults.standard.stringArray(forKey: "mine") ?? []
+    visits = UserDefaults.standard.data(forKey: "visits").flatMap { try? JSONDecoder().decode([VisitRecord].self, from: $0) } ?? []
   }
 
   var api: ThresholdAPI { ThresholdAPI(base: server) }

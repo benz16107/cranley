@@ -38,7 +38,9 @@ KINDS: dict[str, dict] = {
     "fire": {
         "title": "Fire safety pre-plan",
         "lede": "How many people the space holds, how they get out, and what crews need to know before they arrive.",
-        "tools": [("fire_preplan", {"read_panoramas": False}), ("egress_routes", {}), ("life_safety_census", {})],
+        # smoke alarms come from the ceiling photos taken on the visit (the report's census covers every room people use);
+        # life_safety_census reads bedroom panoramas, which a phone scan of a business has neither of
+        "tools": [("fire_preplan", {"read_panoramas": False}), ("egress_routes", {})],
         "occupancy": True,
         "not_checked": [
             "Sprinklers, the fire alarm panel, extinguishers and their inspection tags, unless photographed below.",

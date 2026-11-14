@@ -81,4 +81,4 @@ schemes:
     test:
       targets: [ThresholdTests, ThresholdUITests]
       environmentVariables:
-        THRESHOLD_SERVER: http://linuxbox:8811
+        THRESHOLD_SERVER: http://linuxbox:8843
