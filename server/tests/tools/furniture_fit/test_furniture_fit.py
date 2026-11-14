@@ -8,6 +8,7 @@ def test_sofa_sticks_at_the_bedroom_door(ctx):
     assert door.status == "fail" and door.measured < 0
     box = next(o for o in r.overlays if o.kind == "box")
     assert box.size == (2.13, 0.97, 0.86) and box.status == "fail" and box.model == "furniture/sofa"
+    assert abs(abs(box.yaw_deg) % 180 - 90) < 1  # end first, square to the door's wall (which runs along x)
 
 
 def test_a_mattress_on_its_edge_passes_the_same_door(ctx):
