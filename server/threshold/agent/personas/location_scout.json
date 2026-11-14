@@ -1,0 +1,18 @@
+{
+  "id": "location_scout",
+  "title": "Film or photo location scout",
+  "who": "Scouts homes and spaces for a shoot: room sizes and ceiling heights, natural light, parking for the trucks, and a step-free way in for carts and gear.",
+  "tools": [
+    "room_sizes",
+    "daylight",
+    "truck_access",
+    "parking_count",
+    "curb_to_door",
+    "step_free_route"
+  ],
+  "thresholds": {},
+  "layout": {
+    "view": "plan",
+    "lead_tool": "room_sizes"
+  }
+}

@@ -12,6 +12,7 @@ import { Copy, Empty, Icon, IconBtn, Menu, MenuBtn, RunState, Seg, SourceChip, S
 import { dur, int, plural } from '../lib/format.ts'
 import { facts } from '../lib/pending.ts'
 import { go, goScan } from '../lib/place.ts'
+import { tally, worstVerdict } from '../lib/verdict.ts'
 import { FAMILIES, useTools, type ToolInfo } from '../lib/tools.ts'
 import { useScheme } from '../shell/theme.ts'
 import { startTool } from '../shell/StartTool.tsx'
@@ -31,8 +32,8 @@ type ShowSpec = NonNullable<SceneView['show']>
 type ShowKind = ShowSpec['kind']
 const SHOWS: { id: ShowKind; label: string; icon: IconName; title: string }[] = [
   { id: 'flood', label: 'Flood', icon: 'drop', title: 'Hurricane Harvey\'s water at this house, hour by hour' },
-  { id: 'fire', label: 'Fire', icon: 'fire', title: 'The Smoke clock\'s fire in these rooms, minute by minute' },
-  { id: 'tour', label: 'Tour', icon: 'walk', title: 'A camera tour of the findings on this scan, read aloud' },
+  { id: 'fire', label: 'Fire', icon: 'fire', title: 'A fire in these rooms and its smoke, minute by minute' },
+  { id: 'tour', label: 'Tour', icon: 'walk', title: 'A camera tour of what was found here, read aloud' },
 ]
 
 /** The transport of whatever is playing on the building: play and pause, the time slider, the clock. It keeps the
@@ -87,30 +88,59 @@ export function RunToolMenu({ sid, trigger }: { sid: string; trigger: React.Reac
   )
 }
 
-function Overview({ plan, sid, panels, onResults }: { plan: ScanPlan; sid: string; panels: Doc['panels']; onResults: (panel: string) => void }) {
+function Summary({ plan, sid, panels, findings, onResults }: { plan: ScanPlan; sid: string; panels: Doc['panels']; findings: F[]; onResults: (panel: string) => void }) {
   const b = useBuildings((s) => s.all.find((x) => x.scans.some((y) => y.sid === sid)))
   const q = plan.quality
   const can: [string, boolean | undefined, string?][] = q ? [
     ['Walls', q.walls, q.walls_source === 'dxf' ? 'recovered from the drawing, not measured' : q.walls_confidence ? `${q.walls_confidence} confidence` : undefined],
     ['Room outlines', q.polygons], ['Doors and windows', q.openings], ['Room names', q.labels], ['Position on the map checked', q.georef],
   ] : []
+  const verdict = worstVerdict(panels)
+  // what a phone on site can settle: a check the scan could not measure, or one it was unsure of
+  const open = findings.filter((f) => f.status === 'unknown' || f.status === 'warn').length
   return (
     <div className="stack ins-pad">
-      <Stats items={[
-        { label: 'Rooms', value: int(plan.rooms.length) }, { label: 'Doorways', value: int(plan.openings.filter((o) => o.type === 'doorway').length) },
-        { label: 'Floors', value: int(plan.floors.length) }, { label: '360° positions', value: int(plan.panos.length) },
-      ]} />
-      <section className="ins-sec">
-        <h3>Results on this scan</h3>
-        {panels.length === 0 ? <p className="muted">No tool has run here yet. Use “Run a tool” above, or ask the agent.</p> : (
+      {/* First: the verdict, in the words of the tool that gave it, and what to do about it. */}
+      {verdict ? (
+        <section className="sum-verdict" aria-label="Verdict">
+          <St status={verdict.status} />
+          <p className="text">{verdict.text}</p>
+          <p className="muted small">{panels.length === 1 ? verdict.title : `${verdict.title} · ${panels.length} results: ${tally(panels)}`}</p>
+          <div className="row wrap">
+            <button type="button" className="btn solid" onClick={() => onResults(verdict.panel)}>{verdict.status === 'pass' ? 'See the checks' : 'See what was checked'}</button>
+            {open > 0 && <button type="button" className="btn" onClick={() => window.dispatchEvent(new Event('threshold:phone'))} title="Pair a phone and settle on site what the scan could not measure"><Icon name="camera" size={13} />Check on site</button>}
+            <button type="button" className="btn quiet" onClick={() => useUi.getState().setRun(true)}>Ask the agent</button>
+          </div>
+        </section>
+      ) : (
+        <section className="sum-verdict" aria-label="Verdict">
+          <p className="text">Nothing has been checked here yet.</p>
+          <p className="muted small">Pick a tool to measure this building, or ask the agent in your own words.</p>
+          <div className="row wrap">
+            <RunToolMenu sid={sid} trigger={<button type="button" className="btn solid"><Icon name="play" size={13} />Run a tool<Icon name="down" size={11} /></button>} />
+            <button type="button" className="btn quiet" onClick={() => useUi.getState().setRun(true)}>Ask the agent</button>
+          </div>
+        </section>
+      )}
+      {panels.length > 1 && (
+        <section className="ins-sec">
+          <h3>Results</h3>
           <ul className="rows">
             {panels.map((p) => {
               const v = p.blocks.find((x) => x.type === 'VerdictHeader')
               return <li key={p.id}><button type="button" onClick={() => onResults(p.id)}><ToolKey id={p.tool} title={p.title} /><span className="grow trunc">{p.title}</span>{v && v.type === 'VerdictHeader' && <St status={v.status} />}</button></li>
             })}
           </ul>
-        )}
-      </section>
+        </section>
+      )}
+      {/* Everything about the scan itself: there when wanted, out of the way of the verdict. */}
+      <details className="ins-fold" open={panels.length === 0 || undefined}>
+        <summary><Icon name="right" size={11} />About this scan</summary>
+        <div className="stack">
+          <Stats items={[
+        { label: 'Rooms', value: int(plan.rooms.length) }, { label: 'Doorways', value: int(plan.openings.filter((o) => o.type === 'doorway').length) },
+        { label: 'Floors', value: int(plan.floors.length) }, { label: '360° positions', value: int(plan.panos.length) },
+          ]} />
       {can.length > 0 && (
         <section className="ins-sec">
           <h3>What this scan can answer</h3>
@@ -132,11 +162,13 @@ function Overview({ plan, sid, panels, onResults }: { plan: ScanPlan; sid: strin
           {plan.geo && <><dt>Position</dt><dd className="num">{plan.geo.lat.toFixed(5)}, {plan.geo.lon.toFixed(5)}</dd></>}
         </dl>
       </section>
+        </div>
+      </details>
       {b && b.scans.length > 1 && (
-        <section className="ins-sec">
-          <h3>Other scans at this address <span className="count">{b.scans.length - 1}</span></h3>
+        <details className="ins-fold">
+          <summary><Icon name="right" size={11} />Other scans at this address<span className="count">{b.scans.length - 1}</span></summary>
           <ul className="rows">{b.scans.filter((x) => x.sid !== sid).slice(0, 30).map((x) => <li key={x.sid}><button type="button" onClick={() => goScan(x.sid)}><Icon name="building" /><span className="grow trunc">{x.name}</span><span className="muted">{plural(x.rooms, 'room')}</span></button></li>)}</ul>
-        </section>
+        </details>
       )}
     </div>
   )
@@ -145,7 +177,7 @@ function Overview({ plan, sid, panels, onResults }: { plan: ScanPlan; sid: strin
 function Evidence({ findings }: { findings: F[] }) {
   const current = useWorkspace((s) => s.doc.camera?.finding)
   const tools = useWorkspace((s) => s.doc.tools)
-  if (!findings.length) return <Empty icon="target" title="No evidence on this scan yet">Each finding a tool makes is listed here and can be shown in the building.</Empty>
+  if (!findings.length) return <Empty icon="target" title="No evidence on this scan yet">Each thing a tool checks is listed here with its photo, and can be shown in the building.</Empty>
   return (
     <ul className="evid">
       {findings.map((f) => {
@@ -331,7 +363,7 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
     }
   }, [showCompare]) // eslint-disable-line react-hooks/exhaustive-deps
   const [picked, setTab] = useState<string | null>(null)
-  const tab = picked ?? (panels.length ? 'results' : 'overview') // until the person picks: results when there are any
+  const tab = picked ?? 'overview' // until the person picks: the summary, which leads with the verdict
 
   const findings = useMemo(() => {
     const mine = new Set(runs.map((r) => r.id))
@@ -422,6 +454,7 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
 
   useEffect(() => { if (v.plan) host?.bind?.({ plan: v.plan, setView: v.setView }); return () => host?.bind?.(null) }, [v.plan]) // eslint-disable-line react-hooks/exhaustive-deps
   const i = b ? b.scans.findIndex((x) => x.sid === sid) : -1
+  const verdict = worstVerdict(panels)
   const tools = doc.tools
   const fault = (text: string): ReactNode => <div className="scene-state"><Empty icon="warn" title={text} action={<button className="btn" onClick={v.retry}>Try again</button>} /></div>
 
@@ -429,7 +462,7 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
       <header className="pagehead">
         <IconBtn icon="back" label="Back to the map" onClick={() => go('explore', { city: b?.metro ?? undefined, b: b?.id })} />
         <div className="ttl">
-          <h2 className="trunc">{v.plan?.name ?? (v.error ? 'Scan not available' : <span className="sk" style={{ width: 180, display: 'inline-block' }} />)}</h2>
+          <h2 className="row">{v.plan ? <span className="trunc">{v.plan.name}</span> : v.error ? 'Scan not available' : <span className="sk" style={{ width: 180, display: 'inline-block' }} />}{verdict && <St status={verdict.status} />}</h2>
           <p className="muted trunc">{v.plan ? [(v.plan.address ?? '').split(',')[0], v.plan.city, plural(v.plan.rooms.length, 'room'), plural(v.plan.floors.length, 'floor')].filter((x) => x && x !== v.plan!.name).join(' · ') : ' '}</p>
         </div>
         {b && b.scans.length > 1 && (
@@ -441,7 +474,7 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
         )}
         {v.plan && <WhatIfMenu sid={sid} plan={v.plan} />}
         <RunToolMenu sid={sid} trigger={<button type="button" className="btn" disabled={!v.plan}><Icon name="play" size={13} />Run a tool<Icon name="down" size={11} /></button>} />
-        <button type="button" className="btn" aria-pressed={v.kept} onClick={v.toggleKeep} disabled={!v.plan} title="Keep this scan in Buildings ( K )"><Icon name="keep" size={14} />{v.kept ? 'Kept' : 'Keep'}</button>
+        <button type="button" className="btn quiet" aria-pressed={v.kept} onClick={v.toggleKeep} disabled={!v.plan} title="Keep this scan in Buildings ( K )"><Icon name="keep" size={14} />{v.kept ? 'Kept' : 'Keep'}</button>
         <DownloadReport workspace={doc.id} sid={sid} name={v.plan?.name} disabled={!runs.some((r) => r.status === 'done')} />
       </header>
   )
@@ -449,30 +482,47 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
         <section className="work" aria-label="Building view">
           <div className="worktools">
             <Seg label="View" value={v.mode} onChange={v.setMode} options={MODES.map((m) => ({ id: m.id, label: m.label, icon: m.icon, disabled: !v.modes.includes(m.id), title: v.plan && !v.modes.includes(m.id) ? m.none : undefined }))} />
-            {/* What the building is drawn from and what stands round it. These edit the scene's view; the scene's own copy of the controls is switched off below. */}
+            {/* What the building is drawn from and what stands round it, behind one button. These edit the scene's view; the scene's own copy of the controls is switched off below. */}
             {v.plan && (v.mode === 'dollhouse' || v.mode === 'splat') && (() => {
               const placed = (v.plan as { geo?: { lat?: number | null } | null }).geo?.lat != null, doll = v.mode === 'dollhouse'
+              const surface = v.view.surface === 'splat' && !interior ? 'scan' : v.view.surface ?? 'model'
+              // one button says how the building looks now and opens the choices: what it is drawn from, what stands round it
+              const lookSaid = [doll ? (surface === 'model' ? 'Measured' : surface === 'scan' ? 'Photoreal' : 'Splat') : 'Drone capture', v.view.env === 'aerial' ? 'on its site' : null].filter(Boolean).join(', ')
               return (
                 <>
-                  {doll && <Seg label="Building drawn from" value={v.view.surface === 'splat' && !interior ? 'scan' : v.view.surface ?? 'model'} onChange={(surface) => { chose.current = sid; v.setView((x) => ({ ...x, surface })) }}
-                    options={[{ id: 'model', label: 'Measured', icon: 'ruler', title: 'Walls, doors and windows as measured in the plan' }, { id: 'scan', label: 'Photoreal', icon: 'camera', title: 'The scanned rooms in photo colour, baked from the panoramas' },
-                      ...(interior ? [{ id: 'splat' as const, label: 'Splat', icon: 'stack' as const, title: 'A Gaussian splat of the rooms, trained from the panoramas' }] : [])]} />}
-                  <Seg label="Surroundings" value={v.view.env ?? 'studio'} onChange={(env) => { chose.current = sid; v.setView((x) => ({ ...x, env })) }}
-                    options={[{ id: 'studio', label: 'Alone', icon: 'building' }, { id: 'aerial', label: 'On its site', icon: 'site', disabled: !placed, title: placed ? 'Its real surroundings, from the aerial survey' : 'This scan has no position, so it cannot be placed on its site' }]} />
-                  {doll && bake.colour === 'baking' && <span className="muted small" role="status" title="The photoreal view of this building is being made from its panoramas. Nothing changes until you choose it.">Photoreal {Math.round(bake.progress * 100)}%</span>}
-                  <MenuBtn trigger={<button type="button" className="btn quiet" aria-label="More ways to look at the building"><Icon name="more" size={14} /></button>}>
-                    <div className="mh">Look</div>
+                  <MenuBtn trigger={<button type="button" className="btn quiet" aria-label={`How the building looks: ${lookSaid}`}><Icon name={surface === 'model' ? 'ruler' : 'camera'} size={14} /><span className="lbl">{lookSaid}</span><Icon name="down" size={11} /></button>}>
+                    {doll && <>
+                      <div className="mh">Drawn from</div>
+                      <Menu.RadioGroup value={surface} onValueChange={(x) => { chose.current = sid; v.setView((w) => ({ ...w, surface: x as typeof surface })) }}>
+                        <Menu.RadioItem value="model" closeOnClick={false}><span className="mi-check"><Menu.RadioItemIndicator><Icon name="check" size={12} /></Menu.RadioItemIndicator></span>Measured<small>walls and doors as measured</small></Menu.RadioItem>
+                        <Menu.RadioItem value="scan" closeOnClick={false}><span className="mi-check"><Menu.RadioItemIndicator><Icon name="check" size={12} /></Menu.RadioItemIndicator></span>Photoreal<small>{bake.colour === 'baking' ? `being made, ${Math.round(bake.progress * 100)}%` : 'the rooms in photo colour'}</small></Menu.RadioItem>
+                        {interior && <Menu.RadioItem value="splat" closeOnClick={false}><span className="mi-check"><Menu.RadioItemIndicator><Icon name="check" size={12} /></Menu.RadioItemIndicator></span>Splat<small>trained from the 360° photos</small></Menu.RadioItem>}
+                      </Menu.RadioGroup>
+                      <hr />
+                    </>}
+                    <div className="mh">Surroundings</div>
+                    <Menu.RadioGroup value={v.view.env ?? 'studio'} onValueChange={(env) => { chose.current = sid; v.setView((w) => ({ ...w, env: env as 'studio' | 'aerial' })) }}>
+                      <Menu.RadioItem value="studio" closeOnClick={false}><span className="mi-check"><Menu.RadioItemIndicator><Icon name="check" size={12} /></Menu.RadioItemIndicator></span>Alone</Menu.RadioItem>
+                      <Menu.RadioItem value="aerial" closeOnClick={false} disabled={!placed}><span className="mi-check"><Menu.RadioItemIndicator><Icon name="check" size={12} /></Menu.RadioItemIndicator></span>On its site<small>{placed ? 'from the aerial survey' : 'this scan has no position'}</small></Menu.RadioItem>
+                    </Menu.RadioGroup>
+                    <hr />
                     <Menu.CheckboxItem checked={v.view.style === 'xray'} onCheckedChange={(yes) => v.setView((x) => ({ ...x, style: yes ? 'xray' : 'solid' }))}>
                       <span className="mi-check"><Menu.CheckboxItemIndicator><Icon name="check" size={12} /></Menu.CheckboxItemIndicator></span>{doll ? 'Walls as glass (x-ray)' : 'Measured model inside the capture'}
                     </Menu.CheckboxItem>
-                    {doll && <><hr />
-                      <Menu.Item onClick={() => v.setView((x) => ({ ...x, tour: (x.tour ?? 0) + 1 }))}>Fly in from above</Menu.Item></>}
+                    {doll && <Menu.Item onClick={() => v.setView((x) => ({ ...x, tour: (x.tour ?? 0) + 1 }))}><span className="mi-check" />Fly in from above</Menu.Item>}
                   </MenuBtn>
                 </>
               )
             })()}
             <span className="grow" />
             {wi.after && <button type="button" className="btn quiet" aria-pressed={showCompare} onClick={() => setCompare(!showCompare)} title="The plan as it is beside the plan after the what-if edits"><Icon name="split" size={14} /><span className="lbl">Now and after</span></button>}
+            {/* Play something on the building: a flood, a fire, a tour. Each says what it is before it starts. */}
+            {v.plan && (
+              <MenuBtn align="end" trigger={<button type="button" className="btn quiet" aria-pressed={!!spec}><Icon name="play" size={13} /><span className="lbl">Play</span><Icon name="down" size={11} /></button>}>
+                <div className="mh">Play on the building</div>
+                {SHOWS.map((x) => <Menu.Item key={x.id} className="mi two" onClick={() => play(x.id)}><Icon name={x.icon} /><span className="grow"><b>{x.label}{spec?.kind === x.id && ' (playing, stop)'}</b><span className="s">{x.title}</span></span></Menu.Item>)}
+              </MenuBtn>
+            )}
             {drawn.length > 0 && (
               <MenuBtn align="end" trigger={<button type="button" className="btn quiet" aria-label={`Overlays: ${on.length} of ${drawn.length} tools drawn on the building`}><Icon name={on.length ? 'eye' : 'eyeoff'} size={14} /><span className="lbl">Overlays</span><span className="count">{on.length} of {drawn.length}</span></button>}>
                 <div className="mh">Draw on the building</div>
@@ -488,11 +538,11 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
             )}
             <IconBtn icon="expand" label="Show the whole building" onClick={v.stepBack} disabled={!v.plan} />
           </div>
-          {/* The play row: start a flood, a fire or a tour on the building; its transport sits beside the choice. */}
-          {v.plan && (
-            <div className="worktools" role="group" aria-label="Play on the building">
-              <Seg<ShowKind | 'none'> label="Play on the building" value={spec?.kind ?? 'none'} onChange={(k) => play(k === 'none' ? null : k)} options={SHOWS} />
-              {spec && <Transport spec={spec} sink={sink} set={setSpec} seek={seek} close={() => play(null)} />}
+          {/* What is playing on the building, with its transport. The row is there only while something plays. */}
+          {v.plan && spec && (
+            <div className="worktools playing" role="group" aria-label={`Playing: ${SHOWS.find((x) => x.id === spec.kind)?.label}`}>
+              <b className="lbl">{SHOWS.find((x) => x.id === spec.kind)?.label}</b>
+              <Transport spec={spec} sink={sink} set={setSpec} seek={seek} close={() => play(null)} />
             </div>
           )}
           <div className="scene-host">
@@ -517,14 +567,13 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
   const insp = (
         <Tabs.Root className="insp" value={tab} onValueChange={(t) => setTab(String(t))} aria-label="Inspector">
           <Tabs.List className="tabs">
-            <Tabs.Tab value="overview">Overview</Tabs.Tab>
+            <Tabs.Tab value="overview">Summary</Tabs.Tab>
             <Tabs.Tab value="results">Results{panels.length > 0 && <span className="count">{panels.length}</span>}{working.length > 0 && <i className="ring" />}{working.length === 0 && failed.length > 0 && <span className="faildot" role="img" aria-label={`${failed.length} failed`} />}</Tabs.Tab>
             <Tabs.Tab value="evidence">Evidence{findings.length > 0 && <span className="count">{findings.length}</span>}</Tabs.Tab>
             <Tabs.Tab value="record">Record</Tabs.Tab>
-            <Tabs.Tab value="history">History{runs.length > 0 && <span className="count">{runs.length}</span>}</Tabs.Tab>
           </Tabs.List>
           <Tabs.Panel value="overview" className="insp-body scroll">
-            {v.plan ? <Overview plan={v.plan} sid={sid} panels={panels} onResults={(id) => { setChosen(id); setPick(null); setTab('results') }} />
+            {v.plan ? <Summary plan={v.plan} sid={sid} panels={panels} findings={findings} onResults={(id) => { setChosen(id); setPick(null); setTab('results') }} />
               : v.error ? <Empty icon="building" title="Nothing to show for this scan" action={<button className="btn" onClick={() => go('explore')}>Back to the map</button>}>{v.error}</Empty>
               : <div className="ins-pad stack">{[60, 80, 45].map((w, k) => <span key={k} className="sk" style={{ width: `${w}%` }} />)}</div>}
           </Tabs.Panel>
@@ -548,10 +597,11 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
             {/* a rollup or a search run from here is about no one scan: it stays within reach, folded, under its own heading */}
             {citywide.length > 0 && <h3 className="insp-h">Across the city, in this investigation<span className="count">{citywide.length}</span></h3>}
             {[...citywide].reverse().map((p) => <PanelView key={p.id} panel={p} folded />)}
+            {/* every run on this scan, with how long it took: the working, for whoever wants it */}
+            {runs.length > 0 && <details className="ins-fold flush"><summary><Icon name="right" size={11} />Run history<span className="count">{runs.length}</span></summary><History sid={sid} runs={runs} /></details>}
           </Tabs.Panel>
           <Tabs.Panel value="evidence" className="insp-body scroll"><Evidence findings={findings} /></Tabs.Panel>
           <Tabs.Panel value="record" className="insp-body scroll"><Record sid={sid} /></Tabs.Panel>
-          <Tabs.Panel value="history" className="insp-body scroll"><History sid={sid} runs={runs} /></Tabs.Panel>
         </Tabs.Root>
   )
   if (host) return <>{createPortal(head, host.head)}{createPortal(work, host.stage)}{createPortal(insp, host.side)}</>

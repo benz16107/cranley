@@ -125,7 +125,7 @@ function Setup() {
 function Continue({ doc }: { doc: Doc }) {
   const status = statusOf(doc), open = doc.questions.filter((q) => q.answer == null).length
   const failed = doc.runs.filter((r) => r.status === 'failed').length, done = doc.plan.filter((s) => s.status === 'done').length
-  const facts = [doc.plan.length ? `${done} of ${doc.plan.length} steps` : null, plural(doc.runs.length, 'run'), plural(doc.findings.length, 'finding'), doc.shortlist.length ? `${int(doc.shortlist.length)} kept` : null].filter(Boolean)
+  const facts = [doc.plan.length ? `${done} of ${doc.plan.length} steps` : null, plural(doc.findings.length, 'check'), doc.shortlist.length ? `${int(doc.shortlist.length)} kept` : null].filter(Boolean)
   return (
     <section className="h-sec h-open" aria-labelledby="cont-h">
       <header><h2 id="cont-h">Continue</h2></header>
@@ -280,8 +280,7 @@ export function Home() {
     { id: 'brief', label: 'Investigation', fixed: true, cell: (s) => <span className="strong">{s.brief || 'Tools run by hand'}</span> },
     ...(others.some((s) => s.sids?.some((sid) => where.has(sid))) ? [{ id: 'where', label: 'Buildings', width: 100, cell: (s) => <span className="minis">{(s.sids ?? []).flatMap((sid) => { const b = where.get(sid); return b ? [<Aerial key={sid} lat={b.lat} lon={b.lon} />] : [] })}</span> } satisfies Col<Seen>] : []),
     { id: 'status', label: 'Status', width: 140, cell: (s) => <RunState state={STATUS[s.status].state}>{STATUS[s.status].label}</RunState> },
-    { id: 'runs', label: 'Runs', num: true, width: 60, cell: (s) => int(s.runs) },
-    { id: 'findings', label: 'Findings', num: true, width: 76, cell: (s) => int(s.findings) },
+    { id: 'findings', label: 'Checks', num: true, width: 76, cell: (s) => int(s.findings) },
     { id: 'last', label: 'Last change', width: 120, cell: (s) => <span className="dim">{ago(s.last)}</span> },
   ]
   return (
