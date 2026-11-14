@@ -1,4 +1,4 @@
-import type { ScanPlan } from '../workspace/types.ts'
+import type { ScanPlan } from './types.ts'
 
 const plans = new Map<string, Promise<ScanPlan>>()
 /** One request per scan per session. The server caches on disk; this keeps the shared keys quiet. */

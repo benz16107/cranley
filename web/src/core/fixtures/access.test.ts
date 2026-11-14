@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { accessAudit, findEntrance, widestRoutes } from './access.ts'
-import type { ScanPlan } from '../workspace/types.ts'
+import type { ScanPlan } from '../types.ts'
 
 // A hand-made flat: hall -> living -> bedroom, hall -> bathroom, and a second, wider way into the bedroom.
 const sq = (x: number, y: number, w: number, h: number): [number, number][] => [[x, y], [x + w, y], [x + w, y + h], [x, y + h]]

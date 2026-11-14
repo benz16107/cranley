@@ -4,10 +4,10 @@ import { Popover } from '@base-ui/react/popover'
 import { Slider } from '@base-ui/react/slider'
 import { toast } from 'sonner'
 import { useMap } from './CityMap.tsx'
-import { CITIES, KINDS, ROOMS_MAX, search, type Building, type CityId, type Filters, type Kind } from './buildings.ts'
+import { CITIES, KINDS, ROOMS_MAX, search, type Building, type CityId, type Filters, type Kind } from '../../../core/buildings.ts'
 import { Icon, SourceChip } from '../design/ui.tsx'
-import { navigate, setQuery } from '../lib/router.ts'
-import { useWorkspace, userOp } from '../workspace/store.ts'
+import { navigate, setQuery } from '../../../core/router.ts'
+import { useWorkspace, userOp } from '../../../core/store.ts'
 
 /* ---------- the neatline: a frame with coordinate ticks, as on a printed map sheet ---------- */
 const STEPS = [60, 30, 20, 10, 5, 2, 1, 0.5, 0.25, 1 / 12] // arc minutes

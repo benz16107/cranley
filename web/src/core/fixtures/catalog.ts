@@ -1,5 +1,5 @@
-import type { Question, ToolRef } from '../workspace/types.ts'
-import type { CityId } from '../map/buildings.ts'
+import type { Question, ToolRef } from '../types.ts'
+import type { CityId } from '../buildings.ts'
 
 /* Fixtures: the tool list and the starting points the front door offers when the agent server is not running.
    The real list comes from GET /api/tools. No building data lives here. */

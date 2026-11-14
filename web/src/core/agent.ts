@@ -2,11 +2,11 @@ import { toast } from 'sonner'
 import { dispatch, useWorkspace } from './store.ts'
 import type { Action, Block, Doc, Op, OpInput, Panel, Question, ScanPlan, ToolResult } from './types.ts'
 import * as server from './server.ts'
-import { fetchPlan } from '../lib/api.ts'
-import { currentRoute, navigate } from '../lib/router.ts'
-import { CITIES, useBuildings, type Building, type CityId } from '../map/buildings.ts'
-import { ACCESS_DEFAULTS, accessAudit, accessPanel, type AccessPrefs } from '../fixtures/access.ts'
-import { matchNeed, NEEDS, TOOLS, type Need } from '../fixtures/catalog.ts'
+import { fetchPlan } from './api.ts'
+import { currentRoute, navigate } from './router.ts'
+import { CITIES, useBuildings, type Building, type CityId } from './buildings.ts'
+import { ACCESS_DEFAULTS, accessAudit, accessPanel, type AccessPrefs } from './fixtures/access.ts'
+import { matchNeed, NEEDS, TOOLS, type Need } from './fixtures/catalog.ts'
 
 /* The link to the agent. With a server (server.ts) the server owns the workspace: turns stream its ops and the
    shell shows the document after each. When no server answers it plays fixtures: scripted ops through the same

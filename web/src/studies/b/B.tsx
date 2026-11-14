@@ -3,7 +3,7 @@
 import { useMemo, type ReactNode } from 'react'
 import { ScatterplotLayer } from 'deck.gl'
 import { BuildingScene } from '../../scene/BuildingScene.tsx'
-import type { MapPalette } from '../../map/style.ts'
+import type { MapPalette } from '../../core/basemap.ts'
 import type { View } from '../../scene/types.ts'
 import { StudyMap, type Pin } from '../StudyMap.tsx'
 import { BRIEF, NONE, PREFS, STARTERS, doorOf, lookAtDoor, m2, rank, sceneOverlays, scenePlan, useAudit, useAudits, useCity, type Audit, type Place } from '../data.ts'

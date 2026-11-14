@@ -1,11 +1,11 @@
 // What every study shows: one real investigation, read live from the API. Nothing here is typed in by hand
 // except scan ids and the brief; every count and width on screen comes from /api or from the audit's result object.
 import { useEffect, useState } from 'react'
-import { fetchPlan } from '../lib/api.ts'
-import { accessAudit, type AccessPrefs } from '../fixtures/access.ts'
+import { fetchPlan } from '../core/api.ts'
+import { accessAudit, type AccessPrefs } from '../core/fixtures/access.ts'
 import { buildModel, sightBlocked } from '../scene/model.ts'
 import type { Overlay as SceneOverlay, ScanPlan as ScenePlan, View } from '../scene/types.ts'
-import type { Check, ScanPlan, ToolResult } from '../workspace/types.ts'
+import type { Check, ScanPlan, ToolResult } from '../core/types.ts'
 
 /** The house the studies are about. Which scan is sponsor data, so no id is written here: `?sid=<scan>` picks it and
     is remembered in this browser; with none, it is the first Houston house with a drone capture in the feed. */

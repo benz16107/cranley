@@ -2,15 +2,15 @@ import { Component, lazy, Suspense, useEffect, useMemo, useRef, useState, type R
 import { Drawer } from 'vaul'
 import { CityMap, useMap, type GeoMarks } from '../map/CityMap.tsx'
 import { AddressSearch, BuildingCard, Callout, FilterBar, HoverTip, Neatline, TitleBlock } from '../map/MapFurniture.tsx'
-import { CITIES, matches, readFilters, useBuildings, type CityId } from '../map/buildings.ts'
+import { CITIES, matches, readFilters, useBuildings, type CityId } from '../../../core/buildings.ts'
 import { Icon, Mark } from '../design/ui.tsx'
-import { navigate, setQuery, useRoute } from '../lib/router.ts'
-import { fetchPlan } from '../lib/api.ts'
-import { useWorkspace, userOp } from '../workspace/store.ts'
-import type { Anchor, ScanPlan } from '../workspace/types.ts'
-import type { Mode, Overlay as SceneOverlay, Pick, ScanPlan as ScenePlan, View } from '../scene/types.ts'
-import { PanelView, focusAnchor, focusFinding } from '../workspace/blocks.tsx'
-import { replayDemo } from '../workspace/agent.ts'
+import { navigate, setQuery, useRoute } from '../../../core/router.ts'
+import { fetchPlan } from '../../../core/api.ts'
+import { useWorkspace, userOp } from '../../../core/store.ts'
+import type { Anchor, ScanPlan } from '../../../core/types.ts'
+import type { Mode, Overlay as SceneOverlay, Pick, ScanPlan as ScenePlan, View } from '../../../scene/types.ts'
+import { PanelView, focusAnchor, focusFinding } from '../blocks/blocks.tsx'
+import { replayDemo } from '../../../core/agent.ts'
 import { BriefCard, Dock, LearnedCard, PlanCard } from './Case.tsx'
 import { anchorFloor } from './PlanDrawing.tsx'
 import { CommandMenu } from './CommandMenu.tsx'
@@ -18,7 +18,7 @@ import { FrontDoor } from '../door/FrontDoor.tsx'
 import { useScheme, useTheme } from './theme.ts'
 
 /* The scene workstream's <BuildingScene plan overlays view onPick />. The shell never reaches into three.js. */
-const BuildingScene = lazy(() => import('../scene/BuildingScene.tsx').then((m) => ({ default: m.BuildingScene })))
+const BuildingScene = lazy(() => import('../../../scene/BuildingScene.tsx').then((m) => ({ default: m.BuildingScene })))
 const MODES: [Mode, string][] = [['dollhouse', '3D'], ['plan', 'Plan'], ['pano', 'Inside'], ['splat', 'Drone']]
 
 /** A fault inside the 3D view stays inside it: the panels, the map and the dock keep working. */

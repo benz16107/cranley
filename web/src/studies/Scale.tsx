@@ -1,6 +1,6 @@
 // Measured against the limit, on one line: where each doorway sits and where the user's limit is.
 // Anything wider than the scale is pinned to its end with an arrow. Colours come from the direction (currentColor, --scale-ground).
-import type { Check } from '../workspace/types.ts'
+import type { Check } from '../core/types.ts'
 import { m2 } from './data.ts'
 
 export function Scale({ doors, limit, lo = 0.3, hi = 1.1 }: { doors: Check[]; limit: number; lo?: number; hi?: number }) {

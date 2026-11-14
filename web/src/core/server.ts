@@ -3,8 +3,8 @@ import { toast } from 'sonner'
 import { useWorkspace } from './store.ts'
 import type { Op } from './types.ts'
 import { toDoc, toServerOp, type J, type Manifest, type Names } from './serverDoc.ts'
-import { currentRoute, navigate } from '../lib/router.ts'
-import { useBuildings } from '../map/buildings.ts'
+import { currentRoute, navigate } from './router.ts'
+import { useBuildings } from './buildings.ts'
 
 /* The live link to the agent server: one workspace id (kept in localStorage so a reload shows the same workspace),
    turns as server-sent events, user ops, and tool runs. serverDoc.ts turns what comes back into the shell's Doc. */

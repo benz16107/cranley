@@ -1,4 +1,4 @@
-import type { Check, Finding, Overlay, Panel, Pt, ScanPlan, Source, Status, ToolResult } from '../workspace/types.ts'
+import type { Check, Finding, Overlay, Panel, Pt, ScanPlan, Source, Status, ToolResult } from '../types.ts'
 
 /* Fixtures only: a step-free access audit worked out in the browser from a ScanPlan, so the shell can be
    reviewed without the agent or the geometry engine. Every number below comes from the plan's own geometry

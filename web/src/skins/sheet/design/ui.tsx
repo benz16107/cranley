@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Popover } from '@base-ui/react/popover'
-import type { Source, Status } from '../workspace/types.ts'
+import type { Source, Status } from '../../../core/types.ts'
 
 /* Icons: Phosphor (regular), MIT. One set, drawn with currentColor. */
 const ICONS = {

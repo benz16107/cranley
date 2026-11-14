@@ -1,11 +1,11 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import './design/base.css'
-import './shell/shell.css'
-import './map/map.css'
-import './workspace/blocks.css'
-import './door/door.css'
-import App from './App.tsx'
+import './skins/sheet/design/base.css'
+import './skins/sheet/shell/shell.css'
+import './skins/sheet/map/map.css'
+import './skins/sheet/blocks/blocks.css'
+import './skins/sheet/door/door.css'
+import App from './skins/sheet/App.tsx'
 
 const root = createRoot(document.getElementById('root')!)
 // /study/* is the design studies (web/src/studies), loaded only there. Everything else is the shell.

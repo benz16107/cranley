@@ -2,9 +2,9 @@ import { useEffect, useRef, type RefObject } from 'react'
 import { create } from 'zustand'
 import { MapLibreOverlay } from '@deck.gl/maplibre'
 import { ContourLayer, PathLayer, ScatterplotLayer, TextLayer } from 'deck.gl'
-import { Map as MapLibre } from './maplibre.ts'
-import { mapStyle } from './style.ts'
-import { CITIES, type Building, type CityId } from './buildings.ts'
+import { Map as MapLibre } from '../../../core/maplibre.ts'
+import { mapStyle } from '../../../core/basemap.ts'
+import { CITIES, type Building, type CityId } from '../../../core/buildings.ts'
 import { tokenCss, tokenRgba } from '../design/ui.tsx'
 
 /** The live map and a counter that ticks when the view moves, for the furniture drawn around it. */

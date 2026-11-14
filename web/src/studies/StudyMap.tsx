@@ -4,8 +4,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { MapLibreOverlay } from '@deck.gl/maplibre'
 import type { Layer } from 'deck.gl'
-import { Map as MapLibre, Marker } from '../map/maplibre.ts'
-import { mapStyle, type MapPalette } from '../map/style.ts'
+import { Map as MapLibre, Marker } from '../core/maplibre.ts'
+import { mapStyle, type MapPalette } from '../core/basemap.ts'
 
 export type Pin = { key: string; lon: number; lat: number; node: ReactNode; anchor?: 'bottom' | 'center' | 'bottom-left' | 'left' }
 export type Camera = { center: [number, number]; zoom: number; pitch?: number; bearing?: number }

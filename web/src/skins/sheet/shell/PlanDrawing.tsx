@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Anchor, BuildingSceneProps, Overlay, Pt, ScanPlan, Status } from '../workspace/types.ts'
+import type { Anchor, BuildingSceneProps, Overlay, Pt, ScanPlan, Status } from '../../../core/types.ts'
 
 /* A floor plan drawn from the wall graph in the manner of an architect's sheet: walls at their real thickness,
    door swings, room names and areas. It stands where <BuildingScene> will go (same props) until the scene

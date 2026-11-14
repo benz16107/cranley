@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Command } from 'cmdk'
-import { search, CITIES, type Building, type CityId } from '../map/buildings.ts'
-import { TOOLS } from '../fixtures/catalog.ts'
-import { useWorkspace, userOp } from '../workspace/store.ts'
-import { useCatalog } from '../workspace/server.ts'
-import { startOver } from '../workspace/agent.ts'
-import { navigate } from '../lib/router.ts'
+import { search, CITIES, type Building, type CityId } from '../../../core/buildings.ts'
+import { TOOLS } from '../../../core/fixtures/catalog.ts'
+import { useWorkspace, userOp } from '../../../core/store.ts'
+import { useCatalog } from '../../../core/server.ts'
+import { startOver } from '../../../core/agent.ts'
+import { navigate } from '../../../core/router.ts'
 import { ToolKey } from '../design/ui.tsx'
 
 /** Ctrl K. Also where a tool is added by hand. It opens and closes without animation: it is used too often for one. */
