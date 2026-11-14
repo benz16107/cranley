@@ -67,6 +67,8 @@ def history(doc: dict, where: Where = scan_place) -> list[dict]:
     for s in doc.get("shortlist", []):
         out.append({**base, **place(s["sid"]), "_id": f"{ws}:s:{s['sid']}", "kind": "shortlist",
                     "title": "Shortlisted", "text": s.get("note") or ""})
+    for x in out:  # one field for meaning search: Atlas automated embedding embeds a single path
+        x["body"] = ". ".join(v for v in (x.get("title"), x.get("text"), x.get("reason")) if v)
     return out
 
 

@@ -634,12 +634,19 @@ class Investigation:
     def history(self, text: str | None = None, kind: str | None = None, tool: str | None = None,
                 status: str | None = None, feedback: str | None = None, city: str | None = None) -> dict:
         """The person's past work across their workspaces."""
-        res = self.s.store.search(text, 12, profile=self.s.base.profile, kind=kind, tool=tool, status=status,
-                                  feedback=feedback, city=city)
-        keep = ("workspace", "kind", "sid", "address", "city", "tool", "status", "title", "feedback", "reason", "finding")
+        flt = dict(profile=self.s.base.profile, kind=kind, tool=tool, status=status, feedback=feedback, city=city)
+        res = self.s.store.search(text, 12, **flt)
+        hits = res["hits"]
+        if text and hasattr(self.s.store, "hybrid"):  # words and meaning, merged by $rankFusion
+            try:
+                hits = self.s.store.hybrid(text, 12, **flt)
+            except Exception:  # noqa: BLE001 - a refused embedding falls back to words alone
+                pass
+        keep = ("workspace", "kind", "sid", "address", "city", "tool", "status", "title", "feedback", "reason", "finding",
+                "matched_by")
         return {"total": res["total"], "facets": res["facets"],
                 "hits": [{**{k: h.get(k) for k in keep if h.get(k) is not None}, "here": h["workspace"] == self.s.base.id}
-                         for h in res["hits"]]}
+                         for h in hits]}
 
     # ---- approvals before slow or expensive steps (deepagents human-in-the-loop) ----
     def always_allowed(self, tool: str) -> bool:

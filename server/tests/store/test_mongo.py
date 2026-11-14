@@ -193,3 +193,19 @@ def test_an_op_whose_search_items_fail_still_counts(ms, monkeypatch):
     monkeypatch.setattr(ms, "derive", lambda d: (_ for _ in ()).throw(RuntimeError("embedding model offline")))
     s.submit({"op": "tool.enable", "tool": "door_widths"}, by="user")
     assert [e.seq for e in s.log] == [1] and [e.seq for e in Session.load(s.base.id, store=ms).log] == [1]
+
+
+def test_hybrid_search_merges_words_and_meaning(ms):
+    assert ms.wait_ready(120)
+    s = Session.create(profile="pat", store=ms)
+    s.submit({"op": "brief.set", "text": "Wheelchair user", "scope": {"sids": ["t1", "t2", "t3"]}}, by="user")
+    s.submit(finding("f1", "Bathroom door too narrow", "The doorway is narrower than the chair"), by="user")
+    s.submit(finding("f2", "No sprinklers seen in the hallway", tool="fire_preplan", status="warn", sid="t3"), by="user")
+    s.submit(finding("f3", "Step at the entrance", tool="step_free_route", sid="t2"), by="user")
+    Session.create(profile="sam", store=ms).submit(finding("g1", "Bathroom door too narrow"), by="user")
+    # no word in common with f1: only the meaning half can find it
+    hits = until(lambda: [h for h in ms.hybrid("could not roll into the toilet", profile="pat", kind="finding")])
+    assert hits[0]["finding"] == "f1" and hits[0]["matched_by"] == ["meaning"]
+    both = until(lambda: (h := ms.hybrid("bathroom door", profile="pat")) and h[0]["finding"] == "f1" and h)
+    assert both[0]["matched_by"] == ["meaning", "words"] and all(h.get("workspace") for h in both)
+    assert all(h.get("finding") != "g1" for h in both)  # another profile's work never shows
