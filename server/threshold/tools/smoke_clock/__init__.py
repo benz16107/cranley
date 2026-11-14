@@ -19,7 +19,7 @@ from pydantic import BaseModel
 
 from ...config import CACHE
 from ...geometry import room_graph
-from ...geometry._plan import default_ceiling, floor_z, polygons, rooms_by_id
+from ...geometry._plan import default_ceiling, floor_z, polygons
 from .. import (
     Assumption,
     Check,

@@ -31,7 +31,7 @@ from .. import (
     tool,
 )
 from ..types import GeoAnchor, Media, ScansScope, SelectRooms
-from .common import BEDROOM, VisionBudget, floor_label, labels_ok, live_rooms, name, objects, scope_sids, walls_ok
+from .common import BEDROOM, VisionBudget, floor_label, live_rooms, name, objects, scope_sids, walls_ok
 
 STANDARD = "NFPA 1620 (2015)"
 SHEETS = CACHE / "tools" / "fire_preplan"
@@ -193,7 +193,7 @@ def build(ctx, inputs: Inputs) -> tuple[ToolResult, dict]:
     exits_ll = []
     for plan in plans:
         sid = plan["sid"]
-        rooms = rooms_by_id(plan)
+        rooms_by_id(plan)
         lv = live_rooms(plan)
         bedrooms += sum(r.get("label") == BEDROOM for r in lv)
         tag = f"{(plan.get('name') or sid)[:36]}: " if multi else ""

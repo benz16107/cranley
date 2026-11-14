@@ -12,8 +12,21 @@ from pydantic import BaseModel
 
 from ...geometry import to_latlon
 from ...geometry._plan import polygons
-from .. import Action, Assumption, Check, Finding, Metric, RoomAnchor, ScanScope, Source, ToolResult, Verdict, field, tool
-from ..fire_preplan.common import BEDROOM, live_rooms, name
+from .. import (
+    Action,
+    Assumption,
+    Check,
+    Finding,
+    Metric,
+    RoomAnchor,
+    ScanScope,
+    Source,
+    ToolResult,
+    Verdict,
+    field,
+    tool,
+)
+from ..fire_preplan.common import BEDROOM, live_rooms
 from ..fire_preplan.site import COMPASS, SIDE_NAMES, bearing, metres, side_of
 from ..types import Media
 

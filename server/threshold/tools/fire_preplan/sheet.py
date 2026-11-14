@@ -111,7 +111,7 @@ def _plan_svg(plan: dict, a: dict, seen: dict, small: bool = False) -> str:
               if r["floor"] == f and polys.get(r["id"]) is not None and r.get("label") != "Void"]
         shapes[f] = rs
     allpts = [p for rs in shapes.values() for _, pts in rs for p in pts]
-    w = max(p[0] for p in allpts) - min(p[0] for p in allpts)
+    max(p[0] for p in allpts) - min(p[0] for p in allpts)
     h = max(p[1] for p in allpts) - min(p[1] for p in allpts)
     gap = 2.5
     out, xoff = [], 0.0
