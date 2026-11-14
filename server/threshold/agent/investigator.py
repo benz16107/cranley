@@ -44,6 +44,7 @@ from .workspace import (
     PanelUpsert,
     PlanSet,
     PlanStep,
+    PrefSet,
     Question,
     QuestionAsk,
     RankedColumn,
@@ -258,8 +259,8 @@ class Investigation:
             return {"run": rec.id, "error": str(e)}
         self.emit(RunFinish(id=rec.id, status="done", summary=result.verdict.text, steps=ctx.steps, result=result,
                             run=rec.id))
-        hidden = prefs.muted(self.s.doc)
-        shown = [f for f in result.findings if f.id not in hidden]
+        hidden, off = prefs.muted(self.s.doc), prefs.less(self.s.doc)  # one finding rejected; a kind marked not relevant
+        shown = [f for f in result.findings if f.id not in hidden and prefs.kind(tool_id, f.title)[0] not in off]
         for f in shown:
             self.emit(FindingAdd(finding=WsFinding(**f.model_dump(), run=rec.id, tool=tool_id), run=rec.id))
         target_of = {r.id: target(r) for r in self.s.doc.runs}
@@ -286,6 +287,7 @@ class Investigation:
                 "findings": [{"id": f.id, "status": f.status, "title": f.title} for f in
                              sorted(shown, key=lambda f: RANK[f.status])[:8]],
                 "more_findings": max(0, len(shown) - 8), "hidden_because_rejected": len(result.findings) - len(shown),
+                "kept_back_as_not_relevant_to_them": sum(1 for f in result.findings if prefs.kind(tool_id, f.title)[0] in off),
                 # the person's own answers and edits apart from the persona's defaults, so the model never calls
                 # an answer the person just gave a "saved setting"
                 "inputs_the_person_gave": [k for k, v in used.items() if v in self.s.doc.prefs or v in self.s.doc.brief.facts],
@@ -476,7 +478,8 @@ class Investigation:
         if not tools:
             return {"error": "none of these candidates has a finished run; investigate them first"}
         lead = personas().get(self.s.doc.brief.persona or "")
-        lead = lead.layout.lead_tool if lead and lead.layout.lead_tool in tools else max(set(tools), key=tools.count)
+        liked = prefs.favourite(self.s.doc, set(tools))  # the tool whose checks the person marked useful most leads
+        lead = liked or (lead.layout.lead_tool if lead and lead.layout.lead_tool in tools else max(set(tools), key=tools.count))
         rows = [latest[c][lead] for c in candidates if lead in latest.get(c, {})]
         cols = [RankedColumn(metric=x.id, label=x.label, better="lower" if "too" in x.id or "fail" in x.id else "higher")
                 for x in rows[0].result.metrics if "." not in x.id][:4]
@@ -486,7 +489,8 @@ class Investigation:
                 dropped.append(c)
             else:
                 notes.append(Note(text=short(f"{i + 1}. {self.label(c)}: {why}")))
-        blocks = [RankedTable(title=f"Ranked by {catalog()[lead].title}", columns=cols, rows=[r.id for r in rows]), *notes]
+        blocks = [RankedTable(title=f"Ranked by {catalog()[lead].title}", columns=cols, rows=[r.id for r in rows]),
+                  *([Note(text=f"Ranked by {catalog()[lead].title} because you marked its checks useful.")] if liked else []), *notes]
         ok = self.emit(PanelUpsert(panel=Panel(id="agent:ranked", title="Ranked for you", blocks=blocks)))
         return {"ok": ok, "ranked_by": lead, "rows": len(rows),
                 "reasons_dropped_for_measurements": dropped}
@@ -878,6 +882,10 @@ def turn(session: Session, text: str | None = None, sids: list[str] | None = Non
                 session.submit(op)
             except Rejected:
                 pass
+        who = session.doc.brief
+        if who.persona:  # who they are goes to the profile, so the next investigation starts from it
+            session.submit(PrefSet(by="system", key="who.persona", value=who.persona, origin=prefs.origin(session.doc, "answer"),
+                                   reason=f"From your brief: {who.summary}" if who.summary else "From your brief"))
         text = None
     open_qs = [q for q in session.doc.questions if not q.answered]
     if open_qs:
