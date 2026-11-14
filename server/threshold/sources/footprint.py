@@ -55,7 +55,7 @@ def footprint_enu(plan: dict, footprint_wkt: str | None = None) -> Polygon | Non
 
 
 def outline_enu(plan: dict, outline: Polygon, **conv) -> Polygon:
-    return Polygon([georef.to_enu(plan, x, y, **conv) for x, y in outline.exterior.coords])
+    return Polygon([georef.to_enu(plan, x, y, raw=True, **conv) for x, y in outline.exterior.coords])
 
 
 def _iou(a: Polygon, b: Polygon) -> float:

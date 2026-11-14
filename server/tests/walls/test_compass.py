@@ -64,3 +64,26 @@ def test_real_house_fits_its_footprint(sid):
         pytest.skip("run scripts/check_compass.py or load the plan once to cache the fit")
     fit = json.loads(f.read_text())["fit"]
     assert footprint.verdict(fit) and abs(fit["rotation_deg"]) < 8
+
+
+def test_verified_fit_moves_georef_and_marks_quality():
+    from threshold.scanplan import apply_georef_fit
+    plan = house()
+    plan["quality"] = {"georef": False, "counts": {}, "notes": []}
+    fit = footprint.fit(plan, footprint_for(plan, turn=4.0, shift=(1.5, -2.0)))
+    before = georef.to_enu(plan, 3.0, 2.0)
+    apply_georef_fit(plan, fit, footprint.verdict(fit))
+    assert plan["quality"]["georef"] and plan["geo"]["fit"]["verified"] and plan["geo"]["fit"]["method"] == "footprint_iou"
+    after = georef.to_enu(plan, 3.0, 2.0)
+    assert georef.to_enu(plan, 3.0, 2.0, raw=True) == pytest.approx(before)
+    assert math.dist(before, after) > 1.0
+    assert georef.from_enu(plan, *after) == pytest.approx((3.0, 2.0), abs=1e-6)
+    assert georef.azimuth_of(plan, 0.0, 1.0) == pytest.approx((georef.azimuth_of(plan, 0.0, 1.0, raw=True) - fit["rotation_deg"]) % 360)
+
+
+def test_failed_fit_leaves_georef_false():
+    from threshold.scanplan import apply_georef_fit
+    plan = house()
+    plan["quality"] = {"georef": False, "counts": {}, "notes": []}
+    apply_georef_fit(plan, None, False)
+    assert not plan["quality"]["georef"] and plan["geo"]["fit"] is None and "not verified" in plan["quality"]["notes"][0]

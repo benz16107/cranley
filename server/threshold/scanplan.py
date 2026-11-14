@@ -10,6 +10,8 @@ Fields added to the contract (none renamed, none changed in meaning):
   rooms[].extra_polygons             further disjoint outlines when one room has several parts
   rooms[].center(_source)            a point inside the room: the outline's, else the mean of its panoramas
   rooms[].area_source                "matterport" | "polygon" | None
+  geo.fit                            footprint refit: rotation_deg, shift_m, residual_m, method, iou, verified
+  quality.georef                     true only when geo.fit verified the compass and position against the footprint
 """
 from __future__ import annotations
 
@@ -209,7 +211,7 @@ def _quality(plan: dict, dropped: int) -> dict:
          "polygons": bool(bounded) and len(with_poly) >= 0.5 * len(bounded),
          "openings": bool(plan["openings"]) and len(walls) >= 3,
          "labels": bool(rooms) and len(labelled) >= 0.5 * len(rooms),
-         "georef": None not in (geo.get("lat"), geo.get("lon"), geo.get("yaw_deg"))}
+         "georef": False}  # set by apply_georef_fit once the footprint check passes
     notes = []
     if not q["walls"]:
         notes.append("no wall graph: room outlines, openings and the dollhouse are unavailable; rooms have areas only")
@@ -224,8 +226,30 @@ def _quality(plan: dict, dropped: int) -> dict:
         notes.append("walls but no doors or windows recorded")
     if rooms and not q["labels"]:
         notes.append("rooms are not labelled")
-    if not q["georef"]:
+    if None in (geo.get("lat"), geo.get("lon"), geo.get("yaw_deg")):
         notes.append("no usable geolocation or compass rotation")
     if dropped:
         notes.append(f"{dropped} wall edges referenced a missing vertex and were dropped")
     return {**q, "counts": counts, "notes": notes}
+
+
+def apply_georef_fit(plan: dict, fit: dict | None, verified: bool) -> dict:
+    """Record the footprint check (sources/footprint.py) on the plan: geo.fit, quality.georef and a note."""
+    geo, q = plan.get("geo"), plan["quality"]
+    if not geo or geo.get("lat") is None or geo.get("yaw_deg") is None:
+        return plan
+    geo["fit"] = {**fit, "verified": verified} if fit else None
+    q["georef"] = verified
+    q["counts"]["georef_residual_m"] = fit["residual_m"] if fit else None
+    if verified:
+        q["notes"].append(f"compass and position checked against the Vexcel building footprint: corrected by "
+                          f"{fit['rotation_deg']:+.1f} deg and {fit['shift_m']:.1f} m, outline within "
+                          f"{fit['residual_m']:.1f} m of the roof edge")
+    elif fit:
+        q["notes"].append(f"geolocation not verified: the plan outline does not match the building footprint "
+                          f"(overlap {fit['iou']:.0%}); compass directions may be off by many degrees")
+    elif not any(r.get("polygon") for r in plan["rooms"]):
+        q["notes"].append("geolocation not verified: no room outlines to check against the building footprint")
+    else:
+        q["notes"].append("geolocation not verified: no building footprint to check it against")
+    return plan

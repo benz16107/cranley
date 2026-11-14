@@ -46,8 +46,17 @@ def _rot(x: float, y: float, deg: float) -> tuple[float, float]:
     return x * c - y * s, x * s + y * c
 
 
-def to_enu(plan: dict, x: float, y: float, yaw_sign: int = YAW_SIGN, translation: str = TRANSLATION):
-    """Scan (x, y) to (east, north) metres from the geo anchor. None when the scan has no geocoordinates."""
+def _fit(plan: dict, yaw_sign: int, translation: str, raw: bool) -> dict | None:
+    """The verified footprint refit (plan.geo.fit), applied on top of the default convention only."""
+    f = (plan.get("geo") or {}).get("fit")
+    if raw or not f or not f.get("verified") or (yaw_sign, translation) != (YAW_SIGN, TRANSLATION):
+        return None
+    return f
+
+
+def to_enu(plan: dict, x: float, y: float, yaw_sign: int = YAW_SIGN, translation: str = TRANSLATION, raw: bool = False):
+    """Scan (x, y) to (east, north) metres from the geo anchor. None when the scan has no geocoordinates.
+    Applies the verified footprint refit (plan.geo.fit) unless raw is set."""
     g = _geo(plan)
     if g is None:
         return None
@@ -55,14 +64,25 @@ def to_enu(plan: dict, x: float, y: float, yaw_sign: int = YAW_SIGN, translation
     if translation == "scan":
         return _rot(x - tx, y - ty, yaw_sign * yaw)
     e, n = _rot(x, y, yaw_sign * yaw)
-    return e + tx, n + ty
+    e, n = e + tx, n + ty
+    f = _fit(plan, yaw_sign, translation, raw)
+    if f:
+        (px, py), (dx, dy) = f["pivot_enu"], f["shift_enu"]
+        e, n = _rot(e - px, n - py, f["rotation_deg"])
+        e, n = e + px + dx, n + py + dy
+    return e, n
 
 
-def from_enu(plan: dict, e: float, n: float, yaw_sign: int = YAW_SIGN, translation: str = TRANSLATION):
+def from_enu(plan: dict, e: float, n: float, yaw_sign: int = YAW_SIGN, translation: str = TRANSLATION, raw: bool = False):
     g = _geo(plan)
     if g is None:
         return None
     _, _, yaw, (tx, ty) = g
+    f = _fit(plan, yaw_sign, translation, raw)
+    if f:
+        (px, py), (dx, dy) = f["pivot_enu"], f["shift_enu"]
+        e, n = _rot(e - px - dx, n - py - dy, -f["rotation_deg"])
+        e, n = e + px, n + py
     if translation == "scan":
         x, y = _rot(e, n, -yaw_sign * yaw)
         return x + tx, y + ty
@@ -102,7 +122,9 @@ def azimuth_of(plan: dict, dx: float, dy: float, **conv) -> float | None:
     g = _geo(plan)
     if g is None:
         return None
-    e, n = _rot(dx, dy, conv.get("yaw_sign", YAW_SIGN) * g[2])
+    sign = conv.get("yaw_sign", YAW_SIGN)
+    f = _fit(plan, sign, conv.get("translation", TRANSLATION), conv.get("raw", False))
+    e, n = _rot(dx, dy, sign * g[2] + (f["rotation_deg"] if f else 0.0))
     return math.degrees(math.atan2(e, n)) % 360
 
 

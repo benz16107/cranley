@@ -119,7 +119,7 @@ def test_openings_and_georef_flags():
     plan = normalize(m)
     assert plan["openings"][0]["center"] == [2.0, 0.0]                  # a missing relativeCenter means the middle of the wall
     q = plan["quality"]
-    assert q["openings"] and q["georef"] and abs(plan["geo"]["yaw_deg"] - 60) < 1e-6
+    assert q["openings"] and not q["georef"] and abs(plan["geo"]["yaw_deg"] - 60) < 1e-6
     assert q["walls"] and q["polygons"] and q["counts"]["walls"] == 4
 
 

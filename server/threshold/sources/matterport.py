@@ -16,7 +16,8 @@ import numpy as np
 from PIL import Image
 
 from ..config import DATA, env
-from ..scanplan import QUERY, normalize
+from ..scanplan import QUERY, apply_georef_fit, normalize
+from . import footprint
 from . import index as _index
 from .upstream import cache_path, cached, check, one_flight, send
 
@@ -60,6 +61,8 @@ def model(sid: str) -> dict:
 @functools.lru_cache(maxsize=512)
 def plan_json(sid: str) -> bytes:
     p = normalize(model(sid), index().get(sid))
+    fit = footprint.scan_fit(p)
+    apply_georef_fit(p, fit, footprint.verdict(fit))
     return json.dumps(p, separators=(",", ":")).encode()
 
 
