@@ -72,5 +72,8 @@
   {"id": "stage-listing", "brief": "I'm listing this condo and want to stage it virtually. Will a sectional fit in the living room?", "persona": ["virtual_stager", "furniture_mover"], "must": [["furniture_fit"]], "never": ["fire_preplan", "truck_access"]},
   {"id": "stage-host", "brief": "I host short stays and want to show guests what each room looks like furnished.", "persona": ["virtual_stager"], "must": [["furniture_fit", "tour", "room_sizes"]], "never": ["fire_preplan"]},
   {"id": "quake-kids", "brief": "We live in LA. Where should the kids take cover in an earthquake, and is anything tall near their beds?", "persona": ["la_quake_prep"], "must": [["quake_ready"]], "never": ["flood_rehearsal", "storm_plan"]},
-  {"id": "quake-gas", "brief": "How do we get ready for the big one? I don't even know where our gas shutoff is.", "persona": ["la_quake_prep"], "must": [["quake_ready"]], "never": ["flood_rehearsal"]}
+  {"id": "quake-gas", "brief": "How do we get ready for the big one? I don't even know where our gas shutoff is.", "persona": ["la_quake_prep"], "must": [["quake_ready"]], "never": ["flood_rehearsal"]},
+  {"id": "signals-remote-worker", "brief": "I work from home: I need strong Wi-Fi and a quiet room for my office.", "persona": ["remote_worker"], "must": [["wifi_coverage"], ["quiet_rooms", "noise_level"]], "never": ["fire_preplan", "truck_access"]},
+  {"id": "signals-security", "brief": "We're a family planning home security cameras. Where should they go so every door is watched?", "persona": ["home_security_family"], "must": [["camera_coverage"]], "never": ["fire_preplan", "truck_access"]},
+  {"id": "signals-light-sleeper", "brief": "I work night shifts and sleep during the day. Which bedroom is furthest from road and plane noise?", "persona": ["light_sleeper"], "must": [["quiet_rooms"]], "never": ["truck_access", "loading_docks"]}
 ]
