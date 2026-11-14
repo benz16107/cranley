@@ -15,6 +15,7 @@ from __future__ import annotations
 import base64
 import csv
 import io
+import itertools
 import json
 import math
 from datetime import datetime
@@ -25,8 +26,7 @@ import shapely
 
 from ..config import CACHE
 from ..geometry._plan import polygons
-from ..tools.flood_rehearsal import METHOD_NAME, floor_source
-from ..tools.flood_rehearsal import public
+from ..tools.flood_rehearsal import METHOD_NAME, floor_source, public
 from ..tools.flood_rehearsal.scenario import FloodInputs, indoor
 from ..tools.flood_rehearsal.scenario import run as flood_run
 
@@ -88,7 +88,7 @@ def hydrograph(lat: float, lon: float) -> dict | None:
     """The nearest gauge whose record holds through the storm (no gap over three hours), resampled to half hours."""
     for g in gauges(lat, lon)[:4]:
         s = stage(g["site_no"])
-        if len(s) < 200 or max(b[0] - a[0] for a, b in zip(s, s[1:])) > 3 * 3600:
+        if len(s) < 200 or max(b[0] - a[0] for a, b in itertools.pairwise(s)) > 3 * 3600:
             continue
         t0 = math.ceil(s[0][0] / STEP_S) * STEP_S
         times, vals, i = [], [], 0

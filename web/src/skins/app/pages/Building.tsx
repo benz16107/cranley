@@ -298,6 +298,7 @@ export function Building({ sid }: { sid: string }) {
   // ---- shows: something played on the building. The scene plays it; this toolbar starts it and holds the transport.
   const [show, setShow] = useState<ShowState | null>(null)
   const spec = v.view.show ?? null
+  const held = useRef<Partial<SceneView> | null>(null)
   // the latest Tour run's findings are the tour's stops, in order; each line is that finding's own words
   const stops = useMemo(() => {
     const all = doc.findings.filter((f) => f.tool === 'tour' && f.anchor && 'sid' in f.anchor && f.anchor.sid === sid), run = all.at(-1)?.run
@@ -311,9 +312,15 @@ export function Building({ sid }: { sid: string }) {
       return
     }
     v.setView((x) => {
-      if (!kind || x.show?.kind === kind) return { ...x, show: null }
-      const placed = (v.plan as { geo?: { lat?: number | null } | null } | null)?.geo?.lat != null
-      return { ...x, mode: 'dollhouse', surface: bake.colour === 'ready' ? 'scan' : x.surface, env: kind === 'flood' && placed ? 'aerial' : x.env, show: kind === 'tour' ? { kind, playing: true, stops } : { kind, playing: true } }
+      const back = held.current ?? {}; held.current = null // the view the person had before the show set its own
+      if (!kind || x.show?.kind === kind) return { ...x, ...back, show: null }
+      const placed = (v.plan as { geo?: { lat?: number | null } | null } | null)?.geo?.lat != null, photo = bake.colour === 'ready'
+      held.current = { cut: x.cut, env: x.env, pose: x.pose, surface: x.surface, frame: x.frame }
+      // each show in the view it reads best in: the flood on its site; the fire in the house alone with whole walls,
+      // seen from low enough to look under the smoke
+      const beside = { top: -20, right: 20, bottom: -20, left: 150 } // the show's own panel stands at the left of the picture: the building keeps clear of it
+      const look: Partial<SceneView> = kind === 'flood' ? { env: placed ? 'aerial' : x.env, frame: beside } : kind === 'fire' ? { env: 'studio', cut: photo ? null : x.cut, pose: { pitch: 62 }, frame: beside } : {}
+      return { ...x, ...back, mode: 'dollhouse', surface: photo ? 'scan' : x.surface, ...look, show: kind === 'tour' ? { kind, playing: true, stops } : { kind, playing: true } }
     })
   }
   const setSpec = (patch: Partial<ShowSpec>) => v.setView((x) => (x.show ? { ...x, show: { ...x.show, ...patch } } : x))

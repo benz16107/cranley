@@ -11,7 +11,7 @@ const SETTLE_S = 0.2    // a mode or floor change reaches the engine through the
 const HOLD_MIN_S = 2.6
 const speech = () => (typeof speechSynthesis === 'undefined' ? null : speechSynthesis)
 /** How long a line takes to read: the fallback when the browser never says the speech ended. */
-const readTime = (line: string) => Math.max(HOLD_MIN_S, line.split(/\s+/).length * 0.4 + 1.4)
+const readTime = (line: string) => Math.max(HOLD_MIN_S, line.split(/\s+/).length * 0.33 + 1.2)
 
 export class TourShow implements Player {
   group = null
@@ -19,7 +19,7 @@ export class TourShow implements Player {
   private stops: TourStop[] = []
   private i = -1; private phase: 'idle' | 'settle' | 'fly' | 'say' = 'idle'; private t = 0
   private playing = false; private seekN = -1; private voice = true
-  private spoken = false; private said = false
+  private spoken = false; private said = false; private heard = false // asked to speak; finished speaking; the browser did start speaking
   private key = ''
 
   private ctx: ShowCtx
@@ -48,7 +48,7 @@ export class TourShow implements Player {
 
   private go(i: number) {
     this.hush()
-    this.i = i; this.phase = 'settle'; this.t = 0; this.spoken = false; this.said = false
+    this.i = i; this.phase = 'settle'; this.t = 0; this.spoken = false; this.said = false; this.heard = false
     const s = this.stops[i], m = this.ctx.model, a = s.anchor
     if (a && 'pano' in a) this.ctx.setView({ mode: 'pano', pano: a.pano, look: { yaw_deg: a.yaw_deg, pitch_deg: a.pitch_deg } })
     else {
@@ -76,9 +76,9 @@ export class TourShow implements Player {
     const at = a ? anchorPoint(m, a) : null
     if (!at) { const p = this.ctx.home(); rig.flyTo({ ...p, az: rig.pose.az + 0.5 }, 2600); return }
     const room = a && 'room' in a ? m.plan.rooms.find((r) => r.id === a.room) : null
-    const dist = room ? Math.min(12, Math.max(6, Math.sqrt(room.area ?? 12) * 2.3)) : 5.2
+    const dist = room ? Math.min(15, Math.max(9, Math.sqrt(room.area ?? 12) * 2.8)) : 8.5 // near enough to read a doorway, far enough that the room round it reads too
     const lift = this.ctx.doll.floorZ(at.floor) - m.floorZ[at.floor]
-    rig.flyTo({ target: new THREE.Vector3(at.point[0], at.point[1], at.point[2] + lift), az: rig.pose.az + 0.55, pol: 0.9, dist, fov: this.ctx.home().fov }, this.i === 0 ? 3400 : 2300)
+    rig.flyTo({ target: new THREE.Vector3(at.point[0], at.point[1], at.point[2] + lift), az: rig.pose.az + 0.55, pol: 0.74, dist, fov: this.ctx.home().fov }, this.i === 0 ? 3400 : 2300)
   }
 
   private say() {
@@ -86,7 +86,7 @@ export class TourShow implements Player {
     this.spoken = true; this.said = !this.voice || !sp
     if (this.voice && sp) {
       const u = new SpeechSynthesisUtterance(s.line)
-      u.rate = 1.02; u.onend = u.onerror = () => { this.said = true }
+      u.rate = 1.02; u.onstart = () => { this.heard = true }; u.onend = u.onerror = () => { this.said = true }
       sp.cancel(); sp.speak(u)
     }
     this.report()
@@ -114,7 +114,8 @@ export class TourShow implements Player {
     } else if (this.phase === 'say') {
       if (this.ctx.view().mode === 'dollhouse' && !rig.moving) rig.goal.az += dt * 0.035 // a slow drift keeps the picture alive
       const long = readTime(s.line)
-      if ((this.said && this.t > HOLD_MIN_S) || this.t > long * 1.7) {
+      // on to the next stop when the line has been said; a browser with no voice never starts, and gets reading time
+      if ((this.said && this.t > HOLD_MIN_S) || (!this.heard && this.t > long) || this.t > long * 2) {
         if (this.i + 1 < this.stops.length) this.go(this.i + 1)
         else { this.phase = 'idle'; this.playing = false; this.labels = []; this.ctx.relabel(); this.ctx.setView({ mode: 'dollhouse', floor: null }); rig.flyTo({ ...this.ctx.home(), az: rig.pose.az + 0.4 }, 2200); this.report() }
       }

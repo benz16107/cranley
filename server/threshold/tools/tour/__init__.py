@@ -13,8 +13,6 @@ from ...geometry._plan import floor_z, rooms_by_id
 from .. import (
     Finding,
     Metric,
-    Pin,
-    PinsOverlay,
     ScanScope,
     Source,
     ToolError,
@@ -24,7 +22,7 @@ from .. import (
     tool,
 )
 from ..registry import REGISTRY, load, run_tool
-from ..types import Anchor, Media, PanoAnchor, RouteOverlay, Status
+from ..types import Anchor, Media, RouteOverlay, Status
 
 ANCHOR = TypeAdapter(Anchor)
 
@@ -155,7 +153,7 @@ def build(plan: dict, question: str | None, evidence: list[Evidence], max_stops:
     here = [e for e in evidence if e.anchor and e.anchor.get("sid", sid) == sid and "geo" not in e.anchor
             and (e.tool or "") != "tour" and not e.id.startswith("tour:")]
     best: dict[str, Evidence] = {}
-    score = lambda e: (RANK[e.status] * 2 + relevance(question, e), len(e.detail))  # noqa: E731
+    score = lambda e: (RANK[e.status] * 2 + relevance(question, e), len(e.detail))
     for e in here:   # one stop per place: the worst finding there
         key = str(sorted((k, str(v)) for k, v in e.anchor.items() if k != "sid"))
         if key not in best or score(e) > score(best[key]):
@@ -215,7 +213,7 @@ def build(plan: dict, question: str | None, evidence: list[Evidence], max_stops:
       personas=["fire_captain", "wheelchair_user", "wheelchair_home_search", "fire_training_officer"],
       requires=[{"layer": "matterport.rooms"}, {"layer": "matterport.openings", "need": "optional",
                                                 "fallback": "stops in order of importance, no walking path"}],
-      blocks=["VerdictHeader", "EvidenceStrip", "StepLog"], overlays=["route", "pins"],
+      blocks=["VerdictHeader", "EvidenceStrip", "StepLog"], overlays=["route"],
       examples=["Show me what matters for a fire crew in this house", "Walk me through what a wheelchair user would hit"])
 def run(ctx, inputs: Inputs) -> ToolResult:
     sid = inputs.scan
@@ -233,18 +231,14 @@ def run(ctx, inputs: Inputs) -> ToolResult:
             "There is nothing to tour yet: no finding on this scan has a place in the building. Run the tools that "
             "answer the question first, then the tour.")))
     ctx.step(f"Chose {len(stops)} stops from {t['considered']} placed findings, in walking order from the way in")
-    findings, pins = [], []
-    for i, s in enumerate(stops):
+    findings = []
+    for s in stops:
         anchor = ANCHOR.validate_python({"sid": sid, **s["anchor"]})
         src = Source(**s["source"]) if s["source"] else SRC
         findings.append(Finding(id=s["id"], title=s["title"], status=s["status"], detail=s["line"], anchor=anchor,
                                 source=src, media=[Media(**m) for m in s["media"] if m.get("kind") in ("pano", "ortho", "drone", "phone")]))
-        if not isinstance(anchor, PanoAnchor):
-            pins.append(Pin(id=f"stop:{i}", anchor=anchor, label=s["title"], status=s["status"]))
     worst = max(stops, key=lambda s: RANK[s["status"]])["status"]
     overlays = [RouteOverlay(floor=leg["floor"], points=leg["points"], chokes=[], label="Tour") for leg in t["legs"]]
-    if pins:
-        overlays.append(PinsOverlay(pins=pins))
     return ToolResult(
         scope=scope,
         verdict=Verdict(status=worst, text=f"A tour of {len(stops)} findings on this scan, from the way in. Play it "

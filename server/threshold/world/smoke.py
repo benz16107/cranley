@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import itertools
 import math
 import re
 
@@ -22,7 +23,8 @@ STEP_M = 0.4   # route points are resampled this close, so a route changes colou
 def _layers(run_dir: str) -> tuple[list[float], dict[str, dict[str, list[float]]]]:
     """time, and per CFAST compartment id its layer height (m above its floor), upper layer temperature (C) and
     upper layer optical density (1/m), from case_compartments.csv."""
-    rows = list(csv.reader(open(f"{run_dir}/case_compartments.csv")))
+    with open(f"{run_dir}/case_compartments.csv") as f:
+        rows = list(csv.reader(f))
     ids, comps, data = rows[0], rows[2], [[float(v) for v in r] for r in rows[4:] if r]
     out: dict[str, dict[str, list[float]]] = {}
     want = {"HGT": "layer_m", "ULT": "upper_c", "ULOD": "od"}
@@ -39,7 +41,7 @@ def _first(t: list[float], ok: list[bool]) -> float | None:
 
 def _densify(points: list) -> list[list[float]]:
     out = [list(points[0])]
-    for a, b in zip(points, points[1:]):
+    for a, b in itertools.pairwise(points):
         n = max(1, math.ceil(math.hypot(b[0] - a[0], b[1] - a[1]) / STEP_M))
         out += [[a[k] + (b[k] - a[k]) * i / n for k in range(3)] for i in range(1, n + 1)]
     return out
@@ -48,12 +50,12 @@ def _densify(points: list) -> list[list[float]]:
 def timeline(plan: dict, closed: bool = False, fire_room: str | None = None, growth: str = "fast",
              peak_kw: float = 2000.0) -> dict:
     sid = plan["sid"]
-    no = lambda why: {"sid": sid, "available": False, "reason": why}  # noqa: E731
+    no = lambda why: {"sid": sid, "available": False, "reason": why}
     if not walls_ok(plan):
         return no("This scan has no wall graph, so the fire model has no doorways to move smoke through.")
     if not sc.cfast_bin():
         return no("NIST CFAST is not installed on this server.")
-    comp0, info = sc.compartments(plan)
+    comp0, _ = sc.compartments(plan)
     beds = [r for r in live_rooms(plan) if r.get("label") == BEDROOM and r["id"] in comp0]
     if not beds:
         return no("No room in this scan is typed as a bedroom, so the Smoke clock has nothing to time.")

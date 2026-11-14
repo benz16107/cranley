@@ -222,6 +222,8 @@
 .th-conf[data-c='low'] { color: var(--scene-fail); } .th-conf[data-c='medium'] { color: var(--scene-warn); } .th-conf[data-c='high'] { color: var(--scene-pass); }
 .th-show-missing { max-width: min(460px, calc(100% - 24px)); text-wrap: pretty; }
 .th-chip-show[data-off] { visibility: hidden; }
+.th-chip-smoke { background: color-mix(in srgb, var(--scene-ink) 88%, transparent); color: var(--scene-paper); box-shadow: none; translate: -50% -50%; }
+.th-chip-smoke .th-chip-text { color: inherit; opacity: 0.8; }
 .th-chip-tour { translate: -50% calc(-100% - 10px); box-shadow: 0 0 0 1px var(--scene-hairline), 0 2px 8px rgb(0 0 0 / 0.25); }
 
 .th-caption { position: absolute; z-index: 4; left: 50%; bottom: 18px; translate: -50% 0; display: grid; gap: 3px; width: max-content; max-width: min(680px, calc(100% - 32px)); padding: 9px 14px 10px;

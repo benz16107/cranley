@@ -7,7 +7,7 @@ import { Line2 } from 'three/addons/lines/Line2.js'
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js'
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js'
 import { centroid } from '../model.ts'
-import type { LabelSpec } from '../engine/labels.ts'
+import { h, type LabelSpec } from '../engine/labels.ts'
 import type { Vec3 } from '../types.ts'
 import { fetchJson, type Player, type ShowCtx, type ShowSpec, type SmokeRow, type SourceLine } from './types.ts'
 
@@ -22,23 +22,30 @@ interface Smoke {
 const STEPS_PER_S = 2.4 // twelve seconds of fire a second
 export const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`
 
-const VERT = /* glsl */ `varying vec3 vW; varying vec3 vN; void main() { vN = normal; vW = (modelMatrix * vec4(position, 1.0)).xyz; gl_Position = projectionMatrix * viewMatrix * vec4(vW, 1.0); }`
-// A slab of smoke seen from outside: how much of the room behind shows is Beer-Lambert through the slab, with the
-// modelled optical density and the length of the sight line inside it. Capped, so the room never goes fully black.
+const VERT = /* glsl */ `varying vec3 vW; void main() { vW = (modelMatrix * vec4(position, 1.0)).xyz; gl_Position = projectionMatrix * viewMatrix * vec4(vW, 1.0); }`
+// The smoke layer as a volume: each pixel's sight line is walked through the layer, from where it enters down to the
+// layer's underside, and absorbs by Beer-Lambert with the modelled optical density (scaled for display: at the real
+// density a room goes black within a minute and nothing more can be read). Noise only moves the smoke about; the
+// underside stays at the modelled height.
 const FRAG = /* glsl */ `
-  varying vec3 vW; varying vec3 vN;
-  uniform float uOD, uThick, uHot, uTime, uSeed;
-  float hash(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
+  varying vec3 vW;
+  uniform float uOD, uBottom, uTop, uHot, uTime, uSeed;
+  float hash(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
   float noise(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
     return mix(mix(mix(hash(i), hash(i + vec3(1, 0, 0)), f.x), mix(hash(i + vec3(0, 1, 0)), hash(i + vec3(1, 1, 0)), f.x), f.y),
                mix(mix(hash(i + vec3(0, 0, 1)), hash(i + vec3(1, 0, 1)), f.x), mix(hash(i + vec3(0, 1, 1)), hash(i + vec3(1, 1, 1)), f.x), f.y), f.z); }
   void main() {
-    vec3 v = normalize(cameraPosition - vW);
-    float path = abs(vN.z) > 0.5 ? uThick / max(abs(v.z), 0.2) : 1.6;         // through the top, or in through a side
-    float billow = 0.72 + 0.56 * noise(vec3(vW.xy * 1.3 + uSeed, vW.z * 2.0 - uTime * 0.25));
-    float a = min(0.9, 1.0 - exp(-uOD * path * 0.55 * billow));
-    vec3 col = mix(vec3(0.34, 0.33, 0.32), vec3(0.07, 0.065, 0.06), a);
-    col = mix(col, vec3(1.0, 0.42, 0.08), uHot * 0.55 * billow);              // the upper layer glows where it is hot
+    vec3 dir = normalize(vW - cameraPosition);
+    float reach = dir.z < -0.02 ? (vW.z - uBottom) / -dir.z : dir.z > 0.02 ? (uTop - vW.z) / dir.z : 5.0;
+    float dt = min(reach, 5.0) / 10.0, tau = 0.0;
+    for (int i = 0; i < 10; i++) {
+      vec3 p = vW + dir * (dt * (float(i) + 0.5));
+      float d = 0.65 * noise(vec3(p.xy * 1.1 + uSeed, p.z * 1.8 - uTime * 0.22)) + 0.35 * noise(vec3(p.xy * 2.7 - uSeed, p.z * 3.1 + uTime * 0.31));
+      tau += uOD * 0.3 * (0.35 + 1.3 * d) * smoothstep(0.0, 0.14, p.z - uBottom) * dt;
+    }
+    float a = min(0.93, 1.0 - exp(-tau));
+    vec3 col = mix(vec3(0.52, 0.51, 0.49), vec3(0.09, 0.085, 0.08), a);
+    col = mix(col, vec3(1.0, 0.45, 0.1), uHot * 0.5 * (1.0 - 0.4 * a));   // the upper layer glows where it is hot
     gl_FragColor = vec4(col, a);
   }`
 
@@ -49,12 +56,12 @@ export class FireShow implements Player {
   private status: 'loading' | 'ready' | 'missing' = 'loading'
   private reason = ''
   private pos = 0; private playing = false; private seekN = -1; private sent = ''; private doors: 'open' | 'closed' | null = null
-  private rooms: { r: Smoke['rooms'][number]; slab: THREE.Mesh; wash: THREE.Mesh; u: Record<string, THREE.IUniform> }[] = []
+  private rooms: { r: Smoke['rooms'][number]; f: number; slab: THREE.Mesh; wash: THREE.Mesh; u: Record<string, THREE.IUniform>; chip?: { spec: LabelSpec; el: HTMLElement; num: HTMLElement } }[] = []
   private routes: { line: Line2; red: (number | null)[]; n: number }[] = []
   private flame: THREE.Mesh | null = null
   private made: { dispose(): void }[] = []; private objs: THREE.Object3D[] = []
   private res = new THREE.Vector2(1, 1)
-  private cut: number | null | undefined
+  private before: { floor: string | null } | null = null // the floor the person had up, put back when the show ends
   private gone = false
 
   private ctx: ShowCtx
@@ -68,8 +75,9 @@ export class FireShow implements Player {
       if (!d.available) { this.status = 'missing'; this.reason = d.reason ?? 'No fire model for this scan.'; this.report(true); return }
       this.data = d; this.pos = Math.min(this.pos, d.time.length - 1)
       this.build(d); this.status = 'ready'
-      // whole walls: the smoke is read against them. The person's own cut comes back when the show ends.
-      if (this.cut === undefined) { this.cut = this.ctx.view().cut ?? null; this.ctx.setView({ cut: null, floor: d.rooms.find((r) => r.fire)?.floor ?? this.ctx.view().floor }) }
+      // the fire's floor comes up, so nothing above hides it
+      const fl = d.rooms.find((r) => r.fire)?.floor
+      if (!this.before && fl && this.ctx.model.plan.floors.length > 1) { this.before = { floor: this.ctx.view().floor ?? null }; this.ctx.setView({ floor: fl }) }
     } catch { if (!this.gone) { this.status = 'missing'; this.reason = 'The fire model could not be loaded.' } }
     this.report(true)
   }
@@ -82,14 +90,22 @@ export class FireShow implements Player {
       if (!room || room.polygon.length < 3) continue
       const shape = new THREE.Shape(room.polygon.map(([x, y]) => new THREE.Vector2(x, y)))
       const geo = new THREE.ExtrudeGeometry(shape, { depth: 1, bevelEnabled: false }), flat = new THREE.ShapeGeometry(shape)
-      const u = { uOD: { value: 0 }, uThick: { value: 0 }, uHot: { value: 0 }, uTime: { value: 0 }, uSeed: { value: this.rooms.length * 7.3 } }
+      const u = { uOD: { value: 0 }, uBottom: { value: 0 }, uTop: { value: 1 }, uHot: { value: 0 }, uTime: { value: 0 }, uSeed: { value: this.rooms.length * 7.3 } }
       const mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: u, transparent: true, depthWrite: false })
       const slab = new THREE.Mesh(geo, mat); slab.renderOrder = 6; slab.visible = false
       const wm = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
       wm.color.setRGB(tok.fail[0], tok.fail[1], tok.fail[2], THREE.SRGBColorSpace)
       const wash = new THREE.Mesh(flat, wm); wash.position.z = 0.04; wash.renderOrder = 4; wash.visible = false
       add(f, slab); add(f, wash); this.made.push(geo, flat, mat, wm)
-      this.rooms.push({ r, slab, wash, u })
+      // the fire room and the bedrooms carry a chip that rides down with the smoke's underside
+      let chip
+      if (r.fire || r.bedroom) {
+        const c = centroid(room.polygon), num = h('span', 'th-num', ''), el = h('div', 'th-chip th-chip-smoke th-chip-show', h('span', 'th-chip-text', 'smoke at'), num)
+        el.dataset.off = ''
+        chip = { el, num, spec: { id: `fire.${r.id}`, pos: [c[0], c[1], r.floor_z] as Vec3, floor: f, spanM: Math.sqrt(room.area ?? 9), minPx: 44, modes: ['doll' as const], make: () => el } }
+        this.labels.push(chip.spec)
+      }
+      this.rooms.push({ r, f, slab, wash, u, chip })
       if (r.fire) { // where the fire burns: CFAST puts it in the middle of the room
         const c = centroid(room.polygon), fg = new THREE.CircleGeometry(1, 24)
         const fm = new THREE.ShaderMaterial({ uniforms: { uTime: u.uTime, uSize: { value: 0 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
@@ -104,30 +120,29 @@ export class FireShow implements Player {
     for (const rt of d.routes) {
       const f = m.floorOf.get(rt.floor) ?? 0, fz = m.floorZ[f]
       const pts = rt.points.flatMap((p) => [p[0], p[1], Math.max(p[2] - fz, 0) + 0.1])
-      const cg = new LineGeometry().setPositions(pts), cm = new LineMaterial({ linewidth: 8, transparent: true, opacity: 0.92, resolution: this.res, depthWrite: false })
+      const cg = new LineGeometry().setPositions(pts), cm = new LineMaterial({ linewidth: 8, transparent: true, opacity: 0.92, resolution: this.res, depthWrite: false, depthTest: false }) // read through the walls: the way out matters most where it is hidden
       cm.color.setRGB(tok.paper[0], tok.paper[1], tok.paper[2], THREE.SRGBColorSpace)
       const casing = new Line2(cg, cm); casing.renderOrder = 7
-      const lg = new LineGeometry().setPositions(pts), lm = new LineMaterial({ linewidth: 4.5, vertexColors: true, resolution: this.res, depthWrite: false })
+      const lg = new LineGeometry().setPositions(pts), lm = new LineMaterial({ linewidth: 4.5, vertexColors: true, transparent: true, resolution: this.res, depthWrite: false, depthTest: false }) // transparent, so it is drawn after the smoke, not under it
       const line = new Line2(lg, lm); line.renderOrder = 8
       add(f, casing); add(f, line); this.made.push(cg, cm, lg, lm)
       this.routes.push({ line, red: rt.red_s, n: -1 })
     }
+    this.ctx.relabel()
   }
 
   private clear() {
     for (const o of this.objs) o.removeFromParent()
     this.made.forEach((m) => m.dispose())
-    this.objs = []; this.made = []; this.rooms = []; this.routes = []; this.flame = null; this.data = null
+    this.objs = []; this.made = []; this.rooms = []; this.routes = []; this.flame = null; this.data = null; this.labels = []
   }
 
   set(spec: ShowSpec) {
-    const doors = spec.doors ?? 'open'
-    if (doors !== this.doors) { this.doors = doors; void this.load(doors) }
-    const d = this.data
+    const doors = spec.doors ?? 'open', d = this.data
     if (spec.seek && spec.seek.n !== this.seekN) { this.seekN = spec.seek.n; this.pos = Math.max(0, d ? Math.min(spec.seek.step, d.time.length - 1) : spec.seek.step) }
     if (spec.playing && !this.playing && d && this.pos >= d.time.length - 1.01) this.pos = 0
-    this.playing = spec.playing
-    this.report(true)
+    this.playing = spec.playing // before anything is reported: the look mirrors what it is told
+    if (doors !== this.doors) { this.doors = doors; void this.load(doors) } else this.report(true)
   }
 
   private at<T extends number>(a: T[]): number {
@@ -160,11 +175,14 @@ export class FireShow implements Player {
       if (this.pos >= d.time.length - 1) { this.playing = false; this.report(true) }
     }
     const t = this.at(d.time), outside = this.ctx.view().mode === 'dollhouse' // seen from outside only: untested from a panorama
-    for (const { r, slab, wash, u } of this.rooms) {
+    const i = Math.min(Math.round(this.pos), d.time.length - 1)
+    for (const { r, f, slab, wash, u, chip } of this.rooms) {
       const layer = this.at(r.layer_m), top = r.ceiling_m ?? layer, thick = Math.max(0, top - layer)
       slab.visible = thick > 0.03 && this.at(r.od) > 0.02 && outside
       slab.position.z = layer; slab.scale.z = Math.max(thick, 0.001)
-      u.uOD.value = this.at(r.od); u.uThick.value = thick; u.uHot.value = Math.min(1, Math.max(0, (this.at(r.upper_c) - 150) / 550))
+      const base = this.ctx.doll.floorZ(f)
+      u.uOD.value = this.at(r.od); u.uBottom.value = base + layer; u.uTop.value = base + top; u.uHot.value = Math.min(1, Math.max(0, (this.at(r.upper_c) - 150) / 550))
+      if (chip) { chip.spec.pos[2] = r.floor_z + layer; if (slab.visible) { delete chip.el.dataset.off; chip.num.textContent = `${r.layer_m[i].toFixed(2)} m` } else chip.el.dataset.off = '' }
       if (this.playing) u.uTime.value += dt
       const lost = r.untenable_s != null && t >= r.untenable_s, m = wash.material as THREE.MeshBasicMaterial
       m.opacity += ((lost ? 0.34 : 0) - m.opacity) * Math.min(1, dt * 6); wash.visible = m.opacity > 0.01
@@ -191,6 +209,6 @@ export class FireShow implements Player {
 
   dispose() {
     this.gone = true; this.clear()
-    if (this.cut !== undefined) this.ctx.setView({ cut: this.cut })
+    if (this.before) this.ctx.setView(this.before)
   }
 }
