@@ -1,0 +1,19 @@
+{
+  "id": "car_owner",
+  "title": "Car owner checking a garage",
+  "who": "Wants to know whether their car or truck fits in the garage, with room to open the doors, and how many cars the driveway holds.",
+  "tools": [
+    "garage_fit",
+    "driveway_fit",
+    "measure_search"
+  ],
+  "thresholds": {
+    "garage.vehicle": "ford_f150",
+    "garage.uses": ["workbench", "ev_charger"],
+    "driveway.vehicle": "ford_f150"
+  },
+  "layout": {
+    "view": "scene",
+    "lead_tool": "garage_fit"
+  }
+}

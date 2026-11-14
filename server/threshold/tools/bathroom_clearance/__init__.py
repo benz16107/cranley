@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from shapely.geometry import Point
 
 from ...geometry import free_wall_runs, turning_space
-from ...geometry._plan import VERDICT_STATUS, clear_width, judge
+from ...geometry._plan import VERDICT_STATUS, clear_width, floor_z, judge
 from .. import (Assumption, Check, Finding, Metric, OpeningAnchor, Pin, PinsOverlay, PointAnchor, RoomAnchor,
                 ScanScope, Source, ToolResult, Verdict, field, tool)
 from ..types import BoxOverlay, Media
@@ -156,7 +156,7 @@ def _box(rect, plan, r, lab, status) -> BoxOverlay:
     xs, ys = [p[0] for p in rect], [p[1] for p in rect]
     w, d = math.dist(rect[0], rect[1]), math.dist(rect[1], rect[2])
     yaw = math.degrees(math.atan2(rect[1][1] - rect[0][1], rect[1][0] - rect[0][0]))
-    z = next((f.get("elevation") or 0.0 for f in plan["floors"] if f["id"] == r["floor"]), 0.0)
+    z = floor_z(plan).get(r["floor"], 0.0)  # scan z of the room's floor, not its height above the lowest
     return BoxOverlay(center=(sum(xs) / 4, sum(ys) / 4, z + 0.01), size=(w, d, 0.02), yaw_deg=yaw, label=lab,
                       status=status)
 

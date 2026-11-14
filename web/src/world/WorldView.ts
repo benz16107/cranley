@@ -97,11 +97,12 @@ export class WorldView {
   private wanted = false
 
   private renderer: THREE.WebGLRenderer; private api: string; private sid: string
-  private outline: Vec2[][]; private centre: THREE.Vector2; private radius: number
-  /** `outline`: the scan's own room outlines (scan frame); they are cut out of the surroundings with the footprint. */
-  constructor(renderer: THREE.WebGLRenderer, api: string, sid: string, stage: [number, number, number], outline: Vec2[][], centre: Vec2, radius: number) {
+  private outline: Vec2[][]; private centre: THREE.Vector2; private radius: number; private floor: number
+  /** `outline`: the scan's own room outlines (scan frame); they are cut out of the surroundings with the footprint.
+      `floor`: the scan z of the ground floor, which the ground stands just under (it is not 0 on every scan). */
+  constructor(renderer: THREE.WebGLRenderer, api: string, sid: string, stage: [number, number, number], outline: Vec2[][], centre: Vec2, radius: number, floor: number) {
     this.renderer = renderer; this.api = api; this.sid = sid
-    this.outline = outline; this.centre = new THREE.Vector2(...centre); this.radius = radius
+    this.outline = outline; this.centre = new THREE.Vector2(...centre); this.radius = radius; this.floor = floor
     this.group.visible = false
     this.uniforms = {
       uMask: { value: null }, uMaskRect: { value: new THREE.Vector4(0, 0, 1, 1) }, uCentre: { value: this.centre }, uStage: { value: new THREE.Vector3(...stage) },
@@ -193,7 +194,7 @@ export class WorldView {
 
   /** Put the ellipsoid height `h` at the ground level beside the building. */
   private place(h: number) {
-    this.ground = -(this.site?.floor_above_ground_m ?? 0.2)
+    this.ground = this.floor - (this.site?.floor_above_ground_m ?? 0.2)
     this.lift = this.ground - h
     const g = this.tiles!
     new THREE.Matrix4().makeTranslation(0, 0, this.lift).multiply(this.placed).decompose(g.position, g.quaternion, g.scale); g.updateMatrixWorld(true)
@@ -231,7 +232,7 @@ export class WorldView {
     const rect = (b: number[]) => new THREE.Vector4(b[0], b[1], b[2] - b[0], b[3] - b[1])
     const mat = new THREE.ShaderMaterial({ vertexShader: TERRAIN_VERT, fragmentShader: TERRAIN_FRAG, uniforms: { ...this.uniforms, uFar: { value: far }, uNear: { value: near }, uFarRect: { value: rect(t.ortho[0].bounds_enu) }, uNearRect: { value: rect(t.ortho[1].bounds_enu) } } })
     const mesh = new THREE.Mesh(geo, mat)
-    this.ground = -site.floor_above_ground_m
+    this.ground = this.floor - site.floor_above_ground_m
     mesh.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 0, this.ground).multiply(scanFromEnu)) // grid heights are already above the ground
     mesh.frustumCulled = false
     this.group.add(mesh); this.made.push(geo, mat, far, near)

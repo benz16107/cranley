@@ -100,7 +100,7 @@ export class FloodShow implements Player {
       if (this.gone) return
       if (t.available && t.items.length) { this.things = t; this.list = 'ready'; this.itemDots(t) } else this.list = 'none'
     } catch { this.list = 'none' }
-    this.report(true)
+    this.report(true); this.ctx.invalidate() // the dots arrive while the storm may be paused: draw them
   }
 
   /** The ground grid as a texture, and the entry floor's rooms drawn into another: red is the level a room takes
