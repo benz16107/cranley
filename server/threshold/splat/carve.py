@@ -8,7 +8,7 @@ and goes. Directions with no mesh (windows, the trimmed garden) carve nothing.
 
 Depth is a z-buffer of the mesh's triangles per cube face (`virtual.depth`). Point samples are not enough: on a
 large house they sit 4 to 5 cm apart, near surfaces turn see-through between them, and the carve then ate the
-kitchen island and the ceiling (<scan-id>, 2026-11-14).
+kitchen island and the ceiling (a two-storey demo house, 2026-11-14).
 """
 from __future__ import annotations
 
