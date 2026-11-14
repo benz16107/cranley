@@ -107,10 +107,10 @@ export function Tip({ label, kbd, children }: { label: string; kbd?: string; chi
 export function IconBtn({ icon, label, kbd, className = 'btn icon quiet', size, ...rest }: { icon: IconName; label: string; kbd?: string; size?: number } & Omit<ComponentProps<'button'>, 'children'>) {
   return <Tip label={label} kbd={kbd}><button type="button" className={className} aria-label={label} {...rest}><Icon name={icon} size={size} /></button></Tip>
 }
-export function Seg<T extends string>({ value, onChange, options, label }: { value: T; onChange: (v: T) => void; label: string; options: { id: T; label: ReactNode; icon?: IconName; disabled?: boolean; title?: string }[] }) {
+export function Seg<T extends string>({ value, onChange, options, label, compact }: { value: T; onChange: (v: T) => void; label: string; compact?: boolean; options: { id: T; label: string; icon?: IconName; disabled?: boolean; title?: string }[] }) {
   return (
-    <div className="seg" role="group" aria-label={label}>
-      {options.map((o) => <button key={o.id} type="button" aria-pressed={value === o.id} disabled={o.disabled} title={o.title} onClick={() => onChange(o.id)}>{o.icon && <Icon name={o.icon} size={14} />}{o.label}</button>)}
+    <div className="seg" role="group" aria-label={label} data-compact={compact || undefined}>
+      {options.map((o) => <button key={o.id} type="button" aria-pressed={value === o.id} disabled={o.disabled} title={o.title ?? (compact ? o.label : undefined)} aria-label={o.label} onClick={() => onChange(o.id)}>{o.icon && <Icon name={o.icon} size={14} />}<span>{o.label}</span></button>)}
     </div>
   )
 }
@@ -202,7 +202,7 @@ export function DataTable<T>({ cols, rows, rowKey, onRow, selected, loading, emp
         <table className="tbl" aria-label={label}>
           <thead><tr>
             {cols.map((c) => (
-              <th key={c.id} scope="col" className={c.num ? 'r' : undefined} style={{ width: c.width }} aria-sort={sort?.col === c.id ? (sort.dir === 1 ? 'ascending' : 'descending') : undefined}>
+              <th key={c.id} scope="col" data-col={c.id} className={c.num ? 'r' : undefined} style={{ width: c.width }} aria-sort={sort?.col === c.id ? (sort.dir === 1 ? 'ascending' : 'descending') : undefined}>
                 {c.sort ? (
                   <button type="button" onClick={() => setSort(sort?.col === c.id ? (sort.dir === (c.num ? -1 : 1) ? { col: c.id, dir: c.num ? 1 : -1 } : null) : { col: c.id, dir: c.num ? -1 : 1 })}>
                     {c.label}{sort?.col === c.id && <span aria-hidden="true">{sort.dir === 1 ? '↑' : '↓'}</span>}
@@ -220,7 +220,7 @@ export function DataTable<T>({ cols, rows, rowKey, onRow, selected, loading, emp
               return (
                 <tr key={k} data-click={onRow ? '' : undefined} aria-selected={selected != null ? selected === k : undefined} tabIndex={onRow ? 0 : undefined}
                   onClick={onRow && (() => onRow(r))} onKeyDown={onRow && ((e) => { if (e.key === 'Enter' && e.target === e.currentTarget) onRow(r) })}>
-                  {cols.map((c) => <td key={c.id} className={c.num ? 'r' : undefined}>{c.cell(r)}</td>)}
+                  {cols.map((c) => <td key={c.id} data-col={c.id} className={c.num ? 'r' : undefined}>{c.cell(r)}</td>)}
                 </tr>
               )
             })}

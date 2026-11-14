@@ -79,7 +79,7 @@ export function Sidebar({ onPick }: { onPick?: () => void }) {
             <span>{live == null ? 'Connecting to the agent server' : live ? 'Agent server connected' : 'No agent server: scripted playback'}</span>
           </p>
         )}
-        {!rail && count > 0 && <p className="conn muted"><span>{new Intl.NumberFormat('en').format(count)} scanned addresses, Houston and Los Angeles</span></p>}
+        {!rail && count > 0 && <p className="conn muted"><span>{new Intl.NumberFormat('en').format(count)} scanned addresses</span></p>}
         <ul className="nav">
           <li>{(() => { const b = <button type="button" aria-current={page === 'settings' ? 'page' : undefined} onClick={pick(() => go('settings'))} aria-label={rail ? 'Settings' : undefined}><Icon name="gear" size={16} /><span className="grow">Settings</span></button>; return rail ? <Tip label="Settings" kbd="G S">{b}</Tip> : b })()}</li>
         </ul>

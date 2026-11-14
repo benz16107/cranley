@@ -96,6 +96,8 @@ select.field { padding-right: 24px; appearance: none; background-image: linear-g
   transition: background-color var(--dur-1) ease, color var(--dur-1) ease; }
 .seg button[aria-pressed='true'] { background: var(--pane); color: var(--ink); box-shadow: 0 0 0 1px var(--rule-strong); }
 .seg button[disabled] { opacity: 0.4; pointer-events: none; }
+.seg[data-compact] button { padding: 0 7px; }
+.seg[data-compact] button span { display: none; }
 @media (hover: hover) and (pointer: fine) { .seg button:not([aria-pressed='true']):hover { color: var(--ink); } }
 
 /* ---------- chips ---------- */
@@ -193,15 +195,15 @@ button.chip[aria-pressed='true'] { background: var(--accent-wash); border-color:
 /* ---------- data table ---------- */
 .tblwrap { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
 .tblscroll { overflow: auto; flex: 1; min-height: 0; scrollbar-width: thin; scrollbar-color: var(--rule-strong) transparent; }
-.tbl { width: 100%; border-collapse: separate; border-spacing: 0; }
-.tbl th, .tbl td { height: var(--row-h); padding: 0 10px; text-align: left; border-bottom: 1px solid var(--rule); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 320px; vertical-align: middle; }
+.tbl { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+.tbl th, .tbl td { height: var(--row-h); padding: 0 10px; text-align: left; border-bottom: 1px solid var(--rule); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
 .tbl th:first-child, .tbl td:first-child { padding-left: var(--s-4); }
 .tbl th:last-child, .tbl td:last-child { padding-right: var(--s-4); }
 .tbl thead th { position: sticky; top: 0; z-index: 1; height: 30px; background: var(--pane); font-size: var(--text-xs); font-weight: 520; color: var(--ink-3); border-bottom-color: var(--rule-strong); }
 .tbl thead th button { display: inline-flex; align-items: center; gap: 3px; height: 30px; color: inherit; font-weight: inherit; }
 .tbl thead th[aria-sort='ascending'], .tbl thead th[aria-sort='descending'] { color: var(--ink); }
 .tbl .r { text-align: right; }
-.tbl thead th.r button { flex-direction: row-reverse; }
+.tbl thead th.r button { justify-content: flex-end; }
 .tbl tbody tr[data-click] { cursor: pointer; }
 .tbl tbody tr[aria-selected='true'] td { background: var(--accent-wash); }
 .tbl tbody tr:focus-visible { outline-offset: -2px; }
@@ -211,9 +213,9 @@ button.chip[aria-pressed='true'] { background: var(--accent-wash); border-color:
 .tblfoot { display: flex; align-items: center; gap: var(--s-3); min-height: 34px; padding: 0 var(--s-4); border-top: 1px solid var(--rule); color: var(--ink-3); font-size: var(--text-xs); flex: none; }
 .tbl .skrow td { border-bottom-color: transparent; }
 /* a row that carries its own bar: a rollup reads as a table first */
-.tbl td.bar { position: relative; }
-.tbl td.bar i { position: absolute; left: 6px; top: 5px; bottom: 5px; background: var(--bar); border-radius: 2px; min-width: 2px; }
-.tbl td.bar span { position: relative; }
+.tbl td.barcell { position: relative; }
+.tbl td.barcell i { position: absolute; left: 6px; top: 5px; bottom: 5px; background: var(--bar); border-radius: 2px; min-width: 2px; }
+.tbl td.barcell span { position: relative; }
 
 /* ---------- cards, stat strips, empty states ---------- */
 .card { border: 1px solid var(--rule); border-radius: var(--r-2); background: var(--pane); min-width: 0; display: flex; flex-direction: column; }
@@ -224,9 +226,9 @@ button.chip[aria-pressed='true'] { background: var(--accent-wash); border-color:
 .card .tbl th:first-child, .card .tbl td:first-child { padding-left: var(--s-4); }
 .card .tbl tbody tr:last-child td { border-bottom: 0; }
 .stats { display: flex; border: 1px solid var(--rule); border-radius: var(--r-2); background: var(--pane); overflow-x: auto; scrollbar-width: none; }
-.stats > div { flex: 1; min-width: 104px; padding: 9px var(--s-4) 10px; border-left: 1px solid var(--rule); display: grid; gap: 3px; align-content: start; }
+.stats > div { flex: 1 1 0; min-width: 76px; padding: 9px var(--s-4) 10px; border-left: 1px solid var(--rule); display: grid; gap: 3px; align-content: start; }
 .stats > div:first-child { border-left: 0; }
-.stats dt { font-size: var(--text-xs); color: var(--ink-3); white-space: nowrap; }
+.stats dt { font-size: var(--text-xs); color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .stats dd { font-size: var(--text-md); font-weight: 560; white-space: nowrap; display: flex; align-items: center; gap: 6px; min-height: 20px; }
 .stats dd small { font-size: var(--text-xs); font-weight: 400; color: var(--ink-3); }
 .empty { display: grid; justify-items: center; gap: 4px; padding: var(--s-6) var(--s-4); text-align: center; color: var(--ink-3); }

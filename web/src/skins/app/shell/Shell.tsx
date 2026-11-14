@@ -6,6 +6,7 @@ import { currentRoute, setQuery, useWorkspace } from '../../../core/index.ts'
 import { Icon } from '../design/ui.tsx'
 import { go, usePlace } from '../lib/place.ts'
 import '../lib/pending.ts' // keeps the index of investigations seen in this browser
+import { useBuildings } from '../../../core/index.ts'
 import { Building } from '../pages/Building.tsx'
 import { Buildings } from '../pages/Buildings.tsx'
 import { Explore } from '../pages/Explore.tsx'
@@ -50,6 +51,8 @@ export function Shell() {
   const { run, rail, nav, setRun } = useUi()
   const undo = useWorkspace((s) => s.undo)
   useEffect(() => { document.documentElement.dataset.scheme = scheme }, [scheme])
+  const load = useBuildings((s) => s.load)
+  useEffect(load, [load]) // every page names buildings: the breadcrumb, the search, the saved list
 
   // The run panel opens by itself when the agent starts working or needs an answer. Closing it is the person's.
   const busy = useWorkspace((s) => s.doc.plan.some((p) => p.status === 'active') || (s.doc.plan.length > 0 && s.doc.questions.some((q) => q.answer == null)))

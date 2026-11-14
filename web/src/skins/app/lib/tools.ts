@@ -30,9 +30,11 @@ export const familyOf = (tool: string): Family => OF.get(tool) ?? 'other'
 export const family = (tool: string) => FAMILIES.find((f) => f.id === familyOf(tool))!
 
 const LAYER: Record<string, string> = {
-  'matterport.walls': 'Wall outline', 'matterport.room_labels': 'Room names', 'matterport.panos': '360° photos', 'matterport.openings': 'Doors and windows',
-  'matterport.polygons': 'Room outlines', 'matterport.defurnished': 'Empty-room photos', 'vexcel.ortho': 'Aerial photo', 'vexcel.oblique': 'Angled aerial photos',
-  'vexcel.property': 'Aerial property facts', 'vexcel.elevation': 'Ground heights', 'costar.record': 'Property record', 'drone.photos': 'Drone photos', 'drone.splat': 'Drone capture',
+  'matterport.walls': 'Wall outline', 'matterport.rooms': 'Rooms', 'matterport.room_labels': 'Room names', 'matterport.openings': 'Doors and windows',
+  'matterport.panos': '360° photos', 'matterport.panoramas': '360° photos', 'matterport.defurnished': 'Empty-room photos', 'matterport.geo': 'Scan position', 'matterport.index': 'Scan index',
+  'vexcel.ortho': 'Aerial photo', 'vexcel.oblique': 'Angled aerial photos', 'vexcel.property': 'Aerial property facts', 'vexcel.elevation': 'Ground heights', 'vexcel.dtm': 'Ground heights',
+  'vexcel.dsm': 'Roof heights', 'vexcel.footprint': 'Building footprint', 'costar.property': 'Property record', 'costar.listing': 'Listing', 'drone.photos': 'Drone photos', 'drone.splat': 'Drone capture',
+  'threshold.facts': 'Facts database', 'threshold.facts.rooms': 'Room descriptions', 'threshold.measures': 'Measures table', 'osm.streets': 'Street map',
 }
 const layerName = (l: string) => LAYER[l] ?? l.replace(/^[a-z]+\./, '').replace(/_/g, ' ')
 

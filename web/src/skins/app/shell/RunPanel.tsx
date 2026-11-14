@@ -81,8 +81,14 @@ function Brief() {
               <textarea className="field" rows={4} value={text} onChange={(e) => setText(e.target.value)} aria-label="Who you are and what you need" autoFocus />
               <div className="row"><button className="btn solid">Save and compose again</button><button type="button" className="btn quiet" onClick={() => setEditing(false)}>Cancel</button></div>
             </form>
-          ) : <p className="said">{doc.brief.text}</p>}
-          {!editing && !!doc.brief.limits?.length && <div className="note"><Icon name="info" size={13} /><div><b>What the tools here cannot do</b>{doc.brief.limits.map((l) => <p key={l}>{l}</p>)}</div></div>}
+          ) : <p className={doc.plan.length ? 'said clamp' : 'said'} title={doc.brief.text}>{doc.brief.text}</p>}
+          {/* once the work is under way the limits fold away: the plan is what the panel is for */}
+          {!editing && !!doc.brief.limits?.length && (
+            <details className="limits" open={!doc.plan.length || undefined}>
+              <summary><Icon name="right" size={11} />What the tools here cannot do<span className="count">{doc.brief.limits.length}</span></summary>
+              {doc.brief.limits.map((l) => <p key={l}>{l}</p>)}
+            </details>
+          )}
         </>
       )}
       {open.length > 0 && !editing && (

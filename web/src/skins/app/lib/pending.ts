@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import * as core from '../../../core/index.ts'
-import { ask, currentRoute, navigate, useWorkspace, type Doc } from '../../../core/index.ts'
+import { ask, currentRoute, isLive, navigate, useWorkspace, type Doc } from '../../../core/index.ts'
 
 /* Everything in this file stands in for something asked of core in reports/core-requests.md ("App", 2026-11-14).
    Nothing here fetches: a look may not. Each part says which request replaces it. */
@@ -35,6 +35,7 @@ let shown = ''
 useWorkspace.subscribe(({ doc: d }) => {
   const key = digest(d)
   if (key === shown || !started(d)) return
+  if (isLive() && !d.id.startsWith('ws_')) return // the brief is shown before the server has named the workspace: that is not a second investigation
   shown = key
   const all = { ...useSeen.getState().all }, now = Date.now(), old = all[d.id]
   const next = { id: d.id, brief: d.brief?.text ?? old?.brief ?? '', first: old?.first ?? now, last: now,
