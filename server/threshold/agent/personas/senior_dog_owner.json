@@ -18,7 +18,9 @@
       }
     ],
     "nearby.profile": "pets",
-    "access.riser_m": 0.178
+    "access.riser_m": 0.178,
+    "pets.dog_lb": 70,
+    "pets.dog_age": "senior"
   },
   "layout": {
     "view": "plan",

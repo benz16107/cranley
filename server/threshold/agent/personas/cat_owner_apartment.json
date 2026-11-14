@@ -16,7 +16,8 @@
       }
     ],
     "nearby.profile": "pets",
-    "search.kind": "apartment_unit"
+    "search.kind": "apartment_unit",
+    "pets.cat": "indoor"
   },
   "layout": {
     "view": "plan",

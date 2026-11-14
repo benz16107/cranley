@@ -85,13 +85,25 @@ class Pet(BaseModel):
 
 
 class Inputs(Where):
-    pets: list[Pet] = field([Pet(kind="dog", weight_lb=40)], min_length=1, max_length=6, pref="pets.profile",
-                            ask="Which pets? For each: dog (weight in lb and age: young, adult or senior), cat (indoor or "
-                                "outdoor) or a small animal",
-                            description="One profile per pet; each gets its own verdict")
+    pets: list[Pet] = field([], max_length=6, pref="pets.profile",
+                            description="One profile per pet; each gets its own verdict. Empty: built from the fields below")
+    dog_lb: float | None = field(None, gt=0, le=250, pref="pets.dog_lb", unit="lb", description="A dog's weight, in pounds")
+    dog_age: Literal["young", "adult", "senior"] = field("adult", pref="pets.dog_age", description="The dog's age")
+    cat: Literal["none", "indoor", "outdoor"] = field("none", pref="pets.cat", description="A cat, indoor or outdoor")
+    small_animal: bool = field(False, description="A rabbit, guinea pig, bird or reptile")
     use_vision: bool = field(True, description="Read floor finishes in the panoramas and a fence from the aerial photo (cached)")
     nearby: bool = field(True, description="Look up dog parks, vets and trails in OpenStreetMap (cached)")
     riser_m: float = field(0.178, pref="access.riser_m", unit="m", gt=0.1, le=0.25)
+
+
+def profiles(inputs: Inputs) -> list[Pet]:
+    """The pet list, or one built from the simple fields (what the run form shows); a 40 lb adult dog when nothing is said."""
+    if inputs.pets:
+        return inputs.pets
+    out = [Pet(kind="dog", weight_lb=inputs.dog_lb, age=inputs.dog_age)] if inputs.dog_lb else []
+    out += [Pet(kind="cat", outdoor=inputs.cat == "outdoor")] if inputs.cat != "none" else []
+    out += [Pet(kind="small")] if inputs.small_animal else []
+    return out or [Pet(kind="dog", weight_lb=40)]
 
 
 def size(p: Pet) -> str:
@@ -569,6 +581,7 @@ def evidence(E: dict, k: str, sid: str | None) -> tuple[list, list, list]:
 def run(ctx, inputs: Inputs) -> ToolResult:
     if not inputs.scan and inputs.lat is None and not inputs.property_id:
         raise NotApplicable("Pick a home, or give a CoStar property id or a point.")
+    inputs = inputs.model_copy(update={"pets": profiles(inputs)})
     E = gather(ctx, inputs)
     s = E["site"]
     k = s.key if s else inputs.scan

@@ -17,7 +17,8 @@
         "age": "adult"
       }
     ],
-    "nearby.profile": "pets"
+    "nearby.profile": "pets",
+    "pets.dog_lb": 60
   },
   "layout": {
     "view": "scene",
