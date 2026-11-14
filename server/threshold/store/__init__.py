@@ -44,7 +44,8 @@ def connect(uri: str | None = None, db: str | None = None):
 
 # Recall cut-offs by how memories are embedded; the score is (1 + cos) / 2.
 # local, bge-small: related needs scored 0.85-0.88 on the real workspaces, unrelated 0.75-0.79.
-MIN_SCORE = {"local": 0.82, "auto": 0.82}
+# auto, voyage-4 on Atlas: related 0.82-0.85, unrelated 0.59-0.67.
+MIN_SCORE = {"local": 0.82, "auto": 0.75}
 
 
 def recall_lines(store, text: str | None, persona: str | None = None, exclude: str | None = None, k: int = 3) -> list[str]:
