@@ -61,6 +61,9 @@
 .b-table .tbl { table-layout: auto; }
 .b-table .tbl th, .b-table .tbl td { height: 28px; }
 .b-table .tbl thead th { position: static; }
+/* a column named by a whole criterion ("Wheelchair reaches a bathroom") wraps in its head; the table stays in its frame */
+.b-table .tbl thead th { white-space: normal; height: auto; padding-block: 6px; vertical-align: bottom; line-height: 1.25; }
+.b-table .tbl thead th button { height: auto; text-align: inherit; }
 .b-table tbody th { font-weight: 500; }
 .b-table tbody th button { display: inline-flex; align-items: center; gap: 6px; max-width: 220px; height: 28px; }
 .b-table tbody th button:not([disabled]) { color: var(--accent); }

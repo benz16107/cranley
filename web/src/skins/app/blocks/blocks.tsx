@@ -122,8 +122,8 @@ function RankedTable({ b, panel }: { b: Extract<Block, { type: 'RankedTable' }>;
       {b.title && b.title !== panel.title && <p className="cap">{b.title}</p>}
       <table className="tbl">
         <thead><tr>
-          {/* rows that open a building are candidates; rows of a rollup (by zip, by property type) are its groups */}
-          <th scope="col">{b.rows.some((r) => r.anchor) ? 'Candidate' : 'Group'}</th>
+          {/* rows that open a building are candidates; a run's own rows (a rollup's groups, a search's homes) are named, and the table's title says of what */}
+          <th scope="col">{b.rows.some((r) => r.anchor) ? 'Candidate' : 'Name'}</th>
           {b.columns.map((c) => (
             <th key={c.id} scope="col" className="r" aria-sort={sort.col === c.id ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}>
               <button onClick={() => setSort({ col: c.id, dir: sort.col === c.id ? (sort.dir === 1 ? -1 : 1) : c.better === 'lower' ? 1 : -1 })}>
