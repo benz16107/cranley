@@ -98,8 +98,8 @@ def draw_plan(plan: dict, result: dict) -> Image.Image:
     return img
 
 
-def _crop(m: dict) -> Image.Image | None:
-    """The evidence image of one media item, with its box drawn."""
+def _crop(m: dict, boxes: list | None = None) -> Image.Image | None:
+    """The evidence image of one media item, with its box (or every box given for the same image) drawn."""
     try:
         if m["kind"] == "pano":
             from ...sources import matterport as mp
@@ -114,24 +114,22 @@ def _crop(m: dict) -> Image.Image | None:
             return None
     except Exception:  # noqa: BLE001 - a missing crop must not stop the review
         return None
-    if m.get("box"):
-        x0, y0, x1, y1 = m["box"]
-        ImageDraw.Draw(im).rectangle([x0 * im.width, y0 * im.height, x1 * im.width, y1 * im.height], outline=(255, 40, 40),
-                                     width=max(3, im.width // 200))
+    for box in boxes if boxes is not None else [m.get("box")]:
+        if box:
+            x0, y0, x1, y1 = box
+            ImageDraw.Draw(im).rectangle([x0 * im.width, y0 * im.height, x1 * im.width, y1 * im.height],
+                                         outline=(255, 40, 40), width=max(3, im.width // 200))
     im.thumbnail((THUMB, THUMB))
     return im
 
 
 def render(plan: dict, result: dict) -> Image.Image:
     top = draw_plan(plan, result)
-    items = [(f, m) for f in result["findings"] for m in f.get("media") or []]
-    seen, uniq = set(), []
-    for f, m in items:
-        k = (m["ref"], tuple(m.get("box") or ()))
-        if k not in seen:
-            seen.add(k)
-            uniq.append((f, m))
-    thumbs = [(f, im) for f, m in uniq[:8] if (im := _crop(m)) is not None]
+    by_ref: dict[str, tuple[dict, dict, list]] = {}  # one picture per image, every box on it
+    for f in result["findings"]:
+        for m in f.get("media") or []:
+            by_ref.setdefault(m["ref"], (f, m, []))[2].append(m.get("box"))
+    thumbs = [(f, im) for f, m, boxes in list(by_ref.values())[:8] if (im := _crop(m, boxes)) is not None]
     lines = [result["verdict"]["text"]] + [f"[{f['status']}] {f['title']}" for f in result["findings"][:22]]
     f_txt = _font(15)
     text_h = 22 * len(lines) + PAD
