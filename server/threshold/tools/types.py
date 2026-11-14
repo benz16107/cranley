@@ -20,8 +20,10 @@ Point3 = tuple[float, float, float]
 
 
 class Source(Strict):
-    layer: Literal["matterport", "vexcel", "costar", "drone", "model"]
-    method: Literal["geometry", "vision", "lookup", "simulation"]
+    # "phone": captured by a person on site with the phone app (threshold/capture). "sensor" is a device sensor
+    # reading (tilt, compass, GPS, microphone); "manual" is a value the person measured and typed.
+    layer: Literal["matterport", "vexcel", "costar", "drone", "model", "phone"]
+    method: Literal["geometry", "vision", "lookup", "simulation", "sensor", "manual"]
     confidence: Literal["high", "medium", "low"]
     note: str | None = None
 
@@ -82,7 +84,7 @@ class Check(Strict):
 
 
 class Media(Strict):
-    kind: Literal["pano", "ortho", "drone"]
+    kind: Literal["pano", "ortho", "drone", "phone"]  # phone: ref is a capture id, served at /api/capture/<ref>/file
     ref: str
     box: tuple[float, float, float, float] | None = None
 

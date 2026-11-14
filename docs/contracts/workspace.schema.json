@@ -1456,7 +1456,8 @@
           "enum": [
             "pano",
             "ortho",
-            "drone"
+            "drone",
+            "phone"
           ],
           "type": "string"
         },
@@ -3102,7 +3103,8 @@
             "vexcel",
             "costar",
             "drone",
-            "model"
+            "model",
+            "phone"
           ],
           "type": "string"
         },
@@ -3111,7 +3113,9 @@
             "geometry",
             "vision",
             "lookup",
-            "simulation"
+            "simulation",
+            "sensor",
+            "manual"
           ],
           "type": "string"
         },
