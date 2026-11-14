@@ -26,6 +26,7 @@ from PIL import Image
 from shapely.geometry import Polygon
 from shapely.ops import unary_union
 
+from ..geometry._plan import floor_z
 from ..sources import matterport as mp
 from ..sources.upstream import cache_path, cached, check, one_flight, send, write_atomic
 from ..vision.projection import face_basis, quat_matrix
@@ -43,7 +44,7 @@ VOXEL = 0.08            # metres; the occupancy grid that decides whether a pano
 MAX_RANGE = 10.0        # a panorama further than this does not colour a triangle
 MIN_COS = 0.2           # nor one that sees it at a flatter angle than this
 NADIR_COS = 0.9         # nor, by choice, one standing right over it: Matterport blurs the tripod out of each panorama
-BAKE_VERSION = 6
+BAKE_VERSION = 7        # 7: the mesh is trimmed and split into floors by each floor's own scan z (6 lost a ground floor under the origin)
 RETRY_S = 600
 CANDIDATES = 6
 MARGIN = 1.0            # metres of mesh kept outside the plan's walls (the rest is the garden seen through windows)
@@ -55,7 +56,7 @@ _one_bake = threading.Semaphore(1)  # a bake holds up to a gigabyte; a second on
 
 
 def path(sid: str, name: str):
-    """A versioned file of this scan's bake: path(sid, "atlas.jpg") is .../atlas6.jpg."""
+    """A versioned file of this scan's bake: path(sid, "atlas.jpg") is .../atlas7.jpg."""
     stem, _, ext = name.partition(".")
     return cache_path("mesh", sid, f"{stem}{BAKE_VERSION}.{ext}")
 
@@ -96,8 +97,10 @@ def trim(V: np.ndarray, F: np.ndarray, plan: dict) -> np.ndarray:
     taken by their outlines, so the yard inside an L-shaped house's corner goes too. A scan with no room outlines
     is boxed by its walls, and with no walls by its panorama positions."""
     c = V[F].mean(1)
-    top = max((fl.get("elevation") or 0) for fl in plan["floors"]) + max([r.get("height") or 0 for r in plan["rooms"]] + [2.7]) + 0.6
-    keep = (c[:, 2] < top) & (c[:, 2] > -1.0)
+    # each floor's own level in scan z: Matterport's origin can be on any floor (a ground floor 3 m under it was cut off)
+    levels = list(floor_z(plan).values()) or [0.0]
+    top = max(levels) + max([r.get("height") or 0 for r in plan["rooms"]] + [2.7]) + 0.6
+    keep = (c[:, 2] < top) & (c[:, 2] > min(levels) - 1.0)
     rooms = [Polygon(r["polygon"]).buffer(0) for r in plan["rooms"] if len(r.get("polygon") or []) > 2]
     if rooms:
         return F[keep & shapely.contains_xy(unary_union(rooms).buffer(MARGIN), c[:, 0], c[:, 1])]
@@ -467,8 +470,9 @@ def floor_of(V: np.ndarray, F: np.ndarray, plan: dict) -> np.ndarray:
     """Index into plan.floors for each triangle: the highest floor that starts below its middle."""
     z = V[F].mean(1)[:, 2]
     out = np.zeros(len(F), np.int8)
+    levels = floor_z(plan)
     for i, fl in enumerate(plan["floors"]):
-        out[z >= (fl.get("elevation") or 0) - 0.4] = i
+        out[z >= levels[fl["id"]] - 0.4] = i
     return out
 
 

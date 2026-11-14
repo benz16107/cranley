@@ -42,6 +42,24 @@
    }
   ]
  },
+ "Can I park my boat trailer off the street at this house?": {
+  "cannot": [
+   "Nothing here checks local rules or HOA restrictions on parking a boat trailer in a driveway."
+  ],
+  "persona": "rv_boat_owner",
+  "stated": [],
+  "summary": "A boat owner who wants to know if their boat trailer can be parked off the street at this house.",
+  "tools": [
+   {
+    "id": "driveway_fit",
+    "reason": "You can see whether the driveway is long and wide enough to hold your boat trailer off the street."
+   },
+   {
+    "id": "garage_fit",
+    "reason": "You can check whether the trailer and boat fit inside the garage, including whether the door is tall enough."
+   }
+  ]
+ },
  "Compare our three floor plans on room sizes.": {
   "cannot": [],
   "persona": "apartment_manager",
@@ -103,6 +121,30 @@
    {
     "id": "door_widths",
     "reason": "You can check which doorways your gear and equipment can pass through."
+   }
+  ]
+ },
+ "Find houses in Houston whose garage fits two F-150s.": {
+  "cannot": [],
+  "persona": "car_owner",
+  "stated": [],
+  "summary": "Someone searching Houston houses for a garage that holds two Ford F-150s side by side.",
+  "tools": [
+   {
+    "id": "measure_search",
+    "reason": "You can search Houston homes by what is measured inside, so you can narrow to garages wide and deep enough for two full-size pickups."
+   },
+   {
+    "id": "garage_fit",
+    "reason": "For each candidate house, this checks whether two F-150s fit side by side with room to open the doors."
+   },
+   {
+    "id": "facts_query",
+    "reason": "If the garage-size search needs a custom filter across all scanned Houston homes, this answers it and shows the query."
+   },
+   {
+    "id": "driveway_fit",
+    "reason": "This shows how many trucks the driveway also holds, in case you want the option of parking outside."
    }
   ]
  },
@@ -186,6 +228,30 @@
    {
     "id": "door_widths",
     "reason": "It measures the doorways inside so you can see which ones a pallet passes once a trailer is docked."
+   }
+  ]
+ },
+ "I drive a wheelchair van with a side ramp. Does this garage leave room for the ramp?": {
+  "cannot": [],
+  "persona": "wheelchair_van_owner",
+  "stated": [],
+  "summary": "You drive a side-ramp wheelchair van and need to know whether this garage leaves room beside the van to deploy the ramp.",
+  "tools": [
+   {
+    "id": "garage_fit",
+    "reason": "This checks whether your van fits in the garage with clear space along the side for the ramp to come down and for you to roll off it."
+   },
+   {
+    "id": "door_widths",
+    "reason": "This measures the doorway from the garage into the house so you know your wheelchair gets through."
+   },
+   {
+    "id": "step_free_route",
+    "reason": "This shows whether you can get from the garage into the rooms you need without hitting a step."
+   },
+   {
+    "id": "driveway_fit",
+    "reason": "If the garage is too tight, this shows whether the driveway gives you room to park and lower the ramp instead."
    }
   ]
  },
@@ -474,6 +540,24 @@
    {
     "id": "egress_routes",
     "reason": "You can trace the exit path from every room and spot its narrowest point, which bears on how many occupants the space can safely hold."
+   }
+  ]
+ },
+ "I want to put a squat rack in the garage. Is the ceiling high enough to press overhead?": {
+  "cannot": [
+   "Nothing here knows your own height and arm reach, so you will need to compare the ceiling height with your overhead press reach yourself."
+  ],
+  "persona": "home_gym_builder",
+  "stated": [],
+  "summary": "You want to put a squat rack in your garage and need to know if the ceiling is high enough to press overhead.",
+  "tools": [
+   {
+    "id": "garage_fit",
+    "reason": "It measures your scanned garage's headroom and floor space, so you can see whether a rack fits and the ceiling clears an overhead press."
+   },
+   {
+    "id": "photo_measure",
+    "reason": "If a spot like a beam or the garage door track looks low, you can measure that height from one photo with a door or sheet of paper in it."
    }
   ]
  },
@@ -1302,6 +1386,22 @@
    {
     "id": "furniture_fit",
     "reason": "You can test whether a load your size passes along the route through the back doors to where it needs to go."
+   }
+  ]
+ },
+ "Will my F-150 fit in the garage of this house, with room to open the doors?": {
+  "cannot": [],
+  "persona": "car_owner",
+  "stated": [],
+  "summary": "An F-150 owner who wants to know if the truck fits in this house's garage with room to open the doors.",
+  "tools": [
+   {
+    "id": "garage_fit",
+    "reason": "This checks whether your F-150 fits in the scanned garage and whether there is room to swing its doors open."
+   },
+   {
+    "id": "driveway_fit",
+    "reason": "If the garage is tight, this shows whether the driveway can hold your truck off the street instead."
    }
   ]
  },
