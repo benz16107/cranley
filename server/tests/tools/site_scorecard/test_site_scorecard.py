@@ -128,3 +128,16 @@ def test_a_team_is_sized_against_the_marketed_space_that_fits(kit_rows):
     finally:
         ROWS[1]["available"] = {"sf": 50000, "max_contiguous_sf": 50000}
     assert {x.id: x.value for x in res.metrics}["p1/size"] == 22000
+
+
+def test_transit_comes_from_the_nearby_engine(monkeypatch):
+    from threshold import nearby
+
+    class Area:
+        def of(self, cat):
+            return [{"id": "node/1", "lon": -95.4, "lat": 29.7027, "tags": {"highway": "bus_stop", "name": "Main"}},
+                    {"id": "node/2", "lon": -95.4, "lat": 29.715, "tags": {"railway": "station", "name": "Rail"}}]
+    monkeypatch.setattr(nearby, "area", lambda lat, lon: Area())
+    monkeypatch.setattr(near, "_query_transport", lambda lat, lon: [])
+    t = near.transport(29.70, -95.40)
+    assert t["bus_stops_400m"] == 1 and t["nearest"]["bus"]["name"] == "Main" and t["nearest"]["rail_transit"]["name"] == "Rail"

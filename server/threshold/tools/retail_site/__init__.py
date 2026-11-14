@@ -32,8 +32,8 @@ class Inputs(BaseModel):
 
 
 def frontage(roads: list[dict]) -> dict | None:
-    """The highest-class road within 200 m (nearest among equals)."""
-    named = [r for r in roads if r["kind"].removesuffix("_link") in ROAD_RANK]
+    """The highest-class busy road found (nearest among equals)."""
+    named = [r for r in roads if r["kind"].removesuffix("_link") in ROAD_RANK]  # from nearby.busy_road_m: secondary or bigger
     if not named:
         return None
     return max(named, key=lambda r: (ROAD_RANK[r["kind"].removesuffix("_link")], -r["km"]))
@@ -100,8 +100,8 @@ def run(ctx, i: Inputs) -> ToolResult:
         if f:
             metrics.append(Metric(id="road_setback", label=f"Distance to {f['name'] or f['kind']}", value=round(f["km"] * 1000),
                                   unit="m", source=OSM))
-            st = "pass" if ROAD_RANK[f["kind"].removesuffix("_link")] >= 3 else "warn"
-            checks.append(Check(id="frontage", rule="Faces a secondary road or bigger", measured=round(f["km"] * 1000),
+            st = "pass" if ROAD_RANK.get(f["kind"].removesuffix("_link"), 0) >= 3 and f["km"] <= 0.2 else "warn"
+            checks.append(Check(id="frontage", rule="A secondary road or bigger within 200 m", measured=round(f["km"] * 1000),
                                 threshold=200, unit="m", status=st, findings=[f"retail_site:{key}:frontage"]))
             findings.append(Finding(id=f"retail_site:{key}:frontage", title="The road the site faces", status=st, anchor=anchor,
                                     source=OSM, detail=f"{f['name'] or 'An unnamed road'}, a {f['kind'].replace('_', ' ')} road"
@@ -109,8 +109,8 @@ def run(ctx, i: Inputs) -> ToolResult:
                                     "the building's point. Traffic counts are not in OpenStreetMap; the road class stands in. "
                                     "Sign line of sight from the road is not checked."))
         else:
-            checks.append(Check(id="frontage", rule="Faces a secondary road or bigger", measured=None, threshold=200, unit="m",
-                                status="warn", standard="No tertiary or bigger road mapped within 200 m"))
+            checks.append(Check(id="frontage", rule="A secondary road or bigger within 200 m", measured=None, threshold=200, unit="m",
+                                status="warn", standard="No secondary or bigger road mapped within 2 km"))
         n = len(r["shops"]) + len(r["food"]) + len(r["services"])
         metrics += [Metric(id="neighbours", label=f"Shops, food and services within {i.radius_m} m", value=n, unit="", source=OSM),
                     Metric(id="anchors", label="Named anchor stores within 1.5 km", value=len(r["anchors"]), unit="", source=OSM),

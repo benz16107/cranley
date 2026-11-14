@@ -1,5 +1,9 @@
-"""What is near a business site, from OpenStreetMap (through the cached, rate-limited `_site.osm` queue) and a short
-list of cargo hubs: highway on-ramps, rail lines, power substations, transit stops, shops and restaurants.
+"""What is near a business site, from OpenStreetMap and a short list of cargo hubs.
+
+Transit stops, grocery stores, pharmacies, coffee and the nearest busy road come from the shared `threshold.nearby`
+engine (one cached Overpass answer per ~440 m cell, also used by the pets, kids and sports tools). What that engine does
+not fetch comes from one small query each through the cached, rate-limited `_site.osm` queue: motorway on-ramps out to
+12 km, rail lines, power substations, and every shop and restaurant within the walk radius (co-tenancy).
 
 Distances are straight lines. A road trip is longer; callers that turn a distance into a time say it is an estimate.
 """
@@ -49,9 +53,6 @@ def _query_transport(lat: float, lon: float) -> list[dict]:
          f"node(around:12000,{lat},{lon})[highway=motorway_junction];"
          f"node(around:3000,{lat},{lon})[power=substation];way(around:3000,{lat},{lon})[power=substation];"
          f"way(around:2500,{lat},{lon})[railway=rail][!service];"
-         f"node(around:1000,{lat},{lon})[highway=bus_stop];"
-         f"node(around:2000,{lat},{lon})[railway~\"^(station|halt|tram_stop)$\"];"
-         f"node(around:2000,{lat},{lon})[public_transport=station];"
          f");out geom tags;")
     return osm._query(q).get("elements") or []
 
@@ -90,10 +91,21 @@ def classify(elements: list[dict], lat: float, lon: float) -> dict:
     return {"nearest": best, "bus_stops_400m": bus_400, "bus_stops_800m": bus_800}
 
 
+def transit_elements(lat: float, lon: float) -> list[dict]:
+    """Transit stops from the shared nearby engine, shaped like Overpass nodes so `classify` reads them."""
+    from ... import nearby
+    return [{"type": p["id"].split("/")[0], "id": p["id"].split("/")[1], "lon": p["lon"], "lat": p["lat"], "tags": p["tags"]}
+            for p in nearby.area(lat, lon).of("transit")]
+
+
 def transport(lat: float, lon: float) -> dict:
     """{nearest: {highway, substation, rail, bus, rail_transit, airport, port}, bus_stops_400m, bus_stops_800m, source}."""
-    out = classify(_query_transport(round(lat, 5), round(lon, 5)), lat, lon)
-    return {**out, "source": NOTE}
+    els = _query_transport(round(lat, 5), round(lon, 5))
+    try:
+        els = els + transit_elements(lat, lon)
+    except Exception:  # noqa: BLE001  the nearby engine could not fetch: no transit, the rest stands
+        pass
+    return {**classify(els, lat, lon), "source": NOTE}
 
 
 ANCHOR_SHOPS = {"supermarket", "department_store", "wholesale", "mall", "doityourself", "hardware", "electronics",
@@ -106,9 +118,7 @@ def _query_retail(lat: float, lon: float, r: int) -> list[dict]:
     q = (f"[out:json][timeout:60];("
          f"nwr(around:{r},{lat},{lon})[shop];"
          f"nwr(around:{r},{lat},{lon})[amenity];"
-         f"nwr(around:1500,{lat},{lon})[shop~\"^(supermarket|department_store|wholesale|mall|doityourself|hardware)$\"];"
-         f"way(around:200,{lat},{lon})[highway~\"^(motorway|trunk|primary|secondary|tertiary)(_link)?$\"];"
-         f"node(around:{r},{lat},{lon})[highway=bus_stop];"
+         f"nwr(around:1500,{lat},{lon})[shop~\"^(department_store|wholesale|mall|doityourself|hardware)$\"];"
          f"nwr(around:{r},{lat},{lon})[building~\"^(apartments|residential|house|office|commercial)$\"];"
          f");out center tags;")
     return osm._query(q).get("elements") or []
@@ -156,5 +166,21 @@ def retail_mix(elements: list[dict], lat: float, lon: float, r_km: float) -> dic
 
 
 def retail(lat: float, lon: float, r_m: int = 400) -> dict:
-    out = retail_mix(_query_retail(round(lat, 5), round(lon, 5), r_m), lat, lon, r_m / 1000)
+    """Co-tenancy and walk-in proxies: shops, food and services from one query; grocery anchors, transit stops and the
+    nearest busy road from the shared nearby engine."""
+    from ... import nearby
+    els = _query_retail(round(lat, 5), round(lon, 5), r_m)
+    road = None
+    try:
+        a = nearby.area(lat, lon)
+        have = {f"{e['type']}/{e['id']}" for e in els}  # a supermarket comes back from both
+        els = els + [{"type": p["id"].split("/")[0], "id": p["id"].split("/")[1], "lon": p["lon"], "lat": p["lat"],
+                      "tags": p["tags"]} for cat in ("grocery", "transit") for p in a.of(cat) if p["id"] not in have]
+        road = nearby.busy_road_m(lat, lon)
+    except Exception:  # noqa: BLE001  the nearby engine could not fetch: no anchors from it, no road
+        pass
+    out = retail_mix(els, lat, lon, r_m / 1000)
+    if road:
+        out["roads"] = [{"kind": road["highway"], "name": road["name"], "km": road["m"] / 1000, "lon": road["point"][0],
+                         "lat": road["point"][1], "lanes": None, "id": "nearby"}]
     return {**out, "source": NOTE}
