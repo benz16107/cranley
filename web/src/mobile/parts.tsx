@@ -100,7 +100,7 @@ export function Row({ status, title, sub, right, onClick, done }: { status?: Sta
 export function OutcomeCard({ outcome, task }: { outcome: Outcome; task: Pick<Task, 'unit' | 'scan_value' | 'threshold' | 'kind'> }) {
   return (
     <section className="m-card" data-status={outcome.status} aria-live="polite">
-      <header><StatusGlyph status={outcome.status} size={11} /><b>{SAID[outcome.verdict]}</b><span className="src">{outcome.method === 'manual' ? 'Tape' : outcome.method === 'vision' ? 'Photo' : 'Sensor'} · {outcome.confidence}</span></header>
+      <header><StatusGlyph status={outcome.status} size={11} /><b>{SAID[outcome.verdict]}</b><span className="src">{outcome.method === 'manual' ? (task.kind === 'floor_height' ? 'Counted' : task.kind === 'alarm' ? 'Your word' : 'Tape') : outcome.method === 'vision' ? 'Photo' : 'Sensor'} · {outcome.confidence}</span></header>
       <dl className="m-kv">
         {outcome.value != null && <><dt>On site</dt><dd className="num">{num(outcome.value, task.unit)}{outcome.err ? ` ± ${num(outcome.err, task.unit)}` : ''}</dd></>}
         {task.scan_value != null && task.kind !== 'floor_height' && <><dt>Scan</dt><dd className="num">{num(task.scan_value, task.unit)}</dd></>}

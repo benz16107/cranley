@@ -229,7 +229,9 @@ export function Sound({ back }: Props) {
       if (n == null || n > 1) return n == null ? n : n - 1
       clearInterval(timer.current)
       const r = meter.stop()
-      if (r) void s.go({ kind: 'reading', tool: 'noise_level', scan: sid, room, values: { ...r, ...(room ? { room } : { label: label.trim() || 'This room' }) } })
+      // a muted, busy or simulated microphone sends exact zeros; no real room reads under 5 dBA
+      if (r && r.lmax_dba < 5) toast.error('The microphone sent only silence, so nothing was measured. Check that no other app is using it, then try again.')
+      else if (r) void s.go({ kind: 'reading', tool: 'noise_level', scan: sid, room, values: { ...r, ...(room ? { room } : { label: label.trim() || 'This room' }) } })
       return null
     }), 1000)
   }
@@ -272,6 +274,7 @@ export function Window({ task, back }: Props) {
       actions={h.state === 'on' && <button className="btn m-btn solid wide" disabled={!ok || reading || s.busy != null} onClick={() => void record()}>{reading ? 'Hold still' : 'Record this direction'}</button>}>
       {task ? <TaskHead task={task} /> : <p className="m-hint">Stand at the window. Hold the phone flat, like a tray, with its top edge pointing straight out through the glass.</p>}
       {!task && (rooms.length > 0 ? <RoomPick rooms={rooms} value={room} onChange={setRoom} /> : <Problem text="Pick a building first: a window check compares with a scan's rooms." />)}
+      {!task && rooms.length > 0 && room == null && <p className="m-hint">Pick the room the window is in first.</p>}
       <SensorGate state={h.state} allow={() => void h.allow()} name="compass" fallback="Pick the direction the window faces below; a map on your phone will tell you." />
       {h.state === 'on' && h.now && (
         <div className="m-meter"><div className="m-dial" aria-hidden="true"><i style={{ rotate: `${-h.now.heading}deg` }}>N</i></div>
@@ -352,12 +355,12 @@ export function Walkthrough({ back }: Props) {
   const start = async () => {
     let stream: MediaStream
     try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false }) }
-    catch (e) { toast.error((e as Error).name === 'NotAllowedError' ? 'The camera is switched off for this page. Use "Record with the camera app" below.' : 'No camera answered.'); return }
+    catch (e) { toast.error((e as Error).name === 'NotAllowedError' ? 'The camera is switched off for this page. Use "Record or choose a video" below.' : 'No camera answered.'); return }
     if (preview.current) { preview.current.srcObject = stream; void preview.current.play().catch(() => {}) }
     const chunks: Blob[] = [], r = new MediaRecorder(stream, { mimeType: type!, videoBitsPerSecond: 2_500_000 })
     r.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data) }
     const tick = setInterval(() => setSecs((n) => { if (n + 1 >= MAX_CLIP) r.stop(); return n + 1 }), 1000)
-    r.onstop = () => { clearInterval(tick); stream.getTracks().forEach((t) => t.stop()); setRec(null); setSecs(0); void upload(new Blob(chunks, { type: type!.split(';')[0] })) }
+    r.onstop = () => { clearInterval(tick); stream.getTracks().forEach((t) => t.stop()); setRec(null); setSecs(0); if (!chunks.length) { toast.error('Nothing was recorded. Try again, or use "Record or choose a video".'); return } void upload(new Blob(chunks, { type: type!.split(';')[0] })) }
     r.start(1000)
     setRec({ stop: () => r.state !== 'inactive' && r.stop() })
   }
@@ -367,7 +370,7 @@ export function Walkthrough({ back }: Props) {
       actions={type && s.busy == null && (rec ? <button className="btn m-btn solid wide" onClick={rec.stop}>Stop and send, {secs} of {MAX_CLIP} s</button> : <button className="btn m-btn solid wide" onClick={() => void start()}>Record</button>)}>
       <p className="m-hint">Walk slowly through each room for up to {MAX_CLIP} seconds. Tilt up to take in the ceiling in bedrooms and hallways: that is where smoke alarms are. Eight frames are read; a room the camera does not show is not counted.</p>
       {type && <video ref={preview} className="m-video" data-on={!!rec || undefined} muted playsInline />}
-      {!rec && s.busy == null && <Camera label="Record with the camera app" video quiet onFile={(f) => void upload(f)} />}
+      {!rec && s.busy == null && <Camera label="Record or choose a video" video quiet onFile={(f) => void upload(f)} />}
       {s.busy != null && <Progress value={s.busy < 1 ? s.busy : null} label={s.busy < 1 ? `Sending the video, ${Math.round(s.busy * 100)}%` : 'Reading the frames. This takes about half a minute.'} />}
       <Sent reply={s.reply} />
     </Page>
@@ -423,7 +426,7 @@ export function Note({ back }: Props) {
     try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }) } catch { toast.error('The microphone is switched off for this page.'); return }
     const chunks: Blob[] = [], r = new MediaRecorder(stream, { mimeType: type })
     r.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data) }
-    r.onstop = async () => { stream.getTracks().forEach((t) => t.stop()); setRec(null); await s.go({ ...(await meta()), kind: 'audio' }, new Blob(chunks, { type: type.split(';')[0] })) }
+    r.onstop = async () => { stream.getTracks().forEach((t) => t.stop()); setRec(null); if (!chunks.length) { toast.error('Nothing was recorded. Check that no other app is using the microphone.'); return } await s.go({ ...(await meta()), kind: 'audio' }, new Blob(chunks, { type: type.split(';')[0] })) }
     r.start(); setRec({ stop: () => r.stop() })
     setTimeout(() => r.state !== 'inactive' && r.stop(), 60_000)
   }

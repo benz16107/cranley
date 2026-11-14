@@ -85,7 +85,7 @@ def check(meta: Meta, data: bytes | None) -> tuple[str, str] | None:
             raise Rejected("A reading carries no file.")
         return None
     if not data:
-        raise Rejected(f"A {meta.kind} capture needs its file.")
+        raise Rejected(f"That {meta.kind} capture arrived without its file. Record it again.")
     found = sniff(data)
     if found is None:
         raise Rejected("That file is not a photo, video or audio clip this accepts.")

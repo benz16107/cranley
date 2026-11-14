@@ -85,14 +85,15 @@ export function getFix(ms = 6000): Promise<Fix> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) { reject(new Error('This browser has no location.')); return }
     const got: Parameters<typeof bestFix>[0] = []
-    let failed: string | null = null
+    let failed: string | null = null, end = 0
+    // the averaging window starts at the first fix, not the tap: iOS can show two permission prompts before one comes
+    const finish = () => { clearInterval(early); clearTimeout(end); clearTimeout(cap); navigator.geolocation.clearWatch(id); const f = bestFix(got); if (f) resolve(f); else reject(new Error(failed ?? 'No fix came in time. Try again near a window.')) }
     const id = navigator.geolocation.watchPosition(
-      (p) => got.push({ lat: p.coords.latitude, lon: p.coords.longitude, accuracy_m: p.coords.accuracy ?? null, altitude_m: p.coords.altitude, altitude_accuracy_m: p.coords.altitudeAccuracy }),
+      (p) => { got.push({ lat: p.coords.latitude, lon: p.coords.longitude, accuracy_m: p.coords.accuracy ?? null, altitude_m: p.coords.altitude, altitude_accuracy_m: p.coords.altitudeAccuracy }); if (!end) end = window.setTimeout(finish, ms) },
       (e) => { failed = e.code === e.PERMISSION_DENIED ? 'Location is switched off for this page. Allow it in the browser settings, or pick the building from the list.' : 'The phone could not get a fix here. Step outside or near a window and try again.' },
       { enableHighAccuracy: true, maximumAge: 0, timeout: ms })
-    const done = () => { navigator.geolocation.clearWatch(id); const f = bestFix(got); if (f) resolve(f); else reject(new Error(failed ?? 'No fix came in time. Try again near a window.')) }
-    const early = setInterval(() => { if (failed && !got.length) { clearInterval(early); clearTimeout(end); done() } }, 300)
-    const end = setTimeout(() => { clearInterval(early); done() }, ms)
+    const early = setInterval(() => { if (failed && !got.length) finish() }, 300)
+    const cap = setTimeout(finish, ms + 60_000)
   })
 }
 
