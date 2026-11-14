@@ -8,10 +8,6 @@ import type { Mode, Pick, ScanPlan, View } from '../types.ts'
 import { SAMPLE_KINDS, SAMPLE_LABEL, sampleOverlays, type SampleKind } from './samples.ts'
 import './lab.css'
 
-const SCANS: [string, string][] = [
-  ['<scan-id>', 'LA house, splat, empty view'], ['<scan-id>', 'Houston house, 2 floors, splat'], ['<scan-id>', 'Houston house, 2 floors, splat'],
-  ['<scan-id>', 'Apartment 1BR'], ['<scan-id>', 'Apartment 2BR'], ['<scan-id>', 'Coworking floor, 672 walls'], ['<scan-id>', 'Suite, 40,000 sq ft'], ['<scan-id>', 'No walls'],
-]
 const MODES: [Mode, string][] = [['dollhouse', 'Dollhouse'], ['plan', 'Plan'], ['pano', 'Panorama'], ['splat', 'Drone splat']]
 const q = new URLSearchParams(location.search)
 
@@ -28,7 +24,7 @@ const look = (p: ScanPlan) => {
 }
 
 function Lab() {
-  const [sid, setSid] = useState(q.get('sid') ?? SCANS[0][0])
+  const [sid, setSid] = useState(q.get('sid') ?? '')
   const [draft, setDraft] = useState(sid)
   const [plan, setPlan] = useState<ScanPlan | null>(null)
   const [error, setError] = useState('')
@@ -44,6 +40,7 @@ function Lab() {
 
   useEffect(() => {
     setPlan(null); setError('')
+    if (!sid) return
     fetch(`/api/scan/${sid}/plan`).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`No scan ${sid} (${r.status})`)))).then((p: ScanPlan) => {
       setPlan(p)
       setView((v) => ({ ...v, floor: q.get('floor') ? p.floors[Number(q.get('floor'))]?.id : null, pano: p.panos.find((x) => x.label === q.get('pano'))?.id ?? null, focus: look(p) }))
@@ -81,10 +78,6 @@ function Lab() {
       <header className="lab-strip">
         <form onSubmit={(e) => { e.preventDefault(); setSid(draft.trim()) }}>
           <label>Scan<input value={draft} onChange={(e) => setDraft(e.target.value)} spellCheck={false} size={12} /></label>
-          <select value={SCANS.some(([s]) => s === sid) ? sid : ''} aria-label="Development scans" onChange={(e) => { if (e.target.value) { setDraft(e.target.value); setSid(e.target.value) } }}>
-            <option value="">other</option>
-            {SCANS.map(([s, name]) => <option key={s} value={s}>{name}</option>)}
-          </select>
         </form>
         <div className="lab-seg" role="group" aria-label="View">
           {MODES.map(([m, name]) => <button key={m} aria-pressed={view.mode === m} disabled={m === 'splat' && !plan?.has.splat} onClick={() => setView((v) => ({ ...v, mode: m }))}>{name}</button>)}

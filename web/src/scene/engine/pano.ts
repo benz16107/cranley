@@ -1,5 +1,5 @@
 // Panorama viewer: six cube faces on a box around the scan position, in the same scene as the walls.
-// Face layout, checked by drawing ScanPlan doorways into panoramas of three scans (<scan-id>, <scan-id>, <scan-id>):
+// Face layout, checked by drawing ScanPlan doorways into panoramas of three scans (a house, an apartment and an office floor):
 // in the panorama's own frame face 1 looks along +x, face 2 is to its right (-y), 3 behind, 4 left, 0 up, 5 down,
 // and the frame is turned into the scan frame by the panorama's `rotation` quaternion.
 import * as THREE from 'three'
