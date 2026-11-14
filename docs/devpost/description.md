@@ -24,13 +24,13 @@ The information to answer "will this work for me" exists: laser scans of the int
 ## What it does
 
 1. **You say what you need.** "I use a wheelchair, 81 cm wide. Find a one-bedroom in Houston I can get into and use the bathroom."
-2. **The agent composes the workspace.** It picks the tools from about 60 (step-free route, door widths, turning space, bathroom clearance), asks only for what is missing, and shows its plan.
+2. **The agent composes the workspace.** It picks the tools from more than 70 (step-free route, door widths, turning space, bathroom clearance), asks only for what is missing, and shows its plan.
 3. **It checks many buildings at once.** One subagent per building, in parallel, each lane visible. Expensive steps (a fire simulation, a vision read of every panorama) wait for your yes.
 4. **You see the evidence.** A ranked table, the route drawn through the photoreal building, the narrow door in red, the panorama that shows it, and the source and reliability of every number.
 5. **You can change the building.** "Widen this door": the renovate tool edits the plan, re-runs the checks and prices the work.
 6. **You take it with you.** A PDF report with numbered fixes and a list of what was not checked.
 
-The same workspace works for 34 kinds of user. A Houston homeowner watches Hurricane Harvey's measured water levels rise through their own house and gets the list of what to carry upstairs first. A fire captain gets a pre-plan with search routes and a smoke simulation run through NIST's CFAST model on the measured rooms. A car owner learns whether two trucks fit the garage. An office tenant tests whether the team fits, room by room.
+The same workspace works for 48 kinds of user. A Houston homeowner watches Hurricane Harvey's measured water levels rise through their own house and gets the list of what to carry upstairs first. A fire captain gets a pre-plan with search routes and a smoke simulation run through NIST's CFAST model on the measured rooms. A car owner learns whether two trucks fit the garage. An office tenant tests whether the team fits, room by room, and a tenant rep ranks candidate sites on a weighted scorecard with market comps.
 
 ## What makes it different
 

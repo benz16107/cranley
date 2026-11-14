@@ -17,7 +17,7 @@ Matterport interior scans, Vexcel aerial imagery and CoStar records, plus your o
 ## What it does
 
 1. You say what you need, in plain words.
-2. A composer picks tools from about 60 and asks only for missing inputs (your chair's width, your truck).
+2. A composer picks tools from more than 70 and asks only for missing inputs (your chair's width, your truck).
 3. An investigator agent plans, checks many buildings at once (one subagent each, shown live), and waits for your yes
    before expensive steps such as a fire simulation.
 4. The workspace shows a ranked table, the route drawn through the 3D building, the failing door in red, the photo that
@@ -26,7 +26,8 @@ Matterport interior scans, Vexcel aerial imagery and CoStar records, plus your o
 
 Tools cover step-free access, aging in place, furniture paths, stretcher routes, fire pre-plans with NIST CFAST smoke,
 smoke-alarm census from photos, flood rehearsal with Hurricane Harvey water levels, record versus reality, office fit,
-takeoff and bids, garage and driveway fit, pets and kids, docks, truck access, parking, roof facts and more. The story
+takeoff and bids, garage and driveway fit, pets and kids, docks, truck access, parking, roof facts, site scorecards
+and market comps, sun and solar, wildfire space, Wi-Fi and camera coverage, quiet rooms, feng shui and more. The story
 behind the product, per track, is in [`docs/story.md`](docs/story.md).
 
 ## Architecture

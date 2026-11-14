@@ -152,8 +152,8 @@ by measurement, with all three layers checking each other.
 | Criterion | What serves it |
 |---|---|
 | Use of the data (30%) | All three layers in one frame: walls and doorways from Matterport, elevation, ortho, property facts and the 3D city from Vexcel, records from CoStar. Cross-layer tools: record versus reality (listed vs measured area, claims check), flood (Vexcel ground elevation + Matterport door sills), garage and driveway fit (interior garage + aerial driveway), site tools (docks, truck access, parking from the air), drone splat aligned to the scan. Search by measurement over every scan with a wall graph. |
-| Agentic depth (30%) | A deepagents investigator that plans (todo list the person watches), fans out one subagent per building in parallel, asks before expensive steps, remembers what it learned per building, and resumes after a restart from a MongoDB checkpoint. The composer picks tools for the need from about 60, asks only the missing inputs, and the workspace is a document the agent and the person edit with the same operations (with undo). |
-| Usefulness (25%) | 34 personas, each a real user with a named need: wheelchair user, fire captain, Houston homeowner before a storm, truck dispatcher, office tenant, CoStar researcher, insurance underwriter, daycare operator, car owner. PDF report a person can hand to a landlord. |
+| Agentic depth (30%) | A deepagents investigator that plans (todo list the person watches), fans out one subagent per building in parallel, asks before expensive steps, remembers what it learned per building, and resumes after a restart from a MongoDB checkpoint. The composer picks tools for the need from more than 70, asks only the missing inputs, and the workspace is a document the agent and the person edit with the same operations (with undo). |
+| Usefulness (25%) | 48 personas, each a real user with a named need: wheelchair user, fire captain, Houston homeowner before a storm, truck dispatcher, office tenant, CoStar researcher, insurance underwriter, daycare operator, car owner. For the people who open CoStar every morning: a tenant rep's weighted site scorecard across candidates, market comps from CoStar records, industrial fit (clear height, docks, truck court), retail site screening, commute fit for a whole team, and a facility audit PDF. PDF report a person can hand to a landlord. |
 | Demo and polish (15%) | Photoreal building on its site, flood rising in the street, smoke filling rooms, the agent's lanes working in parallel. A dense working tool, not a showcase. |
 
 **Demo path (2 minutes).**
@@ -289,7 +289,7 @@ wheelchair user, the family before a storm, the fire crew. Track pick: question 
 
 ## Built (synced to `main`)
 
-Checked against `git log main` at `0b08426` (2026-11-14, evening ET). Update at each merge.
+Checked against `git log main` at `449a2f9` (2026-11-14, 5:35 pm ET). Update at each merge.
 
 **Merged**
 - [x] Data layer: Matterport, Vexcel and CoStar sources, normalized plan format with quality flags (`ws/data`)
@@ -314,15 +314,15 @@ Checked against `git log main` at `0b08426` (2026-11-14, evening ET). Update at 
 - [x] Pets and kids: pet fit, nearby places from OpenStreetMap, home search by pet policy, fence, pool and yard (`ws/pets`)
 - [x] Feng shui, room sizes, earthquake prep; personas for location scout, virtual stager, LA earthquake prep (`ws/fengshui`)
 - [x] Brand is Cranley in the App look, the phone page, the PDF report and the iPhone display name; code identifiers stay `threshold`
+- [x] Commercial: site scorecard, market comps, industrial fit, retail site, commute fit, facility audit; tenant rep, retail chain, office relocation and facility manager personas (`ws/commercial`)
+- [x] Sun rooms, solar roof, wildfire space (`ws/sunfire`)
+- [x] Wi-Fi coverage, camera coverage (isovists through the wall graph), quiet rooms (noise map plus walls and facade); remote worker, home security and light sleeper personas (`ws/signals`)
 - [x] MCP server (stdio and `/mcp`), `threshold` CLI, deep agent over MCP, `docs/MCP.md` (`ws/mcp`)
 
 **Not merged yet (building tonight)**
 - [ ] World explorer: map to aerial to 3D city to building in one view, layers (`ws/explorer`)
 - [ ] Public data layers and area tools: zoning, permits, hazards, connectivity (`ws/datalayers`)
 - [ ] Real 3D models for vehicles and furniture, drag to place (`ws/models`)
-- [ ] Sun rooms, solar roof, wildfire space (`ws/sunfire`)
-- [ ] Wi-Fi coverage, camera coverage, quiet rooms (`ws/signals`)
-- [ ] Commercial: site scorecard, market comps, industrial fit, retail site, commute fit, facility audit (`ws/commercial`)
 - [ ] Offline demo copy and six demo flows (`ws/demo`)
 
 **Not merged on purpose:** the Overflight look (`ws/design2`).
