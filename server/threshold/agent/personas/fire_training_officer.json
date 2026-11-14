@@ -1,0 +1,18 @@
+{
+  "id": "fire_training_officer",
+  "title": "Fire training officer",
+  "who": "Runs size-up drills on real houses and grades crews against the measured interior.",
+  "tools": [
+    "size_up_quiz",
+    "egress_routes",
+    "smoke_clock",
+    "fire_preplan"
+  ],
+  "thresholds": {
+    "fire.preconnect_m": 61
+  },
+  "layout": {
+    "view": "plan",
+    "lead_tool": "size_up_quiz"
+  }
+}

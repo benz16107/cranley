@@ -1,0 +1,19 @@
+{
+  "id": "community_risk_officer",
+  "title": "Community risk reduction officer",
+  "who": "Finds homes and units where smoke alarms are missing, and shows what a closed bedroom door buys.",
+  "tools": [
+    "life_safety_census",
+    "smoke_clock",
+    "fire_preplan",
+    "egress_routes"
+  ],
+  "thresholds": {
+    "fire.growth": "fast",
+    "fire.escape_min": 3
+  },
+  "layout": {
+    "view": "plan",
+    "lead_tool": "life_safety_census"
+  }
+}
