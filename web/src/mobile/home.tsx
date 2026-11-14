@@ -95,7 +95,7 @@ export function Tasks({ view, sid, open, openTool }: { view: View; sid: string |
         <Row title="Find where I am" sub="Opens the scanned building you are standing in" right="GPS" onClick={() => openTool('where')} />
         <Row title="My home was never scanned" sub="Record a walk-through for a quick safety census" right="Video" onClick={() => openTool('walk')} />
       </section>
-      <p className="m-hint">Or open a building on the desktop and tap Phone there: scanning its code brings that workspace here, and everything you capture shows up on it as you go.</p>
+      <p className="m-hint">Or on the desktop click Continue on a phone: scanning its code brings that workspace here, and everything you capture shows up on it as you go.</p>
       {view.questions.length > 0 ? <Questions qs={view.questions} /> : <Composer sid={null} placeholder="I use a wheelchair and I am looking at a one-bedroom in Houston" cta="Ask" />}
       {working && <p className="m-note m-working" aria-busy="true"><b>Working</b><span>{working}</span></p>}
     </>
