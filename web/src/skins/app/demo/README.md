@@ -13,7 +13,8 @@ From the console: `thresholdDemo.play('costar')`, `thresholdDemo.stop()`. A link
 
 ## Change a flow
 
-A flow is one JSON file in `flows/`. Add, remove or edit a file: no code changes. In `pnpm dev` the menu updates as
+A flow is one JSON file in `flows/`. Add, remove or edit a file: no code changes. `pnpm test` checks every file
+(known steps, every `$name` defined in `vars`, a `tool` on each tool step) and names the line that is wrong. In `pnpm dev` the menu updates as
 you save; for the laptop copy run `scripts/demo-sync` again (it rebuilds the web app).
 
 ```json

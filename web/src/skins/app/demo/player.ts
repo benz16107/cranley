@@ -8,17 +8,8 @@ import { useUi } from '../shell/store.ts'
    make: the agent's turns, tool runs, the camera, and the page's own buttons found by their label. A step that fails
    or takes too long runs its `else` step, or is skipped with a note, and the flow goes on. */
 
-export type Step = {
-  do: 'new' | 'open' | 'ask' | 'answer' | 'tool' | 'click' | 'type' | 'focus' | 'agent' | 'share' | 'window' | 'wait' | 'say' | 'firstrun'
-  say?: string
-  /** ms the caption stays after the step is done (default 1500) */
-  hold?: number
-  /** ms before the step counts as failed (default 30000; ask 150000) */
-  timeout?: number
-  else?: Step
-  [k: string]: unknown
-}
-export type Flow = { id: string; title: string; track: string; about?: string; vars?: Record<string, string>; steps: Step[] }
+import type { Flow, Step } from './flow.ts'
+export type { Flow, Step }
 
 const files = import.meta.glob<{ default: Flow }>('./flows/*.json', { eager: true })
 export const FLOWS: Flow[] = Object.values(files).map((m) => m.default).sort((a, b) => a.track.localeCompare(b.track))
