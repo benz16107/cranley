@@ -7,6 +7,7 @@ import re
 
 from pydantic import BaseModel
 
+from ...geometry._plan import indoor_rooms
 from ...sources import costar
 from .. import (
     Assumption,
@@ -146,7 +147,7 @@ def fit(rooms: list[dict], p: Inputs) -> dict:
     program_m2 = need_desks * p.desk_m2 + p.private_offices * max(p.office_min_m2, 10) + \
         p.meeting_rooms * p.meeting_seats * p.seat_m2 + (12 if p.kitchen else 0)
     program_m2 *= 1.15  # circulation and support the program does not name
-    usable = sum(r["area"] for r in rooms if r.get("area"))
+    usable = sum(r["area"] for r in rooms if r.get("area") and r.get("indoor", True))
     if short_desks and not any(c["kind"] == "density" for c in changes):
         changes.append({"kind": "space", "text": f"Look for about {_ft2(max(program_m2 - usable, short_desks * p.desk_m2))} more, "
                         f"or seat {short_desks} people elsewhere", "status": "fail"})
@@ -225,8 +226,9 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     plan = ensure_labels(ctx, sid, inputs.label_with_vision)
     q = facts.quality(plan)
     fx = facts.room_facts(plan)
-    rooms = [{"id": r["id"], "label": facts.commercial(r.get("label")), "area": r.get("area"), "windows": fx[r["id"]]["windows"]}
-             for r in facts.live_rooms(plan)]
+    indoor = {r["id"] for r in indoor_rooms(plan)}
+    rooms = [{"id": r["id"], "label": facts.commercial(r.get("label")), "area": r.get("area"), "windows": fx[r["id"]]["windows"],
+              "indoor": r["id"] in indoor} for r in facts.live_rooms(plan)]
     ctx.step(f"Read {len(rooms)} rooms and their labels")
     assumptions = [
         Assumption(id="office.desk_m2", label="Open-plan area per desk", value=inputs.desk_m2, unit="m²", editable=True),
@@ -340,10 +342,14 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     status = f["status"]
     text = {"pass": "Your team fits as built", "warn": "Your team fits with changes", "fail": "Your team does not fit"}[status]
     n = lambda k, word: f"{k} {word}{'' if k == 1 else 's'}"
+    want = lambda k: f" for the {k} you need" if k else ""
     text += (f": {n(f['desks'], 'desk')} for {n(f['need_desks'], 'person') if f['need_desks'] == 1 else str(f['need_desks']) + ' people'}, "
-             f"{n(f['offices'], 'private office')} for {inputs.private_offices}, {n(f['meeting'], 'meeting room')} for {inputs.meeting_rooms}.")
+             f"{n(f['offices'], 'private office')}{want(inputs.private_offices)}, "
+             f"{n(f['meeting'], 'meeting room')}{want(inputs.meeting_rooms)}.")
+    if facts.scan_kind(sid) in ("house", "apartment_unit"):
+        text += " This scan is a home, not office space."
     if unlabelled:
-        text += f" {len(unlabelled)} room{'s have' if len(unlabelled) > 1 else ' has'} no label and counts for nothing."
+        text += f" {len(unlabelled)} room{'s have' if len(unlabelled) > 1 else ' has'} no label and count{'' if len(unlabelled) > 1 else 's'} for nothing."
         status = "warn" if status == "pass" else status
     if not q["walls"]:
         text += (" No wall graph: areas are Matterport's room sizes without outlines, so desks are counted from area alone "

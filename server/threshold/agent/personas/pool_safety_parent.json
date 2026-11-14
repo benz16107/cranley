@@ -7,7 +7,10 @@
     "door_widths",
     "risk_sheet"
   ],
-  "thresholds": {},
+  "thresholds": {
+    "access.door_width_m": 0.815,
+    "access.door_standard": "ADA 2010 §404.2.3, 32 in clear"
+  },
   "layout": {
     "view": "map",
     "lead_tool": "path_to_water"

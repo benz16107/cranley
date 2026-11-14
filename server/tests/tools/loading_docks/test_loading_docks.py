@@ -40,3 +40,16 @@ def test_run_compares_with_record(offline):  # noqa: F811
     m = {x.id: x.value for x in r.metrics}
     assert m["aerial_docks"] == 4 and m["side.north"] == 4 and m["record_docks"] == 5
     assert {c.id: c.status for c in r.checks}["record_agrees"] == "pass"  # 4 against 6, within 2
+
+
+def test_a_record_of_no_doors_disagrees_with_doors_seen():
+    from threshold.tools.loading_docks import agree
+    assert agree(2, 0) == "warn" and agree(0, 0) == "pass" and agree(4, 6) == "pass"
+
+
+def test_a_home_is_not_applicable(monkeypatch):
+    from threshold.sources import index
+    monkeypatch.setattr(index, "rows", lambda: {"h1": {"kind": "house"}})
+    r = run_tool("loading_docks", {"scan": "h1"})
+    assert r.verdict.status == "unknown" and "home" in r.verdict.text
+    assert run_tool("truck_access", {"scan": "h1"}).verdict.status == "unknown"

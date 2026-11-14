@@ -7,7 +7,10 @@
     "loading_docks",
     "door_widths"
   ],
-  "thresholds": {},
+  "thresholds": {
+    "access.door_width_m": 1.1,
+    "access.door_standard": "a 40 in pallet on a pallet jack, with a hand's width each side"
+  },
   "layout": {
     "view": "map",
     "lead_tool": "truck_access"

@@ -67,3 +67,17 @@ def test_reach_max_step_blocks_a_high_sill(plan):
     # BC has a 0.2 m sill; the floor level is the median sill (0), so a 2 cm robot step stops there
     assert {r["room"]: r["connected"] for r in reach(plan, 0.5, max_step=0.02)["rooms"]}["C"] is False
     assert {r["room"]: r["connected"] for r in reach(plan, 0.5, max_step=0.25)["rooms"]}["C"] is True
+
+
+def test_route_on_recovered_walls_where_outlines_stop_at_the_inner_face(plan):
+    # DXF-recovered walls: the doorway sits on the wall's centre line, each room outline on the wall's inner face
+    import copy
+
+    from shapely.geometry import Polygon
+    p = copy.deepcopy(plan)
+    p["sid"] = "inset"
+    for r in p["rooms"]:
+        if r["polygon"]:
+            r["polygon"] = [list(c) for c in Polygon(r["polygon"]).buffer(-0.09, join_style="mitre").exterior.coords[:-1]]
+    r = route(p, "A", "C")
+    assert r["available"] and [d["opening"] for d in r["doors"]] == ["AB", "BC"]

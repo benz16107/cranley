@@ -117,8 +117,15 @@ def save(workspace: str, meta: Meta, data: bytes | None = None, root=None) -> di
         mime, ext = found
         (d / f"{cid}.{ext}").write_bytes(data)
         rec.update(file=f"{cid}.{ext}", mime=mime, bytes=len(data))
-    (d / f"{cid}.json").write_text(json.dumps(rec))
+    _write(d / f"{cid}.json", rec)
     return rec
+
+
+def _write(f, rec: dict) -> None:
+    """Whole or not at all: the phone polls listing() while a capture is saved."""
+    tmp = f.with_suffix(".tmp")
+    tmp.write_text(json.dumps(rec))
+    tmp.replace(f)
 
 
 def _record(cid: str, root=None):
@@ -168,9 +175,7 @@ def update(cid: str, root=None, **fields) -> dict:
     if f is None:
         raise LookupError(f"no capture {cid}")
     rec = {**json.loads(f.read_text()), **fields}
-    tmp = f.with_suffix(".tmp")
-    tmp.write_text(json.dumps(rec))
-    tmp.replace(f)
+    _write(f, rec)
     return rec
 
 

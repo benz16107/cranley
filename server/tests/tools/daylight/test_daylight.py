@@ -33,3 +33,12 @@ def test_result_flags_dark_bedroom_and_hedges_direction():
 def test_no_windows_recorded_is_unknown():
     r = run_tool("daylight", {"scan": "home1"}, ToolContext(plans=lambda sid: make_home(windows=False)))
     assert r.verdict.status == "unknown" and "no windows" in r.verdict.text
+
+
+def test_no_geocoordinates_says_sun_hours_cannot_be_traced():
+    def phone(sid):
+        p = make_home()
+        p["geo"] = None
+        return p
+    r = run_tool("daylight", {"scan": "home1"}, ToolContext(plans=phone))
+    assert "Hours of sun cannot be traced" in r.verdict.text and r.overlays[0].legend.unit == "m²"

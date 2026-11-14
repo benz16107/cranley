@@ -22,31 +22,34 @@ export function mountPhoneLink(place: SwitcherPlace = 'bottom') {
   const root = host.attachShadow({ mode: 'open' })
   root.innerHTML = `<style>
     :host { all: initial; position: fixed; ${PLACES[place]} z-index: 2147483000; font: 500 12px/1.4 ui-sans-serif, system-ui, sans-serif; }
+    /* The popover's colours: Sheet's own, or the look's when it has the whole set (custom properties cross into a shadow root). */
+    :host { --ph-bg: #fbfaf6; --ph-ink: #18212b; --ph-ink2: #4a5563; --ph-ink3: #5f6a78; --ph-rule: rgb(24 33 43 / 0.15); --ph-rule2: rgb(24 33 43 / 0.42); --ph-warn: #a65f00; }
+    :host([data-themed]) { --ph-bg: var(--pane); --ph-ink: var(--ink); --ph-ink2: var(--ink-2); --ph-ink3: var(--ink-3); --ph-rule: var(--rule); --ph-rule2: var(--rule-strong); --ph-warn: var(--warn); font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif); }
     .tab { all: unset; cursor: pointer; display: block; padding: 2px 9px; font: 500 10.5px/14px ui-monospace, 'SF Mono', Menlo, monospace; letter-spacing: 0.04em;
       background: rgb(22 24 28 / 0.82); color: #fff; border-radius: ${top ? '0 0 5px 5px' : '5px 5px 0 0'}; opacity: 0.5; transition: opacity 120ms ease; }
     .tab:hover, .tab:focus-visible, .tab[aria-expanded='true'] { opacity: 1; }
     .tab:focus-visible { outline: 2px solid #8fb5ff; outline-offset: 1px; }
     .tab b { font-weight: 700; margin-left: 6px; }
-    .pop { position: absolute; ${top ? 'top: 22px' : 'bottom: 22px'}; left: 50%; translate: -50% 0; width: 268px; max-height: min(78vh, 620px); overflow: auto; background: #fbfaf6; color: #18212b;
-      border-radius: 4px; box-shadow: 0 0 0 1px rgb(24 33 43 / 0.4), 0 14px 30px -14px rgb(24 33 43 / 0.5); padding: 14px; display: grid; gap: 10px;
+    .pop { position: absolute; ${top ? 'top: 22px' : 'bottom: 22px'}; left: 50%; translate: -50% 0; width: 268px; max-height: min(78vh, 620px); overflow: auto; background: var(--ph-bg); color: var(--ph-ink);
+      border-radius: 4px; box-shadow: 0 0 0 1px var(--ph-rule2), 0 14px 30px -14px rgb(0 0 0 / 0.5); padding: 14px; display: grid; gap: 10px;
       transform-origin: ${top ? 'top' : 'bottom'} center; transition: opacity 160ms cubic-bezier(0.23, 1, 0.32, 1), scale 160ms cubic-bezier(0.23, 1, 0.32, 1); }
     .pop[hidden] { display: none; }
     @starting-style { .pop { opacity: 0; scale: 0.97; } }
     h2 { all: unset; display: block; font-weight: 650; font-size: 13px; }
-    p { margin: 0; color: #4a5563; }
+    p { margin: 0; color: var(--ph-ink2); }
     .qr { background: #fff; border: 1px solid rgb(24 33 43 / 0.15); padding: 6px; display: grid; place-items: center; min-height: 236px; }
     .qr svg { width: 100%; height: auto; display: block; }
-    .url { font: 11px/1.3 ui-monospace, Menlo, monospace; color: #4a5563; word-break: break-all; user-select: all; }
-    .warn { color: #a65f00; }
-    .lab { font: 600 10px/1.2 ui-sans-serif, system-ui, sans-serif; letter-spacing: 0.1em; text-transform: uppercase; color: #5f6a78; border-bottom: 1px solid rgb(24 33 43 / 0.42); padding-bottom: 4px; display: flex; justify-content: space-between; }
+    .url { font: 11px/1.3 ui-monospace, Menlo, monospace; color: var(--ph-ink2); word-break: break-all; user-select: all; }
+    .warn { color: var(--ph-warn); }
+    .lab { font-weight: 600; font-size: 11px; line-height: 1.2; color: var(--ph-ink3); border-bottom: 1px solid var(--ph-rule2); padding-bottom: 4px; display: flex; justify-content: space-between; }
     ul { all: unset; display: grid; }
-    li { display: grid; grid-template-columns: 44px 1fr; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid rgb(24 33 43 / 0.15); }
+    li { display: grid; grid-template-columns: 44px 1fr; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--ph-rule); }
     li img, li .k { width: 44px; height: 33px; object-fit: cover; border-radius: 2px; outline: 1px solid rgb(0 0 0 / 0.1); outline-offset: -1px; }
-    li .k { display: grid; place-items: center; font: 500 8.5px/1 ui-monospace, Menlo, monospace; text-transform: uppercase; color: #5f6a78; background: repeating-linear-gradient(135deg, transparent 0 5px, rgb(24 33 43 / 0.12) 5px 6px); }
-    li b { display: block; font-weight: 600; } li span { color: #5f6a78; font-size: 11px; }
+    li .k { display: grid; place-items: center; font: 500 8.5px/1 ui-monospace, Menlo, monospace; text-transform: uppercase; color: var(--ph-ink3); background: repeating-linear-gradient(135deg, transparent 0 5px, rgb(24 33 43 / 0.12) 5px 6px); }
+    li b { display: block; font-weight: 600; } li span { color: var(--ph-ink3); font-size: 11px; }
     li[data-new] { animation: arrive 900ms ease-out; }
     @keyframes arrive { from { background: rgb(37 69 184 / 0.14); } }
-    button.again { all: unset; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; color: #4a5563; font-size: 11px; }
+    button.again { all: unset; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; color: var(--ph-ink2); font-size: 11px; }
     button.again:focus-visible { outline: 2px solid #2545b8; outline-offset: 2px; }
     @media (prefers-reduced-motion: reduce) { .pop { transition: none; } li[data-new] { animation: none; } }
     @media print { :host { display: none; } }
@@ -63,6 +66,8 @@ export function mountPhoneLink(place: SwitcherPlace = 'bottom') {
     <p class="none">Nothing yet.</p>
   </div>`
   const $ = <T extends Element>(q: string) => root.querySelector<T>(q)!
+  const look = getComputedStyle(document.documentElement)
+  host.toggleAttribute('data-themed', ['--pane', '--ink', '--ink-2', '--ink-3', '--rule', '--rule-strong', '--warn'].every((t) => look.getPropertyValue(t).trim()))
   const tab = $<HTMLButtonElement>('.tab'), pop = $<HTMLDivElement>('.pop'), badge = $<HTMLElement>('.tab b'), list = $<HTMLUListElement>('ul')
   let ws: string | null = null, stream: EventSource | null = null, known = new Set<string>(), first = true, timer: ReturnType<typeof setTimeout> | undefined
 
@@ -111,6 +116,7 @@ export function mountPhoneLink(place: SwitcherPlace = 'bottom') {
     pop.hidden = false; tab.setAttribute('aria-expanded', 'true'); badge.hidden = true; badge.textContent = ''
     if (!ws || (serverDoc() as { id?: string } | null)?.id !== ws) void pair(); else void captures()
   })
+  window.addEventListener('threshold:phone', () => { if (pop.hidden) tab.click() }) // a look asks for the pairing code
   root.addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Escape') { close(); tab.focus() } })
   document.addEventListener('pointerdown', (e) => { if (!pop.hidden && !e.composedPath().includes(host)) close() })
   document.body.append(host)

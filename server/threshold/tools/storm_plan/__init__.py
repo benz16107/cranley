@@ -65,6 +65,9 @@ class Inputs(FloodInputs):
     max_rooms: int = Field(8, ge=1, le=12, description="Most rooms to read with the vision model")
 
 
+OUTDOOR = ("Patio", "Balcony", "Porch", "Deck", "Terrace", "outdoor area")  # not a place to keep things dry
+
+
 def _lowest_floor(plan: dict) -> str | None:
     fz = floor_z(plan)
     return min(fz, key=fz.get) if fz else None
@@ -84,7 +87,7 @@ def destination(plan: dict, flood: dict, inputs: Inputs) -> dict:
                 tuple(entry["center"]) if entry else None)
     if dry_floors and inputs.upper_floor != "no":
         best = max(dry_floors, key=fz.get)
-        rooms = [r for r in plan["rooms"] if r["floor"] == best and labels.get(r["id"]) not in ("Void", "Closet")
+        rooms = [r for r in plan["rooms"] if r["floor"] == best and labels.get(r["id"]) not in ("Void", "Closet", *OUTDOOR)
                  and room_depth_at(flood, r["id"], "hi") == 0]
         area = sum(r.get("area") or 0 for r in rooms)
         room = max(rooms, key=lambda r: r.get("area") or 0, default=None)
@@ -95,8 +98,9 @@ def destination(plan: dict, flood: dict, inputs: Inputs) -> dict:
     if inputs.upper_floor == "yes":
         return {"kind": "upstairs_unscanned", "floor": None, "room": None, "area_m2": None, "flights": 1,
                 "stair_xy": stair_xy, "stair_room": None, "text": "upstairs (that floor is not in the scan)"}
-    same = [r for r in plan["rooms"] if labels.get(r["id"]) not in ("Void", None) and room_depth_at(flood, r["id"], "hi") == 0
-            and rz.get(r["id"], 0) >= rz.get(entry["rooms"][0], 0) if entry]
+    entry_z = rz.get(entry["rooms"][0], 0) if entry and entry.get("rooms") else fz.get(low, 0)
+    same = [r for r in plan["rooms"] if labels.get(r["id"]) not in ("Void", None, *OUTDOOR)
+            and room_depth_at(flood, r["id"], "hi") == 0 and rz.get(r["id"], 0) >= entry_z]
     if same:
         room = max(same, key=lambda r: r.get("area") or 0)
         return {"kind": "dry_room", "floor": room["floor"], "room": room["id"], "area_m2": round(sum(r.get("area") or 0 for r in same), 1),
@@ -330,11 +334,11 @@ def build(sid: str, plan: dict, inputs: Inputs, flood: dict, inv: dict, steps, m
     if mat:
         parts.append(mat["label"].lower())
     if n_boards:
-        parts.append(f"board {n_boards} windows")
+        parts.append(f"board {n_boards} window{'' if n_boards == 1 else 's'}")
     if n_dams:
-        parts.append(f"sandbag {n_dams} doors")
+        parts.append(f"sandbag {n_dams} door{'' if n_dams == 1 else 's'}")
     if saved:
-        parts.append(f"carry {len(saved)} things {dest['text']}")
+        parts.append(f"carry {len(saved)} thing{'' if len(saved) == 1 else 's'} {dest['text']}")
     if last:
         parts.append("turn the power" + (" and gas" if any(t["id"] == "gas_off" for t in last) else "") + " off last")
     head = f"With {inputs.adults} adult{'s' if inputs.adults > 1 else ''} and {inputs.hours_left:g} h: " + ", ".join(parts) + "."

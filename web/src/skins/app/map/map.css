@@ -6,7 +6,8 @@
 .ex[data-view='table'] .ex-body { grid-template-columns: minmax(0, 1fr); }
 .ex[data-view='table'] .ex-map { display: none; }
 .ex-map { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--paper); }
-.citymap { position: absolute; inset: 0; }
+/* two classes: the map library puts `position: relative` on its container with one, and its stylesheet can load after this one */
+.ex-map > .citymap { position: absolute; inset: 0; }
 .citymap canvas { outline: 0; }
 .ex-side { display: flex; flex-direction: column; min-width: 0; min-height: 0; border-left: 1px solid var(--rule); background: var(--pane); container-type: inline-size; }
 @container (max-width: 500px) { .ex-side [data-col='kind'], .ex-side [data-col='city'] { display: none; } }

@@ -27,6 +27,7 @@ from .. import (
     Legend,
     LensOverlay,
     Metric,
+    NotApplicable,
     RoomAnchor,
     ScanScope,
     Source,
@@ -87,7 +88,8 @@ def _pick_fire(plan: dict, want: str | None) -> dict | None:
 
 def compartments(plan: dict) -> tuple[dict[str, str], dict[str, dict]]:
     """Rooms joined by invisible walls are one open space, so one CFAST compartment; spaces under MIN_AREA_M2
-    (closets) are left out. Returns room id -> compartment id and compartment id -> {rooms, area, height, origin}."""
+    (closets) are left out, unless they join two spaces (a small hall), which joins its largest neighbour.
+    Returns room id -> compartment id and compartment id -> {rooms, area, height, origin}."""
     polys, z = polygons(plan), floor_z(plan)
     ceiling = default_ceiling(plan) or 2.6
     rooms = {r["id"]: r for r in live_rooms(plan) if polys.get(r["id"]) is not None and polys[r["id"]].area > 0.3}
@@ -98,10 +100,21 @@ def compartments(plan: dict) -> tuple[dict[str, str], dict[str, dict]]:
             x = parent[x]
         return x
 
-    for link in room_graph(plan)["links"]:
+    links = room_graph(plan)["links"]
+    for link in links:
         a, b = link["rooms"]
         if link["kind"] == "invisible" and a in rooms and b in rooms:
             parent[find(a)] = find(b)
+    # a small hall that joins two or more spaces carries the smoke between them: fold it into its largest neighbour
+    # instead of leaving it out, or the bedroom past it is cut off from the fire
+    area_of = lambda g: sum(polys[k].area for k in rooms if find(k) == g)
+    for g in {find(k) for k in rooms}:
+        if area_of(g) >= MIN_AREA_M2:
+            continue
+        near = {find(x) for link in links if link["kind"] != "invisible" for x in link["rooms"]
+                if x in rooms and find(x) != g and any(find(y) == g for y in link["rooms"] if y in rooms)}
+        if len(near) >= 2:
+            parent[g] = max(near, key=area_of)
     groups: dict[str, list[str]] = {}
     for k in rooms:
         groups.setdefault(find(k), []).append(k)
@@ -219,10 +232,10 @@ def run_cfast(text: str) -> dict:
         try:
             r = subprocess.run([exe, "case.in"], cwd=d, capture_output=True, text=True, timeout=TIMEOUT_S)
         except subprocess.TimeoutExpired:
-            raise ToolError(f"CFAST did not finish within {TIMEOUT_S // 60} minutes: its solver slowed to tiny time "
+            raise NotApplicable(f"CFAST did not finish within {TIMEOUT_S // 60} minutes: its solver slowed to tiny time "
                             "steps on this plan") from None
         if "Normal exit" not in r.stdout + r.stderr:
-            raise ToolError(f"CFAST stopped early: {(r.stdout + r.stderr).strip()[-300:]}")
+            raise NotApplicable(f"CFAST stopped early, so no smoke timeline: {(r.stdout + r.stderr).strip()[-300:]}")
         done.touch()
     rows = list(csv.reader(out.open()))
     ids, comps = rows[0], rows[2]
@@ -271,7 +284,8 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     beds = [r for r in live_rooms(plan) if r.get("label") == BEDROOM and polygons(plan).get(r["id"]) is not None]
     if not beds:
         return ToolResult(scope=scope, verdict=Verdict(status="unknown", text=(
-            "No room in this scan is typed as a bedroom, so there is no one to time.")))
+            "No room in this scan is typed as a bedroom, so there is no one to time. If it has bedrooms, run the "
+            "Room labeller first to type its rooms from the panoramas.")))
     exe = cfast_bin()
     if not exe:
         return ToolResult(scope=scope, verdict=Verdict(status="unknown", text=(

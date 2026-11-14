@@ -206,7 +206,7 @@ function AssumptionChips({ b, ctx }: { b: Extract<Block, { type: 'AssumptionChip
       <span className="muted">Assumed</span>
       {b.assumptions.map((a) => {
         const mine = ctx.doc.prefs.find((p) => p.key === a.id)?.by === 'user'
-        const body = <>{a.label} <span className="num">{String(a.value)}{a.unit ? ` ${a.unit}` : ''}</span>{mine && <span className="mine" title="You set this" />}</>
+        const body = <>{a.label} {typeof a.value === 'boolean' ? <span className="dim">{a.value ? 'yes' : 'no'}</span> : <span className="num">{String(a.value)}{a.unit ? ` ${a.unit}` : ''}</span>}{mine && <span className="mine" title="You set this" />}</>
         if (!a.editable || typeof a.value !== 'number') return <span key={a.id} className="chip">{body}</span>
         return (
           <Popover.Root key={a.id}>

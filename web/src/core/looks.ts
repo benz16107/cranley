@@ -5,7 +5,7 @@ export const LOOKS = [
   { id: 'app', name: 'App' },
 ] as const
 export type LookId = (typeof LOOKS)[number]['id']
-export const DEFAULT_LOOK: LookId = 'sheet'
+export const DEFAULT_LOOK: LookId = 'app'
 
 /** `/a/scan/x` is look `a` at place `/scan/x`. A path with no look (an old link) has look null. */
 export function splitPath(pathname: string): { look: LookId | null; place: string } {

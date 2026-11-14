@@ -33,10 +33,14 @@ def worst(results: list[str]) -> str:
     return min(results, key=WORST.index) if results else "not available"
 
 
+SAME = {"restroom": "Bathroom", "kitchen or break room": "Kitchen"}  # commercial labels (offices) for home types
+
+
 def targets(plan: dict, wanted: list[str]) -> list[dict]:
     rs = [r for r in plan["rooms"] if r.get("label") != "Void"]
-    out = [r for r in rs if r["id"] in wanted or r.get("label") in wanted]
-    return sorted(out, key=lambda r: (wanted.index(r["id"]) if r["id"] in wanted else wanted.index(r["label"])))
+    kind = lambda r: SAME.get(r.get("label"), r.get("label"))
+    out = [r for r in rs if r["id"] in wanted or kind(r) in wanted]
+    return sorted(out, key=lambda r: (wanted.index(r["id"]) if r["id"] in wanted else wanted.index(kind(r))))
 
 
 def door_entry(plan, link, min_w, read, seen, ctx) -> dict:

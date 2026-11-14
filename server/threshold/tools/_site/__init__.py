@@ -18,7 +18,7 @@ from shapely.geometry import Polygon, shape
 from ...aerial import site as aerial
 from ...sources import index
 from .. import field as tool_field
-from ..registry import ToolError
+from ..registry import NotApplicable, ToolError
 from ..types import (
     AddressScope,
     Choke,
@@ -70,6 +70,13 @@ class Site:
         return "CA" if self.lon < -105 else "TX"
 
 
+def not_for_homes(scan: str | None, what: str) -> None:
+    """Truck tools on a house or an apartment unit: say so instead of reading docks off a home."""
+    if scan and (index.rows().get(scan) or {}).get("kind") in ("house", "apartment_unit"):
+        raise NotApplicable(f"This scan is a home, and {what} belong to warehouses and other commercial buildings. "
+                            "Give a commercial property id or a point to check one.")
+
+
 def locate(ctx, w: Where) -> Site:
     """Resolve the inputs to a point. A scan wins, then a property id, then lat and lon."""
     if w.scan:
@@ -79,14 +86,16 @@ def locate(ctx, w: Where) -> Site:
             g = (ctx.plan(w.scan).get("geo") or {})
             lat, lon, how = g.get("lat"), g.get("lon"), "scan geocoordinates"
         if lat is None:
-            raise ToolError(f"Scan {w.scan} has no location, so the aerial photo cannot be found. Give lat and lon.")
+            raise NotApplicable(f"Scan {w.scan} has no location (a phone scan carries none), so the aerial photo cannot be "
+                                "found. Give a latitude and longitude to run this on the site.")
         return Site(lat, lon, w.scan, _property_of_scan(w.scan) or w.property_id,
                     row.get("address") or row.get("name") or None, how)
     if w.property_id:
         rec = property_record(w.property_id)
         a = (rec or {}).get("primaryAddress") or {}
         if not rec or a.get("latitude") is None:
-            raise ToolError(f"CoStar property {w.property_id} has no geocoded address in the kit.")
+            raise NotApplicable(f"CoStar property {w.property_id} has no geocoded address in the kit, so the aerial photo "
+                                "cannot be found.")
         return Site(a["latitude"], a["longitude"], None, w.property_id, address_of(rec), "CoStar primary address")
     if w.lat is None or w.lon is None:
         raise ToolError("Give a scan, a CoStar property id, or a latitude and longitude.")

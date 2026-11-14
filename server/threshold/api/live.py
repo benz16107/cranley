@@ -10,12 +10,15 @@ GET    /api/shared/{token}/live?after=<seq>   its live events
 GET    /api/shared/{token}/shortlist?near=lon,lat&km=
 DELETE /api/workspace/{id}/share/{token}    revoke a link (the owner's route, not the link's)
 
-A watcher fetches the view (its `seq`), then opens live with after=seq.
+A watcher fetches the view (its `seq`), then opens live with after=seq. Each op event carries its seq as the SSE `id`,
+so a browser's EventSource that reconnects (a dropped network, a change stream that ended) sends Last-Event-ID and
+resumes after the last op it got, instead of replaying everything since the first `after`.
 """
 from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import queue
 from collections.abc import Iterator
 
@@ -64,16 +67,22 @@ def masked(data, id: str | None):
 
 def stream(request: Request, s: Session, after: int, hide: bool = False) -> StreamingResponse:
     hidden = s.base.id if hide else None
+    resume = request.headers.get("last-event-id", "")
+    after = max(after, int(resume)) if resume.isdigit() else after
 
     async def events():
         it = entries(s, after)
         try:
             yield _sse("workspace", masked({"id": s.base.id, "after": after}, hidden))
             while not await request.is_disconnected():
-                e = await asyncio.to_thread(next, it, END)
+                try:
+                    e = await asyncio.to_thread(next, it, END)
+                except Exception:  # noqa: BLE001 - a change stream that failed: end, and the client resumes by its id
+                    logging.getLogger("threshold.live").exception("live stream for %s failed", s.base.id)
+                    return
                 if e is END:
                     return
-                yield ": keep-alive\n\n" if e is None else _sse("op", masked(e, hidden))
+                yield ": keep-alive\n\n" if e is None else f"id: {e['seq']}\n" + _sse("op", masked(e, hidden))
         finally:
             try:
                 it.close()  # closes the change stream

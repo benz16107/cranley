@@ -23,7 +23,7 @@ from .. import (
 )
 from ..types import GeoAnchor, Media, WaterOverlay
 from . import public
-from .scenario import FloodInputs, check_plan, indoor, wet_rooms
+from .scenario import FloodInputs, _kind, check_plan, indoor, wet_rooms
 from .scenario import run as flood_run
 
 GEO = Source(layer="matterport", method="simulation", confidence="medium",
@@ -254,11 +254,3 @@ def result(sid: str, plan: dict, inputs: Inputs, flood: dict) -> ToolResult:
 
 def _nth(i: int) -> str:
     return {1: "first", 2: "second", 3: "third"}.get(i, f"{i}th")
-
-
-def _kind(sid: str) -> str | None:
-    try:
-        from ...sources import index
-        return (index.rows().get(sid) or {}).get("kind")
-    except Exception:  # noqa: BLE001 - the index is context only
-        return None

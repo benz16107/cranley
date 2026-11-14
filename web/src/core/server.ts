@@ -16,7 +16,7 @@ const store = { get: (k: string) => { try { return localStorage.getItem(k) } cat
 let id = store.get(KEY)
 let ws: J | null = null // the server document last seen
 let seenCamera: number | null | undefined
-let ask: { tool: string; sid: string } | null = null // a dock run waiting on questions its tool asked
+let ask: { tool: string; sid: string | null } | null = null // a dock run waiting on questions its tool asked
 const profile = () => { let p = store.get('threshold.profile'); if (!p) { p = 'p' + Math.random().toString(36).slice(2, 10); store.set('threshold.profile', p) } return p }
 const json = { 'content-type': 'application/json' }
 const names: Names = (sid) => { for (const b of useBuildings.getState().all) { const s = b.scans.find((x) => x.sid === sid); if (s) return { name: s.name, address: b.address } } }
@@ -122,19 +122,20 @@ export async function turn(body: { text?: string; sids?: string[] }): Promise<J 
   return done
 }
 
-/** Run one tool on one scan, from the dock, a panel action or a moved control. */
-export async function runTool(tool: string, sid: string, inputs: J = {}): Promise<void> {
+/** Run one tool, from the dock, a panel action or a moved control: on one scan, or on none (`sid` null) for a tool
+    that works across the city or on what a phone sent. */
+export async function runTool(tool: string, sid: string | null, inputs: J = {}): Promise<void> {
   if (!(await ensure())) { notify.error('The server is not answering.'); return }
   const m = manifests().get(tool), props = m?.inputs.properties ?? {}
   const sids: string[] = ws!.brief?.scope?.sids ?? []
   const setup: J[] = []
-  if (!sids.includes(sid)) setup.push({ op: 'brief.set', scope: { ...(ws!.brief?.scope ?? {}), sids: [...sids, sid] } })
-  if (!(ws!.tools as J[]).some((t) => t.id === tool && t.enabled !== false)) setup.push({ op: 'tool.enable', tool, reason: 'You asked for it on this scan.' })
+  if (sid && !sids.includes(sid)) setup.push({ op: 'brief.set', scope: { ...(ws!.brief?.scope ?? {}), sids: [...sids, sid] } })
+  if (!(ws!.tools as J[]).some((t) => t.id === tool && t.enabled !== false)) setup.push({ op: 'tool.enable', tool, reason: sid ? 'You asked for it on this scan.' : 'You ran it yourself.' })
   if (setup.length && !(await post(setup))) return
   const poll = setInterval(() => void sync(), 900) // the run and its steps show while the request is open
   // wait=2: a tool that takes longer answers { status: 'running' } and finishes on the server (see below)
   const r = await fetch(`/api/tools/${tool}/run?workspace=${id}&wait=2`, { method: 'POST', headers: json,
-    body: JSON.stringify({ ...('scan' in props ? { scan: sid } : 'place' in props ? { place: { scan: sid } } : {}), ...inputs }) }).catch(() => null)
+    body: JSON.stringify({ ...(!sid ? {} : 'scan' in props ? { scan: sid } : 'place' in props ? { place: { scan: sid } } : {}), ...inputs }) }).catch(() => null)
   clearInterval(poll)
   let out: J = r?.ok ? await r.json() : { error: r ? `The server answered ${r.status}.` : 'The server is not answering.' }
   await sync()
@@ -152,15 +153,15 @@ export async function runTool(tool: string, sid: string, inputs: J = {}): Promis
     ask = { tool, sid }
     await post(missing.map((k) => ({ op: 'question.ask', question: { id: `q_${props[k]['x-pref'] ?? `${tool}.${k}`}`, key: props[k]['x-pref'] ?? `${tool}.${k}`, text: props[k]['x-ask'], tools: [tool],
       input: Object.fromEntries(Object.entries(props[k]).filter(([x]) => x !== 'x-ask' && x !== 'title')) } })))
-    notify(`${m?.title ?? tool} needs an answer first.`, { description: 'The question is in the brief, on the left.' })
+    notify(`${m?.title ?? tool} needs an answer first.`, { description: 'It is waiting for your answer.' })
   } else if (out.error) notify.error(`${m?.title ?? tool} did not run.`, { description: out.error })
 }
 
 /** What the server should hear about a user op the shell has already applied. */
 export async function onUserOp(op: Op): Promise<void> {
   if (op.op === 'pref.set' && op.key.startsWith('input:')) { // a control with no preference behind it: run again with that input
-    const [, tool, input] = op.key.split(':'), last = (ws?.runs as J[] | undefined)?.findLast((r) => r.tool === tool && r.sid)
-    if (last) await runTool(tool, last.sid, { ...last.inputs, [input]: op.value })
+    const [, tool, input] = op.key.split(':'), last = (ws?.runs as J[] | undefined)?.findLast((r) => r.tool === tool)
+    if (last) await runTool(tool, last.sid ?? null, { ...last.inputs, [input]: op.value })
     return
   }
   const out = toServerOp(op, ws)

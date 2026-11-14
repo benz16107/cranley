@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { NEEDS, compose, investigate, startOver, useBuildings, useCatalog, useToolCatalog, useWorkspace } from '../../../core/index.ts'
-import { DataTable, Empty, Icon, RunState, Stats, ToolKey, type Col } from '../design/ui.tsx'
+import { NEEDS, compose, investigate, startOver, useCatalog, useWorkspace } from '../../../core/index.ts'
+import { DataTable, Empty, Icon, RunState, ToolKey, type Col } from '../design/ui.tsx'
 import { ago, int } from '../lib/format.ts'
 import { openSeen, started, statusOf, useSeen, type Seen } from '../lib/pending.ts'
 import { go, goInvestigation, goScan } from '../lib/place.ts'
@@ -89,8 +89,6 @@ function Setup() {
 export function Home() {
   const doc = useWorkspace((s) => s.doc)
   const seen = useSeen((s) => s.all)
-  const count = useBuildings((s) => s.all.length)
-  const tools = useToolCatalog()
   const composing = !!doc.brief && doc.plan.length === 0 && doc.panels.length === 0
   const list = Object.values(seen).sort((a, b) => b.last - a.last)
   const cols: Col<Seen>[] = [
@@ -118,12 +116,6 @@ export function Home() {
             <Composer />
           </>
         )}
-        <Stats items={[
-          { label: 'Scanned addresses', value: count ? int(count) : <span className="sk" style={{ width: 48 }} /> },
-          { label: 'Investigations here', value: int(list.length) },
-          { label: 'Saved buildings', value: int(doc.shortlist.length) },
-          { label: 'Tools', value: tools.length ? int(tools.length) : <span className="sk" style={{ width: 24 }} /> },
-        ]} />
         <div className="home-cols">
           <section className="card">
             <header><h2 className="grow">Recent investigations</h2><button className="btn sm quiet" onClick={() => go('investigations')}>All<Icon name="go" size={11} /></button></header>

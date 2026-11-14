@@ -23,7 +23,8 @@ from ...aerial import detect as aerial_detect
 from ...aerial import site as aerial
 from ...geometry import room_graph, route
 from ...geometry._plan import polygons
-from .. import Check, Finding, Metric, Source, ToolResult, Verdict, field, tool
+from ...sources import index
+from .. import Check, Finding, Metric, NotApplicable, Source, ToolResult, Verdict, field, tool
 from .._site import (
     Where,
     capture,
@@ -81,6 +82,18 @@ def exterior_doors(plan: dict) -> list[dict]:
         ox, oy = outs[0]
         out.append({**e, "out": (ox, oy), "inner": (cx - 0.35 * ox, cy - 0.35 * oy), "outer": (cx + 0.8 * ox, cy + 0.8 * oy)})
     return out
+
+
+def toward_pool(doors: list[dict]) -> list[dict]:
+    """Doors facing the pool (the line to it crosses no part of the house), nearest first. When none faces it, a
+    child still walks around the corner: every placed way out reaches the pool, marked `around`."""
+    direct = sorted((d for d in doors if d.get("direct")), key=lambda d: d["yard_m"])
+    if direct:
+        return direct
+    around = sorted((d for d in doors if d.get("yard_m") is not None), key=lambda d: d["yard_m"])
+    for d in around:
+        d["around"] = True
+    return around
 
 
 def bedrooms(plan: dict) -> list[dict]:
@@ -236,6 +249,9 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                                             anchor=geo(*(pool["polygon"].centroid.coords[0])) if pool else geo(s.lon, s.lat),
                                             source=src(s, "pool"), detail=f"Enclosed per Vexcel: {enclosed > 0}.",
                                             media=[ortho_media(s, 60)])])
+    if (index.rows().get(s.sid) or {}).get("kind") == "apartment_unit":
+        raise NotApplicable("This scan is one apartment unit, so the pool on the parcel is the community's: its fence and "
+                            "self-closing gate are the barrier, not the unit's own doors. Check that gate on site.")
     plan = ctx.plan(s.sid)
     a = al.check(plan, fp)
     conf = a["confidence"]
@@ -262,7 +278,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
             d["direct"] = house_m is None or line.intersection(house_m.buffer(-0.3)).length < 0.5
         else:
             d["direct"] = None
-    pool_doors = sorted([d for d in doors if d["direct"]], key=lambda d: d["yard_m"])
+    pool_doors = toward_pool(doors)
     if pool is None or not a["available"]:
         pool_doors = doors  # cannot tell which side the pool is on: every exterior door counts, low confidence
         conf = "low"
@@ -333,7 +349,9 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                                 status=st, anchor=anchor, media=media,
                                 source=Source(layer="model", method="vision", confidence=(i or {}).get("confidence", "low"),
                                               note="Vision model on the nearest panorama face") if i else geo_src,
-                                detail=(f"{n} routes pass through it; the pool is {d['yard_m']:.0f} m from the door. " if d.get("yard_m") else "")
+                                detail=(f"{n} routes pass through it; the pool is {d['yard_m']:.0f} m from the door"
+                                        + (" in a straight line, reached around the house. " if d.get("around") else ". ")
+                                        if d.get("yard_m") else "")
                                 + f"Seen: {seen}." + (f" Missing: {missing}." if missing else "")
                                 + (f" ({i['note']})" if i else "")))
         if d.get("ll"):

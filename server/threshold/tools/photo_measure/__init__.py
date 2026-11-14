@@ -143,6 +143,9 @@ SCHEMA = {"type": "object", "additionalProperties": False,
                          "seen": {"type": "string", "description": "One sentence: what the two ends are on"}}}
 
 
+MIN_DOOR_M = 0.40  # the geometry engine's data-error cut-off for a door width
+
+
 def find_points(capture: str, reference: str, what: str, ask=None, image=None) -> dict:
     """Ask the vision reader where the reference's corners and the two ends are.
     {points: Points | None, same_plane, confidence, seen, size: (w, h)}. The model gives pixel positions only."""
@@ -235,10 +238,14 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     status = ("unknown" if need is None else "pass" if value - err >= need else "fail" if value + err < need else "warn")
     xs, ys = [pts.a[0], pts.b[0]], [pts.a[1], pts.b[1]]
     box = (max(0.0, min(xs) - 0.02), max(0.0, min(ys) - 0.02), min(1.0, max(xs) + 0.02), min(1.0, max(ys) + 0.02))
-    text = {"unknown": "Measured from the photo.", "pass": "Measured from the photo: wide enough, error allowed for.",
+    text = {"unknown": f"Measured from the photo: {value:.2f} m, give or take {err:.2f} m.", "pass": "Measured from the photo: wide enough, error allowed for.",
             "fail": "Measured from the photo: too narrow, error allowed for.",
             "warn": "Measured from the photo: within its error of your limit, so use a tape."}[status]
-    if plane == "no":
+    if "door" in inputs.what.lower() and value + err < MIN_DOOR_M:  # no real doorway is this narrow: a misread
+        status = "unknown"
+        text = (f"Measured {value:.2f} m, narrower than any doorway, so the reference or the ends were probably misread. "
+                "Retake it square on with the reference flat on the frame, or place the points by hand.")
+    elif plane == "no":
         text += " The reference does not look to be in the same plane as what was measured, so treat this as rough."
     elif m["ratio"] > FAR_RATIO:
         text += " The reference is small next to what was measured, so the error is wide."

@@ -24,7 +24,7 @@ Conflict; Session pulls the newer entries and retries.
 from __future__ import annotations
 
 import datetime as dt
-import os
+import logging
 import secrets
 import threading
 import time
@@ -96,7 +96,8 @@ class MongoStore:
             fields = (mem.get("latestDefinition") or mem.get("definition") or {}).get("fields", [])
             self.vector_mode = "auto" if any(f["type"] == "autoEmbed" for f in fields) else "local"
             return
-        if os.environ.get("THRESHOLD_EMBED") != "local":
+        from ..config import env
+        if env().get("THRESHOLD_EMBED") != "local":
             try:  # Atlas embeds the text with Voyage, at write and at query: no embedding key, no client model
                 self.memories.create_search_index(SearchIndexModel(
                     {"fields": [{"type": "autoEmbed", "path": "text", "model": AUTO_MODEL, "modality": "text"}, *FILTERS]},
@@ -154,14 +155,19 @@ class MongoStore:
                 raise
             if all(e.op is not None and e.op.op == "run.progress" for e in new):
                 return  # progress lines change nothing searchable; the run's finish rewrites the snapshot
-        d = doc.model_dump(mode="json", by_alias=True)
-        snap = {"_id": id, "profile": meta["profile"], "created": meta["created"], "updated": d["updated"],
-                "seq": len(log), "doc": d}
+        # The entries are stored, so the op happened: a failure from here on is logged, never raised. Raising would make
+        # Session drop an op the log keeps, and the next sync would bring it back after the caller was told it failed.
         try:
-            self.workspaces.replace_one({"_id": id, "seq": {"$lt": len(log)}}, snap, upsert=True)
-        except DuplicateKeyError:
-            return  # a newer snapshot is there, and its writer derives from it
-        self.derive(d)
+            d = doc.model_dump(mode="json", by_alias=True)
+            snap = {"_id": id, "profile": meta["profile"], "created": meta["created"], "updated": d["updated"],
+                    "seq": len(log), "doc": d}
+            try:
+                self.workspaces.replace_one({"_id": id, "seq": {"$lt": len(log)}}, snap, upsert=True)
+            except DuplicateKeyError:
+                return  # a newer snapshot is there, and its writer derives from it
+            self.derive(d)
+        except Exception:  # noqa: BLE001 - the next save rewrites the snapshot and the derived items
+            logging.getLogger("threshold.store").exception("workspace %s: stored seq %d, but the snapshot or search items failed", id, len(log))
 
     def profile(self, profile: str) -> list[dict]:
         return [{k: v for k, v in p.items() if k not in ("_id", "profile")} for p in self.prefs.find({"profile": profile})]

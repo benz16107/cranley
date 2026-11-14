@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 from ...geometry import water
 from ...geometry._plan import room_floor_z
-from .. import ToolError, field
+from .. import NotApplicable, field
 from . import floor_height as fh
 from . import public
 
@@ -95,9 +95,12 @@ def measure_floor(plan: dict, site: dict | None, *, use_drone: bool, override: f
     grade = None
     if fp:
         try:
-            e = fh.vexcel_eave(plan, fp, lat, lon, lambda pts: _heights("dsm", pts))
-            steps("Vexcel eave method: " + (f"{e['value_m']:.2f} m" if e else "not used (more than one storey)"))
-            ests.append(e)
+            if _kind(plan.get("sid", "")) in ("house", None):
+                e = fh.vexcel_eave(plan, fp, lat, lon, lambda pts: _heights("dsm", pts))
+                steps("Vexcel eave method: " + (f"{e['value_m']:.2f} m" if e else "not used (more than one storey)"))
+                ests.append(e)
+            else:  # the roof belongs to the whole building, not to this unit
+                steps("Vexcel eave method: not used (the scan is one unit, not the whole building)")
             grade = fh.ground_grade(fp, lat, lon, lambda pts: _heights("dtm", pts))
         except Exception as ex:  # noqa: BLE001
             steps(f"Vexcel elevations failed: {str(ex)[:120]}")
@@ -235,5 +238,12 @@ def room_depth_at(flood: dict, room: str | None, k: str) -> float:
 
 def check_plan(plan: dict) -> None:
     if not plan.get("rooms"):
-        raise ToolError("This scan has no rooms, so there is nothing to flood.")
+        raise NotApplicable("This scan has no rooms, so there is nothing to flood.")
 
+
+def _kind(sid: str) -> str | None:
+    try:
+        from ...sources import index
+        return (index.rows().get(sid) or {}).get("kind")
+    except Exception:  # noqa: BLE001 - the index is context only
+        return None

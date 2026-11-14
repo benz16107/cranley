@@ -2,12 +2,13 @@ import { useMemo, useState } from 'react'
 import { Dialog } from '@base-ui/react/dialog'
 import { useWorkspace, userOp } from '../../../core/index.ts'
 import { DataTable, Empty, Icon, Seg, ToolKey, type Col } from '../design/ui.tsx'
-import { go } from '../lib/place.ts'
+import { usePlace } from '../lib/place.ts'
+import { startTool } from '../shell/StartTool.tsx'
 import { FAMILIES, family, useTools, type Family, type ToolInfo } from '../lib/tools.ts'
 
 const DRAWS: Record<string, string> = { lens: 'room tint', rule: 'room and wall marks', pins: 'pins', route: 'route', water: 'water level', box: 'boxes' }
 
-function Detail({ t, on, onClose }: { t: ToolInfo | null; on: boolean; onClose: () => void }) {
+function Detail({ t, on, onClose, onRun }: { t: ToolInfo | null; on: boolean; onClose: () => void; onRun: (t: ToolInfo) => void }) {
   return (
     <Dialog.Root open={!!t} onOpenChange={(o) => !o && onClose()}>
       <Dialog.Portal>
@@ -19,10 +20,9 @@ function Detail({ t, on, onClose }: { t: ToolInfo | null; on: boolean; onClose: 
               <div className="body tooldetail">
                 <p>{t.summary}</p>
                 <div className="row wrap">
-                  <button className="btn solid" disabled={t.planned} onClick={() => userOp(on ? { op: 'tool.disable', id: t.id } : { op: 'tool.enable', tool: { id: t.id, title: t.title, summary: t.summary, reason: 'You added it from the tool catalogue.' } })}>{on ? 'Remove from this investigation' : 'Add to this investigation'}</button>
-                  {t.onScan && <button className="btn" onClick={() => { onClose(); go('explore') }}>Pick a building to run it on</button>}
+                  <button className="btn solid" disabled={t.planned} onClick={() => { onClose(); onRun(t) }}><Icon name="play" size={12} />Run</button>
+                  <button className="btn" disabled={t.planned} onClick={() => userOp(on ? { op: 'tool.disable', id: t.id } : { op: 'tool.enable', tool: { id: t.id, title: t.title, summary: t.summary, reason: 'You added it from the tool catalogue.' } })}>{on ? 'Remove from this investigation' : 'Add to this investigation'}</button>
                 </div>
-                {!t.onScan && <p className="note"><Icon name="info" size={13} /><span>This tool works across the city, not on one building, so it cannot be started from a building page. The agent uses it when it is in the investigation.</span></p>}
                 {t.planned && <p className="note"><Icon name="info" size={13} /><span>Planned, not built yet.</span></p>}
                 <section><h3>Reads</h3>{t.needs.length ? <ul className="needs">{t.needs.map((n) => <li key={n.layer}><span className="grow">{n.label}</span><span className="muted">{n.required ? 'required' : 'used when there'}</span></li>)}</ul> : <p className="muted">Nothing listed.</p>}</section>
                 {t.asks.length > 0 && <section><h3>Asks you first</h3><ul className="asks">{t.asks.map((a) => <li key={a}>{a}</li>)}</ul></section>}
@@ -48,6 +48,8 @@ export function Tools() {
   const mine = useWorkspace((s) => s.doc.tools)
   const [fam, setFam] = useState<'all' | 'mine' | Family>('all'), [text, setText] = useState(''), [open, setOpen] = useState<string | null>(null)
   const has = (id: string) => mine.some((m) => m.id === id)
+  const { q } = usePlace(), last = q.get('app_sid') // the building the person came from, when they came from one
+  const run = (t: ToolInfo) => startTool(t, last, true)
   const rows = useMemo(() => tools.filter((t) => (fam === 'all' || (fam === 'mine' ? has(t.id) : t.family === fam)) && (!text.trim() || `${t.title} ${t.summary}`.toLowerCase().includes(text.trim().toLowerCase()))), [tools, fam, text, mine]) // eslint-disable-line react-hooks/exhaustive-deps
   const cols: Col<ToolInfo>[] = [
     { id: 'tool', label: 'Tool', fixed: true, width: '22%', sort: (t) => t.title, cell: (t) => <span className="row"><ToolKey id={t.id} title={t.title} /><span className="strong trunc">{t.title}</span>{t.planned && <span className="chip">Planned</span>}</span> },
@@ -56,7 +58,12 @@ export function Tools() {
     { id: 'needs', label: 'Needs', width: '17%', cell: (t) => <span className="dim" title={t.needs.map((n) => `${n.label}${n.required ? '' : ' (when there)'}`).join(', ')}>{[...new Set(t.needs.filter((n) => n.required).map((n) => n.label))].join(', ') || <span className="muted">nothing required</span>}</span> },
     { id: 'asks', label: 'Asks', num: true, width: 60, sort: (t) => t.asks.length, cell: (t) => (t.asks.length ? t.asks.length : <span className="muted">–</span>) },
     { id: 'speed', label: 'Speed', width: 70, sort: (t) => (t.slow ? 1 : 0), cell: (t) => <span className="dim">{t.slow ? 'Slow' : 'Fast'}</span> },
-    { id: 'x', label: '', width: 104, fixed: true, cell: (t) => <button className="btn sm" disabled={t.planned} aria-pressed={has(t.id)} onClick={(e) => { e.stopPropagation(); userOp(has(t.id) ? { op: 'tool.disable', id: t.id } : { op: 'tool.enable', tool: { id: t.id, title: t.title, summary: t.summary, reason: 'You added it from the tool catalogue.' } }) }}>{has(t.id) ? <><Icon name="check" size={12} />Added</> : 'Add'}</button> },
+    { id: 'x', label: '', width: 148, fixed: true, cell: (t) => (
+      <span className="row" style={{ justifyContent: 'flex-end', gap: 6 }}>
+        <button className="btn sm" disabled={t.planned} onClick={(e) => { e.stopPropagation(); run(t) }} aria-label={`Run ${t.title}`}><Icon name="play" size={11} />Run</button>
+        <button className="btn sm" disabled={t.planned} aria-pressed={has(t.id)} aria-label={has(t.id) ? `Remove ${t.title} from this investigation` : `Add ${t.title} to this investigation`} onClick={(e) => { e.stopPropagation(); userOp(has(t.id) ? { op: 'tool.disable', id: t.id } : { op: 'tool.enable', tool: { id: t.id, title: t.title, summary: t.summary, reason: 'You added it from the tool catalogue.' } }) }}>{has(t.id) ? <><Icon name="check" size={12} />Added</> : 'Add'}</button>
+      </span>
+    ) },
   ]
   const sel = tools.find((t) => t.id === open) ?? null
   return (
@@ -67,7 +74,7 @@ export function Tools() {
       </div>
       <DataTable label="Tools" noun="tool" cols={cols} rows={rows} rowKey={(t) => t.id} onRow={(t) => setOpen(t.id)} loading={!tools.length} sortBy={{ col: 'family', dir: 1 }}
         empty={<Empty icon="tool" title="No tool matches" action={<button className="btn" onClick={() => { setText(''); setFam('all') }}>Clear the filter</button>} />} />
-      <Detail t={sel} on={!!sel && has(sel.id)} onClose={() => setOpen(null)} />
+      <Detail t={sel} on={!!sel && has(sel.id)} onClose={() => setOpen(null)} onRun={run} />
     </div>
   )
 }

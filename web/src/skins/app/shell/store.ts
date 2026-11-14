@@ -16,13 +16,15 @@ type Ui = {
   keys: boolean
   /** A result opened over the page: its panel id. */
   panel: string | null
+  /** The form that starts a tool by hand: which tool, and the scan to run on when one is in view. */
+  start: { tool: string; sid: string | null } | null
   /** Phone: the navigation drawer. */
   nav: boolean
   setRun: (on: boolean) => void
   setRail: (on: boolean) => void
 }
 export const useUi = create<Ui>((set) => ({
-  run: get('run', false), rail: get('rail', false), menu: false, keys: false, panel: null, nav: false,
+  run: get('run', false), rail: get('rail', false), menu: false, keys: false, panel: null, start: null, nav: false,
   setRun: (run) => { put('run', run); set({ run }) },
   setRail: (rail) => { put('rail', rail); set({ rail }) },
 }))

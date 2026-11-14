@@ -19,6 +19,7 @@ from .. import (
     Assumption,
     Check,
     Finding,
+    NotApplicable,
     Pin,
     PinsOverlay,
     RoomAnchor,
@@ -233,7 +234,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         elif c["key"] == "facing":
             comps.append(_facing(plan, c))
     if not comps:
-        raise ToolError("Nothing to check: paste the listing text, or pick a scan that has a listing.")
+        raise NotApplicable("This scan has no listing, so there is nothing to check. Paste the listing text to check it.")
     ctx.step(f"Checked {len(comps)} claims")
     extra = unsaid(plan)
     n_extra = sum(1 for x in extra if x["status"] != "pass")

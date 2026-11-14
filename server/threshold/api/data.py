@@ -114,6 +114,8 @@ def record(sid: str, full: bool = False) -> dict:
 
 @router.get("/scan/{sid}/pano/{pano}/equirect.jpg")
 def equirect(sid: str, pano: str, w: int = 2048, view: str = "furnished") -> Response:
+    if view not in mp.VIEWS:  # checked here: the source builds its cache path from `view` before it checks it
+        raise HTTPException(404, "view is furnished or defurnished")
     return Response(_call(mp.equirect, sid, pano, w, view), media_type="image/jpeg", headers=JPEG)
 
 
@@ -138,7 +140,7 @@ def _byte_range(header: str | None, total: int) -> tuple[int, int] | None:
     if not m or m.group(1) == m.group(2) == "":
         return None
     first, last = m.groups()
-    start, end = (total - int(last), total - 1) if first == "" else (int(first), min(int(last), total - 1) if last else total - 1)
+    start, end = (max(0, total - int(last)), total - 1) if first == "" else (int(first), min(int(last), total - 1) if last else total - 1)
     if start < 0 or start > end or start >= total:
         raise ValueError
     return start, end

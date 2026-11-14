@@ -35,6 +35,7 @@ from .._site import (
     heights,
     locate,
     metres,
+    not_for_homes,
     ortho_media,
     osm,
     parcel,
@@ -270,6 +271,7 @@ def directions(e: dict, gate: str, dock_side: str, dock_bearing: float, n_doors:
       overlays=["route", "pins"], annotations={"cost": "slow"},
       examples=["Can a 53 foot trailer get into this warehouse?", "Which entrance do trucks use here?"])
 def run(ctx, inputs: Inputs) -> ToolResult:
+    not_for_homes(inputs.scan, "truck docks and courts")
     s = locate(ctx, inputs)
     sv = survey(ctx, s, use_vision=inputs.use_vision, inside=False)
     if sv["footprint"] is None:

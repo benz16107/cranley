@@ -71,6 +71,7 @@ function Brief() {
   if (!doc.brief && !open.length && !doc.plan.length && !doc.runs.length) {
     return <Empty icon="runs" title="No investigation open" action={<button className="btn solid" onClick={newInvestigation}>New investigation</button>}>Describe a need on Home and the agent picks the tools, asks what it must, and shows its work here.</Empty>
   }
+  if (!doc.brief && !open.length) return null // tools run by hand, no brief: the runs below are the whole story
   return (
     <section className="rp-sec brief">
       {doc.brief && (

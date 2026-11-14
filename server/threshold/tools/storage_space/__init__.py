@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
+from ...geometry._plan import indoor_rooms
 from .. import (
     Check,
     Finding,
@@ -38,7 +39,7 @@ def storage(plan: dict) -> dict:
     """Storage rooms, their area, the floor they share, and bedrooms with no closet room through a door."""
     rooms = facts.live_rooms(plan)
     store = [r for r in rooms if r.get("label") in STORAGE and r.get("area")]
-    total = sum(r["area"] for r in rooms if r.get("area"))
+    total = sum(r["area"] for r in indoor_rooms(plan) if r.get("area"))
     s = sum(r["area"] for r in store)
     ids = {r["id"] for r in store}
     linked: dict[str, set[str]] = {}

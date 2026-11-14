@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from .. import Action, Assumption, ToolError, ToolResult, field, tool
+from .. import Action, Assumption, NotApplicable, ToolError, ToolResult, field, tool
 from . import claims as cl
 from . import compare as cmp
 from . import gather, measure, result
@@ -65,7 +65,8 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     plan = ctx.plan(inputs.scan)
     rec = gather.record(inputs.scan)
     if rec is None and not cl.parse_title(plan.get("name")):
-        raise ToolError(f"Scan {inputs.scan} has no CoStar or listing record and its title states nothing to check.")
+        raise NotApplicable("This scan has no CoStar or listing record, and its title states no size or room count, so "
+                            "there is nothing to check it against.")
     a = audit(plan, rec, deep=inputs.deep, params={"area_low": inputs.area_low, "area_high": inputs.area_high},
               step=ctx.step)
     comps = a["comparisons"]
