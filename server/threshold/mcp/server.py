@@ -188,6 +188,7 @@ def build(write: bool = False, **kw) -> Threshold:
     def wheelchair_check(scan: str) -> str:
         return (f"Check scan {scan} for a wheelchair user. Read building_facts first and say if the plan lacks walls "
                 "or openings. Then run door_widths, step_free_route, turning_space and bathroom_clearance on it. "
+                "Inputs such as min_width_m are the person's limits: use the numbers they gave, else ask them. "
                 "Report each verdict with the measured values from the results and their confidence, list what "
                 "fails and what must be measured on site. Do not state a number that is not in a result.")
 
