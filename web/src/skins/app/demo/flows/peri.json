@@ -12,6 +12,7 @@
       "else": { "do": "tool", "tool": "office_fit", "inputs": { "headcount": 20 }, "say": "The agent is offline, so office fit runs as a tool." } },
     { "do": "agent", "open": false, "hold": 300 },
     { "do": "open", "page": "investigation", "say": "Everything it found, in one investigation.", "hold": 3000 },
-    { "do": "click", "label": "Download report", "say": "The business keeps it as a PDF, every number with its source.", "hold": 6000 }
+    { "do": "click", "label": "Download report", "say": "The business keeps it as a PDF, every number with its source.", "hold": 1200 },
+    { "do": "click", "label": "Everything in this investigation", "say": "The business keeps it as a PDF, every number with its source.", "hold": 5000 }
   ]
 }

@@ -4,6 +4,7 @@
 #   scripts/demo-up            start (or restart) and open http://127.0.0.1:8890/app
 #   scripts/demo-up --replay   the agent answers only from recordings: same every time, no network used
 #   scripts/demo-up --live     the agent always asks the real model (fails with no network)
+#   scripts/demo-up --no-open  start without opening a browser (DEMO_NO_OPEN=1 does the same)
 #   scripts/demo-up stop       stop it
 #   scripts/demo-up status     is it running, and is the model endpoint reachable
 #
@@ -47,6 +48,7 @@ case "${1:-}" in
     exit 0 ;;
   --replay) MODE=replay ;;
   --live) MODE=live ;;
+  --no-open) DEMO_NO_OPEN=1 ;;
   "") ;;
   *) sed -n '2,12p' "$0"; exit 2 ;;
 esac
@@ -81,4 +83,4 @@ echo "Threshold demo at http://127.0.0.1:$PORT/app  (code $commit, agent mode $M
 echo "$net"
 echo "Demo menu: top bar, Demo. Stop with: scripts/demo-up stop. Logs: $RUN/"
 url="http://127.0.0.1:$PORT/app"
-if command -v open >/dev/null && [[ "$(uname)" == Darwin ]]; then open "$url"; elif command -v xdg-open >/dev/null && [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]]; then xdg-open "$url" >/dev/null 2>&1 || true; fi
+if [[ -n "${DEMO_NO_OPEN:-}" ]]; then :; elif command -v open >/dev/null && [[ "$(uname)" == Darwin ]]; then open "$url"; elif command -v xdg-open >/dev/null && [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]]; then xdg-open "$url" >/dev/null 2>&1 || true; fi

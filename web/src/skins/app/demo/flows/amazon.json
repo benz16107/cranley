@@ -10,6 +10,7 @@
     { "do": "tool", "tool": "turning_space", "say": "Then the turning space in each room.", "hold": 4000,
       "else": { "do": "tool", "tool": "room_census", "say": "Then a census of the rooms." } },
     { "do": "open", "page": "investigation", "say": "The investigation holds every run and finding.", "hold": 2500 },
-    { "do": "click", "label": "Download report", "say": "One click prints it as the PDF a landlord or contractor keeps.", "hold": 6000 }
+    { "do": "click", "label": "Download report", "say": "One click prints it as the PDF a landlord or contractor keeps.", "hold": 1200 },
+    { "do": "click", "label": "Everything in this investigation", "say": "One click prints it as the PDF a landlord or contractor keeps.", "hold": 5000 }
   ]
 }
