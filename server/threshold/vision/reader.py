@@ -69,6 +69,15 @@ def _rooms_to_read(plan: dict) -> list[dict]:
     return [r for r in plan["rooms"] if r.get("label") != "Void" and room_panos(plan, r)]
 
 
+def _spread(ps: list[dict], n: int) -> list[dict]:
+    """The first panorama (the central one) and then those farthest from the ones already chosen."""
+    chosen = ps[:1]
+    while len(chosen) < min(n, len(ps)):
+        chosen.append(max((p for p in ps if p not in chosen), key=lambda p: min(
+            math.dist(p["position"][:2], c["position"][:2]) for c in chosen)))
+    return chosen
+
+
 def _parallel(fn, items):
     with ThreadPoolExecutor(CONCURRENCY) as ex:
         return list(ex.map(fn, items))
@@ -106,17 +115,10 @@ def label_rooms(plan: dict, rooms: list[str] | None = None, *, labels: list[str]
                                "evidence_image": {"type": "integer", "enum": list(range(1, n_img + 1))},
                                "reason": {"type": "string", "description": "One short sentence naming what you saw."}}}
 
-    def spread(ps: list[dict], n: int) -> list[dict]:
-        chosen = ps[:1]
-        while len(chosen) < min(n, len(ps)):
-            chosen.append(max((p for p in ps if p not in chosen), key=lambda p: min(
-                math.dist(p["position"][:2], c["position"][:2]) for c in chosen)))
-        return chosen
-
     def one(room):
         ps = room_panos(plan, room)
         big = len(ps) >= many and (room.get("area") or 0) >= large_m2
-        pick = spread(ps, views) if views > 1 and big else ps[:1]
+        pick = _spread(ps, views) if views > 1 and big else ps[:1]
         hint = (f" Measured facts about this room from the floor plan: {hints[room['id']]}. Use them as evidence "
                 "alongside the images; what you see decides." if hints and hints.get(room["id"]) else "")
         where = " The camera stands inside one room of a " + ("home" if home else "commercial building") + \
@@ -195,8 +197,9 @@ def peek_rooms(plan: dict, rooms: list[str], *, labels: list[str] | None = None,
     """Label rooms that no panorama stands in, through a doorway, from the panorama outside that looks most
     squarely at it. The doorway is ringed in red on the one face sent. A room seen from outside is never called
     with high confidence: high becomes medium. Same shape as `label_rooms`, plus `peek: True`."""
-    from PIL import Image, ImageDraw
     import io
+
+    from PIL import Image, ImageDraw
 
     labels = labels or COMMERCIAL_LABELS
     schema = {"type": "object", "additionalProperties": False, "required": ["label", "confidence", "visible", "reason"],
@@ -237,11 +240,18 @@ FLOOR_FINISHES = ["carpet", "hardwood or wood-look", "tile or stone", "polished 
                   "rubber or gym flooring", "outdoor paving or deck", "artificial turf or grass", "cannot tell"]
 
 
-def floor_finishes(plan: dict, rooms: list[str] | None = None, batch: int = 8) -> dict[str, dict]:
-    """Floor finish per room, from the straight-down face of its central panorama. Several rooms per call
-    (`batch`), each image one room, so a whole suite costs a call or two. Returns room id -> {finish,
-    confidence, evidence: {sid, pano, face}}."""
+def floor_finishes(plan: dict, rooms: list[str] | None = None, batch: int = 8, views: int = 1, many: int = 4,
+                   large_m2: float = 150) -> dict[str, dict]:
+    """Floor finish per room, from the straight-down face of its central panorama. Several views per call
+    (`batch`), so a whole suite costs a call or two. A room of at least `large_m2` with at least `many`
+    panoramas is looked at from up to `views` spots and gets `shares` (finish -> fraction of those spots).
+    Returns room id -> {finish, shares, confidence, evidence: {sid, pano, face}}."""
     todo = [r for r in _rooms_to_read(plan) if rooms is None or r["id"] in rooms]
+    items = []
+    for r in todo:
+        ps = room_panos(plan, r)
+        big = views > 1 and len(ps) >= many and (r.get("area") or 0) >= large_m2
+        items += [(r, p) for p in (_spread(ps, views) if big else ps[:1])]
     schema = {"type": "object", "additionalProperties": False, "required": ["floors"], "properties": {"floors": {
         "type": "array", "items": {"type": "object", "additionalProperties": False,
                                    "required": ["image", "finish", "confidence"],
@@ -249,21 +259,29 @@ def floor_finishes(plan: dict, rooms: list[str] | None = None, batch: int = 8) -
                                                   "confidence": CONFIDENCE}}}}}
 
     def one(chunk):
-        panos = [room_panos(plan, r)[0] for r in chunk]
         prompt = (f"Each of the {len(chunk)} images looks straight down at the floor from a 360-degree camera on a "
-                  "tripod in a different room of one building (the tripod's shadow or base may show in the centre). "
+                  "tripod at a different spot in one building (the tripod's shadow or base may show in the centre). "
                   "For every image, name the floor finish. Rugs on top of a floor do not count; judge the floor around "
                   "them. Answer once per image, by image number starting at 1.")
-        a = ask([jpeg(mp.pano_face(plan["sid"], p["id"], 5, "2k"), 512) for p in panos],
-                prompt, schema, key=f"floor_finish/{plan['sid']}/{panos[0]['id']}")
+        a = ask([jpeg(mp.pano_face(plan["sid"], p["id"], 5, "2k"), 512) for _, p in chunk],
+                prompt, schema, key=f"floor_finish/{plan['sid']}/{chunk[0][1]['id']}")
         got = {f["image"]: f for f in a["floors"]}
-        return {r["id"]: {"finish": got[i + 1]["finish"], "confidence": got[i + 1]["confidence"],
-                          "evidence": {"sid": plan["sid"], "pano": p["id"], "face": 5}}
-                for i, (r, p) in enumerate(zip(chunk, panos)) if i + 1 in got}
+        return [(r, p, got[i + 1]) for i, (r, p) in enumerate(chunk) if i + 1 in got]
 
+    seen: dict[str, list] = {}
+    for part in _parallel(one, [items[i:i + batch] for i in range(0, len(items), batch)]):
+        for r, p, g in part:
+            seen.setdefault(r["id"], []).append((p, g))
+    rank = {"high": 0, "medium": 1, "low": 2}
     out: dict[str, dict] = {}
-    for part in _parallel(one, [todo[i:i + batch] for i in range(0, len(todo), batch)]):
-        out.update(part)
+    for rid, xs in seen.items():
+        n: dict[str, int] = {}
+        for _, g in xs:
+            n[g["finish"]] = n.get(g["finish"], 0) + 1
+        top = max(n, key=n.get)
+        out[rid] = {"finish": top, "shares": {k: v / len(xs) for k, v in n.items()},
+                    "confidence": max((g["confidence"] for _, g in xs), key=rank.get),
+                    "evidence": {"sid": plan["sid"], "pano": next(p["id"] for p, g in xs if g["finish"] == top), "face": 5}}
     return out
 
 
