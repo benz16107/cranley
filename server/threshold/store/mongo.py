@@ -162,6 +162,8 @@ class MongoStore:
         reqs = [ReplaceOne({"_id": {"profile": profile, "key": key}, "at": {"$lte": at}},
                            {**(p or {"key": key, "value": None}), "key": key, "at": at, "profile": profile}, upsert=True)
                 for key, (at, p) in changes.items()]
+        if not reqs:
+            return
         try:
             self.prefs.bulk_write(reqs, ordered=False)
         except BulkWriteError as e:  # a duplicate _id means a later edit is stored: it wins

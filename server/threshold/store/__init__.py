@@ -33,4 +33,19 @@ def mongo(uri: str | None = None, db: str | None = None):
     return MongoStore(uri, db or e.get("MONGODB_DB", "threshold"))
 
 
-__all__ = ["Conflict", "FileStore", "mongo", "use_mongo"]
+MIN_SCORE = 0.82  # (1 + cos) / 2 with bge-small: related needs scored 0.85-0.88 on the 11 real workspaces, unrelated 0.75-0.79
+
+
+def recall_lines(store, text: str | None, persona: str | None = None, exclude: str | None = None, k: int = 3) -> list[str]:
+    """Similar past needs as prompt lines, for stores with memory; [] otherwise or when recall fails (memory must
+    never stop a turn)."""
+    if not text or not hasattr(store, "recall"):
+        return []
+    from .derive import lines
+    try:
+        return lines(store.recall(text, persona=persona, exclude=exclude, k=k, min_score=MIN_SCORE))
+    except Exception:
+        return []
+
+
+__all__ = ["Conflict", "FileStore", "mongo", "recall_lines", "use_mongo"]
