@@ -1,0 +1,29 @@
+{
+  "id": "senior_dog_owner",
+  "title": "Older dog that cannot do stairs",
+  "who": "Has an older dog with stiff joints: no stairs to daily rooms, grip underfoot, a flat yard, a short way out the back door, and an emergency vet within a short drive.",
+  "tools": [
+    "pet_fit",
+    "stairs_count",
+    "step_free_route",
+    "nearby",
+    "home_search"
+  ],
+  "thresholds": {
+    "pets.profile": [
+      {
+        "kind": "dog",
+        "weight_lb": 70,
+        "age": "senior"
+      }
+    ],
+    "nearby.profile": "pets",
+    "access.riser_m": 0.178,
+    "pets.dog_lb": 70,
+    "pets.dog_age": "senior"
+  },
+  "layout": {
+    "view": "plan",
+    "lead_tool": "pet_fit"
+  }
+}
