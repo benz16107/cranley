@@ -44,8 +44,7 @@ type Live = { turn: string | null; status: 'idle' | 'running' | 'waiting' | 'don
 /** What the server's agents are doing now, from `/api/agent/{id}/live`. */
 function useLive(): Live | null {
   const live = useCatalog((s) => s.live)
-  const begun = useWorkspace((s) => s.doc.plan.length > 0 || s.doc.questions.some(isApproval))
-  const id = begun ? (serverDoc()?.id as string | undefined) : undefined
+  const id = useWorkspace((s) => s.doc.brief?.text) ? (serverDoc()?.id as string | undefined) : undefined
   const [snap, setSnap] = useState<Live | null>(null)
   useEffect(() => {
     if (!live || !id) return
@@ -57,13 +56,16 @@ function useLive(): Live | null {
 }
 
 const AGENT = { building: 'Building', property: 'Property', investigator: 'Lead agent' } as Record<string, string>
+const STEP = { consider: 'Adding buildings', find_scans: 'Searching scans', find_properties: 'Searching properties', find_by_measure: 'Searching by measurement',
+  rank: 'Ranking', shortlist: 'Shortlisting', focus: 'Pointing the camera', note: 'Writing a note', compose_panel: 'Building a panel', search_history: 'Searching past work',
+  property_scans: 'Listing scans', run_on_property: 'Running across the property', coverage: 'Checking coverage', task: 'Starting a subagent' } as Record<string, string>
 const STATE = { running: 'running', waiting: 'pending', done: 'done', failed: 'failed' } as const
 
 /** The lead agent and each subagent it started, side by side while they work in parallel. */
 export function Lanes() {
   const snap = useLive()
   const tools = useWorkspace((s) => s.doc.tools)
-  const title = (t: string) => tools.find((x) => x.id === t)?.title ?? t.replace(/_/g, ' ')
+  const title = (t: string) => tools.find((x) => x.id === t)?.title ?? STEP[t] ?? t.replace(/_/g, ' ')
   if (!snap || !snap.lanes.length || snap.status === 'idle') return null
   const busy = snap.lanes.filter((l) => l.status === 'running' && l.id !== 'main').length
   return (
@@ -77,15 +79,15 @@ export function Lanes() {
           <li key={l.id} className="lane arrive" data-status={l.status}>
             <div className="lh">
               <span className="who">{l.id === 'main' ? AGENT.investigator : AGENT[l.agent] ?? l.agent}</span>
-              <span className="grow trunc" title={l.task}>{l.task}</span>
+              <span className="grow trunc" title={l.task}>{l.id === 'main' ? 'Plans, searches and ranks' : l.task}</span>
               <RunState state={STATE[l.status]}>{l.status === 'waiting' ? 'Waiting' : undefined}</RunState>
             </div>
-            {(l.tool || l.tools.length > 0) && (
-              <div className="lt">
-                {l.tool ? <><ToolKey id={l.tool} title={title(l.tool)} /><span className="trunc">Running {title(l.tool)}</span></>
-                  : <><Icon name="check" size={12} /><span className="trunc muted">{l.tools.map(title).join(', ')}</span></>}
-              </div>
-            )}
+            <div className="lt">
+              {l.tool ? <><ToolKey id={l.tool} title={title(l.tool)} /><span className="trunc">{STEP[l.tool] ?? `Running ${title(l.tool)}`}</span></>
+                : l.status === 'running' ? <span className="trunc muted">Deciding the next step{l.tools.length ? ` after ${l.tools.map(title).join(', ')}` : ''}</span>
+                : l.tools.length ? <><Icon name="check" size={12} /><span className="trunc muted">{l.tools.map(title).join(', ')}</span></>
+                : <span className="muted">No tools yet</span>}
+            </div>
           </li>
         ))}
       </ol>
