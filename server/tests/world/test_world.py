@@ -169,3 +169,15 @@ def test_a_mesh_of_loose_triangles_is_welded_and_not_mistaken_for_specks():
     assert len(mesh.without_specks(loose_F)) == len(F)          # all "pieces" are tiny: nothing is a speck
     wV, wF = mesh.weld(loose_V, loose_F)
     assert len(wV) == len(V) and (mesh.neighbours(wF) >= 0).any()  # welded, triangles have neighbours again
+
+
+def test_interior_splat_is_found_by_its_files(tmp_path, monkeypatch):
+    from threshold.world import site
+    monkeypatch.setattr(site, "DATA", tmp_path)
+    assert site.has_interior_splat("abcdefghijk") is False
+    d = tmp_path / "splat" / "abcdefghijk"
+    d.mkdir(parents=True)
+    (d / "interior.json").write_text("{}")
+    assert site.has_interior_splat("abcdefghijk") is False  # a placing with no splat beside it
+    (d / "interior.spz").write_bytes(b"x")
+    assert site.has_interior_splat("abcdefghijk") is True

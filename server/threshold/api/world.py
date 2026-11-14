@@ -88,6 +88,15 @@ def scan_mesh_atlas(sid: str, request: Request) -> Response:
     return _file(request, mesh.path(sid, "atlas.jpg"), "image/jpeg")
 
 
+@router.get("/{sid}/interior")
+def scan_interior(sid: str, request: Request) -> dict:
+    """{splat: bool}: whether this scan has an interior splat that this server can serve. Always a 200, so a page
+    can ask about every scan without a 404 in its console. The splat and its placing are the splat workstream's
+    routes; where they are not mounted the answer is no, whatever is on disk."""
+    served = any("interior-splat" in getattr(r, "path", "") for r in request.app.routes)
+    return {"splat": served and _call(site.has_interior_splat, sid)}
+
+
 @router.get("/{sid}/splat-fit")
 def scan_splat_fit(sid: str) -> dict:
     g = _geo(sid)
