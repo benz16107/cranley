@@ -81,6 +81,8 @@ export function Sidebar({ onPick }: { onPick?: () => void }) {
         )}
         {!rail && count > 0 && <p className="conn muted"><span>{new Intl.NumberFormat('en').format(count)} scanned addresses</span></p>}
         <ul className="nav">
+          {/* pairing a phone is part of the work, not a developer's tab: the code opens from here */}
+          <li>{(() => { const b = <button type="button" onClick={() => window.dispatchEvent(new Event('threshold:phone'))} aria-label={rail ? 'Continue on a phone' : undefined}><Icon name="camera" size={16} /><span className="grow">Continue on a phone</span></button>; return rail ? <Tip label="Continue on a phone">{b}</Tip> : b })()}</li>
           <li>{(() => { const b = <button type="button" aria-current={page === 'settings' ? 'page' : undefined} onClick={pick(() => go('settings'))} aria-label={rail ? 'Settings' : undefined}><Icon name="gear" size={16} /><span className="grow">Settings</span></button>; return rail ? <Tip label="Settings" kbd="G S">{b}</Tip> : b })()}</li>
         </ul>
         <div className="acct">

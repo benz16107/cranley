@@ -114,11 +114,11 @@ function Evidence({ findings }: { findings: F[] }) {
         return (
           <li key={f.id}>
             <button type="button" disabled={!f.anchor} aria-current={current === f.id || undefined} onClick={() => focusFinding(f, { stay: true })} title={f.anchor ? 'Show this in the building' : 'This finding has no place to show'}>
-              {m && b ? <img src={panoFace(a, b, c ? Number(c) : 1)} alt="" loading="lazy" width={72} height={54} onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} /> : <span className="ph hatch" />}
+              {m && b && <img src={panoFace(a, b, c ? Number(c) : 1)} alt="" loading="lazy" width={72} height={54} onError={(e) => { e.currentTarget.style.display = 'none' }} />}
               <span className="grow">
                 <span className="t"><StatusGlyph status={f.status} />{f.title}</span>
                 {f.detail && <span className="s">{f.detail}</span>}
-                <span className="m"><span className="muted">{tools.find((t) => t.id === f.tool)?.title ?? f.tool}</span><SourceChip source={f.source} /></span>
+                <span className="m"><span className="muted">{tools.find((t) => t.id === f.tool)?.title ?? f.tool}</span><SourceChip source={f.source} plain /></span>
               </span>
             </button>
           </li>
@@ -226,7 +226,8 @@ export function Building({ sid }: { sid: string }) {
   // The result in view: the one the person opened, else the focused finding's, else the latest. null is "none open".
   const [chosen, setChosen] = useState<string | null | undefined>(undefined)
   const inView = chosen !== undefined ? panels.find((p) => p.id === chosen) ?? null : (focused && panels.findLast((p) => p.tool === focused)) || panels.at(-1) || null
-  const on = pick ?? (inView && drawn.includes(inView.tool) ? [inView.tool] : drawn)
+  // nothing open, or a result that draws nothing: the plain building. Every tool at once is the Overlays menu's "Show all".
+  const on = pick ?? (inView && drawn.includes(inView.tool) ? [inView.tool] : [])
   const v = useBuildingView(sid, on.length === drawn.length ? undefined : { tools: on })
   const b = useBuildings((s) => s.all.find((x) => x.scans.some((y) => y.sid === sid)))
   const [picked, setTab] = useState<string | null>(null)
@@ -276,7 +277,7 @@ export function Building({ sid }: { sid: string }) {
         <IconBtn icon="back" label="Back to the map" onClick={() => go('explore', { city: b?.metro ?? undefined, b: b?.id })} />
         <div className="ttl">
           <h2 className="trunc">{v.plan?.name ?? (v.error ? 'Scan not available' : <span className="sk" style={{ width: 180, display: 'inline-block' }} />)}</h2>
-          <p className="muted trunc">{v.plan ? [(v.plan.address ?? '').split(',')[0], v.plan.city, plural(v.plan.rooms.length, 'room'), plural(v.plan.floors.length, 'floor')].filter(Boolean).join(' · ') : ' '}</p>
+          <p className="muted trunc">{v.plan ? [(v.plan.address ?? '').split(',')[0], v.plan.city, plural(v.plan.rooms.length, 'room'), plural(v.plan.floors.length, 'floor')].filter((x) => x && x !== v.plan!.name).join(' · ') : ' '}</p>
         </div>
         {b && b.scans.length > 1 && (
           <div className="pager" role="group" aria-label="Scans at this address">

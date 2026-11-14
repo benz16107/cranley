@@ -16,6 +16,10 @@ const PAGES: { page: Parameters<typeof go>[0]; label: string; icon: IconName; ke
   { page: 'insights', label: 'Insights', icon: 'chart', key: 'G N' }, { page: 'tools', label: 'Tools', icon: 'tool', key: 'G T' }, { page: 'settings', label: 'Settings', icon: 'gear', key: 'G S' },
 ]
 
+/* Every typed word must be in the item; a hit in its name ranks over one in its description. cmdk's own fuzzy match
+   found "flood" in "Bathroom clearance". */
+const match = (value: string, typed: string) => { const v = value.toLowerCase(), words = typed.toLowerCase().split(/\s+/).filter(Boolean); return !words.every((w) => v.includes(w)) ? 0 : v.slice(0, 44).includes(words[0]) ? 1 : 0.5 }
+
 /** Ctrl K: go anywhere, find a building, add a tool. It opens and closes without animation: it is used too often for one. */
 export function CommandMenu() {
   const open = useUi((s) => s.menu), close = () => useUi.setState({ menu: false })
@@ -30,7 +34,7 @@ export function CommandMenu() {
   const run = (fn: () => void) => () => { fn(); close() }
   const tools = open === 'tools'
   return (
-    <Command.Dialog open={!!open} onOpenChange={(o) => !o && close()} label="Command menu" className="cmd" shouldFilter>
+    <Command.Dialog open={!!open} onOpenChange={(o) => !o && close()} label="Command menu" className="cmd" shouldFilter filter={match}>
       <Command.Input value={q} onValueChange={setQ} placeholder={tools ? 'Add a tool to this investigation' : 'Search buildings by address, tools, pages'} />
       <Command.List>
         <Command.Empty>Nothing matches “{q}”.</Command.Empty>

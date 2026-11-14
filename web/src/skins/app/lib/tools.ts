@@ -39,7 +39,7 @@ const LAYER: Record<string, string> = {
   'threshold.facts': 'Facts database', 'threshold.facts.rooms': 'Room descriptions', 'threshold.measures': 'Measures table', 'osm.streets': 'Street map',
 }
 /** A manifest's input title ("Floor Height M") as a label: sentence case, without the unit it repeats. */
-const inputLabel = (t: string) => { const s = t.replace(/ (M|M2|Ft2|Kw|Min|Pct|Km)$/, '').toLowerCase(); return s.charAt(0).toUpperCase() + s.slice(1) }
+const inputLabel = (t: string) => { const s = t.replace(/ (M|M2|Ft2|Kw|Min|Pct|Km)$/, '').toLowerCase(); return s === 'sql' ? 'SQL' : s.charAt(0).toUpperCase() + s.slice(1) }
 const layerName = (l: string) => LAYER[l] ?? l.replace(/^[a-z]+\./, '').replace(/_/g, ' ')
 
 export type ToolInfo = {

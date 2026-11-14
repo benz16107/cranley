@@ -25,7 +25,9 @@
 @container (max-width: 560px) { .worktools .seg button span, .worktools .btn.quiet > .lbl { display: none; } .worktools .seg button { padding: 0 8px; } }
 .scene-host { position: relative; flex: 1; min-height: 0; overflow: hidden; }
 .scene-state { position: absolute; inset: 0; display: grid; place-content: center; }
-.insp { display: flex; flex-direction: column; min-height: 0; min-width: 0; border-left: 1px solid var(--rule); background: var(--pane); }
+.insp { display: flex; flex-direction: column; min-height: 0; min-width: 0; border-left: 1px solid var(--rule); background: var(--pane); container-type: inline-size; }
+/* five tabs with their counts do not fit a narrow inspector: the counts go, the working ring stays */
+@container (max-width: 400px) { .insp > .tabs .count { display: none; } .insp > .tabs [role='tab'] { padding: 0 7px; } }
 .insp-body { flex: 1; min-height: 0; }
 .insp-body[hidden] { display: none; }
 .ins-pad { padding: var(--s-4); }
@@ -45,8 +47,8 @@
 .can { display: grid; gap: 5px; }
 .can li { display: flex; align-items: center; gap: 8px; }
 .evid li { border-bottom: 1px solid var(--rule); }
-.evid button { display: flex; gap: 10px; width: 100%; padding: 9px var(--s-4); text-align: left; }
-.evid img, .evid .ph { width: 72px; height: 54px; object-fit: cover; border-radius: var(--r-1); flex: none; outline: 1px solid light-dark(rgb(0 0 0 / 0.1), rgb(255 255 255 / 0.1)); outline-offset: -1px; background-color: var(--pane-2); }
+.evid li > button { display: flex; gap: 10px; width: 100%; padding: 9px var(--s-4); text-align: left; }
+.evid img { width: 72px; height: 54px; object-fit: cover; border-radius: var(--r-1); flex: none; outline: 1px solid light-dark(rgb(0 0 0 / 0.1), rgb(255 255 255 / 0.1)); outline-offset: -1px; background-color: var(--pane-2); }
 .evid .grow { display: grid; gap: 3px; align-content: start; }
 .evid .t { display: flex; align-items: baseline; gap: 7px; font-weight: 560; line-height: 1.35; }
 .evid .t .glyph { flex: none; translate: 0 0.5px; }
@@ -93,7 +95,7 @@
 .listpage { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 /* a list page beside the open agent panel: the columns a person reads last give way before the text does */
 .listpage { container-type: inline-size; }
-@container (max-width: 1000px) { .listpage [data-col='needs'], .listpage [data-col='speed'], .listpage [data-col='note'] { display: none; } }
+@container (max-width: 1000px) { .listpage :is([data-col='needs'], [data-col='speed'], [data-col='note'], [data-col='first'], [data-col='kept'], [data-col='tools'], [data-col='by']) { display: none; } }
 .listpage > .tblwrap { flex: 1; }
 .tabpage { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .tabbody { flex: 1; min-height: 0; display: flex; flex-direction: column; }
