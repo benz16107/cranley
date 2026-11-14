@@ -30,6 +30,8 @@ MAX_DENSITY = 140.0     # texels per metre when the atlas has room
 VOXEL = 0.08            # metres; the occupancy grid that decides whether a panorama sees a triangle
 MAX_RANGE = 10.0        # a panorama further than this does not colour a triangle
 MIN_COS = 0.2           # nor one that sees it at a flatter angle than this
+NADIR_COS = 0.9         # nor, by choice, one standing right over it: Matterport blurs the tripod out of each panorama
+BAKE_VERSION = 2
 CANDIDATES = 6
 MARGIN = 1.0            # metres of mesh kept outside the plan's walls (the rest is the garden seen through windows)
 NEUTRAL = (204, 200, 192)
@@ -206,7 +208,8 @@ def assign(V: np.ndarray, F: np.ndarray, cams: np.ndarray) -> np.ndarray:
     to = cams[None, :, :] - centre[:, None, :]
     dist = np.linalg.norm(to, axis=2)
     cos = np.einsum("fcd,fd->fc", to, normal) / np.maximum(dist, 1e-6)
-    score = np.where((cos > MIN_COS) & (dist < MAX_RANGE), cos / np.maximum(dist, 0.4) ** 2, -1.0)
+    under = to[:, :, 2] / np.maximum(dist, 1e-6) > NADIR_COS
+    score = np.where((cos > MIN_COS) & (dist < MAX_RANGE) & ~under, cos / np.maximum(dist, 0.4) ** 2, -1.0)
     order = np.argsort(-score, axis=1)[:, :CANDIDATES]
     grid, lo = occupancy(surface_points(V, F, VOXEL * 0.6))
     out = np.full(len(F), -1, np.int32)
@@ -338,7 +341,7 @@ def bake(sid: str, progress=lambda done, total: None) -> dict:
     buf = io.BytesIO()
     Image.fromarray(atlas).save(buf, "JPEG", quality=86)
     write_atomic(cache_path("mesh", sid, "atlas.jpg"), buf.getvalue())
-    meta = {"triangles": int(len(F)), "coloured": round(float((owner >= 0).mean()), 3), "panoramas": len(used),
+    meta = {"version": BAKE_VERSION, "triangles": int(len(F)), "coloured": round(float((owner >= 0).mean()), 3), "panoramas": len(used),
             "texels_per_m": round(float(lay["density"]), 1), "atlas_px": ATLAS}
     write_atomic(cache_path("mesh", sid, "meta.json"), json.dumps(meta).encode())
     return meta
@@ -355,7 +358,7 @@ def status(sid: str, start: bool = True) -> dict:
     """{state: ready | baking | failed | idle, progress 0..1, ...meta}. Starts the bake when asked to and needed."""
     check(sid, "sid")
     meta = cache_path("mesh", sid, "meta.json")
-    if meta.exists() and cache_path("mesh", sid, "atlas.jpg").exists():
+    if meta.exists() and cache_path("mesh", sid, "atlas.jpg").exists() and json.loads(meta.read_text()).get("version") == BAKE_VERSION:
         return {"state": "ready", "progress": 1.0, **json.loads(meta.read_text())}
     with one_flight(f"mesh-state:{sid}"):
         st = _state.get(sid)

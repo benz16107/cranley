@@ -96,8 +96,8 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
       {switcher && <ViewSwitcher plan={plan} view={view} onChange={change} className="th-views-in" />}
       {view.showcase && (
         <div className="th-showcase" data-scene-ui>
-          {/* Matterport's own viewer, by its public embed: its dollhouse, floor plan and walk. Nothing of ours draws in it. */}
-          <iframe title="Matterport's own view of this scan" src={`https://my.matterport.com/show/?m=${encodeURIComponent(plan.sid)}&play=1&qs=1&brand=0&help=0&dh=1&gt=0&hr=0&mls=2&title=0&search=0`} allow="xr-spatial-tracking; fullscreen" />
+          {/* Matterport's own viewer, by its public embed (no key; the scans are unlisted, not private). It opens on its dollhouse and flies in. Nothing of ours draws in it. */}
+          <iframe title="Matterport's own view of this scan" src={`https://my.matterport.com/show/?m=${encodeURIComponent(plan.sid)}&play=1&dh=1&title=0&brand=0&help=0&mls=2&search=0&hr=0&gt=0&vr=0&views=0&mt=0`} allow="xr-spatial-tracking; fullscreen" />
           <button onClick={() => change({ ...view, showcase: false })}>Back to this view</button>
         </div>
       )}

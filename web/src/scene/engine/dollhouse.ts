@@ -43,7 +43,7 @@ const WALL_FRAG = /* glsl */ `
     if (vKind < 1.5 && vLz > cut + 1e-4) discard;
     if (B.z * show < 0.02) discard;
     vec3 n = normalize(vN);
-    bool cap = vKind < 0.5 && (!gl_FrontFacing || n.z > 0.9); // back faces seen through the cut read as a solid cut face
+    bool cap = vKind < 0.5 && ((!gl_FrontFacing && uXray < 0.5) || n.z > 0.9); // back faces seen through the cut read as a solid cut face (not in x-ray, where every face is glass)
     float lit = 0.80 + 0.20 * dot(n, normalize(vec3(-0.45, -0.62, 0.64)));
     float ao = mix(0.84, 1.0, smoothstep(0.0, 0.55, vLz));
     vec3 col = vKind < 0.5 ? uPaper * lit * ao : vKind < 1.5 ? uGlass * (0.9 + 0.1 * lit) : mix(uPaper, uInk, 0.3);
@@ -55,7 +55,7 @@ const WALL_FRAG = /* glsl */ `
       float w = fwidth(vW.z) * 1.2 + 0.006;
       col = mix(col, vec3(1.0), (1.0 - smoothstep(w * 0.5, w, abs(d))) * 0.85);
     }
-    gl_FragColor = vec4(col, mix(1.0, cap ? 0.92 : 0.16, uXray)); // x-ray: glass faces, inked cut lines
+    gl_FragColor = vec4(col, mix(1.0, cap ? 0.92 : 0.13, uXray)); // x-ray: glass faces, inked tops
   }`
 
 const FLOOR_VERT = /* glsl */ `

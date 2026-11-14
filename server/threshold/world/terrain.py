@@ -23,6 +23,7 @@ def grid(lat: float, lon: float, size_m: float = 320, n: int = 256) -> dict:
     data, _ = vexcel.call("GET", "dsm/extract", params={
         "wkt": site.square(lat, lon, size_m), "srid": 4326, "destination-dimensions": f"{n},{n}"})
     r = geotiff.read(data)
+    r.heights = _soften(r.heights)
     h, w = r.heights.shape
     west, north = lonlat_to_enu(lat, lon, *site._unmerc(r.x0, r.y0))
     east, south = lonlat_to_enu(lat, lon, *site._unmerc(r.x0 + w * r.dx, r.y0 - h * r.dy))
@@ -32,6 +33,12 @@ def grid(lat: float, lon: float, size_m: float = 320, n: int = 256) -> dict:
     near = (np.hypot(e, nn) < GROUND_RADIUS_M) & np.isfinite(r.heights)
     ground = float(np.percentile(r.heights[near], GROUND_PERCENTILE)) if near.any() else float(np.nanmin(r.heights))
     return {"heights": r.heights, "bounds_enu": (west, south, east, north), "ground_m": ground}
+
+
+def _soften(h: np.ndarray) -> np.ndarray:
+    """A 3 x 3 mean. At a metre or so a cell, single cells of tree crown stand up as spikes when drawn as a surface."""
+    p = np.pad(h, 1, mode="edge")
+    return sum(p[i:i + h.shape[0], j:j + h.shape[1]] for i in range(3) for j in range(3)) / 9
 
 
 def sample(g: dict, e: np.ndarray, n: np.ndarray) -> np.ndarray:

@@ -62,6 +62,7 @@ export class Engine {
   private world: WorldView
   private scan: ScanMesh
   private tour = 0 // the step of the flight in from above that is playing; 0 is none
+  private opened = { cur: 1, goal: 1 } // real surroundings: 1 the building is cut out and the model stands in the gap, 0 it is whole
   private overlays: Overlay[] = []
   private overlayLabels: LabelSpec[] = []
   private roomLabels: LabelSpec[]
@@ -154,6 +155,7 @@ export class Engine {
     this.doll.setSurface(scan ? 'scan' : 'model')
     this.doll.setXray(v.style === 'xray' && !scan)
     this.doll.setGround(!aerial)
+    this.overlays3d.setReach(aerial ? 300 : 0) // a flood level covers the street too, wherever the real ground is lower
     if (v.mode === 'dollhouse') rig.limits.maxDist = aerial ? AERIAL_MAX_DIST : R * 9
     if (v.mode === 'splat') rig.limits.maxDist = aerial ? AERIAL_MAX_DIST : 160
     const was = !!prev && prev.env === 'aerial' && (prev.mode === 'dollhouse' || prev.mode === 'splat')
@@ -401,11 +403,14 @@ export class Engine {
     // In real surroundings the building is whole from far off and opens as the camera comes in: the roof of the city
     // mesh dissolves and the model rises in the gap. A splat brings its own ground, so the surroundings clear a disc.
     const aerial = this.aerial, scanOn = this.view.surface === 'scan' && mode === 'dollhouse'
-    let open = 1
+    // It opens and closes as a short move of its own when the camera crosses a distance (with some slack, so resting
+    // near the line does not flicker), never part-way: a half-dissolved house reads as a fault.
+    const o = this.opened, line = this.dollPose().dist * 2.1
+    o.goal = !aerial || mode === 'splat' ? 1 : this.rig.goal.dist < line * (o.goal ? 1.12 : 1) ? 1 : 0
+    if (o.cur !== o.goal) { o.cur = reducedMotion() ? o.goal : o.cur + Math.sign(o.goal - o.cur) * Math.min(Math.abs(o.goal - o.cur), dt / 0.7); moving = true }
+    const open = o.cur
     if (aerial) {
-      const near = this.dollPose().dist * 1.9
-      open = mode === 'splat' ? 1 : 1 - smooth(near, near * 1.8, this.rig.pose.dist)
-      this.world.setHole(open, mode === 'splat' ? SPLAT_CLEAR_M : 0)
+      this.world.setHole(smooth(0, 1, open), mode === 'splat' ? SPLAT_CLEAR_M : 0)
       const cam = this.rig.camera, far = Math.min(cam.far, this.rig.pose.dist + 900)
       if (far !== cam.far) { cam.far = far; cam.updateProjectionMatrix() }
     }

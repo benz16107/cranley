@@ -15,12 +15,13 @@ import { h, type LabelSpec } from './labels.ts'
 type Of<K extends string> = Extract<Overlay, { kind: K }>
 
 const WATER_FRAG = /* glsl */ `
-  varying vec3 vW; uniform vec3 uCol; uniform float uOn;
+  varying vec3 vW; uniform vec3 uCol; uniform float uOn, uFade; uniform vec2 uCentre;
   void main() {
     vec3 v = normalize(cameraPosition - vW);
     float fres = pow(1.0 - abs(v.z), 3.0);                 // more reflective at a grazing angle, clearer looking down
     vec3 col = mix(uCol, vec3(0.86, 0.91, 0.93), fres * 0.55);
-    gl_FragColor = vec4(col, (0.42 + 0.4 * fres) * uOn);
+    float edge = uFade > 0.0 ? 1.0 - smoothstep(uFade * 0.7, uFade, distance(vW.xy, uCentre)) : 1.0; // wide water ends where the surroundings do
+    gl_FragColor = vec4(col, (0.42 + 0.4 * fres) * uOn * edge);
   }`
 
 // A label keeps its DOM element for as long as its id stays the same, so every id below carries what its chip says:
@@ -41,14 +42,21 @@ export class Overlays3D {
     const geo = new THREE.PlaneGeometry(b.maxX - b.minX + pad * 2, b.maxY - b.minY + pad * 2)
     this.water = new THREE.Mesh(geo, new THREE.ShaderMaterial({
       vertexShader: 'varying vec3 vW; void main(){ vW = (modelMatrix * vec4(position,1.0)).xyz; gl_Position = projectionMatrix * viewMatrix * vec4(vW,1.0); }',
-      fragmentShader: WATER_FRAG, uniforms: { uCol: { value: new THREE.Vector3(...tok.water) }, uOn: { value: 0 } }, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+      fragmentShader: WATER_FRAG, uniforms: { uCol: { value: new THREE.Vector3(...tok.water) }, uOn: { value: 0 }, uFade: { value: 0 }, uCentre: { value: new THREE.Vector2((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2) } }, transparent: true, depthWrite: false, side: THREE.DoubleSide,
     }))
+    this.span = Math.max(b.maxX - b.minX, b.maxY - b.minY) + pad * 2
     this.water.position.set((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2, 0)
     this.water.renderOrder = 5; this.water.visible = false
     this.group.add(this.water, this.waterLines)
   }
 
   setSize(w: number, hgt: number) { this.res.set(w, hgt) }
+  private span: number
+  /** In real surroundings the water covers the street and the neighbours too, out to `fade` metres; 0 keeps it to the building. */
+  setReach(fade: number) {
+    const k = fade ? (fade * 2.2) / this.span : 1
+    this.water.scale.set(k, k, 1); (this.water.material as THREE.ShaderMaterial).uniforms.uFade.value = fade
+  }
 
   private line(points: number[], color: RGB, width: number, opts: { segments?: boolean; opacity?: number; order?: number; overlay?: boolean } = {}) {
     const mat = new LineMaterial({ linewidth: width, transparent: true, opacity: opts.opacity ?? 1, resolution: this.res, depthTest: !opts.overlay, depthWrite: false })
