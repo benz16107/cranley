@@ -17,7 +17,7 @@ from PIL import Image
 
 from ..config import DATA, env
 from ..scanplan import QUERY, apply_georef_fit, apply_recovered_walls, normalize
-from . import footprint, recover
+from . import footprint, recover, user_scans
 from . import index as _index
 from .upstream import cache_path, cached, check, one_flight, send
 
@@ -60,6 +60,8 @@ def model(sid: str) -> dict:
 
 @functools.lru_cache(maxsize=512)
 def plan_json(sid: str) -> bytes:
+    if user_scans.owns(sid):  # a phone scan of someone's own home (sources/user_scans.py)
+        return user_scans.plan_json(sid)
     p = normalize(model(sid), index().get(sid))
     if not p["quality"]["walls"]:
         apply_recovered_walls(p, _recover(p), (index().get(sid) or {}).get("kind"))
