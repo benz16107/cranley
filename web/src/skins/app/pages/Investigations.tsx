@@ -166,7 +166,7 @@ export function Investigation({ id }: { id: string }) {
     return (
       <div className="page"><div className="inner">
         {shared.state === 'loading' ? <div className="stack" role="status" aria-label="Opening the shared investigation">{[52, 34, 44, 28].map((w) => <span key={w} className="sk" style={{ width: `${w}%` }} />)}</div>
-          : <Empty icon="link" title="This link has expired or was revoked" action={<button className="btn" onClick={leaveShared}>Open Threshold</button>}>A read-only link works for a set number of days. Ask whoever sent it for a new one.</Empty>}
+          : <Empty icon="link" title="This link has expired or was revoked" action={<button className="btn" onClick={leaveShared}>Open Cranley</button>}>A read-only link works for a set number of days. Ask whoever sent it for a new one.</Empty>}
       </div></div>
     )
   }

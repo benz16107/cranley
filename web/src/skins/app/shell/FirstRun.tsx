@@ -114,7 +114,7 @@ export function FirstRun() {
             <div className="body stack">
               <Dialog.Description render={<p className="dim" />}>One line, or one tap. The agent picks tools for you and tries them on a real scanned building while you watch. It takes about a minute.</Dialog.Description>
               <Composer bare first={false} onStart={start} />
-              <p className="small muted">What you type is sent to the Threshold server and the language model it uses. <button type="button" className="link" onClick={() => { skip(); go('settings') }}>Privacy and terms</button></p>
+              <p className="small muted">What you type is sent to the Cranley server and the language model it uses. <button type="button" className="link" onClick={() => { skip(); go('settings') }}>Privacy and terms</button></p>
             </div>
           </Dialog.Popup>
         </Dialog.Portal>

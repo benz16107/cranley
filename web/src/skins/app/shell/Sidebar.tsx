@@ -39,7 +39,7 @@ export function Sidebar({ onPick }: { onPick?: () => void }) {
       <MenuBtn trigger={
         <button type="button" className="ws" aria-label={`Investigation: ${title}. Switch or start a new one.`}>
           <span className="mk"><Mark /></span>
-          <span className="grow"><b>Threshold</b><span className="trunc">{title}</span></span>
+          <span className="grow"><b>Cranley</b><span className="trunc">{title}</span></span>
           <Icon name="updown" size={13} />
         </button>}>
         <div className="mh">Current investigation</div>

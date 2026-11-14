@@ -262,7 +262,7 @@ def html_doc(report: dict, photo: Callable[[str], bytes] | None = None) -> str:
 <header class="masthead"><div><div class="kicker">{_e(report['title'])}</div>
 <h1>{_e(report['business'] or report['place'] or 'Site report')}</h1>
 <div class="mute">{_e(' · '.join(x for x in [report['place'] if report['business'] else '', report['address']] if x))}</div></div>
-<div class="meta">Visit on {_e(_long_date(report['date']))}<br>Prepared with Threshold<br>{'Scan ' + _e(', '.join(report['sids'])) if report['sids'] else ''}</div></header>
+<div class="meta">Visit on {_e(_long_date(report['date']))}<br>Prepared with Cranley<br>{'Scan ' + _e(', '.join(report['sids'])) if report['sids'] else ''}</div></header>
 <div class="tally num"><span><b style="color:var(--fail)">{n_fail}</b>to fix</span><span><b style="color:var(--warn)">{n_warn}</b>to check</span>
 <span><b style="color:var(--pass)">{passed}</b>checks passed</span><span><b style="color:var(--unk)">{unknown}</b>things we could not check</span></div>
 <p class="lede">{_e(report['lede'])}</p>"""
