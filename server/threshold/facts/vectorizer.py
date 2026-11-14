@@ -29,8 +29,7 @@ def ollama() -> str:
 
 def install() -> dict:
     """pgai's catalog, the vectorizer, and the job that keeps its DiskANN graph sound. Idempotent."""
-    import pgai
-    pgai.install(db.url())
+    _install_catalog()
     c = db.con()
     c.run("SET search_path = threshold, public")
     vid = c.run("SELECT id FROM ai.vectorizer WHERE name = :n", n=NAME)
@@ -46,10 +45,35 @@ def install() -> dict:
                     embedding => ai.embedding_ollama('{MODEL}', {DIMS}, base_url => '{ollama()}'),
                     chunking => ai.chunking_none(),
                     formatting => ai.formatting_python_template('search_document: $chunk'),
-                    destination => ai.destination_column('{COLUMN}'))""")
+                    destination => ai.destination_column('{COLUMN}'),
+                    indexing => ai.indexing_none())""")  # our own DiskANN index below, rebuilt by a job
     c.run(f"CREATE INDEX IF NOT EXISTS room_text_description_embedding ON threshold.room_text "
           f"USING diskann ({COLUMN} vector_cosine_ops, labels)")
     return status()
+
+
+def _install_catalog() -> None:
+    """pgai's catalog (schema `ai`). Tiger Cloud sets `ai.external_functions_executor_url` for its managed workers,
+    and then `pgai.install` insists on the `ai` extension, which the PG18 service does not offer; our worker is
+    self-hosted and needs no ping, so the catalog SQL is run directly."""
+    import pgai
+    try:
+        pgai.install(db.url())
+        return
+    except Exception as e:  # noqa: BLE001
+        if "ai.control" not in str(e):
+            raise
+    import psycopg
+    import importlib
+    pi = importlib.import_module("pgai._install.install")  # shortcut: private helpers of pgai 0.12; re-check on upgrade
+    with psycopg.connect(db.url(), autocommit=True) as conn, conn.cursor() as cur:
+        cur.execute(pi._get_vector_extension_schema_sql())
+        schema = cur.fetchone()[0]
+        try:
+            conn.execute(pi._get_sql(schema))
+        except psycopg.errors.DuplicateObject as e:  # already installed at this version
+            if not pi.verify_error_library_already_installed(e):
+                raise
 
 
 def status() -> dict:
