@@ -111,7 +111,7 @@ def _property(sid: str) -> tuple[int | None, str | None, float | None]:
         if ids["listing_ids"]:
             feat = costar.get("residential-listing-features", ids["listing_ids"][0]) or {}
             return None, "home", (feat.get("derivedValues") or {}).get("homeSquareFeet")
-    except Exception:  # noqa: BLE001 - no kit, or a scan the kit does not know
+    except Exception:  # noqa: BLE001, S110 - no kit, or a scan the kit does not know
         pass
     return None, None, None
 

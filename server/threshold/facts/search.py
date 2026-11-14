@@ -18,12 +18,12 @@ def _room_clause(i: int, rc: dict, args: dict) -> str:
     """EXISTS a room of the label meeting every measure in rc['where']."""
     if not rc.get("label"):
         raise ValueError("a room criterion needs a label, e.g. Kitchen")
-    parts = [f"r.sid = s.sid", f"r.label ILIKE :rl{i}"]
+    parts = ["r.sid = s.sid", f"r.label ILIKE :rl{i}"]
     args[f"rl{i}"] = rc["label"]
     for j, c in enumerate(rc.get("where") or []):
         if c["measure"] not in ROOM_MEASURES or c["op"] not in mt.OPS:
             raise ValueError(f"bad room criterion {c}")
-        parts.append(mt.OPS[c["op"]].format(f"r.{c['measure']}").replace("?", f":rv{i}_{j}"))
+        parts.append(mt.OPS[c["op"]].format(f"r.{c['measure']}").replace("?", f"CAST(:rv{i}_{j} AS double precision)"))
         args[f"rv{i}_{j}"] = float(c["value"])
     return "EXISTS (SELECT 1 FROM room r WHERE " + " AND ".join(parts) + ")"
 
@@ -56,7 +56,8 @@ def search(criteria: list[dict], *, city: str | None = None, kind: str | None = 
     base_args = dict(args)
     where = list(known)
     for i, c in enumerate(criteria):
-        where.append(mt.OPS[c["op"]].format(f"m.{c['measure']}").replace("?", f":v{i}"))
+        typ = "text" if mt.FIELDS[c["measure"]][2] == "text" else "double precision"  # 2.0 against a smallint column
+        where.append(mt.OPS[c["op"]].format(f"m.{c['measure']}").replace("?", f"CAST(:v{i} AS {typ})"))
         args[f"v{i}"] = c["value"]
     frm = "FROM scan s JOIN measures m USING (sid)"
     dist = "ST_Distance(s.geom, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography)" if near else "NULL"

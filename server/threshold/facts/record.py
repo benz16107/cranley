@@ -28,6 +28,15 @@ def _slug(s: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", s.lower()).strip("_")[:60]
 
 
+_ID = re.compile(r"^(?=.*\d)[A-Za-z0-9_-]{8,}$")  # a room, opening or scan id: letters and digits, 8 or more
+
+
+def field_name(*parts: str, drop: set[str] = frozenset()) -> str:
+    """A stable field name: id-like segments (room, opening, scan ids) are dropped so one field spans every room."""
+    segs = [x for p in parts for x in str(p).split(".") if x and x not in drop and not _ID.match(x)]
+    return ".".join(segs)
+
+
 def _now() -> str:
     return datetime.now(UTC).isoformat()
 
@@ -40,21 +49,22 @@ def fact_rows(tool: str, result: dict, run: str | None = None, at: str | None = 
         return []
     at = at or _now()
     out = []
-    src = lambda s: ((s or {}).get("layer"), (s or {}).get("method"), (s or {}).get("confidence"))  # noqa: E731
+    src = lambda s: ((s or {}).get("layer"), (s or {}).get("method"), (s or {}).get("confidence"))
     finding_room = {f["id"]: (f.get("anchor") or {}).get("room") for f in result.get("findings") or []}
     finding_src = {f["id"]: f.get("source") for f in result.get("findings") or []}
     for m in result.get("metrics") or []:
         if isinstance(m.get("value"), (int, float)):
-            out.append([at, sid, None, f"{tool}.{m['id']}", float(m["value"]), m.get("label"), m.get("unit") or None,
-                        *src(m.get("source")), tool, run, json.dumps({"note": (m.get("source") or {}).get("note")}),
-                        None, None])
+            out.append([at, sid, None, field_name(tool, m["id"], drop={sid}), float(m["value"]), m.get("label"),
+                        m.get("unit") or None, *src(m.get("source")), tool, run,
+                        json.dumps({"id": m["id"], "note": (m.get("source") or {}).get("note")}), None, None])
     for c in result.get("checks") or []:
         if not isinstance(c.get("measured"), (int, float)):
             continue
         fid = next(iter(c.get("findings") or []), None)
-        out.append([at, sid, finding_room.get(fid), f"{tool}.check.{c['id']}", float(c["measured"]), c.get("status"),
-                    c.get("unit") or None, *src(finding_src.get(fid)), tool, run,
-                    json.dumps({"rule": c.get("rule"), "finding": fid}),
+        room = finding_room.get(fid)
+        out.append([at, sid, room, field_name(tool, "check", c["id"], drop={sid, room or ""}), float(c["measured"]),
+                    c.get("status"), c.get("unit") or None, *src(finding_src.get(fid)), tool, run,
+                    json.dumps({"id": c["id"], "rule": c.get("rule"), "finding": fid}),
                     None if c.get("threshold") is None else str(c["threshold"]), c.get("standard")])
     for o in result.get("overlays") or []:
         if o.get("kind") != "lens":
@@ -132,3 +142,24 @@ def flush(timeout: float = 10.0) -> None:
     """Wait until queued rows are written (tests and batch jobs)."""
     if _thread is not None:
         _q.join()
+
+
+def backfill_ops(root=None) -> dict:
+    """Load the op logs of saved workspaces ($THRESHOLD_DATA_DIR/workspaces/ws_*.json) into op_log, replacing
+    what op_log held for those workspaces."""
+    from ..config import DATA
+    root = root or DATA / "workspaces"
+    rows, spaces = [], []
+    for f in sorted(root.glob("ws_*.json")):
+        if f.name.endswith(".casefile.json"):
+            continue
+        d = json.loads(f.read_text())
+        if "log" not in d:
+            continue
+        spaces.append(d["id"])
+        rows += [op_row(d["id"], e) for e in d["log"]]
+    with db.transaction() as c:
+        c.run("DELETE FROM op_log WHERE workspace = ANY(CAST(:w AS text[]))", w=spaces)
+        copy(c, "op_log", OP_COLS, rows)
+    db.con().run("CALL refresh_continuous_aggregate('ops_hourly', NULL, NULL)")
+    return {"workspaces": len(spaces), "ops": len(rows)}

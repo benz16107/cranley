@@ -32,8 +32,14 @@ def _params(u: str) -> dict:
     kw = {"user": unquote(p.username or "postgres"), "password": unquote(p.password or "") or None,
           "host": p.hostname or "localhost", "port": p.port or 5432, "database": (p.path or "/postgres")[1:] or "postgres",
           "application_name": "threshold"}
-    if (q.get("sslmode") or ["disable"])[0] not in ("disable", "allow", "prefer"):  # Tiger Cloud uses sslmode=require
+    mode = (q.get("sslmode") or ["prefer"])[0]
+    if mode == "disable":
+        kw["ssl_context"] = False
+    elif mode in ("verify-ca", "verify-full"):
         kw["ssl_context"] = ssl.create_default_context()
+        kw["ssl_context"].check_hostname = mode == "verify-full"
+    else:  # require, prefer, allow: encrypt without verifying the certificate, as libpq does (Tiger Cloud: require)
+        kw["ssl_context"] = True
     return kw
 
 
@@ -47,28 +53,40 @@ def connect() -> pg8000.native.Connection:
 
 
 def con() -> pg8000.native.Connection:
-    """This thread's connection, opened on first use and reopened if it broke."""
+    """This thread's connection, opened on first use and reopened if it broke or the URL changed."""
     c = getattr(_local, "con", None)
+    if c is not None and getattr(_local, "url", None) != url():
+        c, _local.con = None, None
     if c is not None:
         try:
             c.run("SELECT 1")
             return c
         except Exception:  # noqa: BLE001 - a dropped connection; open a new one
             _local.con = None
-    _local.con = connect()
+    _local.con, _local.url = connect(), url()
     return _local.con
 
 
+_up: dict[str, float] = {}  # url -> time until which a positive check is trusted (a cloud round trip is ~25 ms)
+
+
 def available() -> bool:
-    """A database is configured, answers, and has the schema. Cached as down for 30 s after a failure."""
+    """A database is configured, answers, and has the schema. Trusted for 60 s once seen; cached as down for 30 s
+    after a failure."""
     global _down_until
-    if not url() or time.time() < _down_until:
+    u = url()
+    if not u or time.time() < _down_until:
         return False
+    if _up.get(u, 0) > time.time():
+        return True
     try:
-        return bool(con().run("SELECT to_regclass('threshold.scan') IS NOT NULL")[0][0])
+        ok = bool(con().run("SELECT to_regclass('threshold.scan') IS NOT NULL")[0][0])
     except Exception:  # noqa: BLE001 - any failure means fall back
         _down_until = time.time() + 30
         return False
+    if ok:
+        _up[u] = time.time() + 60
+    return ok
 
 
 def rows(sql: str, **params) -> list[dict]:
@@ -107,12 +125,43 @@ def migrate() -> list[str]:
     return applied
 
 
-def drop_all() -> None:
-    """Delete everything this project stored: the schema with every table, view and index, the read-only role and
-    the migration record. CoStar's terms require deleting derived data after the event."""
-    c = con()
-    c.run("DROP SCHEMA IF EXISTS threshold CASCADE")
+TARGETS = {"cloud": "TIGER_DATABASE_URL", "test": "TIGER_TEST_DATABASE_URL"}
+
+
+def drop_all(*, target: str) -> str:
+    """Delete everything this project stored in the database `target` names ("cloud": TIGER_DATABASE_URL, the Tiger
+    Cloud service; "test": TIGER_TEST_DATABASE_URL, the local test database): the schema with every table, view and
+    index, the read-only role and the migration record. CoStar's terms require deleting derived data after the event.
+    It opens its own connection to that target, so it can never drop a database other than the one named."""
+    if target not in TARGETS:
+        raise ValueError(f"target must be one of {', '.join(TARGETS)}")
+    u = env().get(TARGETS[target])
+    if not u:
+        raise LookupError(f"{TARGETS[target]} is not set")
+    c = pg8000.native.Connection(timeout=10, **_params(u))
+    try:
+        return _drop(c)
+    finally:
+        c.close()
+
+
+def _drop(c: pg8000.native.Connection) -> str:
+    for attempt in range(5):  # a TimescaleDB background job touching the catalog can race the drop; try again
+        try:
+            c.run("DROP SCHEMA IF EXISTS threshold CASCADE")
+            break
+        except pg8000.native.DatabaseError as e:
+            if attempt == 4 or (e.args[0] or {}).get("C") not in ("XX000", "40P01", "55P03"):
+                raise
+            time.sleep(1 + attempt)
     c.run("DROP TABLE IF EXISTS public.threshold_migrations")
-    if c.run("SELECT 1 FROM pg_roles WHERE rolname = :r", r=READER):
-        c.run(f"DROP OWNED BY {READER}")
+    if not c.run("SELECT 1 FROM pg_roles WHERE rolname = :r", r=READER):
+        return "dropped the schema and the migration record"
+    c.run(f"DROP OWNED BY {READER}")
+    try:
         c.run(f"DROP ROLE {READER}")
+        return f"dropped the schema, the migration record and role {READER}"
+    except pg8000.native.DatabaseError:  # roles span the server; another database still grants this one rights
+        c.run(f"ALTER ROLE {READER} NOLOGIN")
+        return (f"dropped the schema and the migration record; role {READER} still has rights in another database "
+                "on this server, so it was set to NOLOGIN (run drop_all there too)")
