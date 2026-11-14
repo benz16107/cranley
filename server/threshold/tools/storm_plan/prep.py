@@ -12,9 +12,10 @@ from __future__ import annotations
 
 import math
 
+import shapely
 from shapely import wkt as shapely_wkt
 from shapely.geometry import Point, mapping, shape
-from shapely.ops import nearest_points, transform
+from shapely.ops import nearest_points
 
 SHEET_W, SHEET_H = 1.22, 2.44
 OVERLAP_M = 0.10
@@ -129,7 +130,12 @@ def schedule(tasks: list[dict], capacity: float) -> tuple[list[dict], list[dict]
 
 def _local(lat0: float, lon0: float):
     kx, ky = 111320.0 * math.cos(math.radians(lat0)), 110574.0
-    return (lambda x, y, z=None: ((x - lon0) * kx, (y - lat0) * ky)), (lambda x, y, z=None: (lon0 + x / kx, lat0 + y / ky))
+    return (lambda x, y: ((x - lon0) * kx, (y - lat0) * ky)), (lambda x, y: (lon0 + x / kx, lat0 + y / ky))
+
+
+def transform(f, geom):
+    """Apply a point function (x, y) -> (x, y) to every coordinate of a shape."""
+    return shapely.transform(geom, lambda xy: [f(x, y) for x, y in xy])
 
 
 def generator_zone(footprint_wkt: str | None, parcel: dict | None, lat0: float, lon0: float) -> dict:
