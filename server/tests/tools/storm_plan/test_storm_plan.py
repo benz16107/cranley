@@ -122,3 +122,15 @@ def test_generator_zone_with_a_multipolygon_lot():
                                                    [ring([(30, 30), (31, 30), (31, 31), (30, 30)])]]}
     z = prep.generator_zone(house_wkt, lot, lat0, lon0)
     assert z["available"] and z["farthest_m"] > 0
+
+
+def test_dry_room_with_no_entry_door_and_never_a_patio(setup):
+    p, fl = setup
+    fl = {**fl, "entry_door": None}                       # a scan whose exterior door is not mapped
+    for r in fl["rooms"].values():
+        r["depth_hi"] = 0.0
+    inp = sp.Inputs(scan="house", depth_m=0.5, hours_left=72, adults=2, upper_floor="no")
+    first = sp.destination(p, fl, inp)
+    assert first["kind"] == "dry_room"
+    next(r for r in p["rooms"] if r["id"] == first["room"])["label"] = "Patio"
+    assert sp.destination(p, fl, inp)["room"] != first["room"]
