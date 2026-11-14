@@ -1,7 +1,7 @@
 // Run: node --test src/scene/model.test.mjs   (from web/)
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { anchorPoint, buildModel, interiorTest, outlineFromWalls, polygonArea, resolveStyles, roomAt, sightBlocked, wallBoxes } from './model.ts'
+import { anchorPoint, buildModel, interiorTest, openingSpan, outlineFromWalls, polygonArea, resolveStyles, roomAt, sightBlocked, wallBoxes } from './model.ts'
 
 // A hand-made 6 x 4 m plan: two rooms split by a wall at x = 3 with a 0.9 m doorway, and a window on the west wall.
 const wall = (id, a, b, rooms, openings = []) =>
@@ -83,3 +83,30 @@ test('interiorTest: inside the rooms and under the ceiling, but not near the out
   assert.equal(inside(1.5, 2, top + 0.5), false)   // the roof
   assert.equal(inside(-2, 2, 1), false)            // the garden
 })
+
+test('floors stand at their own scan z: a ground floor under the scan origin, and an upper floor by its own sills', () => {
+  // the same plan scanned from upstairs: its doorway sill is 3.18 m under the origin, with a second floor at the origin
+  const dz = -3.18, up = { ...plan.rooms[0], id: 'U', floor: 'g' }
+  const low = { ...plan, floors: [...plan.floors, { id: 'g', label: 'Floor 2', sequence: 1 }], rooms: [...plan.rooms, up],
+    openings: [...plan.openings.map((o) => ({ ...o, sill: o.sill + dz })), { id: 'updoor', wall: 'mid', floor: 'g', type: 'doorway', width: 0.9, height: 2, sill: 0.02, center: [3, 2], rooms: ['U'] }],
+    panos: plan.panos.map((p) => ({ ...p, position: [p.position[0], p.position[1], p.position[2] + dz] })) }
+  const m = buildModel(low), near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} is not ${b}`)
+  near(m.floorZ[0], dz); near(m.floorZ[1], 0.02)
+  near(openingSpan(m, m.openingById.get('win')).sill, 0.9)       // a sill is drawn by its height above its own floor
+  near(openingSpan(m, m.openingById.get('updoor')).sill, 0)      // an upstairs doorway is open down to its floor
+  assert.equal(anchorPoint(m, { point: [1, 1, dz + 0.9] }).floor, 0) // a truck parked on the ground floor is on the ground floor
+  near(anchorPoint(m, { room: 'A' }).point[2], dz + 0.05)
+  const inside = interiorTest(m)
+  assert.equal(inside(1.5, 2, dz + 1), true); assert.equal(inside(1.5, 2, dz - 1), false)
+})
+
+test('the ground floor is the lowest floor that is not a basement', () => {
+  const two = (a, b) => buildModel({ ...plan, floors: [{ id: 'f', label: a, sequence: 0 }, { id: 'g', label: b, sequence: 1 }] }).groundFloor
+  assert.equal(two('Floor 1', 'Floor 2'), 0); assert.equal(two('Basement', 'Floor 1'), 1); assert.equal(two('Basement', 'Cellar'), 0)
+})
+
+test('a floor with no doorway stands a tripod height under its panoramas, and one with nothing at 0', () => {
+  near2(buildModel({ ...plan, openings: [] }).floorZ[0], 1.5 - 1.4)
+  near2(buildModel({ ...plan, openings: [], panos: [] }).floorZ[0], 0)
+})
+function near2(a, b) { assert.ok(Math.abs(a - b) < 1e-9, `${a} is not ${b}`) }

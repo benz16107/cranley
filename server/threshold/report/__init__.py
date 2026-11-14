@@ -14,6 +14,8 @@ import math
 from collections.abc import Callable
 from typing import Any
 
+from ..geometry._plan import floor_z
+
 IN, FT2 = 0.0254, 0.09290304
 ORDER = {"fail": 0, "warn": 1, "unknown": 2, "pass": 3}
 STATUS_WORD = {"fail": "Fix", "warn": "Check", "unknown": "Not known", "pass": "OK"}
@@ -142,7 +144,8 @@ def anchor_point(plan: dict, a: dict | None) -> tuple[str, list[float]] | None:
         return (w["floor"], [(w["a"][0] + w["b"][0]) / 2, (w["a"][1] + w["b"][1]) / 2]) if w else None
     if a.get("point"):
         p = a["point"]
-        floor = min(plan["floors"], key=lambda f: abs((f.get("elevation") or 0) - (p[2] if len(p) > 2 else 0)))["id"] \
+        fz = floor_z(plan)  # scan z per floor; `elevation` is relative to the lowest floor, a point is scan z
+        floor = min(plan["floors"], key=lambda f: abs(fz.get(f["id"], 0.0) - (p[2] if len(p) > 2 else 0)))["id"] \
             if plan.get("floors") else None
         return (floor, p[:2]) if floor else None
     return None
