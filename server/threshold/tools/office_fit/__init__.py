@@ -342,10 +342,14 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     status = f["status"]
     text = {"pass": "Your team fits as built", "warn": "Your team fits with changes", "fail": "Your team does not fit"}[status]
     n = lambda k, word: f"{k} {word}{'' if k == 1 else 's'}"
+    want = lambda k: f" for the {k} you need" if k else ""
     text += (f": {n(f['desks'], 'desk')} for {n(f['need_desks'], 'person') if f['need_desks'] == 1 else str(f['need_desks']) + ' people'}, "
-             f"{n(f['offices'], 'private office')} for {inputs.private_offices}, {n(f['meeting'], 'meeting room')} for {inputs.meeting_rooms}.")
+             f"{n(f['offices'], 'private office')}{want(inputs.private_offices)}, "
+             f"{n(f['meeting'], 'meeting room')}{want(inputs.meeting_rooms)}.")
+    if facts.scan_kind(sid) in ("house", "apartment_unit"):
+        text += " This scan is a home, not office space."
     if unlabelled:
-        text += f" {len(unlabelled)} room{'s have' if len(unlabelled) > 1 else ' has'} no label and counts for nothing."
+        text += f" {len(unlabelled)} room{'s have' if len(unlabelled) > 1 else ' has'} no label and count{'' if len(unlabelled) > 1 else 's'} for nothing."
         status = "warn" if status == "pass" else status
     if not q["walls"]:
         text += (" No wall graph: areas are Matterport's room sizes without outlines, so desks are counted from area alone "
