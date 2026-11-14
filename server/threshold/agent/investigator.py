@@ -289,6 +289,13 @@ class Investigation:
     def consider(self, scans: list[str] | None = None, property_ids: list[int] | None = None,
                  addresses: list[str] | None = None, points: list[list[float]] | None = None) -> dict:
         """Add buildings found by search to the workspace so tools may run on them."""
+        with self.s.lock:  # parallel subagents may add at once; read and write the scope as one step
+            out = self._consider(scans, property_ids, addresses, points)
+        with ThreadPoolExecutor(max_workers=self.budget.parallel) as ex:
+            out["new_scans_can_answer"] = dict(zip(out["new"], ex.map(self.can_answer, out.pop("new"))))
+        return out
+
+    def _consider(self, scans, property_ids, addresses, points) -> dict:
         sc = self.s.doc.brief.scope
         sids, places, problems = list(sc.sids), list(sc.places), []
         for sid in scans or []:
@@ -314,10 +321,7 @@ class Investigation:
         new = [s for s in sids if s not in sc.sids]
         if new or len(places) != len(sc.places):
             self.emit(BriefSet(scope=Scope(sids=sids, address=sc.address, places=places)))
-        with ThreadPoolExecutor(max_workers=self.budget.parallel) as ex:
-            can = dict(zip(new, ex.map(self.can_answer, new)))
-        return {"scans_in_workspace": len(sids), "places": [p.key() for p in places], "problems": problems,
-                "new_scans_can_answer": can}
+        return {"scans_in_workspace": len(sids), "places": [p.key() for p in places], "problems": problems, "new": new}
 
     def can_answer(self, sid: str) -> dict:
         """What a scan's plan holds, so the agent can swap a candidate that cannot answer: walls, doorways, labels."""
@@ -426,8 +430,10 @@ class Investigation:
                 for x in rows[0].result.metrics if "." not in x.id][:4]
         notes, dropped = [], []
         for i, (c, why) in enumerate(zip(candidates, reasons + [""] * len(candidates))):
-            n = Note(text=short(f"{i + 1}. {self.label(c)}: {why}"))
-            (dropped if MEASURE.search(why) else notes).append(n if not MEASURE.search(why) else c)
+            if MEASURE.search(why):
+                dropped.append(c)
+            else:
+                notes.append(Note(text=short(f"{i + 1}. {self.label(c)}: {why}")))
         blocks = [RankedTable(title=f"Ranked by {catalog()[lead].title}", columns=cols, rows=[r.id for r in rows]), *notes]
         ok = self.emit(PanelUpsert(panel=Panel(id="agent:ranked", title="Ranked for you", blocks=blocks)))
         return {"ok": ok, "ranked_by": lead, "rows": len(rows),
@@ -586,7 +592,7 @@ class Investigation:
         """Run one investigation turn. Returns the agent's closing sentence; `self.budget` says what it spent."""
         d = self.s.doc
         for t in d.tools:  # planned tools show as skipped instead of silently missing
-            if t.enabled and t.status == "planned" and not any(r.tool == t.id for r in d.runs) and default_place(d):
+            if t.enabled and t.status == "planned" and not any(r.tool == t.id for r in d.runs):
                 self.run(t.id, {})
         agent = self.build(model)
         last = ""
