@@ -26,15 +26,15 @@ targets:
     info:
       path: Threshold/Info.plist
       properties:
-        CFBundleDisplayName: Threshold
+        CFBundleDisplayName: Cranley
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         ITSAppUsesNonExemptEncryption: false
-        NSCameraUsageDescription: Threshold uses the camera and LiDAR to scan rooms, measure doors and steps, and read the workspace code on your computer.
-        NSLocationWhenInUseUsageDescription: Threshold records where a scan was made and which way a window faces, so the tools can place your home on the map.
-        NSMotionUsageDescription: Threshold reads the barometer to measure how far your front door sits above the street.
+        NSCameraUsageDescription: Cranley uses the camera and LiDAR to scan rooms, measure doors and steps, and read the workspace code on your computer.
+        NSLocationWhenInUseUsageDescription: Cranley records where a scan was made and which way a window faces, so the tools can place your home on the map.
+        NSMotionUsageDescription: Cranley reads the barometer to measure how far your front door sits above the street.
         # A server named in a pasted link may be plain HTTP on the tailnet; the default is the HTTPS phone address.
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true

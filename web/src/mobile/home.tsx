@@ -157,7 +157,7 @@ export function Header({ onPrivacy }: { onPrivacy: () => void }) {
   return (
     <header className="m-head">
       <div className="m-head-line">
-        <b className="m-word">Threshold</b>
+        <b className="m-word">Cranley</b>
         <span className="m-link" data-on={(paired && !offline) || undefined}>{offline ? 'Server not answering' : paired ? 'Linked to the desktop' : view ? 'This phone only' : 'Not started'}</span>
         <button className="link" onClick={onPrivacy}>What is sent</button>
       </div>
@@ -175,7 +175,7 @@ export function Privacy({ back }: { back: () => void }) {
     <div className="m-page">
       <header className="m-top"><button className="m-back" onClick={back} aria-label="Back"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M11 3 5 9l6 6" /></svg></button><div className="m-title"><h1>What this phone sends</h1></div></header>
       <main className="m-body m-prose">
-        <p>Threshold is a HackPrinceton Fall 2026 project. This page sends only what you capture, when you tap:</p>
+        <p>Cranley is a HackPrinceton Fall 2026 project. This page sends only what you capture, when you tap:</p>
         <ul>
           <li><b>Photos, videos and voice notes</b> you take here. Photos are shrunk on the phone first. Photos and video frames you send for measuring or for the walk-through are read by an AI vision model (Anthropic's Claude).</li>
           <li><b>One location fix</b> when you tap a button that says it uses GPS. The page never tracks you in the background.</li>
