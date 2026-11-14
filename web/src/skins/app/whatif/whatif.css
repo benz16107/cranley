@@ -6,6 +6,7 @@
 .menu .wi-fine { max-width: 260px; margin: 0; padding: 4px 10px 6px; color: var(--ink-3); font-size: var(--text-2xs); line-height: 1.4; }
 
 .wi-split { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; }
+.wi-split[data-open='false'] { grid-template-columns: 1fr; }
 .wi-pane { position: relative; margin: 0; min-width: 0; min-height: 0; overflow: hidden; }
 .wi-pane + .wi-pane { border-left: 1px solid var(--rule-strong); }
 .wi-pane > figcaption {
@@ -16,6 +17,6 @@
 .wi-cost { display: inline-flex; align-items: center; gap: 6px; }
 
 @container (max-width: 640px) {
-  .wi-split { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+  .wi-split[data-open='true'] { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
   .wi-pane + .wi-pane { border-left: 0; border-top: 1px solid var(--rule-strong); }
 }

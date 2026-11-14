@@ -91,6 +91,20 @@ def test_renovate_with_only_a_goal(ctx):
     assert store.record(sid)["base"] == "flat"
 
 
+def test_your_edits_apply_together_or_say_why(ctx):
+    # the second only fits once the first is in: tried alone it fails, together they go through
+    r = renovate.run(ctx, "flat", "door_widths", [{"op": "move_wall", "wall": "tc", "offset_m": 0.25, "grow": "C"},
+                                                  {"op": "widen_door", "opening": "CK", "width_m": 1.1}])
+    assert len(r["package"]) == 2
+    with pytest.raises(EditError, match="already"):
+        renovate.run(ctx, "flat", "bathroom_turn", [{"op": "widen_door", "opening": "LT", "width_m": 0.7}])
+
+
+def test_a_wall_cannot_move_past_the_end_of_one_that_meets_it(flat):
+    with pytest.raises(EditError, match="shrink away"):
+        apply(flat, [{"op": "move_wall", "wall": "tc", "offset_m": 1.2, "grow": "T"}])  # the closet is 1.0 m wide
+
+
 def test_renovate_your_own_edits_rank_by_effect(ctx):
     r = renovate.run(ctx, "flat", "bathroom_route", [{"op": "door_swing", "opening": "LT", "swing": "swing_out"},
                                                      {"op": "widen_door", "opening": "LT", "width_m": 0.915}])

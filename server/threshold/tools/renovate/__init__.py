@@ -17,8 +17,6 @@ GEO = Source(layer="matterport", method="geometry", confidence="medium",
              note="The goal's tools re-run on the edited wall graph; panoramas are not read (they show the home as it is)")
 PRICE = Source(layer="model", method="simulation", confidence="low",
                note="Takeoff quantities times national-average unit costs from cost guides; not a quote")
-STATUS = {"fixed": "pass", "better": "warn", "broke": "fail", "worse": "fail", "measure": "pass", "new": "unknown",
-          "gone": "unknown"}
 
 
 class Inputs(BaseModel):
@@ -124,14 +122,15 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     fk = r["fork"]
     if fk and fk.get("available"):
         csrc = Source(layer="model", method="lookup", confidence="medium", note=fk["note"])
-        metrics += [Metric(id="city_ready_now", label=f"Ready now, {fk['kind'] or 'homes'} in {fk['city']}",
+        metrics += [Metric(id="city_ready_now", label=f"Ready now, {fk['kind'] or 'homes'} in {fk['city'] or 'this city'}",
                            value=fk["ready_now"], unit="", source=csrc),
                     Metric(id="city_ready_widened", label=fk["label"], value=fk["after"], unit="", source=csrc)]
         findings.append(Finding(id=f"renovate:{inputs.scan}:city", title="City-wide, on a database fork", status="pass",
-                                detail=f"{fk['ready_now']} of {fk['homes']} {fk['kind'] or 'homes'} in {fk['city']} have a "
+                                detail=f"{fk['ready_now']} of {fk['homes']} {fk['kind'] or 'homes'} in {fk['city'] or 'this city'} have a "
                                        f"wheelchair-ready bathroom now; {fk['after']} would with the doors on the way "
-                                       f"widened to 36 in. This renovation makes this home one of them"
-                                       f"{'' if fk['renovated_ready'] else ' only partly (it still misses a check)'}. "
+                                       f"widened to 36 in. " + {True: "The renovated home is one of them. ",
+                                       False: "The renovated home still misses one of the three checks. ",
+                                       None: "This home is not in the facts database, so it is not counted. "}[fk["renovated_ready"]] +
                                        f"Ran on {'a zero-copy fork ' + fk['service'] if fk['mode'] == 'fork' else 'a scenario schema'}"
                                        f" ({fk['ms'] / 1000:.0f} s), deleted after.", anchor=None, source=csrc))
         text += f" City-wide: {fk['ready_now']} of {fk['homes']} ready now, {fk['after']} with doors widened."

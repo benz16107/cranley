@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import {
   Scene, SceneBoundary, runTool, useBuildingView, useWorkspace,
-  type Block, type SceneCamera, type SceneMode, type ScanPlan,
+  type Block, type SceneCamera, type SceneMode, type ScanPlan, type Source,
 } from '../../../core/index.ts'
 import { Icon, Menu, MenuBtn, RunState, SourceChip } from '../design/ui.tsx'
 import { useScheme } from '../shell/theme.ts'
@@ -102,11 +102,27 @@ export function WhatIfMenu({ sid, plan }: { sid: string; plan: ScanPlan }) {
   )
 }
 
-/** Now and after, side by side. `children` is the page's own scene of the building as it is; the renovated plan
-    loads beside it, with the same edits highlighted, and follows the left camera. */
-export function CompareScenes({ sid, after, mode, cameraRef, children }: { sid: string; after: string; mode: SceneMode; cameraRef: React.MutableRefObject<((c: SceneCamera) => void) | null>; children: ReactNode }) {
-  const scheme = useScheme()
+/** Now and after, side by side. `children` is the page's own scene of the building as it is. The wrapper stays
+    mounted when the comparison closes, so that scene is never rebuilt; open, the renovated plan loads beside it with
+    the same edits marked and follows the left camera. */
+export function CompareScenes({ open, sid, after, mode, cameraRef, children }: { open: boolean; sid: string; after: string | null; mode: SceneMode; cameraRef: React.MutableRefObject<((c: SceneCamera) => void) | null>; children: ReactNode }) {
   const w = useWhatIf(sid)
+  const pick = (id: string) => w.metrics.find((m) => m.id === id)
+  const before = pick('failing_before')
+  const on = open && !!after
+  return (
+    <div className="wi-split" data-open={on}>
+      <figure className="wi-pane">
+        {on && <figcaption><b>Now</b>{before?.value != null && <span className="muted">{before.value} failing</span>}</figcaption>}
+        {children}
+      </figure>
+      {on && <AfterPane sid={sid} after={after!} mode={mode} cameraRef={cameraRef} metric={pick} />}
+    </div>
+  )
+}
+
+function AfterPane({ sid, after, mode, cameraRef, metric }: { sid: string; after: string; mode: SceneMode; cameraRef: React.MutableRefObject<((c: SceneCamera) => void) | null>; metric: (id: string) => { value: number | null; source: Source } | undefined }) {
+  const scheme = useScheme()
   const a = useBuildingView(after, { tools: [] })
   const overlays = useWorkspace((s) => s.doc.overlays)
   const marks = useMemo(() => overlays.filter((o) => o.tool === 'renovate' && o.sid === sid).map((o) => o.overlay), [overlays, sid])
@@ -127,31 +143,24 @@ export function CompareScenes({ sid, after, mode, cameraRef, children }: { sid: 
   useEffect(() => { a.setMode(mode === 'plan' ? 'plan' : 'dollhouse') }, [mode]) // eslint-disable-line react-hooks/exhaustive-deps
   const loaded = !!a.sceneProps
   useEffect(() => { if (!loaded) return; const t = setTimeout(a.stepBack, 400); return () => clearTimeout(t) }, [loaded]) // eslint-disable-line react-hooks/exhaustive-deps
-  const pick = (id: string) => w.metrics.find((m) => m.id === id)
-  const cost = pick('total_cost'), fixed = pick('fixed'), before = pick('failing_before'), left = pick('failing_after')
+  const cost = metric('total_cost'), fixed = metric('fixed'), left = metric('failing_after')
   return (
-    <div className="wi-split">
-      <figure className="wi-pane">
-        <figcaption><b>Now</b>{before?.value != null && <span className="muted">{before.value} failing</span>}</figcaption>
-        {children}
-      </figure>
-      <figure className="wi-pane">
-        <figcaption>
-          <b>After the edits</b>
-          {left?.value != null && <span className="muted">{left.value} failing</span>}
-          {fixed?.value != null && <span className="muted">{fixed.value} fixed</span>}
-          {cost?.value != null && <span className="wi-cost"><span className="num">${Math.round(cost.value).toLocaleString('en-US')}</span><SourceChip source={cost.source} /></span>}
-        </figcaption>
-        {a.error && <div className="scene-state"><span className="muted small">{a.error}</span></div>}
-        {!a.sceneProps && !a.error && <div className="scene-state loading" role="status"><span className="sk" /><span className="sk" /><span className="muted small">Loading the renovated plan</span></div>}
-        {a.sceneProps && (
-          <Suspense fallback={<div className="scene-state loading" role="status"><span className="sk" /><span className="muted small">Loading the building view</span></div>}>
-            <SceneBoundary key={`${a.sceneKey}:${scheme}`} fallback={<div className="scene-state"><span className="muted small">The renovated view stopped.</span></div>}>
-              <Scene {...a.sceneProps} overlays={marks as typeof a.sceneProps.overlays} className="app-scene" switcher={false} />
-            </SceneBoundary>
-          </Suspense>
-        )}
-      </figure>
-    </div>
+    <figure className="wi-pane">
+      <figcaption>
+        <b>After the edits</b>
+        {left?.value != null && <span className="muted">{left.value} failing</span>}
+        {fixed?.value != null && <span className="muted">{fixed.value} fixed</span>}
+        {cost?.value != null && <span className="wi-cost"><span className="num">${Math.round(cost.value).toLocaleString('en-US')}</span><SourceChip source={cost.source} /></span>}
+      </figcaption>
+      {a.error && <div className="scene-state"><span className="muted small">{a.error}</span></div>}
+      {!a.sceneProps && !a.error && <div className="scene-state loading" role="status"><span className="sk" /><span className="sk" /><span className="muted small">Loading the renovated plan</span></div>}
+      {a.sceneProps && (
+        <Suspense fallback={<div className="scene-state loading" role="status"><span className="sk" /><span className="muted small">Loading the building view</span></div>}>
+          <SceneBoundary key={`${a.sceneKey}:${scheme}`} fallback={<div className="scene-state"><span className="muted small">The renovated view stopped.</span></div>}>
+            <Scene {...a.sceneProps} overlays={marks as typeof a.sceneProps.overlays} className="app-scene" switcher={false} />
+          </SceneBoundary>
+        </Suspense>
+      )}
+    </figure>
   )
 }

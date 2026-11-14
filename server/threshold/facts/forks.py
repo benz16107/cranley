@@ -134,7 +134,10 @@ def scenario(step: Step = lambda s: None, connect=_connect, forker=fork) -> Iter
         yielded = False
         try:
             with forker(step) as f:
-                c = connect(f["url"])
+                try:
+                    c = connect(f["url"])
+                except Exception as e:  # noqa: BLE001 - READY before it takes connections: fall back like any fork failure
+                    raise ForkError(f"the fork did not accept a connection ({type(e).__name__})") from None
                 try:
                     yielded = True
                     yield c, "threshold", {"mode": "fork", "service": f["name"], "seconds": f["seconds"]}
@@ -151,7 +154,7 @@ def scenario(step: Step = lambda s: None, connect=_connect, forker=fork) -> Iter
     c = connect(db.url())
     try:
         c.run(f"CREATE SCHEMA {schema}")
-        c.run(f"CREATE TABLE {schema}.scan AS SELECT * FROM threshold.scan")
+        c.run(f"CREATE TABLE {schema}.scan AS SELECT sid, kind, city, walls FROM threshold.scan")  # only what is read
         c.run(f"CREATE TABLE {schema}.measures AS SELECT * FROM threshold.measures")
         step(f"Copied scan and measures into the scenario schema {schema}")
         yield c, schema, {"mode": "schema", "service": schema, "seconds": None}
@@ -185,10 +188,8 @@ def city_scenario(plan: dict, after: dict, step: Step = lambda s: None, **kw) ->
             city, kind = (row[0]["city"], row[0]["kind"]) if row else (plan.get("city"), None)
             before = _count(c, s, city, kind)
             if row:
-                c.run(f"INSERT INTO {s}.scan (sid, building_id, name, kind, segment, city, zip, address, geom, walls, "
-                      f"polygons, labels, panos, floors, created) SELECT :w, building_id, name, kind, segment, city, "
-                      f"zip, address, geom, walls, polygons, labels, panos, floors, now() FROM {s}.scan WHERE sid = :b",
-                      w=sid, b=base)
+                c.run(f"INSERT INTO {s}.scan (sid, kind, city, walls) SELECT :w, kind, city, walls FROM {s}.scan "
+                      f"WHERE sid = :b", w=sid, b=base)
                 cols = [k for k in mt.FIELDS if k in measured and measured[k] is not None]
                 whole = {k: int(v) if mt.FIELDS[k][2] in ("count", "flag") and isinstance(v, float) else v
                          for k, v in measured.items() if k in cols}

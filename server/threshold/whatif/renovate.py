@@ -10,14 +10,14 @@ from .propose import propose
 RECORD_ONLY = {"grab_bars"}  # no tool measures these from geometry, so they never show a flip
 
 
-def _try(plan: dict, edit, goal: str, before: dict, ctx: ToolContext) -> dict:
+def _try(plan: dict, edit, goal: str, before: dict, ctx: ToolContext, prices: dict | None = None) -> dict:
     try:
         after, diff = apply(plan, [edit])
     except EditError as e:
         return {"edit": edit.model_dump(), "error": str(e), "fixed": 0, "broke": 0, "cost": None}
     res = compare.run(after, goal, compare.context({after["sid"]: after}, ctx))
     fl = compare.flips(before, res)
-    c = cost.line(diff[0], after)
+    c = cost.line(diff[0], after, prices)
     fixed = sum(f["change"] == "fixed" for f in fl)
     return {"edit": edit.model_dump(), "text": diff[0]["text"], "short": diff[0]["short"], "change": diff[0], "flips": fl, "fixed": fixed,
             "better": sum(f["change"] == "better" for f in fl), "broke": sum(f["change"] in ("broke", "worse") for f in fl),
@@ -44,12 +44,13 @@ def run(ctx: ToolContext, scan: str, goal: str = "wheelchair_ready", edits: list
         cands = [{"edit": e, "target": f"edit{i}", "why": "your edit"} for i, e in enumerate(parse(edits))]
     tried = []
     for c in cands:
-        t = _try(plan, c["edit"], goal, before, ctx)
+        t = _try(plan, c["edit"], goal, before, ctx, prices)
         tried.append({**t, "target": c["target"], "why": c["why"]})
     ctx.step(f"Tried each of the {len(tried)} edits alone and re-ran the tools on each")
     # the package: every edit you gave; else the best working edit per problem (most fixed, then cheapest)
-    if edits is not None:
-        pick = [t for t in tried if not t["error"]]
+    if edits is not None:  # yours apply together, in order, or not at all: one may only fit after another
+        apply(plan, [c["edit"] for c in cands])  # raises EditError with the reason
+        pick = tried
     else:
         best: dict[str, dict] = {}
         for t in tried:

@@ -15,7 +15,7 @@ from typing import Annotated, Literal, Union
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 from shapely.geometry import Polygon
 
-from ..geometry._plan import floor_z
+from ..geometry._plan import HUNG_DOOR_ALLOWANCE_M as HUNG_LEAF_M, floor_z
 from ..geometry.fit import free_wall_runs
 from ..scanplan import _room_shape
 
@@ -27,6 +27,7 @@ MIN_ROOM_M2 = 0.8       # no edit may shrink a room below this
 RAMP_SLOPE = 1 / 12     # ADA 405.2: running slope at most 1:12
 BAR_RUN_M = 0.915       # 36 in: the shortest free wall that takes a grab bar (ADA 609.4 side bar is 42 in long)
 SNAP = 1e-6
+MIN_WALL_M = 0.05       # scanplan.MIN_WALL: shorter is vertex noise, not a wall
 KEEP = ["Bathroom", "Kitchen", "Bedroom", "Living Room", "Dining Room", "Family Room", "Office", "Hallway"]
 
 
@@ -71,7 +72,6 @@ class DoorSwing(Edit):
 
 AnyEdit = Annotated[Union[WidenDoor, MoveWall, RemoveWall, AddRamp, GrabBars, DoorSwing], Field(discriminator="op")]
 EDITS = TypeAdapter(list[AnyEdit])
-HUNG_LEAF_M = 0.05  # geometry._plan.HUNG_DOOR_ALLOWANCE_M: what a hinged leaf takes out of the opening
 
 
 class EditError(ValueError):
@@ -269,7 +269,11 @@ def _move_wall(plan: dict, e: MoveWall) -> dict:
     for k in ("a", "b"):
         wall[k] = [wall[k][0] + nx * off, wall[k][1] + ny * off]
     for w, theirs, mine in links:
+        before = (w["b"][0] - w["a"][0], w["b"][1] - w["a"][1])
         w[theirs] = list(wall[mine]) if mine else [w[theirs][0] + nx * off, w[theirs][1] + ny * off]
+        after = (w["b"][0] - w["a"][0], w["b"][1] - w["a"][1])
+        if before[0] * after[0] + before[1] * after[1] <= 0 or math.dist(w["a"], w["b"]) < MIN_WALL_M:
+            raise EditError(f"a {math.hypot(*before):.2f} m wall that meets this one would shrink away; move it less")
         w["length"] = math.dist(w["a"], w["b"])
         for o in (x for x in plan["openings"] if x["wall"] == w["id"]):
             try:

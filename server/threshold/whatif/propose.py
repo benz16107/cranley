@@ -6,12 +6,12 @@ from ..geometry import turning_space
 from ..geometry._plan import SCAN_TOLERANCE_M, clear_width, implausible
 from ..tools._access import graph, links_of, pick_entrance, sill_step, start_point, step_kind
 from ..tools.step_free_route import targets
-from .edits import DoorSwing, Edit, EditError, AddRamp, GrabBars, MoveWall, RemoveWall, WidenDoor, apply
+from .edits import HUNG_LEAF_M, DoorSwing, Edit, EditError, AddRamp, GrabBars, MoveWall, RemoveWall, WidenDoor, apply
 
 DOOR_CLEAR_M = 0.815      # ADA 404.2.3
 TURN_M = 1.525            # ADA 304.3.1
 DOOR_SIZES_M = (0.915, 0.89)  # a 36 in door (about 865 mm clear), then the narrowest opening that clears the tolerance
-HINGE_GAIN_M = 0.045      # offset hinges give back the hung leaf, about 1 3/4 in
+HINGE_GAIN_M = HUNG_LEAF_M  # offset hinges give back the hung leaf (the door_swing edit adds exactly this)
 SHIFTS_M = [round(0.05 * k, 2) for k in range(1, 17)]  # up to 80 cm
 ABSORB = {"Closet", "Pantry", "Laundry", "Utility Room", "Storage", "Void", None}  # rooms a bathroom may take over
 SKIP_DOORS = {"Closet", "Void", "Pantry"}

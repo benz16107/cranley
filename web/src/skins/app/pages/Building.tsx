@@ -261,13 +261,22 @@ export function Building({ sid }: { sid: string }) {
   const camera = useRef<((c: SceneCamera) => void) | null>(null)
   const showCompare = compare && !!wi.after
   useEffect(() => { if (wi.after && performance.now() - born.current > 2500) setCompare(true) }, [wi.after])
+  const kept = useRef<{ surface: typeof v.view.surface; env: typeof v.view.env; measures: typeof v.view.measures; frame: typeof v.view.frame; pick: string[] | null } | null>(null)
   useEffect(() => {
     if (!showCompare) return
+    kept.current = { surface: v.view.surface, env: v.view.env, measures: v.view.measures, frame: v.view.frame, pick } // given back on close
     setPick(['renovate']) // both sides mark the same edits
     v.setView((x) => ({ ...x, surface: 'model', env: 'studio', measures: true, frame: { top: -20, right: 20, bottom: -20, left: 20 } }))
     if (v.mode !== 'dollhouse' && v.mode !== 'plan') v.setMode('dollhouse')
     const t = setTimeout(v.stepBack, 400) // the scene is half as wide now: frame the building again
-    return () => { clearTimeout(t); setPick(null); v.stepBack(); v.setView((x) => ({ ...x, measures: false, frame: { top: -20, right: 20, bottom: -20, left: -100 } })) }
+    return () => {
+      clearTimeout(t)
+      const k = kept.current
+      if (!k) return
+      setPick(k.pick)
+      v.setView((x) => ({ ...x, surface: k.surface, env: k.env, measures: k.measures, frame: k.frame }))
+      setTimeout(v.stepBack, 400)
+    }
   }, [showCompare]) // eslint-disable-line react-hooks/exhaustive-deps
   const [picked, setTab] = useState<string | null>(null)
   const tab = picked ?? (panels.length ? 'results' : 'overview') // until the person picks: results when there are any
@@ -391,7 +400,7 @@ export function Building({ sid }: { sid: string }) {
                       <Scene {...v.sceneProps} className="app-scene" switcher={false} prepare onState={onScene} onCamera={(c) => camera.current?.(c)} />
                     </SceneBoundary>
                   )
-                  return showCompare && wi.after ? <CompareScenes sid={sid} after={wi.after} mode={v.mode} cameraRef={camera}>{scene}</CompareScenes> : scene
+                  return <CompareScenes open={showCompare} sid={sid} after={wi.after} mode={v.mode} cameraRef={camera}>{scene}</CompareScenes>
                 })()}
               </Suspense>
             )}
