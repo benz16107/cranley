@@ -39,6 +39,7 @@ from .. import (
 from ..fire_preplan.common import BEDROOM, floor_label, live_rooms, name, walls_ok
 
 RUNS = CACHE / "tools" / "smoke_clock"
+TIMEOUT_S = 900                    # CFAST at -O0 takes 3 to 11 minutes on a house; some plans go stiff
 MIN_AREA_M2 = 2.5                  # closets and nooks under this are left out of the model
 SIM_S = 900                        # 15 minutes
 TARGET_Z = 1.5                     # tenability measured at a standing person's head
@@ -215,7 +216,11 @@ def run_cfast(text: str) -> dict:
     if not done.exists():
         d.mkdir(parents=True, exist_ok=True)
         (d / "case.in").write_text(text)
-        r = subprocess.run([exe, "case.in"], cwd=d, capture_output=True, text=True, timeout=1500)
+        try:
+            r = subprocess.run([exe, "case.in"], cwd=d, capture_output=True, text=True, timeout=TIMEOUT_S)
+        except subprocess.TimeoutExpired:
+            raise ToolError(f"CFAST did not finish within {TIMEOUT_S // 60} minutes: its solver slowed to tiny time "
+                            "steps on this plan") from None
         if "Normal exit" not in r.stdout + r.stderr:
             raise ToolError(f"CFAST stopped early: {(r.stdout + r.stderr).strip()[-300:]}")
         done.touch()
@@ -279,8 +284,12 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     ctx.step(f"Fire in {where(fire)}: {inputs.growth} growth to {inputs.peak_kw:.0f} kW")
     from concurrent.futures import ThreadPoolExecutor
     cases = {closed: write_input(plan, fire, closed, a, inputs.peak_kw) for closed in (False, True)}
-    with ThreadPoolExecutor(2) as ex:  # the two cases are independent CFAST processes
-        runs = dict(zip(cases, ex.map(lambda c: run_cfast(c[0]), cases.values())))
+    try:
+        with ThreadPoolExecutor(2) as ex:  # the two cases are independent CFAST processes
+            runs = dict(zip(cases, ex.map(lambda c: run_cfast(c[0]), cases.values())))
+    except ToolError as e:
+        return ToolResult(scope=scope, verdict=Verdict(status="unknown", text=f"{e}. No survivable times are given "
+                                                       "for this scan; nothing is estimated in their place."))
     results = {closed: (runs[closed], cases[closed][1]) for closed in cases}
     ctx.step(f"Ran CFAST twice (bedroom doors open, then closed) on {len(set(cases[False][1].values()))} "
              "compartments")
