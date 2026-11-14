@@ -116,7 +116,8 @@ def publish(sid: str, out: Path, steps: int, sh_degree: int, max_splats: int, se
         "data": {"sweeps": meta["sweeps"], "images": meta["images"], "view": meta["view"],
                  "seed": {"source": meta["seed_source"], "points": meta["seed_points"]}},
         "eval": {"held_out_sweeps": meta["held_out"], "psnr_by_step": {str(k): v["mean"] for k, v in scores.items()},
-                 "psnr": last["mean"] if last else None, "per_view": last["per_view"] if last else {},
+                 "psnr": last["mean"] if last else None,
+                 "psnr_indoor": indoor_psnr(sid, last["per_view"]) if last else None, "per_view": last["per_view"] if last else {},
                  "side_by_side": [str(p) for p in sbs], "reliability": "medium",
                  "note": "PSNR on cube faces of sweeps left out of training; renders sit at the sweep's own position, "
                          "so views far from any sweep are not measured."},
@@ -124,6 +125,17 @@ def publish(sid: str, out: Path, steps: int, sh_degree: int, max_splats: int, se
     }
     (root / "interior.json").write_text(json.dumps(side, indent=1))
     return side
+
+
+def indoor_psnr(sid: str, per_view: dict) -> float | None:
+    """Mean PSNR over held-out sweeps standing inside the building: outdoor sweeps look at what the crop leaves
+    to the drone splat, so they score low by design."""
+    plan = mp.plan(sid)
+    pos = {p["id"]: p["position"] for p in plan["panos"]}
+    ids = sorted({k.split("_")[1] for k in per_view})
+    inside = {i for i, out in zip(ids, carve.outside(np.array([pos[i] for i in ids], float), plan)) if not out}
+    vals = [v for k, v in per_view.items() if k.split("_")[1] in inside]
+    return round(float(np.mean(vals)), 2) if vals else None
 
 
 def psnr(a: np.ndarray, b: np.ndarray) -> float:
