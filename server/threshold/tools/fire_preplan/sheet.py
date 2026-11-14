@@ -182,7 +182,7 @@ def render(result, data: dict) -> str:
             cap = (f"{unit}. {LEGEND}" if i == 0 else unit) if data["multi"] else LEGEND
             plans_html.append(f"<figure>{svg}<figcaption>{cap}</figcaption></figure>")
     if not plans_html:
-        plans_html.append("<figure><figcaption>No scan here has a wall graph, so no plan drawing. Use the floor plan "
+        plans_html.append("<figure><figcaption>No unit scan here has a wall graph, so no plan drawing. Use the floor plan "
                           "images from the scans.</figcaption></figure>")
     rows = []
     for x in sorted(data["lines"], key=lambda x: [int(p) if p.isdigit() else 0 for p in x["section"].split(".")]):

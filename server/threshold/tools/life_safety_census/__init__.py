@@ -210,7 +210,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         status = "warn" if tally["not seen"] else "unknown" if tally["could not see"] == n else "pass" \
             if not tally["could not see"] else "warn"
         verdict = Verdict(status=status, text=(
-            f"{n} bedrooms: a smoke alarm was seen in {tally['seen']}, not seen in {tally['not seen']}, and "
+            f"{n} bedroom{'s' if n != 1 else ''}: a smoke alarm was seen in {tally['seen']}, not seen in {tally['not seen']}, and "
             f"{tally['could not see']} could not be checked. These are leads to check on site, not violations."))
     src = SEEN
     scope = ScansScope(sids=[p["sid"] for p in plans]) if multi else ScanScope(sid=sids[0])

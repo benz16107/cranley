@@ -229,8 +229,9 @@ def build(ctx, inputs: Inputs) -> tuple[ToolResult, dict]:
              f"{len(plans) - len(unread)} scans ({len(budget.read)} new)")
 
     # entrances and egress
-    if multi and walled:
-        egress_summary(sh, walled)
+    units_walled = [(p, a) for p, a in walled if not AMENITY.search(p.get("name") or "")]
+    if multi and units_walled:
+        egress_summary(sh, units_walled)
         two = [p for p, _ in walled if len(p.get("floors") or []) > 1]
         if two:
             typed = sum(any(r.get("label") == "Staircase" for r in p["rooms"]) for p in two)
@@ -262,6 +263,9 @@ def build(ctx, inputs: Inputs) -> tuple[ToolResult, dict]:
                    Source(layer="matterport", method="geometry", confidence="medium" if not h["walk"]["stairs"] else
                           "low", note="Route over the wall graph plus the straight run to the room's far corner"),
                    anchor=RoomAnchor(sid=sid, room=h["room"]))
+    if multi and walled and not units_walled:
+        sh.add("6.2.2", "Means of egress", "No unit scan here has a wall graph, so unit doorways and routes are not "
+               "measured. Use the floor plan images.", "unknown", SCAN)
     if not walled:
         sh.add("6.2.2", "Means of egress", "No scan here has a wall graph, so doorways and routes are not measured. "
                "Use the floor plan images.", "unknown", SCAN)
@@ -464,7 +468,8 @@ def build(ctx, inputs: Inputs) -> tuple[ToolResult, dict]:
         + ([Assumption(id="property_id", label="CoStar property", value=pid)] if pid else []),
         actions=[Action(id="egress", label="Show every way out", tool="egress_routes", inputs={"scan": walled[0][0]["sid"]})]
         if walled else [])
-    ctx_data = {"title": title, "kind": kind, "lines": sh.lines, "acc": acc, "walled": walled[:6], "plans": plans,
+    ctx_data = {"title": title, "kind": kind, "lines": sh.lines, "acc": acc,
+                "walled": (units_walled if multi else walled)[:12], "plans": plans,
                 "seen": seen, "multi": multi, "key": key, "pid": pid}
     return result, ctx_data
 

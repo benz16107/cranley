@@ -99,7 +99,7 @@ def drone_views(sid: str, centre: tuple[float, float], sides: dict[str, str]) ->
             pitch = p.get("gimbal_pitch_deg") or 0
             if off > 35 or aim > 30 or not -55 <= pitch <= -8:
                 continue
-            cost = off + aim
+            cost = off + aim + max(0.0, metres(lat0, lon0, p["lat"], p["lon"]) - 40) / 2  # closer shows the house
             if best is None or cost < best[0]:
                 best = (cost, p)
         if best:
@@ -248,8 +248,8 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         verdict = Verdict(status="unknown" if len(qs) < 2 else "pass", text=(
             f"Size-up drill ready: {len(qs)} questions with {len(views)} outside views; the answer key comes from "
             "the measured interior." if len(qs) > 1 else
-            "Only the floor count can be asked: this scan has no geocoordinates or aerial reading to place rooms on "
-            "a side."))
+            "Only the floor count can be asked: " + ("this scan has no typed bedrooms, kitchen or stairs to place on a "
+            "side." if acc else "this scan has no geocoordinates or aerial reading to place rooms on a side.")))
     template = {q["id"]: ([] if q["kind"] == "points" else None) for q in qs}
     return ToolResult(
         scope=scope, verdict=verdict, metrics=metrics, checks=checks, findings=findings,

@@ -105,7 +105,7 @@ def access(lat: float, lon: float, size_m: float = 80) -> dict:
     out = {"lat": lat, "lon": lon, "facts": facts, "footprint": fp, "ortho": o, "image": marked,
            "front": a["front_side"], "street_sides": a["street_sides"], "sides": sides(a["front_side"]),
            "engine": {"lonlat": eng, "from_building_m": None if fp is None else
-                      _to_m(lat, fp.exterior.distance(Point(*eng)) if fp.geom_type == "Polygon" else 0.0)},
+                      _to_m(lat, fp.boundary.distance(Point(*eng)))},
            "driveways": [geo(b) for b in a["driveways"]],
            "barriers": [{"kind": g["kind"], "lonlat": geo(g["box"])} for g in a["gates_and_fences"]],
            "overhead": [{"kind": g["kind"], "lonlat": geo(g["box"])} for g in a["overhead"]],

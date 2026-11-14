@@ -273,8 +273,10 @@ def run(ctx, inputs: Inputs) -> ToolResult:
             "NIST CFAST is not installed on this server, so no fire model was run and no estimate is given. "
             "Build steps are in the smoke_clock tool's docstring.")))
     fire = _pick_fire(plan, inputs.fire_room)
+    multi = len({r["floor"] for r in live_rooms(plan)}) > 1
+    where = lambda r: f"{name(r)} ({floor_label(plan, r['floor'])})" if multi else name(r)  # noqa: E731
     a = GROWTH[inputs.growth]
-    ctx.step(f"Fire in {name(fire)}: {inputs.growth} growth to {inputs.peak_kw:.0f} kW")
+    ctx.step(f"Fire in {where(fire)}: {inputs.growth} growth to {inputs.peak_kw:.0f} kW")
     from concurrent.futures import ThreadPoolExecutor
     cases = {closed: write_input(plan, fire, closed, a, inputs.peak_kw) for closed in (False, True)}
     with ThreadPoolExecutor(2) as ex:  # the two cases are independent CFAST processes
@@ -309,7 +311,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         fmt = lambda u: (f"untenable at {u['time_s'] / 60:.1f} min ({u['cause']})" if u["time_s"] is not None  # noqa: E731
                          else f"still tenable at {SIM_S // 60} min")
         st = "fail" if o["time_s"] is not None and o["time_s"] < limit_s else "warn" if o["time_s"] is not None else "pass"
-        findings.append(Finding(id=f"smoke_clock:{sid}:{r['id']}", title=f"{name(r)}, survivable time", status=st,
+        findings.append(Finding(id=f"smoke_clock:{sid}:{r['id']}", title=f"{where(r)}, survivable time", status=st,
                                 detail=f"Door open: {fmt(o)}. Door closed: {fmt(c)}.",
                                 anchor=RoomAnchor(sid=sid, room=r["id"]), source=SIM))
         if o["time_s"] is not None and (worst is None or o["time_s"] < worst[1]):
@@ -317,9 +319,9 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     opens = [v for v in lens[False].values()]
     closes = [v for v in lens[True].values()]
     fails = sum(c.status == "fail" for c in checks)
-    text = (f"Fire in {name(fire)}, {inputs.growth} growth: with bedroom doors open the first bedroom becomes "
+    text = (f"Fire in {where(fire)}, {inputs.growth} growth: with bedroom doors open the first bedroom becomes "
             f"untenable at {worst[1] / 60:.1f} min; " if worst else
-            f"Fire in {name(fire)}: no bedroom became untenable within {SIM_S // 60} min with doors open; ") + \
+            f"Fire in {where(fire)}: no bedroom became untenable within {SIM_S // 60} min with doors open; ") + \
         (f"with doors closed the shortest is {min(closes):.1f} min." if min(closes) < SIM_S / 60 else
          f"with doors closed every bedroom stays tenable for the full {SIM_S // 60} min.")
     status = "fail" if fails else "pass"
