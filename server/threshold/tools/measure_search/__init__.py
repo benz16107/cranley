@@ -7,7 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from .. import Action, Check, Finding, Metric, ScanScope, Source, ToolResult, Verdict, field, tool
+from .. import Action, Check, Finding, Metric, ScanScope, Source, ToolError, ToolResult, Verdict, field, tool
 from ..types import GeoAnchor, ScansScope, Strict
 from . import table
 
@@ -21,6 +21,17 @@ class Criterion(Strict):
     value: float | str = Field(description="Threshold; flags are 1 or 0")
 
 
+class RoomMeasure(Strict):
+    measure: Literal["area", "turn_diameter", "widest_door", "narrowest_door", "windows", "glazed_area", "height"]
+    op: Literal[">=", "<=", ">", "<", "==", "!="] = ">="
+    value: float
+
+
+class RoomCriterion(Strict):
+    label: str = Field(description="Room type as the plan labels it: Kitchen, Bathroom, Bedroom, Living Room, ...")
+    where: list[RoomMeasure] = Field(default_factory=list, description="Every measure must hold in one such room")
+
+
 class Inputs(BaseModel):
     criteria: list[Criterion] = field(ask="What must the home have? For example: doors to the bathroom at least "
                                           "0.81 m, a bedroom wall of at least 2.2 m, one floor.",
@@ -29,6 +40,10 @@ class Inputs(BaseModel):
     kind: Literal["house", "apartment_unit"] | None = field(None, description="House or apartment")
     sort: Measure | None = field(None, description="Rank by this measure, highest first; default by margin")
     limit: int = field(20, ge=1, le=100, description="Rows to return")
+    near: tuple[float, float] | None = field(None, description="Point to search around, (lat, lon)")
+    within_km: float | None = field(None, gt=0, le=200, description="Only scans this close to `near`")
+    rooms: list[RoomCriterion] = field([], description="Rooms the home must have, each meeting its measures "
+                                                       "(e.g. a Kitchen with area >= 12). Needs the facts database.")
 
 
 SRC = Source(layer="matterport", method="geometry", confidence="medium",
@@ -50,12 +65,20 @@ SRC = Source(layer="matterport", method="geometry", confidence="medium",
       examples=["Homes where a wheelchair can reach a bathroom through 0.81 m doors, on one floor",
                 "Apartments with a bedroom wall of at least 2.2 m and a 1.5 m turning circle in the bathroom"])
 def run(ctx, inputs: Inputs) -> ToolResult:
-    if not table.DB.exists():
+    from ...facts import db as facts_db
+    if not table.DB.exists() and not facts_db.available():
         return ToolResult(scope=ScansScope(sids=[]), verdict=Verdict(status="unknown", text=(
             "The measures table has not been built yet.")))
     crit = [c.model_dump() for c in inputs.criteria]
-    res = table.search(crit, city=inputs.city, kind=inputs.kind, sort=inputs.sort, limit=inputs.limit)
+    try:
+        res = table.search(crit, city=inputs.city, kind=inputs.kind, sort=inputs.sort, limit=inputs.limit,
+                           near=inputs.near, within_m=inputs.within_km * 1000 if inputs.within_km else None,
+                           rooms=[r.model_dump() for r in inputs.rooms])
+    except ValueError as e:
+        raise ToolError(str(e)) from None
     ctx.step(f"Searched {res['pool']} scans; {res['answerable']} can answer every criterion; {res['matches']} match")
+    if res.get("sql"):
+        ctx.step(f"SQL ({res['ms']} ms): {res['sql']}")
     rows = res["rows"]
     sids = [r["sid"] for r in rows]
     checks, findings = [], []

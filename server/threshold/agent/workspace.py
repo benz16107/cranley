@@ -765,6 +765,8 @@ class Session:
         self.log.append(e)
         if op is not None:
             self.doc = apply(self.doc, op, e.at)
+        from ..facts.record import record_op  # usage analytics (Tiger Data op_log); a no-op without a database
+        record_op(self.base.id, e)
         for fn in self.listeners:
             fn(e)
         return e

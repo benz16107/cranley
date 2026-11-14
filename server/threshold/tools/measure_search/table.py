@@ -348,9 +348,20 @@ def _margin(c: dict, v) -> float:
 
 
 def search(criteria: list[dict], *, city: str | None = None, kind: str | None = None, sort: str | None = None,
-           limit: int = 20, path=None) -> dict:
+           limit: int = 20, path=None, near: tuple[float, float] | None = None, within_m: float | None = None,
+           rooms: list[dict] | None = None) -> dict:
     """Scans meeting every criterion, best first. Each row has the measured value per criterion and why it passed.
-    Also counts the scans that could not answer (a criterion's measure is unknown for them)."""
+    Also counts the scans that could not answer (a criterion's measure is unknown for them).
+    Runs in the facts database (Postgres, threshold.facts.search) when one is configured; this SQLite file is the
+    fallback, which cannot filter by distance or by room."""
+    if path is None:
+        from ...facts import db as facts_db
+        if facts_db.available():
+            from ...facts import search as facts_search
+            return facts_search.search(criteria, city=city, kind=kind, sort=sort, limit=limit, near=near,
+                                       within_m=within_m, rooms=rooms)
+    if within_m is not None or rooms:
+        raise ValueError("Distance and room criteria need the facts database (TIGER_DATABASE_URL)")
     for c in criteria:
         if c["measure"] not in FIELDS or c["op"] not in OPS:
             raise ValueError(f"bad criterion {c}")
@@ -381,7 +392,7 @@ def search(criteria: list[dict], *, city: str | None = None, kind: str | None = 
                      ({sort: r[sort]} if sort else {})})
     key = (lambda h: (-(h["values"][sort] or 0), -h["score"])) if sort else (lambda h: -h["score"])
     hits.sort(key=key)
-    return {"criteria": criteria, "pool": pool, "answerable": answerable, "matches": len(hits),
+    return {"criteria": criteria, "pool": pool, "answerable": answerable, "matches": len(hits), "engine": "sqlite",
             "rows": hits[:limit], "built": {r["key"]: json.loads(r["value"]) for r in con.execute("SELECT * FROM meta")}}
 
 
