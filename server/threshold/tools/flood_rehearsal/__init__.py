@@ -117,6 +117,9 @@ def result(sid: str, plan: dict, inputs: Inputs, flood: dict) -> ToolResult:
     if not walls:
         text += (" This scan has no wall graph: no doors, windows or wall lengths, so the order rooms flood, the "
                  "openings water comes through and wetted wall area cannot be worked out.")
+    if _kind(sid) not in ("house", None):
+        text += f" This scan is a{'n' if _kind(sid)[0] in 'aeio' else ''} {_kind(sid).replace('_', ' ')}: which storey " \
+                "it sits on is not known, so depths assume its floor is at ground level."
     if f["method"] == "assumed":
         text += " The floor height is assumed, not measured."
     status = "unknown" if not walls else "fail" if n_mid else "warn" if n_hi else "pass"
@@ -251,3 +254,11 @@ def result(sid: str, plan: dict, inputs: Inputs, flood: dict) -> ToolResult:
 
 def _nth(i: int) -> str:
     return {1: "first", 2: "second", 3: "third"}.get(i, f"{i}th")
+
+
+def _kind(sid: str) -> str | None:
+    try:
+        from ...sources import index
+        return (index.rows().get(sid) or {}).get("kind")
+    except Exception:  # noqa: BLE001 - the index is context only
+        return None

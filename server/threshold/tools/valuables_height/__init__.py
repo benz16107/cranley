@@ -177,7 +177,7 @@ def result(sid: str, plan: dict, inputs: Inputs, flood: dict, inv: dict) -> Tool
     f_lo, f_hi = loss["fixtures"]
     status = "fail" if under else "warn" if maybe else "pass"
     text = (f"Between {money(b_lo)} and {money(b_hi)} of belongings sit below the water line "
-            f"({len(under)} items at the middle estimate, {len(maybe)} more at the high end); {len(carry)} of them can be "
+            f"({len(under)} item{'s' if len(under) != 1 else ''} at the middle estimate, {len(maybe)} more at the high end); {len(carry)} of them can be "
             "carried up." if b_hi else f"No belongings in the {len(inv['rooms_read'])} rooms read sit below the water line.")
     if f_hi:
         text += f" Built-in fixtures below it: {money(f_lo)} to {money(f_hi)}."

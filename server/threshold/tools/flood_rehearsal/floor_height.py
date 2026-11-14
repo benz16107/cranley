@@ -317,9 +317,11 @@ def drone_threshold(sid: str, footprint_wkt: str | None, lat0: float, lon0: floa
                     "Say how many steps or porch levels lie between the yard and the threshold.",
                     LINES_SCHEMA, key=f"flood_sill/{sid}/{p['name']}")
         t.update(lines_confidence=lines["confidence"], steps=lines["steps_between"], ground_visible=lines["ground_visible"])
-        if not lines["ground_visible"]:
-            continue
         thr, gnd = lines["threshold"], lines["ground"]
+        apart = abs((gnd["x0"] + gnd["x1"]) / 2 - (thr["x0"] + thr["x1"]) / 2) / CROP_PX
+        t["ground_offset"] = round(apart, 2)
+        if not lines["ground_visible"] or apart > 0.25:
+            continue  # ground marked off to the side may lie on another wall at another distance (<address>)
         u = box[0] + (thr["x0"] + thr["x1"]) / 2 / cs
         v_thr = box[1] + (thr["y0"] + thr["y1"]) / 2 / cs
         v_gnd = box[1] + (gnd["y0"] + gnd["y1"]) / 2 / cs
