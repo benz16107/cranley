@@ -177,6 +177,7 @@ export class Overlays3D {
     for (const s of Object.values(stand)) {
       const im = new THREE.InstancedMesh(s.geo, modelMaterial, s.at.length)
       s.at.forEach((mat, i) => { im.setMatrixAt(i, mat); im.setColorAt(i, s.tint[i]) })
+      im.renderOrder = 6 // with the boxes: after the floor and the panorama, before the outlines
       doll.floorGroups[s.floor].add(im); this.models.push(im)
     }
 

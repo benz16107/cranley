@@ -44,6 +44,7 @@ async function load(id: string): Promise<THREE.BufferGeometry> {
 /** One material for every model: the walls' light direction, vertex colour times the instance's tint. */
 export const modelMaterial = new THREE.ShaderMaterial({
   vertexColors: true, // three declares `color` and the instance attributes itself
+  transparent: true, // not see-through: it puts the models in the pass drawn after the panorama, which would otherwise paint over them
   vertexShader: /* glsl */ `
     varying vec3 vCol;
     void main() {
