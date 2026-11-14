@@ -43,7 +43,7 @@ from . import prep
 MEMO = CACHE / "tools" / "storm_plan"
 WORK_SHARE = 0.5            # share of the hours left a household can work: sleep, food, shopping, the news
 ENVELOPE_MIN_HOURS = 8.0    # below this, no store run: shelves empty and the boarding will not finish
-ENVELOPE_SHARE = 0.5        # at most this share of the crew-minutes goes on boards and bags while belongings wait
+ENVELOPE_SHARE = 0.5        # boards and bags get at least this share of the crew-minutes, or all carrying leaves
 COUNTER_M = 0.9             # counter and table height: lifting things there helps only below this
 PLAN_SRC = Source(layer="model", method="simulation", confidence="medium",
                   note="Planner over the scan's geometry and the vision inventory; times are rules of thumb")
@@ -152,7 +152,7 @@ def exterior(plan: dict, kind: str, floor: str | None = None) -> list[dict]:
             and (floor is None or o["floor"] == floor) and o.get("width") and o.get("height")]
 
 
-def envelope_tasks(plan: dict, flood: dict, inputs: Inputs, capacity: float) -> tuple[list[dict], dict, dict]:
+def envelope_tasks(plan: dict, flood: dict, inputs: Inputs, capacity: float, reserved: float = 0.0) -> tuple[list[dict], dict, dict]:
     """Store run, window boards, door dams; with the reasons for anything left out."""
     skipped: dict[str, str] = {}
     labels = {r["id"]: r.get("label") or "unlabelled room" for r in plan["rooms"]}
@@ -186,14 +186,14 @@ def envelope_tasks(plan: dict, flood: dict, inputs: Inputs, capacity: float) -> 
             skipped[t["id"]] = (f"only {inputs.hours_left:g} h left: a store run and boarding need about "
                                 f"{ENVELOPE_MIN_HOURS:g} h, and shelves empty first")
         return out, cut, {"rows": dam_rows, "skipped": skipped}
-    budget = ENVELOPE_SHARE * capacity
+    budget = max(ENVELOPE_SHARE * capacity, capacity - reserved)  # half the time, or all that carrying leaves
     picked, used = [], prep.MATERIALS_MINUTES
     for t in dams + boards:  # dams first: water is the hazard this tool plans for
         if used + t["minutes"] <= budget:
             picked.append(t)
             used += t["minutes"]
         else:
-            skipped[t["id"]] = "boards and dams may use half the time; the rest goes to carrying"
+            skipped[t["id"]] = "there is not time for it as well as carrying the belongings up"
     if picked:
         n_sheets = prep.cut_list([t["cut"] | {"id": t["opening"]} for t in picked if t["kind"] == "board"])["sheets"]
         n_bags = sum(t["dam"]["bags"] for t in picked if t["kind"] == "dam")
@@ -289,7 +289,6 @@ def build(sid: str, plan: dict, inputs: Inputs, flood: dict, inv: dict, steps, m
     wet_power = [u for u in utils if u["wet_hi"] and u["label"] in ("outlet near the floor", "electrical panel")]
     first = {"id": "find_shutoffs", "kind": "shutoff", "minutes": 10, "people": 1, "must": True,
              "label": "Find and label the main breaker, the water main and the gas meter"}
-    env, cut, dams = envelope_tasks(plan, flood, inputs, capacity)
     carry = carry_tasks(plan, inv.get("items") or [], dest)
     last = []
     if wet_power or any(r.get("depth_hi", 0) > 0 for r in flood["rooms"].values()):
@@ -300,6 +299,8 @@ def build(sid: str, plan: dict, inputs: Inputs, flood: dict, inv: dict, steps, m
         last.append({"id": "gas_off", "kind": "shutoff", "minutes": 5, "people": 1, "must": True,
                      "label": f"Turn off the gas to the water heater in the {labels.get(heater['room'], 'house').lower()}",
                      "util": heater})
+    env, cut, dams = envelope_tasks(plan, flood, inputs, capacity,
+                                    reserved=sum(t["minutes"] for t in [first] + carry + last))
     tasks = [first] + env + carry + last
     kept, dropped = prep.schedule(tasks, capacity)
     why = {**dams["skipped"], **{t["id"]: t["why"] for t in dropped}}
@@ -495,7 +496,8 @@ def generator(sid: str, flood: dict) -> dict:
                 anchor=GeoAnchor(geo=(lon, lat)), source=src, media=media,
                 detail=f"{z['zone_area_m2']:.0f} m2 of the {'lot' if z['lot_known'] else 'ground around the house (lot line unknown)'} "
                        f"is at least 20 ft (6.1 m) from every wall. The nearest spot is {z['spot_distance_m']:.1f} m out; "
-                       "point the exhaust away from the house and the neighbours' windows. " + CDC + ".")
+                       "point the exhaust away from the house. The zone does not know where the neighbours' doors and "
+                       "windows are: keep 20 ft from theirs too. " + CDC + ".")
     return {"finding": f, "pin": Pin(id="generator", anchor=GeoAnchor(geo=(lon, lat)), label="Generator", status="pass"),
             "zone": z}
 
