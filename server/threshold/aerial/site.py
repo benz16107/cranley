@@ -58,7 +58,8 @@ def site_facts(lat: float, lon: float) -> dict:
     f = feats[0]
     p = f["properties"]
     structs = p.get("structures") or []
-    s = next((x for x in structs if x.get("primary-structure")), structs[0] if structs else {})
+    at = _structure_at(structs, lat, lon)
+    s = at or next((x for x in structs if x.get("primary-structure")), structs[0] if structs else {})
     cap = f"capture {str(p.get('metadata.ortho-date-estimate') or '')[:10]}, {p.get('metadata.collection')}"
     look = source("lookup", "high", f"Vexcel Elements precomputed; {cap}")
     model = source("lookup", "medium", f"Vexcel Elements model output; Vexcel publishes no accuracy figures; {cap}")
@@ -110,9 +111,18 @@ def site_facts(lat: float, lon: float) -> dict:
         "footprint": s.get("footprint.wkt"),
         "parcel": f.get("geometry"),
         "inside_parcel": p.get("request-information.inside-parcel"),
+        "structure": "at the point" if at else "primary",
         "capture": {"date": p.get("metadata.ortho-date-estimate"), "collection": p.get("metadata.collection"),
                     "gsd_m": p.get("metadata.gsd")},
     }
+
+
+def _structure_at(structs: list[dict], lat: float, lon: float) -> dict | None:
+    """The structure whose footprint holds the point (within about 3 m). On a parcel with several buildings, Vexcel's
+    primary structure is the largest one, which may not be the building the caller asked about."""
+    pt = shapely.Point(lon, lat)
+    hits = [x for x in structs if x.get("footprint.wkt") and shapely_wkt.loads(x["footprint.wkt"]).buffer(0.00003).contains(pt)]
+    return min(hits, key=lambda x: x.get("footprint.area") or 0) if hits else None
 
 
 def _r(x, nd: int = 2):
