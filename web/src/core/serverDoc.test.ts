@@ -88,3 +88,19 @@ test('a learned item is named by the input it sets, or by what kind of note it i
   assert.deepEqual(prefName('tool.off.flood', tools), { label: 'Tool switched off' })
   assert.deepEqual(prefName('access.turning_needed', tools), { label: 'Turning needed' })
 })
+
+test('a ranked table inside one run (a census by group) reads its cells from that run, in the order given', () => {
+  const m = (id: string, label: string, value: number | null, unit = '') => ({ id, label, value, unit, source: src })
+  const census = { id: 'ws_2', runs: [{ id: 'r_c', tool: 'city_census', status: 'done', result: { verdict: { status: 'pass', text: 'Two groups.' },
+    metrics: [m('groups', 'Groups', 2), m('g0/share', 'home', 33, '%'), m('g0/scans', 'home', 120), m('g1/share', 'office', 44.4, '%'), m('g1/scans', 'office', 9)] } }],
+    panels: [{ id: 'panel:city_census:', title: 'City census', tool: 'city_census', run: 'r_c', blocks: [{ type: 'RankedTable', run: 'r_c', rows: ['g1', 'g0', 'g9'], labels: { g1: 'Offices' },
+      columns: [{ metric: 'share', label: 'Share', better: 'higher' }, { metric: 'scans', label: 'Scans', better: 'higher' }, { metric: 'median', label: 'Median' }] }] }] }
+  const [table] = toDoc(census, [], manifests, names).panels[0].blocks
+  assert.deepEqual(table, { type: 'RankedTable', source: src,
+    columns: [{ id: 'share', label: 'Share', unit: '%', better: 'higher' }, { id: 'scans', label: 'Scans', unit: undefined, better: 'higher' }, { id: 'median', label: 'Median', unit: undefined, better: undefined }],
+    rows: [ // the tool's order is kept; a row the block labels takes that label, the other its metric's; a key with no metric is left out
+      { id: 'g1', label: 'Offices', values: { share: 44.4, scans: 9, median: null } },
+      { id: 'g0', label: 'home', values: { share: 33, scans: 120, median: null } }] })
+  // and a table whose run has no such metrics draws nothing, as before
+  assert.deepEqual(toDoc({ ...census, panels: [{ id: 'p', title: 't', blocks: [{ type: 'RankedTable', run: 'r_c', rows: ['x'], columns: [{ metric: 'share', label: 'Share' }] }] }] }, [], manifests, names).panels[0].blocks, [])
+})

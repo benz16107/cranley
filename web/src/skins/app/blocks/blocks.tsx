@@ -114,7 +114,8 @@ function RankedTable({ b }: { b: Extract<Block, { type: 'RankedTable' }> }) {
     <div className="b-table">
       <table className="tbl">
         <thead><tr>
-          <th scope="col">Candidate</th>
+          {/* rows that open a building are candidates; rows of a rollup (by zip, by property type) are its groups */}
+          <th scope="col">{b.rows.some((r) => r.anchor) ? 'Candidate' : 'Group'}</th>
           {b.columns.map((c) => (
             <th key={c.id} scope="col" className="r" aria-sort={sort.col === c.id ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}>
               <button onClick={() => setSort({ col: c.id, dir: sort.col === c.id ? (sort.dir === 1 ? -1 : 1) : c.better === 'lower' ? 1 : -1 })}>

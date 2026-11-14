@@ -81,7 +81,7 @@ const START: Record<string, { first?: string[]; values?: Record<string, string |
   city_census: { first: ['preset', 'city', 'kind'], values: { preset: 'wheelchair_homes' } },
   similar_rooms: { first: ['query', 'label', 'city', 'min_area_m2'], values: { query: 'A sunlit kitchen with an island' } },
   facts_query: { values: { question: 'How many scans of each kind are in each city?', sql: 'SELECT city, kind, count(*) AS scans\nFROM threshold.scan\nGROUP BY city, kind\nORDER BY scans DESC' } },
-  measure_search: { first: ['criteria', 'city', 'kind'], values: { criteria: 'wheelchair_bath == 1\nfloors == 1' } },
+  measure_search: { first: ['need', 'criteria', 'city', 'kind'], values: { need: 'wheelchair' } }, // the tool's own list of common searches leads; criteria add to it
   field_audit: { first: ['sample', 'deep_top'], values: { sample: 12, deep_top: 3 } },
   noise_level: { first: ['readings'] },
   slope_check: { first: ['reading_deg', 'mode'] },
