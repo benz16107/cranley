@@ -83,7 +83,8 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     gone = [f for f in r["flips"] if f["change"] == "gone" and (f["before"] or {}).get("status") == "fail"]
     status = "pass" if a["failing"] == 0 else "warn" if len(fixed) else "fail"
     still = [c.split(":", 1)[0] for c in r["still_failing"]]
-    text = (f"{len(r['package'])} edits fix {len(fixed)} of {b['failing']} failing checks"
+    n = len(r["package"])
+    text = (f"{n} edit{'s' if n != 1 else ''} fix{'es' if n == 1 else ''} {len(fixed)} of {b['failing']} failing checks"
             + (f"; still failing: {', '.join(still[:3])}" + (f" and {len(still) - 3} more" if len(still) > 3 else "")
                if still else "; nothing the tools check still fails")
             + (f", and {len(broke)} get worse" if broke else "")
