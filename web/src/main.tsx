@@ -11,6 +11,6 @@ else {
   // The first path segment is the look. A link without one (/, /map, /scan/<sid>) opens in the default look.
   const { look, place } = splitPath(location.pathname)
   if (!look) history.replaceState(null, '', pathIn(DEFAULT_LOOK, place) + location.search)
-  void SKINS[look ?? DEFAULT_LOOK]().then(({ Root }) => root.render(<StrictMode><Root /></StrictMode>))
-  mountSwitcher()
+  // the look says where the switcher's tab sits; if a look fails to load, the tab is still there to leave by
+  void SKINS[look ?? DEFAULT_LOOK]().then(({ Root, switcher }) => { root.render(<StrictMode><Root /></StrictMode>); mountSwitcher(switcher) }, (e) => { console.error(e); mountSwitcher() })
 }

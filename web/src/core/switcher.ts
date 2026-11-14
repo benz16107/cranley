@@ -1,21 +1,31 @@
 import { LOOKS, pathIn, splitPath, DEFAULT_LOOK, type LookId } from './looks.ts'
 
-/* The look switcher: a small tab at the bottom edge that opens the same place in another look. It lives in a shadow
+/* The look switcher: a small tab at the edge of the screen that opens the same place in another look. Where it sits
+   is each look's choice (`export const switcher = 'top-right'` beside `Root` in the look's index.tsx). It lives in a shadow
    root, so no look's CSS reaches it and its CSS reaches no look. Changing look loads the page again on purpose:
    that is what keeps one look's global styles out of another. The place is in the URL and the workspace is on the
    server (its id in this browser), so the new look opens on the same moment. Alt+L steps to the next look. */
 const here = () => splitPath(location.pathname)
 const hrefIn = (look: LookId) => pathIn(look, here().place) + location.search
 
-export function mountSwitcher() {
+/** Where the tab sits. The default is the bottom centre. */
+export type SwitcherPlace = 'bottom' | 'top' | 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
+const PLACES: Record<SwitcherPlace, string> = {
+  bottom: 'left: 50%; bottom: 0; translate: -50% 0;', top: 'left: 50%; top: 0; translate: -50% 0;',
+  'bottom-left': 'left: 12px; bottom: 0;', 'bottom-right': 'right: 12px; bottom: 0;', 'top-left': 'left: 12px; top: 0;', 'top-right': 'right: 12px; top: 0;',
+}
+
+export function mountSwitcher(place: SwitcherPlace = 'bottom') {
+  if (!(place in PLACES)) place = 'bottom'
+  const top = place.startsWith('top')
   const host = document.createElement('div')
   host.setAttribute('data-look-switcher', '')
   const root = host.attachShadow({ mode: 'open' })
   const current = here().look ?? DEFAULT_LOOK
   root.innerHTML = `<style>
-    :host { all: initial; position: fixed; left: 50%; bottom: 0; translate: -50% 0; z-index: 2147483000; }
+    :host { all: initial; position: fixed; ${PLACES[place]} z-index: 2147483000; }
     nav { display: flex; gap: 2px; padding: 2px 6px; font: 500 10.5px/14px ui-monospace, 'SF Mono', Menlo, monospace; letter-spacing: 0.04em;
-      background: rgb(22 24 28 / 0.82); color: #fff; border-radius: 5px 5px 0 0; opacity: 0.5; transition: opacity 120ms ease; }
+      background: rgb(22 24 28 / 0.82); color: #fff; border-radius: ${top ? '0 0 5px 5px' : '5px 5px 0 0'}; opacity: 0.5; transition: opacity 120ms ease; }
     nav:hover, nav:focus-within { opacity: 1; }
     a { color: inherit; text-decoration: none; padding: 0 5px; border-radius: 3px; display: none; }
     a[aria-current], nav:hover a, nav:focus-within a { display: block; }
