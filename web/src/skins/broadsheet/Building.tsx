@@ -4,7 +4,7 @@ import {
   type Doc, type Overlay, type Panel, type SceneMode, type SceneProps, type ScanPlan,
 } from '../../core/index.ts'
 import { Desk, OpenQuestions, Plan } from './Desk.tsx'
-import { Fig, Mark, reduced } from './parts.tsx'
+import { Fig, Mark, reduced, useFree } from './parts.tsx'
 import { Headline, Story, look, pictureOf } from './Story.tsx'
 import { Contents, useCurrent, useStories } from './stories.tsx'
 import { familyOf, headSize, num, plural, unitOf, word } from './words.ts'
@@ -15,6 +15,7 @@ import { familyOf, headSize, num, plural, unitOf, word } from './words.ts'
 
 const VIEW: Record<SceneMode, string> = { dollhouse: 'Model', plan: 'Plan', pano: 'Inside', splat: 'Drone' }
 const CUT = 1.3 // metres above the floor: low enough to see into every room
+const PINS = 40
 
 /** The aerial photograph with what the site tools found drawn on it. */
 function AirPlate({ plan, findings, current }: { plan: ScanPlan; findings: Doc['findings']; current?: string }) {
@@ -25,12 +26,15 @@ function AirPlate({ plan, findings, current }: { plan: ScanPlan; findings: Doc['
   const boxes = pics.filter((x) => x.pic!.src === src && x.pic!.box)
   return (
     <div className="airplate" style={{ zIndex: 5 }}>
-      {ok === false ? <div className="state"><p>The aerial photograph did not load.</p></div>
-        : <img src={src} alt={`Aerial photograph of ${plan.name}, north up`} data-ok={ok === true} onLoad={() => setOk(true)} onError={() => setOk(false)} />}
-      {ok && (
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          {boxes.map(({ f, pic }) => { const [x0, y0, x1, y1] = pic!.box!; return <rect key={f.id} className="airbox" aria-current={f.id === current || undefined} x={x0 * 100} y={y0 * 100} width={(x1 - x0) * 100} height={(y1 - y0) * 100} onClick={() => look(f)} /> })}
-        </svg>
+      {ok === false ? <div className="state"><p>The aerial photograph did not load.</p></div> : (
+        <div className="sq">
+          <img src={src} alt={`Aerial photograph of ${plan.name}, north up`} data-ok={ok === true} onLoad={() => setOk(true)} onError={() => setOk(false)} />
+          {ok && (
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+              {boxes.map(({ f, pic }) => { const [x0, y0, x1, y1] = pic!.box!; return <rect key={f.id} className="airbox" aria-current={f.id === current || undefined} x={x0 * 100} y={y0 * 100} width={(x1 - x0) * 100} height={(y1 - y0) * 100} onClick={() => look(f)} /> })}
+            </svg>
+          )}
+        </div>
       )}
     </div>
   )
@@ -117,14 +121,20 @@ export function BuildingPage({ sid }: { sid: string }) {
   // marks only (what is in map coordinates is the aerial plate's and the map's, as in core).
   const drawn = useMemo(() => (!story ? v.overlays : doc.overlays.filter((o) => o.tool === story.tool && (!o.sid || o.sid === sid)).map((o) => o.overlay)
     .map((o) => (o.kind === 'pins' ? { ...o, pins: o.pins.filter((p) => !('geo' in p.anchor)) } : o))
-    .filter((o) => !(o.kind === 'route' && o.floor === 'geo') && !(o.kind === 'pins' && !o.pins.length))), [story?.tool, doc.overlays, v.overlays, sid]) // eslint-disable-line react-hooks/exhaustive-deps
-  const marks = legendOf(drawn)
+    .filter((o) => !(o.kind === 'route' && o.floor === 'geo') && !(o.kind === 'pins' && !o.pins.length))
+    // a figure with hundreds of marks shows none of them: past forty it keeps the ones that did not pass, forty at most
+    .map((o) => (o.kind === 'pins' && o.pins.length > PINS ? { ...o, pins: o.pins.filter((p) => p.status === 'fail' || p.status === 'warn').slice(0, PINS) } : o))), [story?.tool, doc.overlays, v.overlays, sid]) // eslint-disable-line react-hooks/exhaustive-deps
+  const allPins = story ? doc.overlays.filter((o) => o.tool === story.tool && (!o.sid || o.sid === sid)).reduce((n, o) => n + (o.overlay.kind === 'pins' ? o.overlay.pins.filter((p) => !('geo' in p.anchor)).length : 0), 0) : 0
+  const shownPins = drawn.reduce((n, o) => n + (o.kind === 'pins' ? o.pins.length : 0), 0)
+  const marks = legendOf(drawn) + (allPins > shownPins ? ` ${shownPins} of ${allPins} marks are drawn, the ones that did not pass; the rest are in the evidence on the page.` : '')
   const camFinding = doc.camera?.finding
   // The figure closes in on a finding only while its own story is on the page. The scene does not step back when a
   // focus is taken away, so a figure that had closed in is drawn again for the next story.
   const owner = camFinding ? doc.findings.find((x) => x.id === camFinding) : null
   const foreign = !!story && !!owner && owner.tool !== story.tool
-  const sceneView: SceneProps['view'] = v.sceneProps?.view && foreign ? { ...v.sceneProps.view, focus: null } : v.sceneProps?.view
+  // ... and it is framed in the part of the stage the column and the caption leave free.
+  const free = useFree(open), base = v.sceneProps?.view
+  const sceneView = useMemo<SceneProps['view']>(() => base && { ...base, focus: foreign ? null : base.focus, frame: free }, [base, foreign, free])
   const closedIn = useRef(false), lastStory = useRef(story?.id)
   const [redraw, setRedraw] = useState(0)
   if (sceneView?.focus) closedIn.current = true

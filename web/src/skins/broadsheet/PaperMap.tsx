@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { MapLibreOverlay } from '@deck.gl/maplibre'
 import { PathLayer, ScatterplotLayer } from 'deck.gl'
 import { CITIES, MapLibre, Marker, mapStyle, orthoImage, type Building, type CityId, type GeoMarks, type MapPalette } from '../../core/index.ts'
-import { G, reduced } from './parts.tsx'
+import { G, reduced, useFree } from './parts.tsx'
 
 /* The city as a printed map: paper ground, ink roads, every scanned building a dot of ink. What the agent has read
    is numbered in the order the page lists it, the building it is reading now is ringed in pencil, and what tools drew
@@ -34,6 +34,7 @@ export function PaperMap({ city, buildings, selected, numbered, now, hits, geo, 
   const [hover, setHover] = useState<{ b: Building; x: number; y: number } | null>(null)
   const [far, setFar] = useState(true) // from far off a mark on the map is its glyph; close in, it is named
   const select = useRef(onSelect); select.current = onSelect
+  const padded = useRef(false)
 
   useEffect(() => {
     const m = new MapLibre({
@@ -64,6 +65,14 @@ export function PaperMap({ city, buildings, selected, numbered, now, hits, geo, 
   ], [buildings, hits, geo.paths, quiet])
   useEffect(() => { overlay.current?.setProps({ layers }) }, [layers, map])
 
+  // The middle of the map is the middle of what the column and the caption leave free.
+  const free = useFree(open)
+  useEffect(() => {
+    if (!map) return
+    if (reduced() || !padded.current) map.setPadding(free); else map.easeTo({ padding: free, duration: 560 })
+    padded.current = true
+  }, [map, free])
+
   // The city switch is the one long move: a flight between the two editions.
   const firstCity = useRef(true)
   useEffect(() => {
@@ -84,10 +93,10 @@ export function PaperMap({ city, buildings, selected, numbered, now, hits, geo, 
     if (!pts.length) return
     const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1])
     const rem = parseFloat(getComputedStyle(document.documentElement).fontSize)
-    const side = open || window.innerWidth <= 760 ? 3 * rem : Math.min(46 * rem, window.innerWidth) / 2 + 12 * rem // clear of the column and its fade
-    map.fitBounds([[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]], { padding: { left: side, right: side, top: 5 * rem, bottom: 14 * rem }, maxZoom: 14, duration: reduced() ? 0 : 1400, essential: true })
+    // (fitBounds adds its padding to the map's own, which already keeps the column and the caption clear)
+    map.fitBounds([[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]], { padding: { left: free.left ? 9 * rem : 3 * rem, right: 4 * rem, top: 5 * rem, bottom: 3 * rem }, maxZoom: 14, duration: reduced() ? 0 : 1400, essential: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fitKey, map, open])
+  }, [fitKey, map, free])
 
   const lookKey = look?.join(',')
   useEffect(() => {

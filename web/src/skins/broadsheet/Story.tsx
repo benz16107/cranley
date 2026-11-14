@@ -57,7 +57,10 @@ function Scale({ c }: { c: Check }) {
 }
 function Checks({ b, ctx }: { b: Of<'CheckList'>; ctx: Ctx }) {
   const current = ctx.current
-  const truth = ctx.family === 'truth', flood = ctx.family === 'flood'
+  const truth = ctx.family === 'truth'
+  // checks with nothing to be held against (a depth in each room, the minutes each task takes) are set as bars on one scale
+  const bars = !truth && b.checks.every((c) => c.measured != null && !c.threshold) && new Set(b.checks.map((c) => c.unit)).size === 1
+  const listed = bars && /^\d+\. /.test(b.checks[0]?.rule ?? '')
   const deepest = Math.max(...b.checks.map((c) => c.measured ?? 0)) || 1
   // a standard every check shares is said once, under the heading
   const shared = b.checks.length > 1 && b.checks.every((c) => c.standard && c.standard === b.checks[0].standard) ? b.checks[0].standard : null
@@ -78,13 +81,13 @@ function Checks({ b, ctx }: { b: Of<'CheckList'>; ctx: Ctx }) {
       <button className="check" {...props}>
         <span data-s={c.status}><G s={c.status} /></span><span className="rule"><span className="t">{c.rule}</span>{std(c)}</span>
         <span className="val" data-s={c.status}>{fmt(c.measured) ?? <i>not measured</i>}{c.threshold != null && c.threshold !== 0 && <small>limit {fmt(c.threshold, true)}</small>}</span>
-        {flood && c.measured != null ? <span className="depth" style={{ ['--w' as string]: `${(c.measured / deepest) * 100}%` }} aria-hidden="true" />
+        {bars ? <span className="depth" style={{ ['--w' as string]: `${(c.measured! / deepest) * 100}%` }} aria-hidden="true" />
           : c.measured != null && c.threshold != null && c.threshold !== 0 && <Scale c={c} />}
       </button>
     )
   }
   return (
-    <section className="sec"><h2>{truth ? 'The record against the scan' : flood ? 'Room by room' : 'Checked against the limit'}</h2>
+    <section className="sec"><h2>{truth ? 'The record against the scan' : listed ? 'In this order' : bars ? (ctx.family === 'flood' ? 'Room by room' : 'One by one') : 'Checked against the limit'}</h2>
       {shared && <p className="fig" style={{ margin: '0.625rem 0 0.25rem' }}>{shared}</p>}
       {truth && <div className="compare headrow cap" aria-hidden="true"><span>Claim</span><span>Record says</span><span>Scan measures</span></div>}
       <Fold items={b.checks} show={7} noun="checks">{(shown) => <ul className="checks">{shown.map((c) => <li key={c.id}>{row(c)}</li>)}</ul>}</Fold>
@@ -379,7 +382,7 @@ function ordered(blocks: Block[], family: Family): Block[] {
 export function Headline({ panel, family, as: H = 'h1', brief }: { panel: Panel; family: Family; as?: 'h1' | 'h2'; brief?: boolean }) {
   const findings = useWorkspace((s) => s.doc.findings)
   const verdict = panel.blocks.find((b): b is Of<'VerdictHeader'> => b.type === 'VerdictHeader')
-  const lead = leadOf(panel.blocks)
+  const lead = leadOf(panel.blocks, family)
   const source = lead?.source ?? findings.find((f) => f.id === lead?.finding)?.source
   // a panel with no verdict (the agent's own summary) leads with its note, in the agent's words
   const note = panel.blocks.find((b): b is Of<'Note'> => b.type === 'Note')

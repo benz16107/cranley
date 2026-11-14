@@ -1,7 +1,7 @@
-import { Suspense, useEffect, useState } from 'react'
-import { NEEDS, Scene, SceneBoundary, compose, fetchPlan, navigate, startOver, useBuildingView, useMapModel, useWorkspace, type ScanPlan } from '../../core/index.ts'
+import { Suspense, useEffect, useMemo, useState } from 'react'
+import { NEEDS, Scene, SceneBoundary, compose, fetchPlan, navigate, startOver, useBuildingView, useMapModel, useWorkspace, type SceneProps, type ScanPlan } from '../../core/index.ts'
 import { Ask, StartButtons } from './Desk.tsx'
-import { Fig, Mark, reduced } from './parts.tsx'
+import { Fig, Mark, reduced, useFree } from './parts.tsx'
 import { plural } from './words.ts'
 
 /* The front page: one fact, one line to write on, and a real house cut open on the paper. After the sentence, the
@@ -25,10 +25,12 @@ function CoverFigure({ sid }: { sid: string }) {
   const v = useBuildingView(sid)
   const setView = v.setView, ready = !!v.plan
   useEffect(() => { if (ready) setView((x) => ({ ...x, mode: 'dollhouse', cut: 1.3 })) }, [ready, setView])
+  const free = useFree(false), base = v.sceneProps?.view
+  const view = useMemo<SceneProps['view']>(() => base && { ...base, frame: free }, [base, free])
   if (!v.sceneProps) return <div className="state"><i className="unset" /><i className="unset" /></div>
   return (
     <Suspense fallback={<div className="state"><i className="unset" /><i className="unset" /></div>}>
-      <SceneBoundary key={v.sceneKey} fallback={<div className="state"><p>The house on this page did not draw.</p></div>}><Scene {...v.sceneProps} className="bs-scene" /></SceneBoundary>
+      <SceneBoundary key={v.sceneKey} fallback={<div className="state"><p>The house on this page did not draw.</p></div>}><Scene {...v.sceneProps} view={view} className="bs-scene" /></SceneBoundary>
     </Suspense>
   )
 }

@@ -155,8 +155,9 @@ a { color: inherit; }
 .page[data-plate='photo'] .col { box-shadow: 1px 0 0 var(--ink); }
 .page[data-open] .col { transform: translateX(-104%); visibility: hidden; transition: transform 560ms var(--ease-in-out), visibility 0s 560ms; }
 
-.stage { position: fixed; z-index: 1; inset: var(--top) 0 0; background: var(--paper); transform: translateX(calc(var(--col) / 2)); transition: transform 560ms var(--ease-in-out); isolation: isolate; }
-.page[data-open] .stage { transform: none; }
+/* The stage is the whole screen under the masthead; the column lies over its left part. The scene and the map are told
+   which part is free (their `frame` and padding), so their subject sits in it and glides to the middle when the figure opens. */
+.stage { position: fixed; z-index: 1; inset: var(--top) 0 0; background: var(--paper); isolation: isolate; }
 .stage > .bs-scene, .stage > .citymap, .stage > .airplate, .stage > .state { position: absolute; inset: 0; width: 100%; height: 100%; }
 .state { display: grid; place-content: center; justify-items: center; gap: 1rem; padding: 2rem; text-align: center; color: var(--ink-2); }
 .state .unset { width: 18rem; }
@@ -178,9 +179,8 @@ a { color: inherit; }
 .bs-scene .th-legend { bottom: auto; top: 1rem; right: var(--gut); }
 .bs-scene .th-note { left: auto; right: var(--gut); translate: none; bottom: auto; top: 1rem; max-width: 22rem; }
 .bs-scene .th-legend ~ .th-note { top: 6.5rem; }
-.bs-scene .th-cut { right: var(--gut); top: calc(50% - 1rem); }
-.page:not([data-open]) .bs-scene .th-floors { left: calc(var(--col) / 2 + 2rem); }
-.page:not([data-open]) .bs-scene :is(.th-cut, .th-legend, .th-note) { right: calc(var(--col) / 2 + var(--gut)); }
+.bs-scene .th-cut { right: var(--gut); top: calc(50% - 5rem); }
+.page:not([data-open]) .bs-scene .th-floors { left: calc(var(--col) + 2rem); }
 
 /* Figure 1's caption, and the way to change what the figure shows. Bottom right, clear of the look switcher. */
 .figbar { position: fixed; z-index: 4; right: var(--gut); bottom: 1.5rem; width: min(27rem, calc(100vw - var(--col) - var(--gut) * 2)); padding: 0.75rem 0.875rem 0.875rem; background: var(--paper); border-top: 2px solid var(--ink); }
@@ -199,9 +199,13 @@ a { color: inherit; }
 .opencap .need { font-size: 1.25rem; }
 
 /* The aerial photograph as a plate, with what the tools found drawn on it. */
-.airplate { background: var(--paper-2); overflow: hidden; }
-.airplate img { position: absolute; left: 50%; top: 50%; height: 100%; aspect-ratio: 1; max-width: none; translate: -50% -50%; object-fit: cover; }
-.airplate svg { position: absolute; left: 50%; top: 50%; height: 100%; aspect-ratio: 1; translate: -50% -50%; overflow: visible; }
+/* The photograph is square. It covers the free part of the stage, and the boxes are drawn in its own square. */
+.airplate { background: var(--paper-2); overflow: hidden; container-type: size; }
+.page:not([data-open]) .stage > .airplate { left: var(--col); width: auto; }
+.airplate .sq { position: absolute; left: 50%; top: 50%; width: max(100cqw, 100cqh); aspect-ratio: 1; translate: -50% -50%; }
+.airplate img, .airplate svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.airplate img { opacity: 0; transition: opacity 240ms var(--ease-out); }
+.airplate img[data-ok='true'] { opacity: 1; }
 .airbox { fill: rgb(255 224 74 / 0.14); stroke: var(--mark); stroke-width: 0.5; vector-effect: non-scaling-stroke; }
 .airbox[aria-current] { stroke: #fff; fill: rgb(255 224 74 / 0.28); }
 
@@ -212,6 +216,7 @@ a { color: inherit; }
 .contents { display: flex; flex-wrap: wrap; gap: 0.125rem 1.25rem; margin: -0.5rem 0 1.5rem; padding: 0.375rem 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
 .contents button { display: inline-flex; align-items: center; gap: 0.5em; min-height: 2.5rem; font: 500 1.0625rem/1.2 var(--sans); color: var(--ink-2); }
 .contents button[aria-current='true'] { color: var(--ink); font-weight: 700; }
+.contents .morebtn { color: var(--ink); text-decoration: underline; text-underline-offset: 0.25em; }
 .head { font: 500 4.25rem/0.98 var(--serif); letter-spacing: -0.026em; text-wrap: balance; animation: bs-set 260ms var(--ease-out) both; }
 .head[data-size='m'] { font-size: 3.5rem; line-height: 1; }
 .head[data-size='s'] { font-size: 2.625rem; line-height: 1.04; letter-spacing: -0.02em; }
@@ -249,7 +254,7 @@ a { color: inherit; }
 /* CheckList: each rule on a ruled line, the measurement against its limit on a scale. */
 .checks > li { border-bottom: 1px solid var(--rule); }
 .check { display: grid; grid-template-columns: 1.25rem minmax(0, 1fr) auto; align-items: baseline; column-gap: 0.75rem; width: 100%; padding: 0.75rem 0 0.75rem; }
-.check > [data-s], .compare > [data-s]:first-child { align-self: center; font-size: 1.125rem; line-height: 0; }
+.check > [data-s]:first-child, .compare > [data-s]:first-child { align-self: center; font-size: 1.125rem; line-height: 0; }
 .rule { font-size: 1.375rem; line-height: 1.22; font-weight: 500; text-wrap: pretty; }
 .rule small { display: block; margin-top: 0.125rem; font: 400 1rem/1.3 var(--sans); color: var(--ink-2); }
 .val { font: 500 1.25rem/1 var(--mono); letter-spacing: -0.03em; white-space: nowrap; text-align: right; }
@@ -269,7 +274,7 @@ a { color: inherit; }
 .compare .val.says { color: var(--ink-2); text-decoration: line-through; text-decoration-thickness: 2px; }
 .compare[data-status='pass'] .val.says, .compare[data-status='unknown'] .val.says { text-decoration: none; }
 /* Flood: depth per room, as water standing against the line. */
-.depth { grid-column: 2 / -1; height: 0.625rem; margin-top: 0.5rem; background: linear-gradient(var(--water), var(--water)) no-repeat 0 0 / var(--w) 100%, repeating-linear-gradient(135deg, var(--rule) 0 2px, transparent 2px 6px); }
+.depth { grid-column: 2 / -1; height: 0.625rem; margin-top: 0.5rem; --fill: var(--ink); background: linear-gradient(var(--fill), var(--fill)) no-repeat 0 0 / var(--w) 100%, repeating-linear-gradient(135deg, var(--rule) 0 2px, transparent 2px 6px); }
 
 /* EvidenceStrip: numbered figures. A photograph is a plate with what was found marked on it. */
 .plates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.75rem 1.25rem; margin-top: 1rem; }
@@ -328,6 +333,7 @@ a { color: inherit; }
 .hbars i { height: 0.875rem; background: var(--ink); transform-origin: left; }
 [data-family='flood'] .hbars i { background: var(--water); }
 .hbars .n { font-size: 1.0625rem; }
+[data-family='flood'] .depth { --fill: var(--water); }
 
 /* FloorPlanMini: the plan as a figure. */
 .planfig { display: block; width: 100%; margin-top: 1rem; }
@@ -468,12 +474,13 @@ select.field { font-style: normal; font-size: 1.125rem; width: auto; min-width: 
   .edition { gap: 0; } .edition button { padding: 0 0.375rem; letter-spacing: 0.04em; font-size: 0.8125rem; } .mast-do { padding: 0 0.5rem; } .mast-do kbd { display: none; }
   .sections .add .long { display: none; }
   .askline { display: none; }
-  .stage { position: relative; inset: auto; height: 46svh; margin-top: var(--top); transform: none; }
+  .stage { position: relative; inset: auto; height: 46svh; margin-top: var(--top); }
   .page[data-open] .stage { position: fixed; inset: var(--top) 0 0; height: auto; margin: 0; z-index: 3; }
   .col { min-height: 0; padding: 1.5rem var(--gut) 7rem; }
   .col::after { display: none; }
+  .page:not([data-open]) .stage > .airplate { left: 0; }
   .page[data-plate='photo'] .col { box-shadow: none; }
-  .page .bs-scene .th-floors.th-floors { left: 0.75rem; right: auto; top: 0.5rem; }
+  .page .bs-scene .th-floors.th-floors, .page:not([data-open]) .bs-scene .th-floors { left: 0.75rem; right: auto; top: 0.5rem; }
   .page .bs-scene :is(.th-legend, .th-note):is(.th-legend, .th-note) { left: auto; right: 0.75rem; top: 0.5rem; max-width: 60%; }
   .page .bs-scene .th-cut { display: none; }
   .figbar { position: relative; right: auto; bottom: auto; width: auto; margin: 0 var(--gut); z-index: 2; }
@@ -493,5 +500,5 @@ select.field { font-style: normal; font-size: 1.125rem; width: auto; min-width: 
   .mark::before, .set, .head, .opencap, .section.new::after, .story > * { animation: none !important; }
   .reading::before { animation: none; transform: none; }
   .pin[data-kind='now']::after { animation: none; opacity: 0; }
-  .col, .stage, .page[data-open] .col { transition-duration: 0s; }
+  .col, .page[data-open] .col { transition-duration: 0s; }
 }

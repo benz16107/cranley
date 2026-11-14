@@ -12,6 +12,8 @@ test('a failing check with a limit leads, and its number is the one in the block
     { type: 'VerdictHeader', status: 'fail', text: 'x' }, { type: 'MetricRow', metrics: [metric('a', 4.11)] },
     { type: 'CheckList', checks: [check('none', null, 0.815, 'unknown'), check('hall', 1.031, 1.525, 'fail'), check('bed', 2.7, 1.525, 'pass')] },
   ]
+  assert.equal(leadOf(blocks, 'flood')?.label, 'a') // a flood story leads with its first metric, whatever its checks say
+  assert.equal(withUnit(960, 'USD'), '$960')
   assert.deepEqual(leadOf(blocks), { label: 'Rule hall', value: 1.031, unit: 'm', need: 1.525, status: 'fail', source: null, finding: 'f-hall' })
 })
 

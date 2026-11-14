@@ -26,7 +26,7 @@ export const limit = (v: number, u?: string) => `${new Intl.NumberFormat('en-US'
 export const unitOf = (u: string | undefined) => (u === 'm2' ? 'm²' : u === 'ft2' ? 'ft²' : u === 'count' || u === 'score' ? '' : u ?? '')
 /** A year is not a quantity: no thousands separator. */
 export const plain = (v: number) => String(v)
-export const withUnit = (v: number | null | undefined, u?: string) => (v == null ? 'not measured' : `${num(v)}${unitOf(u) ? ` ${unitOf(u)}` : ''}`)
+export const withUnit = (v: number | null | undefined, u?: string) => (v == null ? 'not measured' : u === 'USD' ? `$${num(v)}` : `${num(v)}${unitOf(u) ? ` ${unitOf(u)}` : ''}`)
 export const ms = (t: number) => (t < 1000 ? `${Math.round(t)} ms` : `${(t / 1000).toFixed(1)} s`)
 
 const WORDS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten']
@@ -45,11 +45,14 @@ export type Lead = { label: string; value: number; unit: string; need: number | 
 
 const first = <T extends Block['type']>(blocks: Block[], type: T) => blocks.find((b): b is Extract<Block, { type: T }> => b.type === type)
 
-/** A failing or close check that has both a measurement and a limit leads; otherwise the tool's first metric does.
-    Checks arrive worst first and metrics in the tool's own order, so the tool decides what matters. */
-export function leadOf(blocks: Block[]): Lead | null {
+/** Where the story is a measurement held against a limit or a claim, and it did not pass, the check that decided it
+    leads: its number, and what it is held against. Everywhere else the tool's first metric leads. Checks arrive worst
+    first and metrics in the tool's own order, so the tool decides what matters; this only picks between the two. */
+const HELD: Family[] = ['access', 'truth', 'fire', 'office']
+export function leadOf(blocks: Block[], family: Family = 'access'): Lead | null {
   const status = first(blocks, 'VerdictHeader')?.status ?? 'unknown'
-  const check = first(blocks, 'CheckList')?.checks.find((c: Check) => c.measured != null && c.threshold != null && c.threshold !== 0 && (c.status === 'fail' || c.status === 'warn'))
+  const held = HELD.includes(family) && (status === 'fail' || (status === 'warn' && (family === 'access' || family === 'truth')))
+  const check = held ? first(blocks, 'CheckList')?.checks.find((c: Check) => c.measured != null && c.threshold != null && c.threshold !== 0 && c.status === status) : undefined
   if (check) return { label: check.rule, value: check.measured!, unit: check.unit, need: check.threshold, status: check.status, source: null, finding: check.findings[0] ?? null }
   const metric = first(blocks, 'MetricRow')?.metrics.find((m: Metric) => m.value != null)
   if (metric) return { label: metric.label, value: metric.value!, unit: metric.unit, need: null, status, source: metric.source, finding: null }
@@ -59,7 +62,7 @@ export function leadOf(blocks: Block[]): Lead | null {
 /** What the limit is called, by the kind of story. */
 export function needLine(family: Family, need: number, unit: string): string {
   const n = limit(need, unit)
-  return family === 'truth' ? `The record says ${n}.` : family === 'access' || family === 'fire' ? `You need ${n}.` : `The limit is ${n}.`
+  return family === 'truth' ? `The record says ${n}.` : family === 'access' || family === 'fire' || family === 'office' ? `You need ${n}.` : `The limit is ${n}.`
 }
 
 /** Tools write "Rule, Room: detail". The headline takes the part before the colon; the rest is the standfirst's. */

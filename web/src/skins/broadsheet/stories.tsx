@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { setQuery, useRoute, useWorkspace, type Panel } from '../../core/index.ts'
 import { G } from './parts.tsx'
 
@@ -25,13 +26,17 @@ export function readStory(id: string) {
 
 /** The stories on this page, as a line of contents. */
 export function Contents({ stories, story }: { stories: Panel[]; story: Panel | null }) {
+  const [all, setAll] = useState(false)
   if (stories.length < 2) return null
+  // a long page lists its first few stories and the one being read; the rest are a press away
+  const shown = all || stories.length <= 7 ? stories : stories.filter((p, i) => i < 6 || p.id === story?.id)
   return (
     <nav className="contents" aria-label="On this page">
-      {stories.map((p) => {
+      {shown.map((p) => {
         const v = p.blocks.find((b) => b.type === 'VerdictHeader')
         return <button key={p.id} aria-current={p.id === story?.id || undefined} onClick={() => readStory(p.id)}>{v?.type === 'VerdictHeader' && <span data-s={v.status}><G s={v.status} /></span>}{p.title}</button>
       })}
+      {stories.length > 7 && <button className="morebtn" aria-expanded={all} onClick={() => setAll(!all)}>{all ? 'Fewer' : `${stories.length - shown.length} more`}</button>}
     </nav>
   )
 }
