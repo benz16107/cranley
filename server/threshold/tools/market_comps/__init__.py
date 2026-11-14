@@ -147,7 +147,8 @@ def build(subj: dict, comps: list[dict], r: float, inputs: Inputs, scope, key: s
         k = f"c{c['id']}"
         rent, sale = kit.asking_rent(c), kit.last_sale(c)
         avail = (c.get("available") or {}).get("sf")
-        pct = round(100 * avail / c["rba"], 1) if avail and c.get("rba") else (0.0 if c.get("rba") else None)
+        # listings of one building overlap (a direct and a sublease listing of the same floor), so cap at the building
+        pct = round(min(100.0, 100 * avail / c["rba"]), 1) if avail and c.get("rba") else (0.0 if c.get("rba") else None)
         label = f"{c.get('address') or c['id']}" + (f" (class {c['class']})" if c.get("class") else "")
         src = Source(layer="costar", method="lookup", confidence="medium", note=f"CoStar property {c['id']}")
         metrics.append(Metric(id=f"{k}/rent", label=label, value=rent["rate"] if rent else None, unit="$/ft²/yr", source=KIT))

@@ -29,7 +29,7 @@ PRICE_STATUS = {1: "affidavit", 2: "approximate", 3: "confirmed", 4: "declaratio
 LEASE_TYPES = {14, 16, 17, 19, 20, 21, 28}
 SUBLEASE_TYPES = {19, 20}
 SPRINKLER = {1: "wet", 2: "dry", 3: "ESFR"}
-LAYOUT = 3  # bump when a row's shape changes
+LAYOUT = 4  # bump when a row's shape changes
 
 
 def _dig(r, path: str):
@@ -63,7 +63,7 @@ def rents(listings: list[dict]) -> list[dict]:
 
 def available(listings: list[dict]) -> dict:
     """Space marketed for lease now: total ft² over active spaces and the largest contiguous block."""
-    total, block = 0.0, 0.0
+    total, block, sizes = 0.0, 0.0, []
     for l in listings:
         f = l.get("forLeaseSummary")
         if not f or l.get("listingType") not in LEASE_TYPES or l.get("listingStatus") != 1:
@@ -73,8 +73,10 @@ def available(listings: list[dict]) -> dict:
                 continue
             total += s.get("squareFeetMax") or 0
             block = max(block, s.get("squareFeetMaxContiguous") or 0, s.get("squareFeetMax") or 0)
+            if s.get("squareFeetMax"):
+                sizes.append(round(s["squareFeetMax"]))
         block = max(block, f.get("maxContiguousSquareFeet") or 0)
-    return {"sf": round(total) or None, "max_contiguous_sf": round(block) or None}
+    return {"sf": round(total) or None, "max_contiguous_sf": round(block) or None, "spaces": sorted(set(sizes))}
 
 
 def sales(pid: int, comps: list[dict], rba: float | None) -> list[dict]:

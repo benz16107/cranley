@@ -193,7 +193,13 @@ def score_size(c: Cand, req: dict) -> Cell | None:
     row = c.row or {}
     avail = (row.get("available") or {}).get("max_contiguous_sf")
     sf, what, src = None, "", None
-    if avail:
+    fits = [x for x in (row.get("available") or {}).get("spaces") or [] if (not lo or x >= lo) and (not hi or x <= hi)]
+    if fits and (lo or hi):
+        mid = ((lo or hi) + (hi or lo)) / 2
+        sf = min(fits, key=lambda x: abs(x - mid))
+        what = f"a marketed space that fits (one of {len(row['available']['spaces'])} spaces for lease; largest block {avail:,.0f} ft²)"
+        src = Source(layer="costar", method="lookup", confidence="medium", note=f"CoStar listings on property {row['id']}")
+    elif avail:
         sf, what = avail, "largest contiguous block marketed for lease"
         src = Source(layer="costar", method="lookup", confidence="medium", note=f"CoStar listings on property {row['id']}")
     elif row.get("rba"):
