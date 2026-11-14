@@ -23,7 +23,8 @@ from ...aerial import detect as aerial_detect
 from ...aerial import site as aerial
 from ...geometry import room_graph, route
 from ...geometry._plan import polygons
-from .. import Check, Finding, Metric, Source, ToolResult, Verdict, field, tool
+from ...sources import index
+from .. import Check, Finding, Metric, NotApplicable, Source, ToolResult, Verdict, field, tool
 from .._site import (
     Where,
     capture,
@@ -248,6 +249,9 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                                             anchor=geo(*(pool["polygon"].centroid.coords[0])) if pool else geo(s.lon, s.lat),
                                             source=src(s, "pool"), detail=f"Enclosed per Vexcel: {enclosed > 0}.",
                                             media=[ortho_media(s, 60)])])
+    if (index.rows().get(s.sid) or {}).get("kind") == "apartment_unit":
+        raise NotApplicable("This scan is one apartment unit, so the pool on the parcel is the community's: its fence and "
+                            "self-closing gate are the barrier, not the unit's own doors. Check that gate on site.")
     plan = ctx.plan(s.sid)
     a = al.check(plan, fp)
     conf = a["confidence"]

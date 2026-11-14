@@ -1,3 +1,4 @@
+from tests.tools._site.fakes import facts, offline  # noqa: F401
 from shapely.geometry import Polygon
 
 from threshold.tools._site import align
@@ -53,3 +54,14 @@ def test_doors_reach_the_pool_around_the_house_when_none_faces_it():
     back = {"id": "b", "direct": True, "yard_m": 3.0}
     assert toward_pool([front, back]) == [back] and "around" not in back
     assert toward_pool([{"id": "x", "direct": None}]) == []   # not placed on the map: the caller's fallback decides
+
+
+def test_an_apartment_unit_points_to_the_community_pool_gate(offline):  # noqa: F811
+    from threshold.aerial import site
+    from threshold.sources import index
+    from threshold.tools import run_tool
+    offline.setattr(index, "rows", lambda: {"apt": {"kind": "apartment_unit", "lat": "29.7", "lon": "-95.4"}})
+    offline.setattr(site, "site_facts", lambda lat, lon: facts({"pool": True}))
+    offline.setattr("threshold.tools.path_to_water.find_pool", lambda *a: None)
+    r = run_tool("path_to_water", {"scan": "apt", "use_vision": False})
+    assert r.verdict.status == "unknown" and "community" in r.verdict.text
