@@ -182,3 +182,40 @@ def test_upload_route_then_plan_and_tool(tmp_path, monkeypatch):
     assert c.post("/api/scans/user", json={"export": {"walls": []}}).status_code == 422
     assert c.get("/api/scan/u_ffffffffffff/plan").status_code == 404
     assert not math.isnan(p["rooms"][0]["area"])
+
+
+@pytest.mark.parametrize("bad", [
+    lambda e: e.update(walls=["x"]),
+    lambda e: e["walls"][0].update(dimensions=[1]),
+    lambda e: e["walls"][0].update(dimensions=["a", 1, 0]),
+    lambda e: e["walls"][0].update(story="a"),
+    lambda e: e.update(rooms=5),
+    lambda e: e["walls"][0].update(dimensions=[float("inf"), 2, 0]),
+])
+def test_a_malformed_export_is_an_export_error_not_a_crash(bad):
+    e = copy.deepcopy(home())
+    bad(e)
+    with pytest.raises(ExportError):
+        convert(e, SID)
+
+
+def test_too_many_walls_is_refused_before_converting():
+    e = copy.deepcopy(home())
+    e["walls"] = e["walls"] * 400
+    with pytest.raises(ExportError, match="more than"):
+        convert(e, SID)
+
+
+def test_upload_refuses_a_body_over_the_limit_and_a_malformed_export(tmp_path, monkeypatch):
+    from threshold.api import user_scans as route
+    from threshold.api.app import app
+    from threshold.sources import user_scans
+    monkeypatch.setattr(user_scans, "ROOT", tmp_path / "user_scans")
+    monkeypatch.setattr(route, "MAX_BYTES", 1000)
+    c = TestClient(app)
+    assert c.post("/api/scans/user", content=b"{" + b" " * 2000 + b"}").status_code == 413
+    monkeypatch.setattr(route, "MAX_BYTES", 25_000_000)
+    e = copy.deepcopy(home())
+    e["walls"][0]["dimensions"] = [1]
+    assert c.post("/api/scans/user", json={"export": e}).status_code == 422
+    assert not (tmp_path / "user_scans").exists() or not any((tmp_path / "user_scans").iterdir())

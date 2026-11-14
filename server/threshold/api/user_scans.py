@@ -3,6 +3,7 @@ other scan, and every tool takes the sid."""
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 
 from ..roomplan import ExportError
@@ -36,16 +37,15 @@ class Upload(BaseModel):
 
 @router.post("/scans/user")
 async def upload(request: Request) -> dict:
-    body = await request.body()
-    if len(body) > MAX_BYTES:
-        raise HTTPException(413, f"the export is larger than {MAX_BYTES // 1_000_000} MB")
+    from .capture import _body
+    body = await _body(request, MAX_BYTES)  # refused as it streams in, not after the whole body is in memory
     try:
         up = Upload.model_validate_json(body)
     except ValueError as e:
         raise HTTPException(422, str(e)[:500]) from None
     meta = up.model_dump(exclude={"export"}, exclude_none=True)
     try:
-        plan = user_scans.save(up.export, meta)
+        plan = await run_in_threadpool(user_scans.save, up.export, meta)  # seconds of shapely: off the event loop
     except ExportError as e:
         raise HTTPException(422, str(e)) from None
     q = plan["quality"]
