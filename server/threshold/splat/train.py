@@ -23,6 +23,7 @@ from . import ROOT, carve, dataset, seed, spz, virtual
 BRUSH = os.environ.get("BRUSH_BIN", str(Path.home() / ".local/share/brush-dl/brush-app-x86_64-unknown-linux-gnu/brush_app"))
 BRUSH_VERSION = "0.3.0"
 SHOTS = ROOT.parent / "shots" / "splat"
+REFINE = 2000  # steps after the outer shell is cut
 GROWTH_STOP = 0.7  # of the steps; splats stop multiplying after this, so the last phase only refines
 IDENTITY = [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]]
 
@@ -38,9 +39,11 @@ def _brush(d: Path, out: Path, meta: dict, start: int, end: int, sh_degree: int,
         subprocess.run(cmd, cwd=out, stdout=log, stderr=subprocess.STDOUT, check=True)
 
 
-def run(sid: str, steps: int = 10000, sh_degree: int = 2, max_splats: int = 1_500_000, phases: int = 1) -> dict:
-    """Train in `phases` Brush runs; after each, carve the free-space splats and start the next from what is left.
-    A last one-step run scores the carved result on the held-out sweeps."""
+def run(sid: str, steps: int = 10000, sh_degree: int = 2, max_splats: int = 1_500_000, phases: int = 1,
+        refine: int = REFINE) -> dict:
+    """Train in `phases` Brush runs; after each, carve the free-space splats and the ones outside the building, and
+    start the next from what is left. Then `refine` more steps without growth, so surfaces that leaned on the cut
+    outer shell turn opaque, and one last carve. A one-step run scores what ships on the held-out sweeps."""
     root, d = ROOT / sid, dataset.dataset_dir(sid)
     meta = json.loads((d / "dataset.json").read_text())
     plan = mp.plan(sid)
@@ -54,22 +57,26 @@ def run(sid: str, steps: int = 10000, sh_degree: int = 2, max_splats: int = 1_50
     init.unlink(missing_ok=True)
     t0, carved = time.time(), []
     ends = [round(steps * (i + 1) / phases) for i in range(phases)]
-    for start, end in zip([0, *ends], ends):
-        _brush(d, out, meta, start, end, sh_degree, max_splats, end - start, round(steps * GROWTH_STOP))
+    runs = [(s, e, e - s, round(steps * GROWTH_STOP)) for s, e in zip([0, *ends], ends)]
+    if refine:
+        runs.append((steps, steps + refine, refine, 0))
+    for start, end, every, growth in runs:
+        _brush(d, out, meta, start, end, sh_degree, max_splats, every, growth)
         cols = spz.read_ply(out / f"phase_{end}.ply")
         xyz = np.stack([cols["x"], cols["y"], cols["z"]], 1)
         drop = carve.free_space(xyz, T, sweeps) | carve.outside(xyz, plan)
         carved.append({"step": end, "splats": len(drop), "removed": int(drop.sum())})
         spz.write_ply(init, {k: v[~drop] for k, v in cols.items()})
+    last = runs[-1][1]
     shutil.move(init, out / "carved.ply")
     if meta["eval_period"]:  # score exactly what ships: start from the carved splats, one step, eval and export
         spz.write_ply(init, spz.read_ply(out / "carved.ply"))
-        _brush(d, out, meta, steps, steps + 1, sh_degree, max_splats, 1, 0)
+        _brush(d, out, meta, last, last + 1, sh_degree, max_splats, 1, 0)
         init.unlink()
-        shutil.move(out / f"phase_{steps + 1}.ply", out / "final.ply")
+        shutil.move(out / f"phase_{last + 1}.ply", out / "final.ply")
     else:
         shutil.move(out / "carved.ply", out / "final.ply")
-    return publish(sid, out, steps, sh_degree, max_splats, round(time.time() - t0), phases, carved)
+    return publish(sid, out, last, sh_degree, max_splats, round(time.time() - t0), phases, carved)
 
 
 def publish(sid: str, out: Path, steps: int, sh_degree: int, max_splats: int, seconds: int, phases: int,
