@@ -1,0 +1,16 @@
+{
+  "id": "stretcher",
+  "title": "Stretcher path",
+  "summary": "Whether a lying-flat ambulance stretcher can be carried from the entrance to each bedroom.",
+  "params": {
+    "width": {"default": 0.58, "unit": "m", "label": "Stretcher width"},
+    "length": {"default": 2.1, "unit": "m", "label": "Stretcher length"},
+    "height": {"default": 0.5, "unit": "m", "label": "Stretcher height with patient, lowered"}
+  },
+  "rules": [
+    {"id": "carry_to_bedroom", "measure": "carry_box", "box": ["$length", "$width", "$height"], "threshold": 0, "unit": "m", "compare": "at_least", "severity": "required", "flat": true,
+     "targets": ["Bedroom"],
+     "text": "A 0.58 m by 2.1 m stretcher, kept flat, passes every door and corner from the entrance to each bedroom.",
+     "standard": "Stretcher size close to IBC 3002.4 (elevator cars must take a 24 in by 84 in stretcher, flat); geometry check, not a code requirement for dwellings"}
+  ]
+}

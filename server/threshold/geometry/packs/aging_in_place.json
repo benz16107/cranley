@@ -1,0 +1,25 @@
+{
+  "id": "aging_in_place",
+  "title": "Aging in place",
+  "summary": "The parts of the CDC STEADI home fall-prevention checklist that the floor plan can test, plus bed and bath on the entry floor.",
+  "params": {},
+  "rules": [
+    {"id": "clear_paths", "measure": "route_corridor_width", "threshold": 0.914, "unit": "m", "compare": "at_least", "severity": "advisory",
+     "targets": ["Bedroom", "Bathroom", "Kitchen", "Living Room"],
+     "text": "The path from the entrance through the main rooms is wide enough to walk without stepping around things: 36 in (914 mm) between walls. Furniture is not in the scan, so this is the most room there can be.",
+     "standard": "CDC STEADI 'Check for Safety' (floors: is there a clear path when you walk through a room); width from ADA 2010 Standards 403.5.1"},
+    {"id": "bed_to_bath", "measure": "bed_to_bath_width", "threshold": 0.914, "unit": "m", "compare": "at_least", "severity": "advisory",
+     "text": "The night-time route from each bedroom to the nearest bathroom on the same floor is at least 36 in (914 mm) wide, so a walker fits. The route length is in each finding.",
+     "standard": "CDC STEADI 'Check for Safety' (bedrooms: the path from bed to bathroom); width from ADA 2010 Standards 403.5.1"},
+    {"id": "trip_steps", "measure": "threshold_step", "threshold": 0.013, "unit": "m", "compare": "at_most", "severity": "advisory", "tolerance": 0.04,
+     "text": "No raised threshold or single step at a doorway (over 1/2 in, 13 mm). Steps found here are trip hazards to fix first.",
+     "standard": "CDC STEADI 'Check for Safety' (floors and stairs: uneven steps); limit from ADA 2010 Standards 303.3"},
+    {"id": "entry_floor_living", "measure": "entry_floor_rooms", "threshold": 1, "unit": "rooms", "compare": "at_least", "severity": "advisory",
+     "targets": ["Bedroom", "Bathroom"],
+     "text": "A bedroom and a bathroom are on the floor with the entrance, so stairs are not needed day to day.",
+     "standard": "AARP HomeFit Guide (bedroom and full bathroom on the main level)"},
+    {"id": "stairs", "measure": "stairs_present", "threshold": 1, "unit": "floors", "compare": "at_most", "severity": "advisory",
+     "text": "If the home has stairs, check handrails on both sides for the full length and a light switch at the top and bottom. The scan cannot see either.",
+     "standard": "CDC STEADI 'Check for Safety' (stairs and steps)"}
+  ]
+}

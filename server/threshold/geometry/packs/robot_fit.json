@@ -1,0 +1,21 @@
+{
+  "id": "robot_fit",
+  "title": "Robot fit",
+  "summary": "Which rooms a wheeled robot of the given size can reach, turn in, and get into over the door sills.",
+  "params": {
+    "body_width": {"default": 0.5, "unit": "m", "label": "Robot width"},
+    "turning_diameter": {"default": 0.7, "unit": "m", "label": "Turning circle the robot needs"},
+    "step_height": {"default": 0.02, "unit": "m", "label": "Highest step the robot can climb"}
+  },
+  "rules": [
+    {"id": "reach", "measure": "reach_width", "threshold": "$body_width", "unit": "m", "compare": "at_least", "severity": "required",
+     "text": "Every room is reachable from an entrance through doors at least as wide as the robot.",
+     "standard": "Robot specification (parameter): body width"},
+    {"id": "turn", "measure": "turning_diameter", "threshold": "$turning_diameter", "unit": "m", "compare": "at_least", "severity": "advisory",
+     "text": "Each room holds the robot's turning circle in the empty room.",
+     "standard": "Robot specification (parameter): turning diameter"},
+    {"id": "sills", "measure": "threshold_step", "threshold": "$step_height", "unit": "m", "compare": "at_most", "severity": "required", "tolerance": 0.04,
+     "text": "No door sill is higher than the step the robot can climb.",
+     "standard": "Robot specification (parameter): step height"}
+  ]
+}
