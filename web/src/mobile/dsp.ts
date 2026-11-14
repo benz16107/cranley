@@ -71,4 +71,4 @@ export function toMetres(text: string, unit: 'cm' | 'in'): number | null {
   const v = Number(text.replace(',', '.'))
   return Number.isFinite(v) && v > 0 ? +(v * (unit === 'cm' ? 0.01 : 0.0254)).toFixed(4) : null
 }
-export const fmtLength = (m: number, unit: 'cm' | 'in') => (unit === 'cm' ? `${(m * 100).toFixed(1)} cm` : `${(m / 0.0254).toFixed(1)} in`)
+export const fmtLength = (m: number, unit: 'cm' | 'in') => (unit === 'cm' ? `${+(m * 100).toFixed(1)} cm` : `${+(m / 0.0254).toFixed(2)} in`) // as typed: 0.25 in is a step limit

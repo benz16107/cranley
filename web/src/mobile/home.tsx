@@ -153,12 +153,12 @@ export function Results({ view }: { view: View }) {
 const rest = (b: Building) => (b.address?.startsWith(b.name) ? b.address.slice(b.name.length).replace(/^,\s*/, '') : b.address ?? '')
 
 export function Header({ onPrivacy }: { onPrivacy: () => void }) {
-  const view = usePhone((s) => s.view), sid = usePhone((s) => s.sid), paired = usePhone((s) => s.paired), b = usePhone(building)
+  const view = usePhone((s) => s.view), sid = usePhone((s) => s.sid), paired = usePhone((s) => s.paired), b = usePhone(building), offline = usePhone((s) => s.state === 'offline')
   return (
     <header className="m-head">
       <div className="m-head-line">
         <b className="m-word">Threshold</b>
-        <span className="m-link" data-on={paired || undefined}>{paired ? 'Linked to the desktop' : view ? 'This phone only' : 'Not started'}</span>
+        <span className="m-link" data-on={(paired && !offline) || undefined}>{offline ? 'Server not answering' : paired ? 'Linked to the desktop' : view ? 'This phone only' : 'Not started'}</span>
         <button className="link" onClick={onPrivacy}>What is sent</button>
       </div>
       {view && view.buildings.length > 1 ? (

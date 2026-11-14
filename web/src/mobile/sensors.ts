@@ -156,7 +156,7 @@ export function useDictation(onText: (text: string, final: boolean) => void) {
     const r = new Make()
     r.continuous = false; r.interimResults = true; r.lang = navigator.language || 'en-US'
     r.onresult = (e) => { let text = '', final = true; for (let i = 0; i < e.results.length; i++) { text += e.results[i][0].transcript; final &&= e.results[i].isFinal } onText(text.trim(), final) }
-    r.onerror = (e) => setError(e.error === 'not-allowed' ? 'The microphone is switched off for this page.' : e.error === 'no-speech' ? 'Nothing was heard.' : 'Dictation stopped. Type it below.')
+    r.onerror = (e) => { setOn(false); setError(e.error === 'not-allowed' ? 'Dictation is switched off for this page. The microphone key on the keyboard still works.' : e.error === 'no-speech' ? 'Nothing was heard.' : 'Dictation stopped. Type it below.') } // Safari can skip onend after an error
     r.onend = () => setOn(false)
     rec.current = r; setError(null); setOn(true)
     try { r.start() } catch { setOn(false) }

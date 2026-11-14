@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { A_STAGES, aWeight, bestFix, compassPoint, headingFromAlpha, headingMean, leq, spread, tilt, toMetres } from './dsp.ts'
+import { A_STAGES, aWeight, bestFix, compassPoint, fmtLength, headingFromAlpha, headingMean, leq, spread, tilt, toMetres } from './dsp.ts'
 
 const near = (a: number, b: number, tol: number) => assert.ok(Math.abs(a - b) <= tol, `${a} is not within ${tol} of ${b}`)
 
@@ -48,4 +48,10 @@ test('best fix keeps the good fixes and tolerates no altitude', () => {
 test('typed lengths', () => {
   assert.equal(toMetres('84', 'cm'), 0.84); assert.equal(toMetres('33,5', 'in'), 0.8509)
   assert.equal(toMetres('', 'cm'), null); assert.equal(toMetres('-3', 'cm'), null); assert.equal(toMetres('abc', 'in'), null)
+})
+
+test('a typed length reads back as typed, not rounded past a limit', () => {
+  assert.equal(fmtLength(toMetres('0.25', 'in')!, 'in'), '0.25 in')
+  assert.equal(fmtLength(toMetres('33.5', 'in')!, 'in'), '33.5 in')
+  assert.equal(fmtLength(toMetres('81.5', 'cm')!, 'cm'), '81.5 cm')
 })
