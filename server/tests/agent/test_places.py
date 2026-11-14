@@ -161,3 +161,26 @@ def test_measure_search_passes_only_declared_parameters(monkeypatch):
     out = search.find_by_measure(Route, {"min_door_width_m": 0.8, "teleport": True})
     assert seen == {"min_door_width_m": 0.8, "city": None} and len(out["scans"]) == search.MAX_ROWS
     assert "min_door_width_m (default None)" in search.measures_params(Route)
+
+
+def test_custom_panel_binds_to_workspace_data_only(ws):
+    ws.submit(BriefSet(scope=Scope(sids=["t1"], places=ws.doc.brief.scope.places)))
+    inv = Investigation(ws)
+    run = inv.run("door_widths", {"scan": "t1"})["run"]
+    real = ws.doc.findings[0].id
+    out = inv.compose_panel("Doors that matter", [
+        {"type": "VerdictHeader", "run": run},
+        {"type": "MetricRow", "run": run, "metrics": ["narrowest", "made_up"]},
+        {"type": "EvidenceStrip", "findings": [real, "door_widths:t1:nope"]},
+        {"type": "FloorPlanMini", "sid": "t1", "overlays": ["door_widths:t1:0", "ghost"]},
+        {"type": "RankedTable", "title": "x", "columns": [{"metric": "made_up", "label": "x", "better": "higher"}], "rows": [run]},
+        {"type": "MiniChart", "run": "run_missing", "title": "x", "metrics": ["a"]},
+        {"type": "Note", "text": "The bedroom door is the one to measure on site."},
+        {"type": "Note", "text": "It is 0.7 m wide."},
+        {"type": "Teleporter"}])
+    panel = next(p for p in ws.doc.panels if p.id == out["panel"])
+    assert out["panel"] == "custom:doors-that-matter"
+    assert [b.type for b in panel.blocks] == ["VerdictHeader", "MetricRow", "EvidenceStrip", "FloorPlanMini", "Note"]
+    assert panel.blocks[1].metrics == ["narrowest"] and panel.blocks[2].findings == [real]
+    assert panel.blocks[3].overlays == ["door_widths:t1:0"] and len(out["dropped"]) == 7
+    assert "error" in inv.compose_panel("Empty", [{"type": "Note", "text": "Door is 2 ft."}])

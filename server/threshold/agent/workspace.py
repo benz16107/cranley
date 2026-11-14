@@ -530,6 +530,45 @@ def anchor_ok(a: Any, doc: Workspace, plans: Callable[[str], dict]) -> bool:
     return False
 
 
+def bind(doc: Workspace, blk, tools: set[str]) -> tuple[Any, str | None]:
+    """Keep only the parts of a block that name something in the workspace. Returns (block or None, note)."""
+    runs = {r.id: r for r in doc.runs}
+    result = runs[blk.run].result if getattr(blk, "run", None) else None
+    metric_ids = {m.id for m in result.metrics} if result else set()
+    match blk:
+        case MetricRow() | MiniChart():
+            keep = [m for m in blk.metrics if m in metric_ids]
+            if not keep:
+                return None, f"dropped {blk.type}: none of its metrics are in run {blk.run}"
+            return blk.model_copy(update={"metrics": keep}), None if keep == blk.metrics else f"{blk.type}: dropped unknown metrics"
+        case CheckList() if blk.checks is not None:
+            keep = [c for c in blk.checks if result and c in {x.id for x in result.checks}]
+            return (blk.model_copy(update={"checks": keep}), None) if keep else (None, "dropped CheckList: no such checks")
+        case EvidenceStrip():
+            have = {f.id for f in doc.findings if not f.superseded_by}
+            keep = [f for f in blk.findings if f in have]
+            if not keep:
+                return None, "dropped EvidenceStrip: no such findings"
+            return blk.model_copy(update={"findings": keep}), None if keep == blk.findings else "EvidenceStrip: dropped unknown findings"
+        case RankedTable():
+            rows = [r for r in blk.rows if r in runs and runs[r].result]
+            if not rows:
+                return None, "dropped RankedTable: no finished runs"
+            have = {m.id for m in runs[rows[0]].result.metrics}
+            cols = [c for c in blk.columns if c.metric in have]
+            if not cols:
+                return None, "dropped RankedTable: its metrics are not in those runs"
+            return blk.model_copy(update={"rows": rows, "columns": cols}), None
+        case FloorPlanMini():
+            if blk.sid not in known_sids(doc):
+                return None, f"dropped FloorPlanMini: unknown scan {blk.sid}"
+            keep = [o for o in blk.overlays if o in {x.id for x in doc.overlays}]
+            return blk.model_copy(update={"overlays": keep}), None if keep == blk.overlays else "FloorPlanMini: dropped unknown overlays"
+        case Controls() if blk.tool not in tools:
+            return None, f"dropped Controls: unknown tool {blk.tool}"
+    return blk, None
+
+
 def _unique(existing: set[str], wanted: str) -> str:
     i, out = 2, wanted
     while out in existing:
@@ -558,7 +597,11 @@ def clean(doc: Workspace, raw: dict | BaseModel, plans: Callable[[str], dict], t
             if isinstance(blk, Note) and MEASURE.search(blk.text):
                 notes.append("dropped Note: a measurement in model text")
                 continue
-            kept.append(blk.model_dump())
+            blk, why = bind(doc, blk, tools)
+            if why:
+                notes.append(why)
+            if blk is not None:
+                kept.append(blk.model_dump())
         if not kept:
             raise Rejected("panel has no valid blocks")
         raw["panel"]["blocks"] = kept
