@@ -9,6 +9,7 @@ import numpy as np
 from shapely.geometry import MultiPoint, Point
 
 from ... import nearby
+from ...config import CACHE
 from .._site import fact, footprint, heights, metres, parcel, to_m
 
 MAX_POINTS = 180        # height samples per yard: 3 Vexcel requests per kind
@@ -145,3 +146,18 @@ def rank_doors(doors: list[dict], street, fwd) -> list[dict]:
 def pool_info(s) -> dict:
     enclosed = sum(fact(s, f"pool_{t}_enclosed", 0) or 0 for t in ("in_ground", "above_ground", "hot_tub"))
     return {"pool": fact(s, "pool"), "area": fact(s, "pool_area"), "enclosed": enclosed > 0}
+
+
+MEASURES = CACHE / "pet_fit" / "yard"
+
+
+def save_measure(sid: str, m: dict) -> None:
+    """What pet_fit measured about a yard, for home_search to read back without calling Vexcel again."""
+    import json
+    MEASURES.mkdir(parents=True, exist_ok=True)
+    (MEASURES / f"{sid}.json").write_text(json.dumps({k: (round(v, 4) if isinstance(v, float) else v) for k, v in m.items()}))
+
+
+def measures() -> dict[str, dict]:
+    import json
+    return {f.stem: json.loads(f.read_text()) for f in MEASURES.glob("*.json")} if MEASURES.exists() else {}

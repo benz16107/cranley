@@ -187,6 +187,9 @@ def outdoor(ctx, inputs: Inputs, E: dict, s: Site, plan: dict | None) -> None:
     if by is not None and by.area > 10:
         ctx.step(f"Yard {E['yard_m2']:.0f} m2, {E['back_m2']:.0f} m2 behind the house; reading Vexcel ground and surface heights")
         E["terrain"] = yard.terrain(s, by)
+    if s.sid:
+        yard.save_measure(s.sid, {"back_m2": E["back_m2"], "yard_m2": E["yard_m2"], "lot_m2": lot,
+                                  **{k_: (E.get("terrain") or {}).get(k_) for k_ in ("flat_share", "canopy_share", "flat_area_m2")}})
     if inputs.use_vision:
         try:
             E["fence_photo"] = yard.fence_from_photo(s, True)

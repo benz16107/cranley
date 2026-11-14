@@ -454,3 +454,43 @@ def places_near(lat: float, lon: float, categories: list[str] | None = None, rad
 
 
 __all__ = ["CATEGORIES", "PROFILES", "SPORTS", "area", "busy_road_m", "cell", "nearest", "neighbour_m", "places_near", "raw"]
+
+
+# ---- city-wide, for searches over many homes ----------------------------------------------------------------
+
+CITY_BBOX = {"Houston": (29.45, -95.95, 30.15, -94.95), "Los Angeles": (33.65, -118.75, 34.40, -117.95)}
+CITY_CATEGORIES = ("dog_park", "vet", "park", "playground", "school_elementary", "school_middle", "school_high", "library",
+                   "pool", "childcare", "tennis", "pickleball", "basketball", "soccer", "baseball", "gym", "golf",
+                   "skate_park", "running_track", "ice_rink")
+
+
+def city_query(city: str) -> str:
+    s, w, n, e = CITY_BBOX[city]
+    return (f"[out:json][timeout:240][bbox:{s},{w},{n},{e}];"
+            "(nwr[leisure~\"^(playground|park|dog_park|pitch|sports_centre|fitness_centre|track|ice_rink|golf_course|"
+            "water_park)$\"];nwr[leisure=swimming_pool][name];"
+            "nwr[amenity~\"^(school|library|childcare|kindergarten|veterinary)$\"];);out tags center qt;")
+
+
+@functools.lru_cache(maxsize=2)
+def city_places(city: str, fetch: bool = True) -> dict[str, np.ndarray] | None:
+    """{category: array of (lon, lat)} for the whole city, from one cached Overpass request (no streets). None when
+    not cached and fetch is False."""
+    q = city_query(city)
+    f = CACHE / "nearby" / f"city-{city.lower().replace(' ', '_')}-{hashlib.sha256(q.encode()).hexdigest()[:10]}.json"
+    if not f.exists():
+        if not fetch:
+            return None
+        body = _post(q)
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_bytes(body)
+    a = Area(json.loads(f.read_text()))
+    return {c: np.array([(p["lon"], p["lat"]) for p in a.of(c)], float).reshape(-1, 2) for c in CITY_CATEGORIES}
+
+
+def straight_nearest(pts: np.ndarray, lon: float, lat: float) -> float | None:
+    """Straight-line metres from (lon, lat) to the nearest of `pts`."""
+    if not len(pts):
+        return None
+    k = math.cos(math.radians(lat))
+    return float(np.min(np.hypot((pts[:, 0] - lon) * 111320.0 * k, (pts[:, 1] - lat) * 110574.0)))
