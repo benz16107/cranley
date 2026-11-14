@@ -6,6 +6,26 @@ import { Learned } from '../shell/RunPanel.tsx'
 import { SHORTCUTS } from '../shell/Shell.tsx'
 import { useTheme, type Theme } from '../shell/theme.ts'
 import { useUi } from '../shell/store.ts'
+import { useState } from 'react'
+import { inputPrefs, setInputPrefs, type InputPrefs, type Look, type Speed } from '../../../scene/engine/input.ts'
+
+const SPEEDS: { id: Speed; label: string }[] = [{ id: 'slow', label: 'Slow' }, { id: 'normal', label: 'Normal' }, { id: 'fast', label: 'Fast' }]
+
+function Controls() {
+  const [p, setP] = useState<InputPrefs>({ ...inputPrefs })
+  const set = (q: Partial<InputPrefs>) => { setInputPrefs(q); setP({ ...inputPrefs }) }
+  return (
+    <section className="card">
+      <header><h2>3D controls</h2></header>
+      <div className="set"><div><b>Zoom speed</b><p>Pinch on a trackpad, the scroll wheel, or two fingers on a touch screen.</p></div>
+        <Seg label="Zoom speed" value={p.zoom} onChange={(v: Speed) => set({ zoom: v })} options={SPEEDS} /></div>
+      <div className="set"><div><b>Turn speed</b><p>Dragging round the building, and looking around inside a 360° photo.</p></div>
+        <Seg label="Turn speed" value={p.look} onChange={(v: Speed) => set({ look: v })} options={SPEEDS} /></div>
+      <div className="set"><div><b>Inside a 360° photo</b><p>Turn: the view turns the way you drag or swipe. Drag: the photo moves with your finger.</p></div>
+        <Seg label="Inside a 360° photo" value={p.lookDir} onChange={(v: Look) => set({ lookDir: v })} options={[{ id: 'turn', label: 'Turn' }, { id: 'drag', label: 'Drag' }]} /></div>
+    </section>
+  )
+}
 
 export function Settings() {
   const { theme, setTheme } = useTheme()
@@ -23,6 +43,7 @@ export function Settings() {
           <Seg label="Colour scheme" value={theme} onChange={(t: Theme) => setTheme(t)} options={[{ id: 'system', label: 'System', icon: 'monitor' }, { id: 'light', label: 'Light', icon: 'sun' }, { id: 'dark', label: 'Dark', icon: 'moon' }]} /></div>
         <div className="set"><div><b>Narrow sidebar</b><p>Icons only, to give the map and the building more room.</p></div><Switch.Root className="switch" checked={rail} onCheckedChange={setRail} aria-label="Narrow sidebar"><Switch.Thumb className="knob" /></Switch.Root></div>
       </section>
+      <Controls />
       <section className="card">
         <header><h2>Agent</h2></header>
         <div className="set"><div><b>Follow the agent’s view</b><p>When the agent looks at a finding, go to that building or that point on the map. Turn it off to stay where you are while it works.</p></div><Switch.Root className="switch" checked={follow} onCheckedChange={setFollow} aria-label="Follow the agent’s view"><Switch.Thumb className="knob" /></Switch.Root></div>
