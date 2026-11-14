@@ -1,0 +1,69 @@
+/* MapLibre's own chrome is not used: the furniture below is ours. */
+.maplibregl-canvas { outline: none; }
+.citymap:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* The neatline: a double frame with coordinate ticks, as on a printed map sheet. */
+.neat { position: absolute; inset: 5px; border: 1px solid var(--ink); pointer-events: none !important; }
+.neat::before { content: ''; position: absolute; inset: -5px; border: 1px solid var(--rule-strong); }
+.tick { position: absolute; left: 0; top: 0; font-size: 0.59rem; color: var(--ink-2); background: var(--paper); padding: 1px 5px; white-space: nowrap; }
+.tick.t { margin: -7px 0 0 0; transform: translateX(-50%); }
+.tick.l { margin: 0 0 0 -7px; transform: translate(-50%, -50%) rotate(-90deg) ; transform-origin: center; left: 0; }
+
+.filterbar { position: absolute; left: 18px; top: 18px; max-width: calc(100% - 36px); display: flex; align-items: center; gap: var(--s-3); padding: 6px var(--s-3); overflow-x: auto; scrollbar-width: none; }
+.filterbar .lead { display: inline-flex; align-items: center; gap: 5px; flex: none; }
+.filterbar .grp { display: flex; gap: 4px; padding-left: var(--s-3); border-left: 1px solid var(--rule); flex: none; }
+.filterbar .chip { white-space: nowrap; flex: none; align-items: center; }
+.filterbar > .chip { margin-left: 0; }
+.filterbar .chip[disabled] { color: var(--ink-3); cursor: default; }
+.filterbar .link { flex: none; }
+
+.roomspop { width: 280px; display: grid; gap: var(--s-2); }
+.hist { height: 44px; display: flex; align-items: flex-end; gap: 1px; margin-top: var(--s-1); }
+.hist i { flex: 1; background: var(--rule-strong); min-height: 2px; }
+.hist i[data-in='true'] { background: var(--ramp-5); }
+.slider { display: flex; align-items: center; height: 20px; touch-action: none; width: 100%; }
+.slider .track { position: relative; height: 3px; width: 100%; background: var(--rule-strong); }
+.slider .range { background: var(--ink); height: 100%; }
+.slider .thumb { width: 14px; height: 14px; background: var(--pane); border: 2px solid var(--ink); border-radius: 50%; }
+.slider .thumb:has(:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.roomspop .ends { display: flex; justify-content: space-between; font-size: 0.62rem; color: var(--ink-3); }
+
+.titleblock { position: absolute; right: 18px; bottom: 18px; display: flex; }
+.titleblock .cell { display: grid; gap: 5px; align-content: center; padding: 7px 12px 8px; border-left: 1px solid var(--rule); text-align: left; }
+.titleblock .cell:first-child { border-left: 0; }
+.titleblock button.cell { transition: background-color var(--dur-1) ease; }
+@media (hover: hover) and (pointer: fine) { .titleblock button.cell:hover { background: var(--pane-2); } }
+.titleblock .big { font-size: 0.78rem; line-height: 1; white-space: nowrap; }
+.titleblock .big small { color: var(--ink-3); font-size: 0.86em; }
+.titleblock .tools { display: flex; gap: 0; padding: 0 4px; align-items: center; }
+.titleblock .minus { width: 11px; height: 1.5px; background: currentColor; }
+.scalebar { display: flex; align-items: flex-end; gap: 6px; font-size: 0.72rem; line-height: 1; }
+.scalebar i { display: block; height: 5px; border: 1px solid var(--ink); background: linear-gradient(90deg, var(--ink) 50%, transparent 50%); }
+
+.callout { position: absolute; inset: 0; pointer-events: none !important; overflow: hidden; }
+.callout .leader { position: absolute; inset: 0; width: 100%; height: 100%; }
+.callout .leader polyline { fill: none; stroke: var(--ink); stroke-width: 1; }
+.callout .float { position: absolute; left: 0; top: 0; pointer-events: auto; animation: arrive var(--dur-2) var(--ease-out) backwards; }
+.hovertip { position: absolute; left: 0; top: 0; margin: -34px 0 0 10px; pointer-events: none !important; white-space: nowrap; z-index: 3; }
+
+.bcard header { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s-2); padding: var(--s-3) var(--s-2) var(--s-1) var(--s-3); }
+.bcard h3 { font-size: var(--text-md); line-height: 1.25; }
+.bcard header p { font-size: var(--text-xs); margin-top: 2px; }
+.bcard .has { display: flex; flex-wrap: wrap; gap: 5px; padding: var(--s-1) var(--s-3) var(--s-3); align-items: center; }
+.bcard ul { max-height: 216px; border-top: 1px solid var(--rule-strong); }
+.bcard li { display: flex; align-items: center; border-top: 1px solid var(--rule); }
+.bcard li:first-child { border-top: 0; }
+.scanrow { flex: 1; min-width: 0; display: grid; gap: 2px; padding: 8px var(--s-3); min-height: 44px; transition: background-color var(--dur-1) ease; }
+.scanrow .nm { font-weight: 550; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scanrow .meta { display: flex; justify-content: space-between; font-size: var(--text-xs); }
+.scanrow .num { font-size: 0.64rem; color: var(--ink-2); }
+.scanrow:focus-visible { outline-offset: -2px; }
+@media (hover: hover) and (pointer: fine) { .scanrow:hover { background: var(--pane-2); } }
+.bcard .keep { margin-right: 4px; color: var(--ink-3); }
+.bcard .keep[aria-pressed='true'] { color: var(--accent); background: var(--accent-wash); }
+
+@media (max-width: 760px) {
+  .neat { inset: 3px; } .neat::before { display: none; } .tick.l { display: none; }
+  .filterbar { left: 8px; top: 8px; max-width: calc(100% - 16px); }
+  .titleblock { right: 8px; bottom: 120px; } .titleblock .cell:nth-child(3), .titleblock .tools { display: none; }
+}
