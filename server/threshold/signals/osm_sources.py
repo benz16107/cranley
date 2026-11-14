@@ -2,7 +2,8 @@
 
 One Overpass query per point, cached on disk under $THRESHOLD_DATA_DIR/cache/osm_noise/, 1.5 s between requests,
 public mirrors tried in turn. OSM data is ODbL and stays in the cache.
-shortcut: the pets thread's `nearby/` OSM engine was not on main when this was written; switch to it once it is.
+Not `threshold.nearby`: it has busy roads but no rail lines or airports, and its per-area request also pulls the
+street network and buildings, so using it for roads would add a heavier second query, not replace this one.
 """
 from __future__ import annotations
 
