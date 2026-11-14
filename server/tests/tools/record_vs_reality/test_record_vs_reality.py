@@ -130,3 +130,12 @@ def test_tool_result_shape(records):
     assert "confirmed" in f.title and "686" not in f.title  # numbers stay out of titles
     assert any(o.kind == "rule" for o in r.overlays)
     assert any(a.id == "deep" for a in r.actions)
+
+
+def test_unlabelled_room_named_from_panorama_leaves_living_area():
+    plan = make_home()
+    deck = next(r for r in plan["rooms"] if r["id"] == "B2")
+    deck["label"] = None  # a 12 m2 walled room Matterport did not name
+    fa = ms.floor_area(plan, {"B2": "Patio"})
+    assert "B2" in {x["room"] for x in fa["excluded"]} and round(fa["m2"], 1) == 51.8
+    assert "named from its panorama" in next(x["why"] for x in fa["excluded"] if x["room"] == "B2")

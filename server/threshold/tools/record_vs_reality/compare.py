@@ -70,10 +70,10 @@ def _scope_word(scan: dict) -> str:
 
 # ---- area -------------------------------------------------------------------------------------------------------
 
-def area(plan: dict, claim: dict, scan: dict, p: dict) -> dict:
+def area(plan: dict, claim: dict, scan: dict, p: dict, ev: dict | None = None) -> dict:
     if not _scope_ok(claim, scan):
         return _wrong_scope(claim, scan)
-    fa = ms.floor_area(plan)
+    fa = ms.floor_area(plan, (ev or {}).get("relabel"))
     if not fa["available"]:
         return _c(claim, UNVERIFIABLE, "high", fa["reason"])
     listed = claim["value"]
@@ -390,6 +390,11 @@ def floor_vs_footprint(plan: dict, claim: dict, scan: dict, p: dict, ev: dict) -
     if 0.8 <= ratio <= 1.2:
         return _c(claim, CONFIRMED, "medium", head, measured=round(expect), unit="ft2", layer="vexcel", method="lookup",
                   anchor=_geo(ev), media=ev.get("ortho_media") or [], ratio=ratio)
+    if ratio > 2.5:
+        return _c(claim, UNVERIFIABLE, "high", head + "The record is several times the building seen from above, so it "
+                  "covers several buildings (an apartment community or a campus) and one footprint cannot check it.",
+                  measured=round(expect), unit="ft2", layer="vexcel", method="lookup", anchor=_geo(ev),
+                  media=ev.get("ortho_media") or [], ratio=ratio)
     if ratio > 1.2 and n_struct > 1:
         return _c(claim, UNVERIFIABLE, "medium", head + f"The parcel has {n_struct} structures and the record may cover "
                   "all of them, while the footprint is the main one only.", measured=round(expect), unit="ft2",
@@ -452,7 +457,8 @@ def parking_home(plan: dict, claim: dict, p: dict, ev: dict) -> dict:
     if g["available"] and stalls == want:
         return _c(claim, CONFIRMED, "medium", head, measured=stalls, anchor={"sid": plan["sid"], "room": g["rooms"][0]})
     if cars is None:
-        return _c(claim, UNVERIFIABLE, "medium", head + "A driveway's spaces need the aerial photo; run the deep check.",
+        return _c(claim, UNVERIFIABLE, "medium", head + ("The aerial survey counted no vehicles here, so a driveway's "
+                  "spaces cannot be judged." if site else "A driveway's spaces need the aerial photo; run the deep check."),
                   measured=stalls or None)
     total = stalls + cars
     if total >= want:
@@ -504,10 +510,10 @@ def context(plan: dict, claim: dict, scan: dict, p: dict, ev: dict) -> dict:
 def compare_one(plan: dict, claim: dict, scan: dict, ev: dict, p: dict) -> dict | None:
     k = claim["key"]
     if k in ("living_area", "unit_area", "title_area"):
-        return area(plan, claim, scan, p)
+        return area(plan, claim, scan, p, ev)
     if k in ("gross_area", "rentable_area", "typical_floor_area"):
         if scan["scope"] in ("building",) and k != "typical_floor_area" or scan["scope"] == "floor" and k == "typical_floor_area":
-            out = area(plan, claim, scan, p)
+            out = area(plan, claim, scan, p, ev)
             if out["verdict"] != UNVERIFIABLE or not ev.get("site"):
                 return out
         return floor_vs_footprint(plan, claim, scan, p, ev)

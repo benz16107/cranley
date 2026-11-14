@@ -236,7 +236,6 @@ def judge(row: dict, plan: dict, deep: dict, labels: list[dict] | None) -> tuple
 
 def deep_check(picked: list[dict], plans, step=lambda s: None) -> None:
     """Run the full check on each picked row and add deep_verdict, judgement and judgement_reason to it."""
-    from ...vision import reader
     for i, row in enumerate(picked):
         plan = plans(row["sid"])
         rec = gather.record(row["sid"])
@@ -246,7 +245,7 @@ def deep_check(picked: list[dict], plans, step=lambda s: None) -> None:
             cands = [r["id"] for r in plan["rooms"] if (r.get("area") or 0) >= 6 and r.get("label") in
                      (None, "Bedroom", "Office", "Den", "Bonus Room", "Loft", "Family Room", "Game Room", "Living Room")]
             try:
-                labels = reader.label_rooms(plan, cands)
+                labels = gather.SOURCES["labels"](plan, cands)
             except Exception as e:  # noqa: BLE001
                 labels = None
                 row["judgement_reason"] = f"room labelling failed: {str(e)[:100]}"

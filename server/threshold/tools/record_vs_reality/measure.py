@@ -40,8 +40,9 @@ def labels_ok(plan: dict) -> bool:
     return bool(q["labels"]) if q else any(r.get("label") for r in plan["rooms"])
 
 
-def floor_area(plan: dict) -> dict:
+def floor_area(plan: dict, relabel: dict[str, str] | None = None) -> dict:
     """Interior floor area of the rooms a listing counts as living area, and every room left out with the reason.
+    `relabel` names unlabelled rooms from the panoramas (an open roof deck has parapet walls and reads as a room).
 
     Needs the wall graph: without it nothing says which rooms are indoor and bounded."""
     if not walls_ok(plan):
@@ -52,12 +53,14 @@ def floor_area(plan: dict) -> dict:
     counted, excluded = [], []
     for r in plan["rooms"]:
         a = r.get("area") or 0
-        lab = r.get("label")
+        lab = r.get("label") or (relabel or {}).get(r["id"])
         why = ("an empty space inside the outline (stairwell void or shaft)" if lab == "Void" else
                NOT_LIVING.get(lab) or
                ("it has no walls around it, so it is an outdoor or unscanned area" if not r.get("walls") else None) or
                ("it has no area" if a <= 0 else None))
-        row = {"room": r["id"], "label": label(r), "floor": r["floor"], "m2": round(a, 2)}
+        row = {"room": r["id"], "label": lab or "unlabelled room", "floor": r["floor"], "m2": round(a, 2)}
+        if lab and not r.get("label"):
+            why = why and why + " (named from its panorama)"
         (excluded.append({**row, "why": why}) if why else counted.append(row))
     m2 = sum(x["m2"] for x in counted)
     floors = sorted({x["floor"] for x in counted})

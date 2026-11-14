@@ -12,6 +12,7 @@ from shapely import wkt as shapely_wkt
 from shapely.geometry import Point, shape
 
 ORTHO_PX = 1024
+UNLABELLED_M2 = 10.0  # unlabelled walled rooms this big get named from their panorama in the deep check
 # Checked by eye on 2026-11-14: Vexcel's SAM 3 boxes whole lots for "parking space", and the vision fallback asked
 # for "parking space" boxes parked cars. This label on the vision fallback gets closest; counts are lower bounds.
 STALL = "painted parking stall (one striped space, empty or occupied)"
@@ -46,9 +47,9 @@ def _objects(plan: dict, labels: list[str], panos: list[str]) -> list[dict]:
     return reader.find_objects(plan, labels, panos=panos, max_panos=len(panos))
 
 
-def _labels(plan: dict) -> list[dict]:
+def _labels(plan: dict, rooms: list[str] | None) -> list[dict]:
     from ...vision import reader
-    return reader.label_rooms(plan)
+    return reader.label_rooms(plan, rooms)
 
 
 SOURCES = {"record": _record, "site": _site, "ortho": _ortho, "detect": _detect, "objects": _objects, "labels": _labels}
@@ -199,11 +200,23 @@ def gather(plan: dict, rec: dict | None, scan: dict, claims: list[dict], *, aeri
         if keys & {"fireplace", "kitchen_island", "wood_floors", "laundry_in_unit", "has_sprinklers", "baths",
                    "unit_baths", "title_baths"}:
             ev.update(panoramas(plan, scan["kind"] == "home" or scan["scope"] == "unit", keys))
-        if not (plan.get("quality") or {}).get("labels", True) and keys & {"beds", "baths", "unit_beds", "title_beds"}:
+        labelled = (plan.get("quality") or {}).get("labels", True)
+        if not labelled and keys & {"beds", "baths", "unit_beds", "title_beds"}:
+            # shortcut: label_rooms picks the home label set (with Bedroom) only for scans Matterport labelled; an
+            # unlabelled apartment unit is still a home. Pass labels=HOME_LABELS once label_rooms takes it (tool/office).
+            as_home = {**plan, "has": {**plan["has"], "room_labels": True}}
             try:
-                ev["labels"] = SOURCES["labels"](plan)
+                ev["labels"] = SOURCES["labels"](as_home, None)
             except Exception as e:  # noqa: BLE001
                 ev["labels_error"] = str(e)[:160]
+        elif labelled and keys & {"living_area", "unit_area", "title_area"}:
+            # big unlabelled walled rooms in a labelled home: a roof deck, garage or porch reads as a room
+            odd = [r["id"] for r in plan["rooms"] if not r.get("label") and r.get("walls") and (r.get("area") or 0) >= UNLABELLED_M2]
+            if odd:
+                try:
+                    ev["relabel"] = {x["room"]: x["label"] for x in SOURCES["labels"](plan, odd)}
+                except Exception as e:  # noqa: BLE001
+                    ev["labels_error"] = str(e)[:160]
     st = next((c["value"] for c in claims if c["key"] == "stories" and isinstance(c["value"], (int, float))), None)
     ev["stories"] = int(st) if st else None
     ev["gross_area"] = next((c["value"] for c in claims if c["key"] in ("gross_area", "rentable_area")), None)
