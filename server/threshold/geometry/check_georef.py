@@ -23,7 +23,7 @@ def outline_corners(plan: dict) -> list[tuple[float, float]]:
     return list(poly.exterior.simplify(0.3).coords)[:-1]
 
 
-def main(sid: str = "<scan-id>") -> None:
+def main(sid: str) -> None:
     plan = json.loads((DATA / "fixtures" / "scanplan" / f"{sid}.json").read_text())
     g = plan["geo"]
     print(f"{sid}  {plan.get('address') or plan.get('name')}  anchor {g['lat']:.7f}, {g['lon']:.7f}  "

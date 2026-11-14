@@ -15,6 +15,8 @@ from threshold.config import DATA
 from threshold.scanplan import apply_recovered_walls
 from threshold.sources import recover
 
+from tests.real import real
+
 A = [(0, 0), (4, 0), (4, 3), (0, 3)]
 B = [(4.2, 0), (8.2, 0), (8.2, 3), (4.2, 3)]
 
@@ -114,9 +116,11 @@ def test_recovered_walls_are_marked_and_never_called_measured():
 
 
 def test_real_no_wall_scan_gets_recovered_walls():
-    if not (DATA / "cache" / "floorplan" / "<scan-id>").exists():
-        pytest.skip("data folder without the <scan-id> schematic")
+    want = real("no_wall_recovered")
+    if not want or not (DATA / "cache" / "floorplan" / want["sid"]).exists():
+        pytest.skip("data folder without the no-wall scan's schematic")
     from threshold.sources import matterport as mp
-    p = mp.plan("<scan-id>")
+    p = mp.plan(want["sid"])
     assert p["quality"]["walls_source"] == "dxf" and p["quality"]["walls"]
-    assert p["quality"]["counts"]["rooms_recovered"] == 6 and sum(o["type"] == "doorway" for o in p["openings"]) >= 4
+    assert p["quality"]["counts"]["rooms_recovered"] == want["rooms_recovered"]
+    assert sum(o["type"] == "doorway" for o in p["openings"]) >= want["doorways_min"]

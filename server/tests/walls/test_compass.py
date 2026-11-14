@@ -11,6 +11,8 @@ from threshold.config import DATA
 from threshold.geometry import georef
 from threshold.sources import footprint
 
+from tests.real import real
+
 L_SHAPE = [[0, 0], [12, 0], [12, 5], [5, 5], [5, 9], [0, 9]]
 
 
@@ -54,7 +56,7 @@ def test_footprint_enu_reads_lonlat_wkt():
     assert fp.exterior.coords[0] == pytest.approx((e0, n0), abs=1e-3)
 
 
-REAL = ["<scan-id>", "<scan-id>", "<scan-id>", "<scan-id>"]
+REAL = real("compass_houses", [])
 
 
 @pytest.mark.parametrize("sid", REAL)
