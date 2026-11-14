@@ -17,7 +17,17 @@ from ...aerial import site as aerial
 from ...aerial import vexcel
 from ...config import CACHE
 from ...sources import index
-from .. import Check, Finding, Metric, NotApplicable, Source, ToolResult, Verdict, field, tool
+from .. import (
+    Check,
+    Finding,
+    Metric,
+    NotApplicable,
+    Source,
+    ToolResult,
+    Verdict,
+    field,
+    tool,
+)
 from ..pet_fit import policy, yard
 from ..types import Action, GeoAnchor, Pin, PinsOverlay, ScansScope
 
