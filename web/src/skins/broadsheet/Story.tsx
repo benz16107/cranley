@@ -57,7 +57,8 @@ function Scale({ c }: { c: Check }) {
 }
 function Checks({ b, ctx }: { b: Of<'CheckList'>; ctx: Ctx }) {
   const current = ctx.current
-  const truth = ctx.family === 'truth'
+  // a check whose rule sets one source against another ("listing vs scan") is a claim beside a measurement, not a limit
+  const truth = b.checks.some((c) => / vs /.test(c.rule))
   // checks with nothing to be held against (a depth in each room, the minutes each task takes) are set as bars on one scale
   const bars = !truth && b.checks.every((c) => c.measured != null && !c.threshold) && new Set(b.checks.map((c) => c.unit)).size === 1
   const listed = bars && /^\d+\. /.test(b.checks[0]?.rule ?? '')
@@ -327,7 +328,7 @@ function Assumed({ b, ctx }: { b: Of<'AssumptionChips'>; ctx: Ctx }) {
             <li key={a.id}>{a.label}:{' '}
               <Popover.Root>
                 <Popover.Trigger className="edit" aria-label={`${a.label}: ${a.value} ${a.unit ?? ''}. Change it.`}>{value}</Popover.Trigger>
-                <Popover.Portal><Popover.Positioner sideOffset={8} align="start"><Popover.Popup className="slip"><AssumeEdit a={a as typeof a & { value: number }} /></Popover.Popup></Popover.Positioner></Popover.Portal>
+                <Popover.Portal><Popover.Positioner className="pos" sideOffset={8} align="start"><Popover.Popup className="slip"><AssumeEdit a={a as typeof a & { value: number }} /></Popover.Popup></Popover.Positioner></Popover.Portal>
               </Popover.Root>
               {mine && <span className="mine">yours</span>}
             </li>
@@ -409,11 +410,16 @@ export function Story({ panel, place, end, more = [] }: { panel: Panel; place?: 
   const verdict = panel.blocks.find((b): b is Of<'VerdictHeader'> => b.type === 'VerdictHeader')
   const ctx: Ctx = { doc, panel, family, current: useCurrent() }
   const led = !verdict && panel.blocks.find((b) => b.type === 'Note') // the note that became the headline
-  const blocks = [...ordered(panel.blocks.filter((b) => b.type !== 'VerdictHeader' && b !== led), family), ...more.flatMap((p) => ordered(p.blocks.filter((b) => b.type !== 'VerdictHeader'), familyOf(p.tool)))]
+  // the page in order: this story's blocks, then each further panel under a subhead of its own
+  type Item = { panel: Panel; family: Family; b?: Block; fig: number }
+  const items: Item[] = ordered(panel.blocks.filter((b) => b.type !== 'VerdictHeader' && b !== led), family).map((b) => ({ panel, family, b, fig: 0 }))
+  for (const p of more) {
+    const f = familyOf(p.tool)
+    items.push({ panel: p, family: f, fig: 0 }, ...ordered(p.blocks.filter((b) => b.type !== 'VerdictHeader'), f).map((b) => ({ panel: p, family: f, b, fig: 0 })))
+  }
   const writing = run?.status === 'running' && !panel.blocks.length
   // figure 1 is the model on the page; the rest are numbered in the order they are set
-  const figs: number[] = []
-  blocks.reduce((n, b) => { figs.push(n + 1); return n + (b.type === 'EvidenceStrip' ? b.findings.length : b.type === 'MiniChart' || b.type === 'FloorPlanMini' ? 1 : 0) }, 1)
+  items.reduce((n, it) => { it.fig = n + 1; return n + (it.b?.type === 'EvidenceStrip' ? it.b.findings.length : it.b?.type === 'MiniChart' || it.b?.type === 'FloorPlanMini' ? 1 : 0) }, 1)
   return (
     <article className="story" data-family={family} aria-labelledby={`story-${panel.id}`}>
       <p className="kicker cap">{place ?? <span>{panel.title}</span>}{verdict && <Stat s={verdict.status}>{STATUS_WORD[verdict.status]}</Stat>}{end}</p>
@@ -422,19 +428,30 @@ export function Story({ panel, place, end, more = [] }: { panel: Panel; place?: 
       </div>
       {run?.stale && <p className="stale"><span>A setting changed after this was written.</span><button className="link" onClick={() => runAction({ id: 'rerun', label: 'Run again' }, panel)}>Run again</button></p>}
       {writing && <div className="writing" aria-label="Working">{run?.summary && <p className="deck"><em>{run.summary}</em></p>}<i className="unset" /><i className="unset" /><i className="unset" /><i className="unset" /></div>}
-      {blocks.map((b, i) => {
+      {items.map(({ panel: of, family: fam, b, fig }, i) => {
+        const c: Ctx = { ...ctx, panel: of, family: fam }
+        if (!b) {
+          const v = of.blocks.find((x): x is Of<'VerdictHeader'> => x.type === 'VerdictHeader')
+          return (
+            <header key={i} className="another" data-family={fam}>
+              <p className="kicker cap"><span>{of.title}</span>{v && <Stat s={v.status}>{STATUS_WORD[v.status]}</Stat>}</p>
+              {v && <h2 className="head" data-size="s">{splitVerdict(v.text)[0]}</h2>}
+              {v && splitVerdict(v.text)[1] && <p className="deck">{splitVerdict(v.text)[1]}</p>}
+            </header>
+          )
+        }
         switch (b.type) {
           case 'MetricRow': return <Metrics key={i} b={b} />
-          case 'CheckList': return <Checks key={i} b={b} ctx={ctx} />
-          case 'EvidenceStrip': return <Evidence key={i} b={b} ctx={ctx} from={figs[i]} />
+          case 'CheckList': return <Checks key={i} b={b} ctx={c} />
+          case 'EvidenceStrip': return <Evidence key={i} b={b} ctx={c} from={fig} />
           case 'RankedTable': return <League key={i} b={b} />
-          case 'MiniChart': return <Chart key={i} b={b} n={figs[i]} />
-          case 'FloorPlanMini': return <PlanMini key={i} b={b} ctx={ctx} n={figs[i]} />
+          case 'MiniChart': return <Chart key={i} b={b} n={fig} />
+          case 'FloorPlanMini': return <PlanMini key={i} b={b} ctx={c} n={fig} />
           case 'Controls': return <Controls key={i} b={b} />
-          case 'AssumptionChips': return <Assumed key={i} b={b} ctx={ctx} />
+          case 'AssumptionChips': return <Assumed key={i} b={b} ctx={c} />
           case 'StepLog': return <Steps key={i} b={b} />
           case 'Note': return <p key={i} className="note">{b.text}</p>
-          case 'ActionBar': return <div key={i} className="actions">{b.actions.map((a) => <button key={a.id} className="btn line" onClick={() => runAction(a, panel)}>{a.label}</button>)}</div>
+          case 'ActionBar': return <div key={i} className="actions">{b.actions.map((a) => <button key={a.id} className="btn line" onClick={() => runAction(a, of)}>{a.label}</button>)}</div>
           default: return null
         }
       })}

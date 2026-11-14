@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { readStory } from './stories.tsx'
 import { Command } from 'cmdk'
 import { Popover } from '@base-ui/react/popover'
@@ -21,9 +21,9 @@ export function Masthead({ story, stories, onMenu }: { story: Panel | null; stor
   const canUndo = useWorkspace((s) => s.undoStack.length > 0), undo = useWorkspace((s) => s.undo)
   const [text, setText] = useState('')
   // a section that was not here at the last render has just been added: its rule is drawn under it once
-  const seen = useRef<Set<string> | null>(null)
-  const fresh = seen.current ? tools.filter((t) => !seen.current!.has(t.id)).map((t) => t.id) : []
-  useEffect(() => { seen.current = new Set(tools.map((t) => t.id)) }, [tools])
+  const [seen, setSeen] = useState<string[] | null>(null)
+  const fresh = seen ? tools.filter((t) => !seen.includes(t.id)).map((t) => t.id) : []
+  useEffect(() => { const t = setTimeout(() => setSeen(tools.map((x) => x.id)), 700); return () => clearTimeout(t) }, [tools])
   const city: CityId | null = route.path === '/map' ? filters.city : selected?.metro ?? null
   return (
     <header className="mast">
@@ -45,7 +45,7 @@ export function Masthead({ story, stories, onMenu }: { story: Panel | null; stor
             return (
               <Popover.Root key={t.id}>
                 <Popover.Trigger className={fresh.includes(t.id) ? 'section new' : 'section'} data-story={has ? '' : undefined} aria-current={story?.tool === t.id || undefined} aria-label={`${t.title}. Why this section is here.`}>{t.title}</Popover.Trigger>
-                <Popover.Portal><Popover.Positioner side="bottom" align="start" sideOffset={10}><Popover.Popup className="slip">
+                <Popover.Portal><Popover.Positioner className="pos" side="bottom" align="start" sideOffset={10}><Popover.Popup className="slip">
                   <span className="cap">Why this section is here</span>
                   <Popover.Title render={<h3 />}>{t.title}</Popover.Title>
                   <p>{t.reason || 'You added it.'}</p>
@@ -68,7 +68,7 @@ export function Masthead({ story, stories, onMenu }: { story: Panel | null; stor
           {canUndo && <button type="button" className="section" style={{ color: 'var(--ink)' }} onClick={undo} title="Undo your last change (Ctrl Z)">Undo</button>}
           <Popover.Root>
             <Popover.Trigger className="section" style={{ color: 'var(--ink)' }} aria-label={`Kept, ${shortlist.length}`}>Kept {shortlist.length}</Popover.Trigger>
-            <Popover.Portal><Popover.Positioner side="bottom" align="end" sideOffset={10}><Popover.Popup className="slip">
+            <Popover.Portal><Popover.Positioner className="pos" side="bottom" align="end" sideOffset={10}><Popover.Popup className="slip">
               <Popover.Title render={<h3 />}>Kept</Popover.Title>
               {shortlist.length === 0 && <p>Nothing kept yet. Use Keep beside a scan to put it here.</p>}
               <ul className="keptlist">

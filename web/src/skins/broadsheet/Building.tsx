@@ -82,6 +82,8 @@ export function BuildingPage({ sid }: { sid: string }) {
   const { story, stories } = useStories()
   const doc = useWorkspace((s) => s.doc)
   const current = useCurrent()
+  const scanName = m.selected?.scans.find((x) => x.sid === sid)?.name
+  const busy = doc.runs.findLast((r) => r.status === 'running' && (!scanName || r.label.endsWith(scanName)))
   const plan = v.plan
   const open = route.q.get('b_o') === '1'
   const air = route.q.get('b_v') === 'air' && !!plan?.geo
@@ -166,6 +168,18 @@ export function BuildingPage({ sid }: { sid: string }) {
 
   return (
     <div className="page" data-open={open || undefined} data-plate={photo ? 'photo' : 'paper'}>
+      <div className="col">
+        <OpenQuestions />
+        <Contents stories={stories} story={story} />
+        {busy && story && <p className="stale atwork" role="status"><span><span className="reading">Writing: {busy.label}</span>{busy.summary && <em> {busy.summary}</em>}</span></p>}
+        {story ? <Story key={`${story.id}:${story.run}`} panel={story} place={place} end={keep} /> : <><p className="kicker cap">{place}{keep}</p><Intro plan={plan} sid={sid} /></>}
+        <Plan />
+        <Desk />
+        <form className="phone-ask" onSubmit={(e) => { e.preventDefault(); if (text.trim()) { void ask(text.trim()); setText('') } }}>
+          <input className="field" value={text} onChange={(e) => setText(e.target.value)} placeholder="Ask for a change" aria-label="Ask the agent for a change" autoComplete="off" /><button className="btn">Ask</button>
+        </form>
+      </div>
+
       <div className="stage">
         {v.error && <div className="state" role="alert"><p>{v.error}</p><button className="btn" onClick={v.retry}>Try again</button></div>}
         {!plan && !v.error && <div className="state" aria-label="Loading the plan"><i className="unset" /><i className="unset" /></div>}
@@ -179,24 +193,13 @@ export function BuildingPage({ sid }: { sid: string }) {
         {air && plan && <AirPlate plan={plan} findings={storyFindings} current={current} />}
       </div>
 
-      <div className="col">
-        <OpenQuestions />
-        <Contents stories={stories} story={story} />
-        {story ? <Story key={`${story.id}:${story.run}`} panel={story} place={place} end={keep} /> : <><p className="kicker cap">{place}{keep}</p><Intro plan={plan} sid={sid} /></>}
-        <Plan />
-        <Desk />
-        <form className="phone-ask" onSubmit={(e) => { e.preventDefault(); if (text.trim()) { void ask(text.trim()); setText('') } }}>
-          <input className="field" value={text} onChange={(e) => setText(e.target.value)} placeholder="Ask for a change" aria-label="Ask the agent for a change" autoComplete="off" /><button className="btn">Ask</button>
-        </form>
-      </div>
-
       <figure className="figbar">
         <Fig n={1}>{caption}</Fig>
         <div className="views" role="group" aria-label="What the figure shows">
           {v.modes.map((x) => <button key={x} aria-pressed={!air && v.mode === x} onClick={() => setMode(x)}>{VIEW[x]}</button>)}
           {plan?.geo && <button aria-pressed={air} onClick={() => setQuery({ b_v: air ? null : 'air' })}>Aerial</button>}
           {!air && (v.mode === 'dollhouse' || v.mode === 'plan') && plan?.has.openings && <button aria-pressed={!!v.view.measures} onClick={() => v.setView((x) => ({ ...x, measures: !x.measures }))}>Widths</button>}
-          {!air && v.mode === 'pano' && plan?.has.defurnished && <button aria-pressed={v.view.wipe != null} onClick={() => v.setView((x) => ({ ...x, wipe: x.wipe == null ? 0.5 : null }))}>Empty rooms</button>}
+          {!air && v.mode === 'pano' && plan?.has.defurnished && <button aria-pressed={v.view.wipe != null} onClick={() => v.setView((x) => ({ ...x, wipe: x.wipe == null ? (free.left + (window.innerWidth - free.left) / 2) / window.innerWidth : null }))}>Empty rooms</button>}
           <button className="open" onClick={() => setQuery({ b_o: open ? null : '1' })}>{open ? 'Back to the page' : 'Open the figure'}</button>
         </div>
       </figure>

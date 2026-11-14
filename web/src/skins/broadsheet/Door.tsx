@@ -46,7 +46,6 @@ export function DoorPage() {
   const doors = house?.openings.filter((o) => o.type === 'doorway').length ?? 0
   return (
     <div className="page cover" data-plate="paper">
-      <div className="stage">{house ? <CoverFigure sid={house.sid} /> : <div className="state"><i className="unset" /><i className="unset" /></div>}</div>
       <div className="col">
         {!composing ? (
           <>
@@ -88,6 +87,7 @@ export function DoorPage() {
           </>
         )}
       </div>
+      <div className="stage">{house ? <CoverFigure sid={house.sid} /> : <div className="state"><i className="unset" /><i className="unset" /></div>}</div>
       {house && (
         <figure className="figbar">
           <Fig n={1}>{(house.address ?? house.name).split(',')[0]}, {house.city}, cut open at 1.3 m. Drawn from {house.walls.length} walls and {doors} {plural(doors, 'doorway')} in its scan.</Fig>

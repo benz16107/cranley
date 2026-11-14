@@ -24,7 +24,8 @@ function useNumbered(marks: Building[]): Numbered[] {
     const table = panels.flatMap((p) => p.blocks).findLast((b) => b.type === 'RankedTable')
     const ranked = table?.type === 'RankedTable' ? table.rows.flatMap((r) => (r.anchor && 'sid' in r.anchor ? [r.anchor.sid] : [])) : []
     const order = (b: Building) => { const i = ranked.findIndex((sid) => b.scans.some((s) => s.sid === sid)); return i < 0 ? 1e6 : i }
-    return [...marks].sort((x, y) => order(x) - order(y)).map((b, i) => ({ b, n: i + 1, best: i === 0 && order(b) === 0 }))
+    const read = marks.filter((b) => panels.some((p) => b.scans.some((s) => s.sid === p.sid)))
+    return read.sort((x, y) => order(x) - order(y)).map((b, i) => ({ b, n: i + 1, best: i === 0 && order(b) === 0 }))
   }, [panels, marks])
 }
 /** The building the agent is reading now. A run names its scan at the end of its label, which is all a look is given. */
@@ -149,11 +150,11 @@ export function CityPage() {
 
   const head = sel ? (
     <>
-      <p className="kicker cap"><span>{city.name} edition</span><span>{sel.city || 'Selected address'}</span><button className="link keep" onClick={() => m.select(null)}>Close</button></p>
+      <p className="kicker cap"><span>{city.name} edition</span>{sel.city && sel.city !== city.name && <span>{sel.city}</span>}<button className="link keep" onClick={() => m.select(null)}>Close</button></p>
       <h1 className="head" data-size={sel.address.split(',')[0].length > 22 ? 'm' : 'l'} key={sel.id}>{sel.address.split(',')[0]}</h1>
       <p className="deck"><b>{word(sel.count)}</b> {plural(sel.count, 'scan')} at this address{sel.splat ? ', with a drone capture' : ''}{sel.defurnished ? ', with an empty-room view' : ''}.</p>
     </>
-  ) : working || numbered.length ? (
+  ) : working || (numbered.length && !found) ? (
     <>
       <p className="kicker cap"><span>{city.name} edition</span>{working && <span className="reading">The agent is at work</span>}</p>
       {numbered.length ? <h1 className="head" key={numbered.length}><Mark>{word(numbered.length)}</Mark> {plural(numbered.length, 'building')} read{working ? ' so far' : ''}.</h1>
@@ -175,10 +176,6 @@ export function CityPage() {
 
   return (
     <div className="page" data-open={open || undefined} data-plate={photo ? 'photo' : 'paper'}>
-      <div className="stage">
-        <PaperMap city={m.filters.city} buildings={m.shown} selected={sel} numbered={numbered} now={now.b} hits={hits} geo={m.geo} look={m.look} aerial={aerial} open={open} onSelect={m.select} />
-        {m.state === 'error' && <div className="state" role="alert" style={{ background: 'var(--paper)' }}><p>The building list did not load. Is the data server running?</p><button className="btn" onClick={m.reload}>Try again</button></div>}
-      </div>
       <div className="col">
         <OpenQuestions />
         {story && !sel ? <Story key={`${story.id}:${story.run}`} panel={story} place={<span>{city.name} edition</span>} more={stories.filter((p) => p !== story)} /> : head}
@@ -218,6 +215,10 @@ export function CityPage() {
         <Find all={m.all} />
         <Measure city={city.name} found={found} setFound={setFound} />
         <Desk />
+      </div>
+      <div className="stage">
+        <PaperMap city={m.filters.city} buildings={m.shown} selected={sel} numbered={numbered} now={now.b} hits={hits} geo={m.geo} look={m.look} aerial={aerial} open={open} onSelect={m.select} />
+        {m.state === 'error' && <div className="state" role="alert" style={{ background: 'var(--paper)' }}><p>The building list did not load. Is the data server running?</p><button className="btn" onClick={m.reload}>Try again</button></div>}
       </div>
       <figure className="figbar">
         <Fig n={1}>{m.shown.length.toLocaleString('en-US')} scanned {plural(m.shown.length, 'building')} in {city.name}; each dot is an address.{numbered.length > 0 && ' Numbers follow the list on the page.'}{now.b && ' The pencil ring is the one being read.'} Map © OpenStreetMap, OpenFreeMap.</Fig>
