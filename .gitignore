@@ -1,0 +1,20 @@
+.env*
+!.env.example
+node_modules/
+dist/
+build/
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+.playwright-mcp/
+# CoStar terms: no sponsor data in this repo, ever.
+data/
+cache/
+fixtures/
+*.ply
+*.xyz
+*.obj
+*.zip
+shots/
