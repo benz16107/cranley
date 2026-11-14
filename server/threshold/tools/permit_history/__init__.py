@@ -34,7 +34,7 @@ LA = "data.lacity.org"
 PERMITS = {"pi9x-tg5x": "2020 to now", "dyxf-7hc4": "2010 to 2019"}
 CASES = {"u82d-eh7z": "open", "rken-a55j": "closed"}
 FIELDS = "permit_nbr,primary_address,permit_type,permit_sub_type,work_desc,issue_date,valuation,status_desc,lat,lon"
-CODE_WORDS = re.compile(r"nuisance|dangerous|building|junk|weed|dump|abandon|graffiti|drain|flood|code|vacant|\\bsigns?\\b", re.IGNORECASE)
+CODE_WORDS = re.compile(r"nuisance|dangerous|building|junk|weed|dump|abandon|graffiti|drain|flood|code|vacant|\bsigns?\b", re.IGNORECASE)
 STREET = re.compile(r"^\s*(\d+)\s+(?:([NSEW])\s+)?(.+?)\s+(ST|AVE|BLVD|DR|PL|WAY|RD|LN|CT|TER|CIR|PKWY|HWY|SQ|TRL)\b", re.IGNORECASE)
 
 
