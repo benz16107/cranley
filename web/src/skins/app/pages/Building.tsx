@@ -3,7 +3,7 @@ import { Slider } from '@base-ui/react/slider'
 import { Tabs } from '@base-ui/react/tabs'
 import {
   Scene, SceneBoundary, fetchRecord, focusFinding, panoFace, runTool, useBuildingView, useBuildings, useWorkspace,
-  type Doc, type SceneMode, type SceneProps, type SceneState, type SceneView, type ScanPlan, type Status,
+  type Doc, type SceneCamera, type SceneMode, type SceneProps, type SceneState, type SceneView, type ScanPlan, type Status,
 } from '../../../core/index.ts'
 import { PanelView } from '../blocks/blocks.tsx'
 import { Edge, Fill, Pane, Split } from '../design/split.tsx'
@@ -16,6 +16,7 @@ import { useScheme } from '../shell/theme.ts'
 import { startTool } from '../shell/StartTool.tsx'
 import { DownloadReport } from '../report/DownloadReport.tsx'
 import { useIsPhone, useUi } from '../shell/store.ts'
+import { CompareScenes, WhatIfMenu, useWhatIf } from '../whatif/WhatIf.tsx'
 
 const MODES: { id: SceneMode; label: string; icon: IconName; none: string }[] = [
   { id: 'dollhouse', label: '3D', icon: 'cube', none: '' }, { id: 'plan', label: 'Plan', icon: 'plan', none: '' },
@@ -292,6 +293,29 @@ export function Building({ sid }: { sid: string }) {
     const sited = (plan as { geo?: { lat?: number | null } | null }).geo?.lat != null && (!!plan.quality?.georef || plan.has.splat)
     v.setView((x) => ({ ...x, surface: 'scan', env: sited ? 'aerial' : x.env }))
   }
+  // What if: the renovated plan beside this one. A new what-if result opens the comparison; the person can close it.
+  const wi = useWhatIf(sid)
+  const [compare, setCompare] = useState(false)
+  const camera = useRef<((c: SceneCamera) => void) | null>(null)
+  const showCompare = compare && !!wi.after
+  useEffect(() => { if (wi.after && performance.now() - born.current > 2500) setCompare(true) }, [wi.after])
+  const kept = useRef<{ surface: typeof v.view.surface; env: typeof v.view.env; measures: typeof v.view.measures; frame: typeof v.view.frame; pick: string[] | null } | null>(null)
+  useEffect(() => {
+    if (!showCompare) return
+    kept.current = { surface: v.view.surface, env: v.view.env, measures: v.view.measures, frame: v.view.frame, pick } // given back on close
+    setPick(['renovate']) // both sides mark the same edits
+    v.setView((x) => ({ ...x, surface: 'model', env: 'studio', measures: true, frame: { top: -20, right: 20, bottom: -20, left: 20 } }))
+    if (v.mode !== 'dollhouse' && v.mode !== 'plan') v.setMode('dollhouse')
+    const t = setTimeout(v.stepBack, 400) // the scene is half as wide now: frame the building again
+    return () => {
+      clearTimeout(t)
+      const k = kept.current
+      if (!k) return
+      setPick(k.pick)
+      v.setView((x) => ({ ...x, surface: k.surface, env: k.env, measures: k.measures, frame: k.frame }))
+      setTimeout(v.stepBack, 400)
+    }
+  }, [showCompare]) // eslint-disable-line react-hooks/exhaustive-deps
   const [picked, setTab] = useState<string | null>(null)
   const tab = picked ?? (panels.length ? 'results' : 'overview') // until the person picks: results when there are any
 
@@ -401,6 +425,7 @@ export function Building({ sid }: { sid: string }) {
             <IconBtn icon="right" label="Next scan at this address" disabled={i >= b.scans.length - 1} onClick={() => goScan(b.scans[i + 1].sid)} />
           </div>
         )}
+        {v.plan && <WhatIfMenu sid={sid} plan={v.plan} />}
         <RunToolMenu sid={sid} trigger={<button type="button" className="btn" disabled={!v.plan}><Icon name="play" size={13} />Run a tool<Icon name="down" size={11} /></button>} />
         <button type="button" className="btn" aria-pressed={v.kept} onClick={v.toggleKeep} disabled={!v.plan} title="Keep this scan in Buildings ( K )"><Icon name="keep" size={14} />{v.kept ? 'Kept' : 'Keep'}</button>
         <DownloadReport workspace={doc.id} sid={sid} name={v.plan?.name} disabled={!runs.some((r) => r.status === 'done')} />
@@ -434,6 +459,7 @@ export function Building({ sid }: { sid: string }) {
               )
             })()}
             <span className="grow" />
+            {wi.after && <button type="button" className="btn quiet" aria-pressed={showCompare} onClick={() => setCompare(!showCompare)} title="The plan as it is beside the plan after the what-if edits"><Icon name="split" size={14} /><span className="lbl">Now and after</span></button>}
             {drawn.length > 0 && (
               <MenuBtn align="end" trigger={<button type="button" className="btn quiet" aria-label={`Overlays: ${on.length} of ${drawn.length} tools drawn on the building`}><Icon name={on.length ? 'eye' : 'eyeoff'} size={14} /><span className="lbl">Overlays</span><span className="count">{on.length} of {drawn.length}</span></button>}>
                 <div className="mh">Draw on the building</div>
@@ -462,9 +488,14 @@ export function Building({ sid }: { sid: string }) {
             {v.sceneProps && (
               <Suspense fallback={<div className="scene-state loading" role="status"><span className="sk" /><span className="sk" /><span className="muted small">Loading the building view</span></div>}>
                 {/* keyed by scan and scheme: the scene builds its model for one plan and reads its colours when it mounts */}
-                <SceneBoundary key={`${v.sceneKey}:${scheme}`} fallback={fault('The building view stopped on this scan.')}>
-                  <Scene {...v.sceneProps} className="app-scene" switcher={false} prepare onState={onScene} onShow={onShow} />
-                </SceneBoundary>
+                {(() => {
+                  const scene = (
+                    <SceneBoundary key={`${v.sceneKey}:${scheme}`} fallback={fault('The building view stopped on this scan.')}>
+                      <Scene {...v.sceneProps} className="app-scene" switcher={false} prepare onState={onScene} onShow={onShow} onCamera={(c) => camera.current?.(c)} />
+                    </SceneBoundary>
+                  )
+                  return <CompareScenes open={showCompare} sid={sid} after={wi.after} mode={v.mode} cameraRef={camera}>{scene}</CompareScenes>
+                })()}
               </Suspense>
             )}
           </div>

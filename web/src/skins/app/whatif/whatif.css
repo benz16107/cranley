@@ -1,0 +1,22 @@
+/* What if: the menu's goal rows and the side-by-side scene. Tokens and sizes from design/README.md. */
+
+.menu .wi-goal { height: auto; padding-block: 5px; align-items: flex-start; }
+.menu .wi-goal .grow { display: grid; gap: 1px; justify-items: start; text-align: left; }
+.menu .wi-goal small { font-size: var(--text-2xs); }
+.menu .wi-fine { max-width: 260px; margin: 0; padding: 4px 10px 6px; color: var(--ink-3); font-size: var(--text-2xs); line-height: 1.4; }
+
+.wi-split { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; }
+.wi-split[data-open='false'] { grid-template-columns: 1fr; }
+.wi-pane { position: relative; margin: 0; min-width: 0; min-height: 0; overflow: hidden; }
+.wi-pane + .wi-pane { border-left: 1px solid var(--rule-strong); }
+.wi-pane > figcaption {
+  position: absolute; z-index: 10; top: 8px; left: 8px; display: flex; align-items: center; gap: 10px; height: 26px; padding: 0 8px;
+  border: 1px solid var(--rule); border-radius: var(--r-1); background: var(--pane); font-size: var(--text-xs);
+}
+.wi-pane > figcaption b { font-weight: 600; }
+.wi-cost { display: inline-flex; align-items: center; gap: 6px; }
+
+@container (max-width: 640px) {
+  .wi-split[data-open='true'] { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+  .wi-pane + .wi-pane { border-left: 0; border-top: 1px solid var(--rule-strong); }
+}
