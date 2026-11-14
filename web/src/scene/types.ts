@@ -100,6 +100,10 @@ export interface View {
   style?: 'solid' | 'xray'
   /** Change this number to play the flight from above the neighbourhood down into a room. */
   tour?: number
+  /** Something played on the building over time: 'flood' is Hurricane Harvey's water hour by hour, 'fire' the Smoke
+      clock's smoke minute by minute, 'tour' a camera tour of findings with captions and speech. `playing` runs or
+      holds it and `seek` jumps; the scene reports the playhead through onShow. null or missing is nothing playing. */
+  show?: import('./show/types.ts').ShowSpec | null
 }
 
 /** What onCamera reports: the camera in the same units as `pose` and `fov`, and where `view.focus` is on screen. */

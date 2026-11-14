@@ -1,8 +1,9 @@
 import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Slider } from '@base-ui/react/slider'
 import { Tabs } from '@base-ui/react/tabs'
 import {
-  Scene, SceneBoundary, fetchRecord, focusFinding, panoFace, useBuildingView, useBuildings, useWorkspace,
-  type Doc, type SceneMode, type SceneState, type ScanPlan, type Status,
+  Scene, SceneBoundary, fetchRecord, focusFinding, panoFace, runTool, useBuildingView, useBuildings, useWorkspace,
+  type Doc, type SceneMode, type SceneProps, type SceneState, type SceneView, type ScanPlan, type Status,
 } from '../../../core/index.ts'
 import { PanelView } from '../blocks/blocks.tsx'
 import { Edge, Fill, Pane, Split } from '../design/split.tsx'
@@ -22,6 +23,40 @@ const MODES: { id: SceneMode; label: string; icon: IconName; none: string }[] = 
 ]
 const WORST: Record<Status, number> = { fail: 0, warn: 1, unknown: 2, pass: 3 }
 type F = Doc['findings'][number]
+/** What the scene reports about a show (flood, fire, tour) while it plays, and what the toolbar sets to drive it. */
+type ShowState = NonNullable<Parameters<NonNullable<SceneProps['onShow']>>[0]>
+type ShowSpec = NonNullable<SceneView['show']>
+type ShowKind = ShowSpec['kind']
+const SHOWS: { id: ShowKind; label: string; icon: IconName; title: string }[] = [
+  { id: 'flood', label: 'Flood', icon: 'drop', title: 'Hurricane Harvey\'s water at this house, hour by hour' },
+  { id: 'fire', label: 'Fire', icon: 'fire', title: 'The Smoke clock\'s fire in these rooms, minute by minute' },
+  { id: 'tour', label: 'Tour', icon: 'walk', title: 'A camera tour of the findings on this scan, read aloud' },
+]
+
+/** The transport of whatever is playing on the building: play and pause, the time slider, the clock. It keeps the
+    playhead's state itself (the scene hands each step to `sink`), so a step redraws this row and not the page. */
+function Transport({ spec, sink, set, seek, close }: { spec: ShowSpec; sink: React.RefObject<((s: ShowState | null) => void) | null>; set: (patch: Partial<ShowSpec>) => void; seek: (step: number) => void; close: () => void }) {
+  const [got, setShow] = useState<ShowState | null>(null)
+  useEffect(() => { sink.current = setShow; return () => { sink.current = null } }, [sink])
+  const show = got?.kind === spec.kind ? got : null, ready = show?.status === 'ready'
+  return (
+    <>
+      <button type="button" className="btn sm" style={{ minWidth: 62 }} disabled={!ready} onClick={() => set({ playing: !spec.playing })}>{spec.playing ? 'Pause' : <><Icon name="play" size={12} />Play</>}</button>
+      {spec.kind === 'tour' && <>
+        <IconBtn icon="left" label="Previous stop" className="btn icon quiet sm" disabled={!show || show.step <= 0} onClick={() => seek((show?.step ?? 0) - 1)} />
+        <IconBtn icon="right" label="Next stop" className="btn icon quiet sm" disabled={!show || show.step >= show.steps} onClick={() => seek((show?.step ?? 0) + 1)} />
+      </>}
+      <Slider.Root style={{ flex: '1 1 160px', minWidth: 120 }} value={show?.step ?? 0} min={0} max={Math.max(1, show?.steps ?? 1)} step={1} disabled={!ready} onValueChange={(n) => seek(n as number)}
+        aria-label={spec.kind === 'flood' ? 'Time in the storm' : spec.kind === 'fire' ? 'Time since the fire started' : 'Stop of the tour'}>
+        <Slider.Control className="slider"><Slider.Track className="track"><Slider.Indicator className="range" /><Slider.Thumb className="thumb" /></Slider.Track></Slider.Control>
+      </Slider.Root>
+      <span className="num small" style={{ minWidth: spec.kind === 'flood' ? 118 : 44, textAlign: 'right' }}>{show?.clock}</span>
+      {spec.kind === 'fire' && <button type="button" className="btn sm quiet" aria-pressed={spec.doors === 'closed'} title="Run the same fire with the bedroom doors closed" onClick={() => set({ doors: spec.doors === 'closed' ? 'open' : 'closed' })}>Doors {spec.doors === 'closed' ? 'closed' : 'open'}</button>}
+      {spec.kind === 'tour' && <button type="button" className="btn sm quiet" aria-pressed={spec.voice !== false} title="Read each stop aloud" onClick={() => set({ voice: spec.voice === false })}>Voice {spec.voice === false ? 'off' : 'on'}</button>}
+      <IconBtn icon="close" label="Stop and close" className="btn icon quiet sm" onClick={close} />
+    </>
+  )
+}
 
 /** A menu of every tool: the investigation's own first, then by family. One that needs more than this scan opens
     its form (marked with an ellipsis), the rest run at once. */
@@ -282,11 +317,58 @@ export function Building({ sid }: { sid: string }) {
     if (!count || performance.now() - born.current < 2500) return
     setTab('results')
     // a tool the person ran: the server's camera closes in on its worst finding, so frame the whole building again
-    if (mine) { const t = setTimeout(v.stepBack, 900); return () => clearTimeout(t) }
+    if (mine && last?.tool !== 'tour') { const t = setTimeout(v.stepBack, 900); return () => clearTimeout(t) }
   }, [arrived]) // eslint-disable-line react-hooks/exhaustive-deps
   // a run that fails while the person is here is shown too: its reason is on the Results tab
   const fails = failed.length, hadFails = useRef(fails)
   useEffect(() => { if (fails > hadFails.current && performance.now() - born.current > 2500) setTab('results'); hadFails.current = fails }, [fails])
+
+  // ---- shows: something played on the building. The scene plays it; this toolbar starts it and holds the transport.
+  const sink = useRef<((s: ShowState | null) => void) | null>(null)
+  const spec = v.view.show ?? null
+  const held = useRef<Partial<SceneView> | null>(null)
+  // the latest Tour run's findings are the tour's stops, in order; each line is that finding's own words
+  const stops = useMemo(() => {
+    const all = doc.findings.filter((f) => f.tool === 'tour' && f.anchor && 'sid' in f.anchor && f.anchor.sid === sid), run = all.at(-1)?.run
+    return all.filter((f) => f.run === run).sort((a, b) => a.id.localeCompare(b.id)).map((f) => ({ id: f.id, title: f.title, line: f.detail ?? f.title, status: f.status, anchor: f.anchor })) as NonNullable<ShowSpec['stops']>
+  }, [doc.findings, sid])
+  const play = (kind: ShowKind | null) => {
+    chose.current = sid
+    if (kind === 'tour' && !stops.length && spec?.kind !== 'tour') { // no tour yet: make one from what the workspace has found here (or let the tool gather)
+      const evidence = findings.filter((f) => f.tool !== 'tour' && f.anchor).map(({ id, title, status, detail, anchor, tool, source, media }) => ({ id, title, status, detail: detail ?? '', anchor, tool, source, media: media ?? [] }))
+      void runTool('tour', { question: doc.brief?.text, findings: evidence.length ? evidence : undefined }, sid)
+      return
+    }
+    // while something plays, only its own drawing is on the building (a tour's path); the person's choice comes back after
+    setPick(kind && spec?.kind !== kind ? (kind === 'tour' && drawn.includes('tour') ? ['tour'] : []) : null)
+    const x: SceneView = { ...v.view, ...held.current } // the view the person had before a show set its own
+    held.current = null
+    if (!kind || spec?.kind === kind) { v.setView({ ...x, show: null }); return }
+    const placed = (v.plan as { geo?: { lat?: number | null } | null } | null)?.geo?.lat != null, photo = bake.colour === 'ready'
+    held.current = { cut: x.cut, env: x.env, pose: x.pose, surface: x.surface, frame: x.frame }
+    // each show in the view it reads best in: the flood on its site; the fire in the house alone with whole walls,
+    // seen from low enough to look under the smoke
+    const beside = { top: -20, right: 20, bottom: -20, left: 150 } // the show's own panel stands at the left of the picture: the building keeps clear of it
+    const look: Partial<SceneView> = kind === 'flood' ? { env: placed ? 'aerial' : x.env, frame: beside } : kind === 'fire' ? { env: 'studio', cut: photo ? null : x.cut, pose: { pitch: 62 }, frame: beside } : {}
+    v.setView({ ...x, mode: 'dollhouse', surface: photo ? 'scan' : x.surface, ...look, show: kind === 'tour' ? { kind, playing: true, stops } : { kind, playing: true } })
+  }
+  useEffect(() => { held.current = null }, [sid]) // another scan starts with nothing to put back
+  const setSpec = (patch: Partial<ShowSpec>) => v.setView((x) => (x.show ? { ...x, show: { ...x.show, ...patch } } : x))
+  const seek = (step: number) => v.setView((x) => (x.show ? { ...x, show: { ...x.show, seek: { n: (x.show.seek?.n ?? 0) + 1, step } } } : x))
+  const onShow = (st: ShowState | null) => {
+    sink.current?.(st)
+    if (st && !st.playing) v.setView((x) => (x.show?.playing && x.show.kind === st.kind ? { ...x, show: { ...x.show, playing: false } } : x)) // it ended, or the person took the camera
+  }
+  // a tour that arrives while the person is here (they asked for it, or the agent ended its turn with one) plays
+  const stopsKey = stops.map((x) => x.id + x.line).join('|'), toured = useRef(stopsKey)
+  const busy = doc.runs.some((r) => r.status === 'running') || doc.plan.some((x) => x.status === 'active') // an agent turn still moves the camera: the tour waits for it to end
+  useEffect(() => {
+    if (stopsKey === toured.current || busy) return
+    toured.current = stopsKey
+    if (!stops.length || performance.now() - born.current < 2500) return
+    setPick(['tour'])
+    v.setView((x) => ({ ...x, mode: 'dollhouse', surface: bake.colour === 'ready' ? 'scan' : x.surface, show: { kind: 'tour', playing: true, stops } }))
+  }, [stopsKey, busy]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -367,6 +449,13 @@ export function Building({ sid }: { sid: string }) {
             )}
             <IconBtn icon="expand" label="Show the whole building" onClick={v.stepBack} disabled={!v.plan} />
           </div>
+          {/* The play row: start a flood, a fire or a tour on the building; its transport sits beside the choice. */}
+          {v.plan && (
+            <div className="worktools" role="group" aria-label="Play on the building">
+              <Seg<ShowKind | 'none'> label="Play on the building" value={spec?.kind ?? 'none'} onChange={(k) => play(k === 'none' ? null : k)} options={SHOWS} />
+              {spec && <Transport spec={spec} sink={sink} set={setSpec} seek={seek} close={() => play(null)} />}
+            </div>
+          )}
           <div className="scene-host">
             {v.error && fault(v.error)}
             {!v.plan && !v.error && <div className="scene-state loading" role="status"><span className="sk" /><span className="sk" /><span className="muted small">Loading the plan</span></div>}
@@ -374,7 +463,7 @@ export function Building({ sid }: { sid: string }) {
               <Suspense fallback={<div className="scene-state loading" role="status"><span className="sk" /><span className="sk" /><span className="muted small">Loading the building view</span></div>}>
                 {/* keyed by scan and scheme: the scene builds its model for one plan and reads its colours when it mounts */}
                 <SceneBoundary key={`${v.sceneKey}:${scheme}`} fallback={fault('The building view stopped on this scan.')}>
-                  <Scene {...v.sceneProps} className="app-scene" switcher={false} prepare onState={onScene} />
+                  <Scene {...v.sceneProps} className="app-scene" switcher={false} prepare onState={onScene} onShow={onShow} />
                 </SceneBoundary>
               </Suspense>
             )}

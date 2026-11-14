@@ -16,6 +16,8 @@ import { SplatView } from './splat.ts'
 import { InteriorSplat } from '../../world/InteriorSplat.ts'
 import { ScanMesh } from '../../world/ScanMesh.ts'
 import { WorldView } from '../../world/WorldView.ts'
+import { Shows } from '../show/index.ts'
+import type { ShowState } from '../show/types.ts'
 
 export interface SceneState {
   mode: Mode; loading: boolean; pano: string | null; hasEmpty: boolean; noWalls: boolean
@@ -45,6 +47,8 @@ export interface EngineOpts {
   onCamera?: (c: CameraInfo) => void
   /** Ask the server at once to colour the scanned mesh in the background (state.scan reports it). */
   prepare?: boolean
+  /** What view.show is doing, whenever its playhead moves a step or its state changes. */
+  onShow?: (s: ShowState) => void
 }
 
 const DOLL_FOV = 32, PLAN_FOV = 14, PANO_FOV = 76, PANO_FOV_MIN = 34, PANO_FOV_MAX = 96, SPLAT_DIST = 58
@@ -70,6 +74,8 @@ export class Engine {
   private world: WorldView
   private scan: ScanMesh
   private interior: InteriorSplat
+  private shows: Shows
+  private rawOverlays: Overlay[] = []
   private tour = 0 // the step of the flight in from above that is playing; 0 is none
   private opened = { cur: 1, goal: 1 } // real surroundings: 1 the building is cut out and the model stands in the gap, 0 it is whole
   private overlays: Overlay[] = []
@@ -125,7 +131,12 @@ export class Engine {
     if (opts.prepare) this.scan.prepare()
     this.interior = new InteriorSplat(this.renderer, this.scene, opts.api, plan.sid)
     this.interior.onChange = layerChanged
-    this.scene.add(this.world.group, this.pano.group, this.doll.group, this.scan.group, this.overlays3d.group, this.splat.group, this.interior.group)
+    this.shows = new Shows({
+      api: opts.api, sid: plan.sid, model: this.model, tokens: this.tokens, rig: this.rig, doll: this.doll, view: () => this.view,
+      setView: (patch) => this.opts.onViewChange({ ...this.view, ...patch }), emit: (st) => this.opts.onShow?.(st), relabel: () => this.setOverlays(this.rawOverlays),
+      invalidate: this.invalidate, home: () => this.dollPose(), aerial: () => this.aerial,
+    }, () => this.setOverlays(this.rawOverlays))
+    this.scene.add(this.world.group, this.pano.group, this.doll.group, this.scan.group, this.overlays3d.group, this.shows.group, this.splat.group, this.interior.group)
 
     this.labels = new Labels(this.model)
     el.appendChild(this.labels.root)
@@ -151,14 +162,18 @@ export class Engine {
   // ---- props -------------------------------------------------------------------------------------------------------
 
   setOverlays(overlays: Overlay[]) {
-    this.overlays = overlays.filter(isKnownOverlay) // Contract 4: unknown kinds are ignored
+    this.rawOverlays = overlays
+    // Contract 4: unknown kinds are ignored. A flood being played draws the water itself, so a tool's level waits.
+    this.overlays = overlays.filter((o) => isKnownOverlay(o) && !(this.shows.ownsWater && o.kind === 'water'))
     this.overlayLabels = this.overlays3d.set(this.overlays, !!this.view.measures, this.eye())
-    this.labels.sync([...this.roomLabels, ...this.overlayLabels])
+    this.syncLabels()
     this.markCurrent()
     this.applyStyles()
     this.world.setMute(this.overlays.length ? 0.4 : 0) // a result on the building: the surroundings step back
     this.invalidate()
   }
+
+  private syncLabels() { this.labels.sync([...this.roomLabels, ...this.overlayLabels, ...this.shows.labels]); this.invalidate() }
 
   private get aerial() { const v = this.view; return v.env === 'aerial' && (v.mode === 'dollhouse' || v.mode === 'splat') }
   /** In real surroundings a scan with a drone capture uses it for the house and garden; the city mesh starts beyond. */
@@ -225,10 +240,11 @@ export class Engine {
     this.doll.anim.explode.goal = next.mode === 'dollhouse' ? next.explode ?? 0 : 0
     this.pano.setWipe(next.wipe ?? null, this.w * this.renderer.getPixelRatio())
     if (!!next.measures !== !!prev.measures) this.setOverlays(this.overlays)
-    if (next.focus && JSON.stringify(next.focus) !== JSON.stringify(prev.focus)) this.focusOn(next.focus)
+    if (next.focus && JSON.stringify(next.focus) !== JSON.stringify(prev.focus) && this.shows.active !== 'tour') this.focusOn(next.focus) // a tour holds the camera
     if (differs(next.focus, prev.focus)) this.markCurrent()
     if (next.fit !== prev.fit && next.fit != null && next.mode === prev.mode) this.stepBack()
     this.applyLayers(prev)
+    this.shows.set(next.show)
     this.pushState(); this.invalidate()
   }
 
@@ -413,6 +429,7 @@ export class Engine {
     if (orbit != null) { if (this.orbiting && (mode === 'splat' || mode === 'dollhouse') && !this.rig.moving && !this.pointers.size && !reducedMotion()) this.rig.goal.az += dt * orbit * RAD }
     else if (this.drift && mode === 'splat' && !this.rig.moving) this.rig.goal.az += dt * 0.05
     let moving = this.rig.update(dt)
+    if (this.shows.update(dt)) moving = true
     const flying = this.rig.moving
     if (this.tour && !flying) this.stepTour()
     // In real surroundings the building is whole from far off and opens as the camera comes in: the roof of the city
@@ -469,6 +486,7 @@ export class Engine {
     this.dirty = false
     const reveal = this.doll.anim.reveal.cur
     this.doll.group.visible = reveal > 0.003; this.overlays3d.group.visible = reveal > 0.5
+    this.shows.group.visible = reveal > 0.5 && mode === 'dollhouse'
     this.renderer.render(this.scene, this.rig.camera)
     this.frames++
     const inPano = pp.cur > 0.5 && this.pano.current
@@ -519,7 +537,7 @@ export class Engine {
     this.rig.camera.aspect = this.w / this.h
     const f = this.free(); if (this.off.t >= 1) this.off.cur = [f.dx, f.dy]; this.off.to = [f.dx, f.dy]
     this.applyOffset(); this.rig.apply()
-    this.doll.setSize(this.w, this.h); this.overlays3d.setSize(this.w, this.h)
+    this.doll.setSize(this.w, this.h); this.overlays3d.setSize(this.w, this.h); this.shows.setSize(this.w, this.h)
     this.pano.setWipe(this.view.wipe ?? null, this.w * this.renderer.getPixelRatio())
     this.invalidate()
   }
@@ -547,7 +565,7 @@ export class Engine {
       if ((e.target as HTMLElement).closest('[data-scene-ui]')) return // rulers, sliders and pins handle themselves
       this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
       this.drag = { moved: 0, t: performance.now(), vx: 0, vy: 0, last: performance.now(), button: e.button }
-      this.drift = false; this.orbiting = false; this.tour = 0
+      this.drift = false; this.orbiting = false; this.tour = 0; this.shows.touched()
     }
     const onMove = (e: PointerEvent) => {
       const prev = this.pointers.get(e.pointerId)
@@ -595,7 +613,7 @@ export class Engine {
     }
     const onWheel = (e: WheelEvent) => {
       if ((e.target as HTMLElement).closest('[data-scene-ui]')) return
-      e.preventDefault(); this.drift = false; this.orbiting = false; this.tour = 0
+      e.preventDefault(); this.drift = false; this.orbiting = false; this.tour = 0; this.shows.touched()
       // A trackpad pinch arrives as a wheel event with ctrlKey and deltas about a tenth of a scroll's, so it gets its own gain.
       const pinch = e.ctrlKey, pad = !pinch && isTrackpad(e), zs = SPEED[inputPrefs.zoom]
       const mode = this.view.mode, k = Math.exp(e.deltaY * (pinch ? 0.012 : 0.0014) * zs)
@@ -653,7 +671,7 @@ export class Engine {
 
   dispose() {
     cancelAnimationFrame(this.raf); this.unsub(); this.ro.disconnect(); this.listeners.abort()
-    this.doll.dispose(); this.pano.dispose(); this.splat.dispose(); this.world.dispose(); this.scan.dispose(); this.interior.dispose()
+    this.shows.dispose(); this.doll.dispose(); this.pano.dispose(); this.splat.dispose(); this.world.dispose(); this.scan.dispose(); this.interior.dispose()
     this.renderer.dispose(); this.renderer.domElement.remove(); this.labels.root.remove()
   }
 }
