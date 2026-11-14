@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ComponentType } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { Drawer } from 'vaul'
 import { CityMap, useMap } from '../map/CityMap.tsx'
 import { AddressSearch, BuildingCard, Callout, FilterBar, HoverTip, Neatline, TitleBlock } from '../map/MapFurniture.tsx'
@@ -7,19 +7,19 @@ import { Icon, Mark } from '../design/ui.tsx'
 import { navigate, setQuery, useRoute } from '../lib/router.ts'
 import { fetchPlan } from '../lib/api.ts'
 import { useWorkspace, userOp } from '../workspace/store.ts'
-import type { Anchor, BuildingSceneProps, ScanPlan, SceneView } from '../workspace/types.ts'
+import type { Anchor, ScanPlan } from '../workspace/types.ts'
+import type { Mode, Overlay as SceneOverlay, Pick, ScanPlan as ScenePlan, View } from '../scene/types.ts'
 import { PanelView, focusAnchor, focusFinding } from '../workspace/blocks.tsx'
 import { replayDemo } from '../workspace/agent.ts'
 import { BriefCard, Dock, LearnedCard, PlanCard } from './Case.tsx'
-import { anchorFloor, LensLegend, PlanDrawing } from './PlanDrawing.tsx'
+import { anchorFloor } from './PlanDrawing.tsx'
 import { CommandMenu } from './CommandMenu.tsx'
 import { FrontDoor } from '../door/FrontDoor.tsx'
 import { useScheme, useTheme } from './theme.ts'
 
-/* The scene workstream's <BuildingScene plan overlays view onPick /> is picked up from web/src/scene/ as soon as it
-   exists. Until then the plan drawing stands in, behind the same props. The shell never reaches into three.js. */
-const sceneModule = Object.values(import.meta.glob<{ BuildingScene?: ComponentType<BuildingSceneProps>; default?: ComponentType<BuildingSceneProps> }>('../scene/{index,BuildingScene}.{ts,tsx}'))[0]
-const RealScene = sceneModule ? lazy(() => sceneModule().then((m) => ({ default: (m.BuildingScene ?? m.default)! }))) : null
+/* The scene workstream's <BuildingScene plan overlays view onPick />. The shell never reaches into three.js. */
+const BuildingScene = lazy(() => import('../scene/BuildingScene.tsx').then((m) => ({ default: m.BuildingScene })))
+const MODES: [Mode, string][] = [['dollhouse', '3D'], ['plan', 'Plan'], ['pano', 'Inside'], ['splat', 'Drone']]
 
 const SNAPS = ['112px', 0.55, 0.94]
 
@@ -45,47 +45,58 @@ function CitySwitch({ city }: { city: CityId }) {
 function ScanStage({ sid, frame }: { sid: string; frame: React.RefObject<HTMLDivElement | null> }) {
   const [plan, setPlan] = useState<ScanPlan | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [floor, setFloor] = useState<string | undefined>()
+  const [look, setLook] = useState<View>({ mode: 'dollhouse' }) // what the person chose: mode, floor, cut, position
   const [tries, setTries] = useState(0)
   const doc = useWorkspace((s) => s.doc)
   const { q } = useRoute()
   useEffect(() => {
     let on = true
-    setPlan(null); setError(null); setFloor(undefined)
+    setPlan(null); setError(null); setLook({ mode: 'dollhouse' })
     fetchPlan(sid).then((p) => on && setPlan(p), (e: Error) => on && setError(e.message))
     return () => { on = false }
   }, [sid, tries])
   useEffect(() => { if (q.get('demo') === 'access') replayDemo(sid) }, [sid, q])
 
   const overlays = useMemo(() => doc.overlays.filter((o) => !o.sid || o.sid === sid).map((o) => o.overlay), [doc.overlays, sid])
-  const cam = doc.camera && 'sid' in doc.camera.anchor && doc.camera.anchor.sid === sid && !('point' in doc.camera.anchor) ? doc.camera : null
+  const cam = doc.camera && 'sid' in doc.camera.anchor && doc.camera.anchor.sid === sid ? doc.camera.anchor : null
   const kept = doc.shortlist.some((s) => s.sid === sid)
-  const onPick = (anchor: Anchor) => {
-    const f = doc.findings.find((x) => x.anchor && JSON.stringify(x.anchor) === JSON.stringify(anchor))
-    if (f) focusFinding(f); else focusAnchor(anchor)
+  // Where the camera is told to look: its floor comes up, and a panorama anchor means "stand there and look that way".
+  const camKey = cam ? JSON.stringify(cam) : ''
+  useEffect(() => {
+    if (!plan || !cam) return
+    const floor = anchorFloor(plan, cam)
+    setLook((v) => ('pano' in cam ? { ...v, mode: 'pano', pano: cam.pano } : { ...v, mode: v.mode === 'pano' || v.mode === 'splat' ? 'dollhouse' : v.mode, floor: floor && plan.floors.length > 1 ? floor : v.floor }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [camKey, plan])
+  const view = useMemo<View>(() => ({ ...look, focus: cam && !('point' in cam && cam.point.every((n) => n === 0)) ? cam : null }), [look, camKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  const onPick = (p: Pick) => {
+    if (p.kind === 'pano') return // the scene walks there itself
+    const anchor: Anchor | undefined = p.kind === 'pin'
+      ? overlays.flatMap((o) => (o.kind === 'pins' ? o.pins : [])).find((x) => x.id === p.id)?.anchor
+      : p.kind === 'room' ? { sid, room: p.id } : p.kind === 'opening' ? { sid, opening: p.id } : { sid, wall: p.id }
+    if (!anchor) return
+    const same = (a: Anchor | null) => !!a && JSON.stringify({ ...a, sid }) === JSON.stringify({ ...anchor, sid })
+    const f = doc.findings.find((x) => same(x.anchor))
+    if (f) focusFinding(f); else focusAnchor({ ...anchor, sid } as Anchor)
   }
-  const floors = plan ? [...plan.floors].sort((a, b) => a.sequence - b.sequence) : []
-  // A finding on another floor brings that floor up. On any other floor there is nothing of it to point at.
-  const camFloor = plan && cam ? anchorFloor(plan, cam.anchor) : null
-  useEffect(() => { if (camFloor) setFloor(camFloor) }, [camFloor, cam])
-  const shownFloor = floor ?? floors[0]?.id
-  const here = cam && (!camFloor || camFloor === shownFloor) ? cam : null
-  const view: SceneView = { mode: 'plan', floor: shownFloor, focus: here?.anchor, agentAt: here?.by === 'agent' ? here.anchor : null }
+  const scenePlan = plan as unknown as ScenePlan // one ScanPlan, read through the scene's own (wider) type
   return (
     <div className="scan" ref={frame}>
       <header className="pane scanhead">
         <button className="btn quiet sm" onClick={() => navigate('/map', { b: q.get('b'), city: q.get('city') })}><Icon name="left" size={14} /> Map</button>
         <div className="ttl">
           <h2>{plan?.name ?? (error ? 'Scan not available' : 'Loading the plan')}</h2>
-          {plan && <p className="muted">{[plan.address.split(',')[0], plan.city, `${plan.rooms.length} rooms`, `${plan.openings.filter((o) => o.type === 'doorway').length} doorways`].filter(Boolean).join(' · ')}</p>}
+          {plan && <p className="muted">{[(plan.address ?? '').split(',')[0], plan.city, `${plan.rooms.length} rooms`, `${plan.openings.filter((o) => o.type === 'doorway').length} doorways`].filter(Boolean).join(' · ')}</p>}
         </div>
-        {floors.length > 1 && (
-          <div className="floors" role="group" aria-label="Floor">
-            {floors.map((f) => <button key={f.id} className="chip" aria-pressed={(floor ?? floors[0].id) === f.id} onClick={() => setFloor(f.id)}>{f.label || `Floor ${f.sequence + 1}`}</button>)}
+        {plan && (
+          <div className="floors" role="group" aria-label="View">
+            {MODES.filter(([m]) => (m !== 'splat' || plan.has.splat) && (m !== 'pano' || plan.panos.length > 0)).map(([m, name]) => (
+              <button key={m} className="chip" aria-pressed={look.mode === m} onClick={() => setLook((v) => ({ ...v, mode: m, pano: m === 'pano' ? v.pano ?? plan.panos[0]?.id : v.pano }))}>{name}</button>
+            ))}
           </div>
         )}
         {plan && (
-          <button className="btn sm" aria-pressed={kept} onClick={() => userOp(kept ? { op: 'shortlist.remove', sid } : { op: 'shortlist.add', item: { sid, name: plan.name, address: plan.address } })}>
+          <button className="btn sm" aria-pressed={kept} onClick={() => userOp(kept ? { op: 'shortlist.remove', sid } : { op: 'shortlist.add', item: { sid, name: plan.name, address: plan.address ?? '' } })}>
             <Icon name="keep" size={14} /> {kept ? 'Kept' : 'Keep'}
           </button>
         )}
@@ -95,12 +106,10 @@ function ScanStage({ sid, frame }: { sid: string; frame: React.RefObject<HTMLDiv
         {!plan && !error && <div className="state skeleton" aria-label="Loading the plan" />}
         {plan && (
           <Suspense fallback={<div className="state skeleton" />}>
-            {RealScene ? <RealScene plan={plan} overlays={overlays} onPick={onPick} view={view} /> : <PlanDrawing plan={plan} overlays={overlays} onPick={onPick} view={view} selected={here?.anchor} />}
+            <BuildingScene plan={scenePlan} overlays={overlays as SceneOverlay[]} view={view} onPick={onPick} onViewChange={({ focus: _f, ...v }) => setLook(v)} />
           </Suspense>
         )}
       </div>
-      {plan && !RealScene && <p className="scenenote label">Plan drawing from the wall outline. The 3D view takes this place.</p>}
-      {plan && <LensLegend overlays={overlays} />}
     </div>
   )
 }

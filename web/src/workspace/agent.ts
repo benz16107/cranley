@@ -1,64 +1,55 @@
 import { toast } from 'sonner'
 import { dispatch, useWorkspace } from './store.ts'
 import type { Action, Block, Doc, Op, OpInput, Panel, Question, ScanPlan, ToolResult } from './types.ts'
+import * as server from './server.ts'
 import { fetchPlan } from '../lib/api.ts'
 import { currentRoute, navigate } from '../lib/router.ts'
 import { CITIES, useBuildings, type Building, type CityId } from '../map/buildings.ts'
 import { ACCESS_DEFAULTS, accessAudit, accessPanel, type AccessPrefs } from '../fixtures/access.ts'
 import { matchNeed, NEEDS, TOOLS, type Need } from '../fixtures/catalog.ts'
 
-/* The link to the agent. It tries the server first (POST /api/agent/turn, a stream of workspace ops). When the
-   server is not there it plays fixtures: scripted ops through the same dispatch, so the shell behaves the same. */
+/* The link to the agent. With a server (server.ts) the server owns the workspace: turns stream its ops and the
+   shell shows the document after each. When no server answers it plays fixtures: scripted ops through the same
+   dispatch, so the shell behaves the same. */
 
 const say = (op: OpInput) => dispatch({ ...op, by: 'agent' } as Op)
 const doc = () => useWorkspace.getState().doc
 
-let live: boolean | null = null // is the agent server answering
 let playing = 0 // a new playback cancels the one before it
 let lastSids: string[] = []
 let instant = false
 const wait = (ms: number) => (instant ? Promise.resolve() : new Promise((r) => setTimeout(r, ms)))
 
-async function serverTurn(text: string): Promise<boolean> {
-  if (live === false) return false
+/** One turn on the agent server. False when no server answers, and the fixtures play instead. */
+async function serverTurn(body: { text?: string; sids?: string[] } = {}): Promise<boolean> {
+  if (!(await server.connect())) return false
   try {
-    const r = await fetch('/api/agent/turn', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'text/event-stream' },
-      body: JSON.stringify({ workspace: doc().id, text }) })
-    if (!r.ok || !r.body) { live = false; return false }
-    live = true
-    const reader = r.body.pipeThrough(new TextDecoderStream()).getReader()
-    let buf = ''
-    for (;;) {
-      const { value, done } = await reader.read()
-      if (done) break
-      buf += value
-      const events = buf.split('\n\n')
-      buf = events.pop()!
-      for (const e of events) {
-        const data = e.split('\n').filter((l) => l.startsWith('data:')).map((l) => l.slice(5).trim()).join('')
-        if (!data) continue
-        try { dispatch({ by: 'agent', ...JSON.parse(data) }) } catch { /* a malformed event is skipped, the stream goes on */ }
-      }
-    }
-    return true
-  } catch { live = false; return false }
+    const done = await server.turn(body)
+    if (done?.status === 'needs_scope') { navigate('/map', {}, { keep: true }); toast('Pick a building to look at.', { description: 'Open a scan from the map, then run a tool from the dock or ask again.' }) }
+    if (done?.budget?.stopped_by) toast(`The agent stopped at its limit of ${done.budget.stopped_by}.`, { description: 'Ask again to carry on from here.' })
+  } catch { toast.error('The agent server did not answer.') }
+  return true
 }
 
 useWorkspace.setState({
   onUserOp: (op: Op) => {
-    if (live) { void fetch(`/api/workspace/${doc().id}/ops`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ops: [op] }) }); return }
+    if (server.isLive()) { void server.onUserOp(op); return }
     // fixtures: a changed access setting runs the audit again, as the server would
     if (op.op === 'pref.set' && op.key.startsWith('access.') && lastSids.length) void playAccess({ sids: lastSids, quick: true })
   },
 })
+void server.resume()
+
+/** Start over: a new brief means a new workspace, on the server too. */
+export function startOver() { playing++; server.forget(); useWorkspace.getState().reset(); lastSids = [] }
 
 /* ---------- composing: who you are, which tools, which questions ---------- */
 export async function compose(sentence: string, needId?: string) {
-  playing++
-  useWorkspace.getState().reset()
-  lastSids = []
-  dispatch({ op: 'brief.set', by: 'user', brief: { text: sentence, facts: [] } })
-  if (await serverTurn(sentence)) return
+  startOver()
+  const live = await server.connect()
+  // shown at once; with a server this never reaches it as an op, the turn below carries the sentence
+  useWorkspace.setState({ doc: { ...doc(), brief: { text: sentence, facts: [] } } })
+  if (live) { navigate('/', {}, { replace: true }); void serverTurn({ text: sentence }); return }
   const need = NEEDS.find((n) => n.id === needId) ?? matchNeed(sentence)
   const my = playing
   navigate('/', { city: need.city, composing: '1' }, { replace: true })
@@ -74,8 +65,15 @@ export async function compose(sentence: string, needId?: string) {
 /** Every question answered: start the investigation. */
 export async function investigate() {
   const d = doc()
+  if (server.isLive()) { // unanswered questions take the value on offer; the server will not start with one open
+    const open = d.questions.filter((q) => q.answer == null)
+    if (open.some((q) => q.hint == null)) { toast('Answer the questions first.', { description: 'The tools cannot run without them.' }); return }
+    for (const q of open) dispatch({ op: 'question.answer', by: 'user', id: q.id, answer: q.hint! })
+    await new Promise((r) => setTimeout(r, open.length ? 600 : 0)) // let the answers land before the turn reads them
+    void serverTurn()
+    return
+  }
   for (const q of d.questions) if (q.answer != null && q.pref) say(answerPref(q, q.answer))
-  if (live) { void serverTurn('Start the investigation.'); return }
   const need = matchNeed(d.brief?.text ?? '')
   if (!need.scripted || !d.tools.some((t) => t.id === 'access')) {
     navigate('/map', { city: need.city })
@@ -248,7 +246,12 @@ export function replayDemo(sid: string) {
 
 /** Follow-up commands from a panel's ActionBar, and "run again". */
 export async function runAction(action: Action, panel: Panel) {
-  if (live) { void serverTurn(`Run action ${action.id} on panel ${panel.id}.`); return }
+  if (server.isLive()) {
+    const sid = (action.inputs?.scan as string | undefined) ?? panel.sid
+    const { scan: _scan, ...inputs } = action.inputs ?? {}
+    if (sid) void server.runTool(action.id === 'rerun' ? panel.tool : action.tool ?? panel.tool, sid, action.id === 'rerun' ? {} : inputs)
+    return
+  }
   if (panel.tool !== 'access') { toast('This action needs the agent server.'); return }
   if (action.id === 'rerun') { void playAccess({ sids: lastSids.length ? lastSids : panel.sid ? [panel.sid] : [], quick: true }); return }
   if (action.id === 'compare_address' && panel.sid) {
@@ -261,14 +264,15 @@ export async function runAction(action: Action, panel: Panel) {
 
 /** Run a tool on the scan in view, from the dock. */
 export function runToolHere(tool: string, sid: string) {
-  if (live) { void serverTurn(`Run ${tool} on scan ${sid}.`); return }
+  if (server.isLive()) { void server.runTool(tool, sid); return }
   if (tool !== 'access') { toast(`${TOOLS[tool]?.title ?? tool} needs the agent server.`, { description: 'Fixtures mode plays only the step-free access audit.' }); return }
   void playAccess({ sids: [sid], quick: true })
 }
 
 /** The one-line command bar. */
 export async function ask(text: string) {
-  if (await serverTurn(text)) return
+  const sid = currentRoute().sid, known: string[] = server.serverDoc()?.brief?.scope?.sids ?? []
+  if (await serverTurn({ text, sids: sid && !known.includes(sid) ? [...known, sid] : undefined })) return
   if (/access|wheel|door|step/i.test(text) && currentRoute().sid) { runToolHere('access', currentRoute().sid!); return }
   toast('The agent server is not connected.', { description: 'Fixtures mode can replay the step-free access audit. Open a scan and add that tool from the dock.' })
 }

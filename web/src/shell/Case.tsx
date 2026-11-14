@@ -11,7 +11,7 @@ const prefText = (p: Pick<Pref, 'value' | 'unit'>) => (typeof p.value === 'boole
 
 /* ---------- questions the tools need answered, asked inline ---------- */
 export function QuestionForm({ q }: { q: Question }) {
-  const [n, setN] = useState('')
+  const [n, setN] = useState(q.hint != null && q.kind !== 'choice' ? String(q.hint) : '')
   const started = useWorkspace((s) => s.doc.plan.length > 0)
   const answer = (a: string | number) => {
     userOp({ op: 'question.answer', id: q.id, answer: a })
@@ -30,6 +30,12 @@ export function QuestionForm({ q }: { q: Question }) {
           <button className="btn sm" disabled={!n}>Set</button>
         </form>
       )}
+      {q.kind === 'text' && (
+        <form className="opts" onSubmit={(e) => { e.preventDefault(); answer(n.trim()) }}>
+          <input className="field" value={q.answer != null && !n ? String(q.answer) : n} onChange={(e) => setN(e.target.value)} aria-label={q.text} />
+          <button className="btn sm">Set</button>
+        </form>
+      )}
     </fieldset>
   )
 }
@@ -46,6 +52,7 @@ export function BriefCard() {
         <header><h2 id="brief-h" className="label">Brief</h2></header>
         <p className="empty">No brief yet. Say who you are and the right tools are brought to the dock.</p>
         <button className="btn solid" onClick={() => navigate('/')}>Write a brief</button>
+        {open.length > 0 && <div className="asks">{open.map((q) => <QuestionForm key={q.id} q={q} />)}</div>}
       </section>
     )
   }
@@ -61,6 +68,7 @@ export function BriefCard() {
           <div className="row"><button className="btn solid sm">Save and compose again</button><button type="button" className="btn quiet sm" onClick={() => setEditing(false)}>Cancel</button></div>
         </form>
       ) : <p className="said">{doc.brief.text}</p>}
+      {!editing && !!doc.brief.limits?.length && <div className="limits"><span className="label">What the tools here cannot do</span>{doc.brief.limits.map((l) => <p key={l} className="muted">{l}</p>)}</div>}
       {open.length > 0 && !editing && <div className="asks">{open.map((q) => <QuestionForm key={q.id} q={q} />)}</div>}
       {doc.questions.length > 0 && !doc.plan.length && !editing && (
         <button className="btn solid" disabled={open.length > 0} onClick={() => void investigate()}>{open.length ? `${open.length} to answer` : 'Start the investigation'}</button>

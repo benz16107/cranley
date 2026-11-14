@@ -98,7 +98,9 @@ def questions(doc: Workspace, tool_ids: list[str]) -> list[Question]:
         if not m or m.status != "ready":
             continue
         for name, s in resolve(m, doc)[2]:
-            if "x-ask" not in s:
+            # a person can answer a number, a yes or no, a choice or a line of text in a form; a list of search
+            # criteria (measure_search) is the investigator's to write from the brief, so it is never asked
+            if "x-ask" not in s or s.get("type") not in ("number", "integer", "boolean", "string"):
                 continue
             key = s.get("x-pref") or f"{tid}.{name}"
             if key in out:

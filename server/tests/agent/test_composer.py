@@ -86,3 +86,9 @@ def test_composer_prefills_a_stated_size_and_says_what_it_cannot_do():
     assert ops[0].persona is None and ops[0].limits == ["Floor load ratings."]
     q = next(o.question for o in ops if isinstance(o, QuestionAsk))
     assert q.answer == 0.9 and not q.answered
+
+
+def test_only_inputs_a_form_can_answer_become_questions():
+    from threshold.agent.composer import questions
+    qs = {q.key for q in questions(Workspace(id="w"), ["measure_search", "door_widths"])}
+    assert qs == {"access.door_width_m"}  # measure_search's criteria list is not asked of the person

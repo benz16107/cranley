@@ -139,7 +139,8 @@
 .scanhead .btn[aria-pressed='true'] { background: var(--ink); color: var(--pane); border-color: var(--ink); }
 .scene { flex: 1; min-height: 0; position: relative; }
 .scene .state { position: absolute; inset: 0; display: grid; place-content: center; gap: var(--s-3); justify-items: center; }
-.scenenote { position: absolute; right: 12px; top: 60px; background: var(--paper); padding: 2px 4px; }
+/* the scene's own inset plan and scale bar sit beside the key plan, which holds the bottom-left corner */
+@media (min-width: 761px) { .scan .th-inset { left: 232px; } .scan .th-scalebar { left: 234px; } }
 .lenslegend { position: absolute; right: 12px; top: 88px; padding: var(--s-2) var(--s-3); display: grid; gap: 6px; }
 .lenslegend .steps { display: flex; } .lenslegend .steps i { width: 22px; height: 8px; }
 .lenslegend .ends { display: flex; justify-content: space-between; font-size: 0.62rem; }
@@ -228,7 +229,7 @@
   .stage { padding-bottom: 112px; }
   .scan { margin: 0; outline: 0; border-width: 0 0 1px; bottom: 112px; }
   .scanhead { flex-wrap: wrap; }
-  .mapwrap[data-inset='true'], .scenenote { display: none; }
+  .mapwrap[data-inset='true'] { display: none; }
   .sheet { position: fixed; inset: 0 0 0 0; top: auto; height: 100dvh; z-index: 8; background: var(--pane); border-radius: var(--r-sheet) var(--r-sheet) 0 0; box-shadow: var(--lift); display: flex; flex-direction: column; outline: none; }
   .grip { width: 36px !important; height: 4px !important; margin: 8px auto 4px !important; background: var(--rule-strong) !important; }
   .sheetbody { flex: 1; padding-bottom: 48px; }
@@ -237,3 +238,4 @@
   .sheetbody .dock .ask { flex-basis: 100%; border-left: 0; padding-left: 0; margin: 0; }
   .sheetbody .bcard { border-bottom: 1px solid var(--rule-strong); }
 }
+.limits { display: grid; gap: 4px; margin-top: var(--s-3); }

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import NumberFlow from '@number-flow/react'
 import { NEEDS, TOOLS } from '../fixtures/catalog.ts'
-import { compose, investigate } from '../workspace/agent.ts'
+import { compose, investigate, startOver } from '../workspace/agent.ts'
 import { useWorkspace } from '../workspace/store.ts'
 import { ToolKey } from '../design/ui.tsx'
 import { navigate } from '../lib/router.ts'
@@ -11,7 +11,7 @@ import { QuestionForm } from '../shell/Case.tsx'
    point from the index. Then the composition happens in view: tools arrive with their reasons, the questions
    those tools need are asked inline, and the investigation starts. */
 export function FrontDoor({ count }: { count: number | null }) {
-  const doc = useWorkspace((s) => s.doc), reset = useWorkspace((s) => s.reset)
+  const doc = useWorkspace((s) => s.doc)
   const [text, setText] = useState('')
   const composing = !!doc.brief
   const open = doc.questions.filter((q) => q.answer == null)
@@ -69,7 +69,7 @@ export function FrontDoor({ count }: { count: number | null }) {
               <div className="row go">
                 <button className="btn solid" disabled={open.length > 0} onClick={() => void investigate()}>{open.length ? `${open.length} left to answer` : 'Start the investigation'}</button>
                 <button className="link" onClick={() => void investigate()}>Use the defaults</button>
-                <button className="link" onClick={() => { reset(); navigate('/', {}, { replace: true }) }}>Start over</button>
+                <button className="link" onClick={() => { startOver(); navigate('/', {}, { replace: true }) }}>Start over</button>
               </div>
             </div>
           )}

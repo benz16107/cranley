@@ -3,13 +3,18 @@ import { Command } from 'cmdk'
 import { search, CITIES, type Building, type CityId } from '../map/buildings.ts'
 import { TOOLS } from '../fixtures/catalog.ts'
 import { useWorkspace, userOp } from '../workspace/store.ts'
+import { useCatalog } from '../workspace/server.ts'
+import { startOver } from '../workspace/agent.ts'
 import { navigate } from '../lib/router.ts'
 import { ToolKey } from '../design/ui.tsx'
 
 /** Ctrl K. Also where a tool is added by hand. It opens and closes without animation: it is used too often for one. */
 export function CommandMenu({ open, onClose, all }: { open: false | 'all' | 'tools'; onClose: () => void; all: Building[] }) {
   const [q, setQ] = useState('')
-  const tools = useWorkspace((s) => s.doc.tools), reset = useWorkspace((s) => s.reset), undo = useWorkspace((s) => s.undo)
+  const tools = useWorkspace((s) => s.doc.tools), undo = useWorkspace((s) => s.undo)
+  // the server's tools when it answers (planned ones last), else the fixture list
+  const served = useCatalog((s) => s.tools)
+  const catalog = useMemo(() => (served.length ? [...served].sort((a, b) => Number(a.status === 'planned') - Number(b.status === 'planned')).map((m) => ({ id: m.id, title: m.title, code: undefined, summary: m.status === 'planned' ? `Planned, not built yet. ${m.summary}` : m.summary })) : Object.values(TOOLS)), [served])
   useEffect(() => { if (open) setQ('') }, [open])
   const hits = useMemo(() => (q.length >= 3 ? search(all, q, 6) : []), [all, q])
   const run = (fn: () => void) => () => { fn(); onClose() }
@@ -20,7 +25,7 @@ export function CommandMenu({ open, onClose, all }: { open: false | 'all' | 'too
       <Command.List>
         <Command.Empty>Nothing matches “{q}”.</Command.Empty>
         <Command.Group heading="Tools">
-          {Object.values(TOOLS).map((t) => {
+          {catalog.map((t) => {
             const on = tools.some((x) => x.id === t.id)
             return (
               <Command.Item key={t.id} value={`tool ${t.title} ${t.summary}`} onSelect={run(() => userOp(on ? { op: 'tool.disable', id: t.id } : { op: 'tool.enable', tool: { ...t, reason: 'You added it from the command menu.' } }))}>
@@ -42,7 +47,7 @@ export function CommandMenu({ open, onClose, all }: { open: false | 'all' | 'too
             </Command.Group>
             <Command.Group heading="Workspace">
               <Command.Item onSelect={run(undo)}>Undo my last change</Command.Item>
-              <Command.Item onSelect={run(() => { reset(); navigate('/') })}>Start over with a new brief</Command.Item>
+              <Command.Item onSelect={run(() => { startOver(); navigate('/') })}>Start over with a new brief</Command.Item>
             </Command.Group>
             <Command.Group heading="Colour scheme">
               {['light', 'dark', 'system'].map((t) => <Command.Item key={t} value={`scheme ${t}`} onSelect={() => setTheme(t)}>{t === 'system' ? 'Match the system' : t === 'light' ? 'Light: ink on paper' : 'Dark: blueprint'}</Command.Item>)}
