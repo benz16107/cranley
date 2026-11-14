@@ -18,6 +18,8 @@ import pytest
 from threshold.tools import ToolContext
 from threshold.tools.room_labeller import facts, store
 
+from tests.tools.truth_fixtures import records  # noqa: F401  (the truth tools' fixture; their plans live in that module)
+
 
 def make_home(sid: str = "home") -> dict:
     walls, openings = {}, []

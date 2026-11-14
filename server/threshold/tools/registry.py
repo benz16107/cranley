@@ -34,14 +34,18 @@ def field(default: Any = ..., *, ask: str | None = None, pref: str | None = None
 
 
 def default_plan(sid: str) -> dict:
-    """A ScanPlan: the fixture copy if there is one (no network), else the data workstream's cached loader. Room
-    labels from the label overlay (room_labeller: vision labels and people's corrections) are applied."""
+    """A ScanPlan from the data workstream's cached loader (current normalizer, with `quality`). The fixture copy,
+    which an older normalizer wrote, is the fallback when the loader cannot reach the scan. Room labels from the
+    label overlay (room_labeller: vision labels and people's corrections) are applied either way."""
+    from ..sources import matterport
     from .room_labeller import store
     f = DATA / "fixtures" / "scanplan" / f"{sid}.json"
-    if f.exists():
-        return store.apply(json.loads(f.read_text()))
-    from ..sources import matterport
-    return store.apply(matterport.plan(sid))
+    try:
+        return store.apply(matterport.plan(sid))
+    except Exception:
+        if f.exists():
+            return store.apply(json.loads(f.read_text()))
+        raise
 
 
 @dataclass

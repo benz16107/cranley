@@ -1,0 +1,16 @@
+{
+  "id": "costar_research_lead",
+  "title": "CoStar research lead",
+  "who": "Decides which record fields to fix or add across a portfolio, from where records and scans disagree.",
+  "tools": [
+    "field_audit",
+    "record_vs_reality",
+    "derived_fields",
+    "room_census"
+  ],
+  "thresholds": {},
+  "layout": {
+    "view": "plan",
+    "lead_tool": "field_audit"
+  }
+}
