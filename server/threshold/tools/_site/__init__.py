@@ -10,10 +10,10 @@ import functools
 import math
 from dataclasses import dataclass, field
 
+import shapely
 from pydantic import BaseModel
 from shapely import wkt as shapely_wkt
 from shapely.geometry import Polygon, shape
-from shapely.ops import transform
 
 from ...aerial import site as aerial
 from ...sources import index
@@ -227,11 +227,11 @@ def to_m(lat0: float):
 
 
 def metres(geom, lat0: float):
-    return transform(to_m(lat0)[0], geom)
+    return shapely.transform(geom, lambda c: c * (111320.0 * math.cos(math.radians(lat0)), 110574.0))
 
 
 def lonlat(geom, lat0: float):
-    return transform(to_m(lat0)[1], geom)
+    return shapely.transform(geom, lambda c: c / (111320.0 * math.cos(math.radians(lat0)), 110574.0))
 
 
 def geo(lon: float, lat: float) -> GeoAnchor:
