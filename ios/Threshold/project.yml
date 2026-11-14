@@ -58,11 +58,27 @@ targets:
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/Threshold.app/Threshold
         BUNDLE_LOADER: $(TEST_HOST)
 
+  ThresholdUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [ThresholdUITests]
+    dependencies:
+      - target: Threshold
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.benzhou.threshold.uitests
+        SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated  # XCTestCase's initialisers are nonisolated
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Threshold
+
 schemes:
   Threshold:
     build:
       targets:
         Threshold: all
         ThresholdTests: [test]
+        ThresholdUITests: [test]
     test:
-      targets: [ThresholdTests]
+      targets: [ThresholdTests, ThresholdUITests]
+      environmentVariables:
+        THRESHOLD_SERVER: http://linuxbox:8811

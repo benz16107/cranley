@@ -18,7 +18,7 @@ struct WorkspaceView: View {
       List {
         Section {
           if let ws = app.workspace {
-            LabeledContent("Workspace", value: ws).monospaced()
+            LabeledContent("Linked to") { Text(ws).monospaced() }
             Button("Leave this workspace", role: .destructive) { app.workspace = nil; tasks = [] }
           }
           if canScanCode {
