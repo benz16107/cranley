@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+"""The API and the built web app on one local port, so the laptop needs no Node and no Vite at the venue.
+
+Run with the server's environment: `cd server && uv run python ../scripts/demo-serve --port 8890 --dist ../web/dist`.
+Every /api route is the real server (threshold.api.app); any other path is a file from the build, or index.html so
+that /app/scan/<sid> and the other client-side places open from a reload or a typed address.
+"""
+from __future__ import annotations
+
+import argparse
+import pathlib
+import sys
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "server"))
+
+import uvicorn  # noqa: E402
+from starlette.exceptions import HTTPException  # noqa: E402
+from starlette.responses import FileResponse  # noqa: E402
+from starlette.staticfiles import StaticFiles  # noqa: E402
+
+from threshold.api.app import app  # noqa: E402
+
+
+class Spa(StaticFiles):
+    async def get_response(self, path, scope):
+        try:
+            return await super().get_response(path, scope)
+        except HTTPException as e:
+            if e.status_code != 404 or path.startswith("api/"):  # a missing API route stays a JSON 404
+                raise
+            return FileResponse(pathlib.Path(self.directory) / "index.html")
+
+
+def main():
+    a = argparse.ArgumentParser()
+    a.add_argument("--port", type=int, default=8890)
+    a.add_argument("--dist", default=str(ROOT / "web" / "dist"))
+    o = a.parse_args()
+    if not (pathlib.Path(o.dist) / "index.html").exists():
+        sys.exit(f"demo-serve: no build at {o.dist} (scripts/demo-sync copies one)")
+    app.mount("/", Spa(directory=o.dist, html=True), name="web")
+    uvicorn.run(app, host="127.0.0.1", port=o.port, log_level="warning")
+
+
+if __name__ == "__main__":
+    main()

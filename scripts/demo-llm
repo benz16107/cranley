@@ -1,0 +1,193 @@
+#!/usr/bin/env python3
+"""Record and replay the agent's model calls, so a scripted demo flow runs with no network.
+
+The server points ANTHROPIC_BASE_URL at this proxy. Each request goes to the real endpoint (the pool proxy) when it
+answers, and the answer is saved under $THRESHOLD_DATA_DIR/demo/llm/. When the endpoint cannot be reached (venue
+Wi-Fi gone, Tailscale blocked) or fails, the saved answer for the same request is sent back instead.
+
+The agent's prompts carry random ids (ws_, run_, turn_ ...), so a request is matched with every id replaced by its
+order of first appearance, and the ids in a replayed answer are mapped back to the ids of the request in hand.
+With no exact match, a request at the same place in the same conversation (same system prompt, same number of
+messages, same tool calls so far) gets that answer: a tool's wording may have changed, the turn still goes on.
+
+The saved answers are derived from sponsor data: they live in the data folder, never in git.
+
+usage: demo-llm [--port 8892] [--upstream URL] [--mode auto|live|replay] [--delay 1.2]
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import pathlib
+import re
+import socket
+import sys
+import threading
+import urllib.error
+import urllib.request
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+DATA = pathlib.Path(os.environ.get("THRESHOLD_DATA_DIR", "~/Code/hackathons/hackprinceton26-data"))
+DIR = DATA / "demo" / "llm"
+ID = re.compile(r"\b(?:ws|run|turn|lane|toolu|msg|srvtoolu|call)_[A-Za-z0-9]{6,}\b")
+NUM = re.compile(r"\b\d+(?:\.\d+)? ?(?:ms|s)\b")  # timings in tool summaries change from run to run
+KEEP = ("x-api-key", "authorization", "anthropic-version", "anthropic-beta", "content-type", "accept")
+lock = threading.Lock()
+_probe = {"at": 0.0, "ok": False}
+
+
+def reachable(url: str) -> bool:
+    """Can a TCP connection to the endpoint open within 3 s? Remembered for 15 s, so a blocked network costs one wait."""
+    import time
+    from urllib.parse import urlsplit
+    if time.time() - _probe["at"] < 15:
+        return _probe["ok"]
+    u = urlsplit(url)
+    try:
+        socket.create_connection((u.hostname, u.port or (443 if u.scheme == "https" else 80)), timeout=3).close()
+        ok = True
+    except OSError:
+        ok = False
+    _probe.update(at=time.time(), ok=ok)
+    return ok
+
+
+def canon(body: dict) -> tuple[str, str, list[str]]:
+    """(exact key, fuzzy key, ids in order of first appearance)."""
+    body = {k: v for k, v in body.items() if k not in ("metadata", "stream")}
+    text = json.dumps(body, sort_keys=True)
+    ids: list[str] = []
+    for m in ID.finditer(text):
+        if m.group(0) not in ids:
+            ids.append(m.group(0))
+    n = {v: f"ID{i}" for i, v in enumerate(ids)}
+    norm = NUM.sub("N", ID.sub(lambda m: n[m.group(0)], text))
+    msgs = body.get("messages") or []
+    calls = [c.get("name") for m in msgs if isinstance(m.get("content"), list) for c in m["content"]
+             if isinstance(c, dict) and c.get("type") == "tool_use"]
+    system = NUM.sub("N", ID.sub("ID", json.dumps(body.get("system"), sort_keys=True)))
+    tools = sorted(t.get("name", "") for t in body.get("tools") or [])
+    fuzzy = json.dumps([body.get("model"), system, tools, len(msgs), calls])
+    h = lambda s: hashlib.sha256(s.encode()).hexdigest()[:24]
+    return h(norm), h(fuzzy), ids
+
+
+def find(key: str, fuzzy: str) -> dict | None:
+    f = DIR / f"{key}.json"
+    if f.exists():
+        return json.loads(f.read_text())
+    for g in sorted(DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+        try:
+            rec = json.loads(g.read_text())
+        except ValueError:
+            continue
+        if rec.get("fuzzy") == fuzzy:
+            return rec
+    return None
+
+
+def remap(text: str, recorded: list[str], now: list[str]) -> str:
+    """Ids the recorded request carried, swapped for the ones in this request (same order of appearance)."""
+    pairs = {r: c for r, c in zip(recorded, now) if r != c}
+    return ID.sub(lambda m: pairs.get(m.group(0), m.group(0)), text) if pairs else text
+
+
+class Handler(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+    mode = "auto"
+    upstream = ""
+    delay = 1.2  # seconds before a replayed answer: a replayed turn takes ~15 s on screen instead of one
+
+    def log_message(self, fmt, *a):
+        sys.stderr.write("demo-llm: " + fmt % a + "\n")
+
+    def send(self, status: int, ctype: str, body: bytes):
+        self.send_response(status)
+        self.send_header("content-type", ctype)
+        self.send_header("content-length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self):  # health check
+        self.send(200, "application/json", json.dumps({"ok": True, "mode": self.mode, "saved": len(list(DIR.glob("*.json")))}).encode())
+
+    def do_POST(self):
+        raw = self.rfile.read(int(self.headers.get("content-length") or 0))
+        try:
+            body = json.loads(raw)
+        except ValueError:
+            body = {}
+        key, fuzzy, ids = canon(body)
+        if self.mode != "replay":
+            try:
+                if self.live(raw, key, fuzzy, ids):
+                    return
+            except (urllib.error.URLError, socket.timeout, TimeoutError, ConnectionError, OSError) as e:
+                self.log_message("upstream unreachable (%s), replaying", type(e).__name__)
+        rec = find(key, fuzzy)
+        if rec is None:
+            self.log_message("no saved answer for %s", key)
+            return self.send(503, "application/json", json.dumps({"type": "error", "error": {
+                "type": "overloaded_error", "message": "offline and no recorded answer for this request"}}).encode())
+        import time
+        time.sleep(self.delay)
+        self.log_message("replay %s (%s)", key, "exact" if (DIR / f"{key}.json").exists() else "same step")
+        self.send(rec["status"], rec["ctype"], remap(rec["body"], rec["ids"], ids).encode())
+
+    def live(self, raw: bytes, key: str, fuzzy: str, ids: list[str]) -> bool:
+        """Forward to the real endpoint and save the answer. False when it failed and a saved answer should go."""
+        if self.mode == "auto" and not reachable(self.upstream):
+            raise ConnectionError("upstream did not answer within 3 s")
+        req = urllib.request.Request(self.upstream.rstrip("/") + self.path, data=raw, method="POST",
+                                     headers={k: v for k, v in self.headers.items() if k.lower() in KEEP})
+        try:
+            r = urllib.request.urlopen(req, timeout=120)
+        except urllib.error.HTTPError as e:
+            if e.code >= 500 or e.code == 429:
+                if self.mode == "auto" and find(key, fuzzy):
+                    return False
+            self.send(e.code, e.headers.get("content-type", "application/json"), e.read())
+            return True
+        ctype = r.headers.get("content-type", "application/json")
+        self.send_response(r.status)
+        self.send_header("content-type", ctype)
+        self.send_header("transfer-encoding", "chunked")
+        self.end_headers()
+        buf = bytearray()
+        while chunk := r.read1(65536):  # a streamed answer passes through as it comes
+            buf += chunk
+            self.wfile.write(b"%x\r\n%s\r\n" % (len(chunk), chunk))
+            self.wfile.flush()
+        self.wfile.write(b"0\r\n\r\n")
+        if r.status == 200:
+            DIR.mkdir(parents=True, exist_ok=True)
+            with lock:
+                (DIR / f"{key}.json").write_text(json.dumps({"fuzzy": fuzzy, "ids": ids, "status": 200, "ctype": ctype,
+                                                              "body": buf.decode("utf-8", "replace")}))
+        return True
+
+
+def main():
+    a = argparse.ArgumentParser()
+    a.add_argument("--port", type=int, default=8892)
+    a.add_argument("--upstream", default=None, help="the real endpoint; default ANTHROPIC_BASE_URL from the data .env")
+    a.add_argument("--mode", choices=["auto", "live", "replay"], default="auto")
+    a.add_argument("--delay", type=float, default=1.2, help="seconds before each replayed answer")
+    o = a.parse_args()
+    up = o.upstream
+    if not up:
+        env = DATA / ".env"
+        pairs = dict(l.split("=", 1) for l in env.read_text().splitlines() if "=" in l and not l.startswith("#")) if env.exists() else {}
+        up = pairs.get("DEMO_UPSTREAM") or pairs.get("ANTHROPIC_BASE_URL", "")
+    if not up and o.mode != "replay":
+        sys.exit("demo-llm: no upstream (set DEMO_UPSTREAM or ANTHROPIC_BASE_URL in the data .env, or --mode replay)")
+    Handler.mode, Handler.upstream, Handler.delay = o.mode, up, o.delay
+    DIR.mkdir(parents=True, exist_ok=True)
+    print(f"demo-llm on 127.0.0.1:{o.port}, mode {o.mode}, {len(list(DIR.glob('*.json')))} saved answers", flush=True)
+    ThreadingHTTPServer(("127.0.0.1", o.port), Handler).serve_forever()
+
+
+if __name__ == "__main__":
+    main()
