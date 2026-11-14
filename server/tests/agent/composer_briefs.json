@@ -72,5 +72,8 @@
   {"id": "stage-listing", "brief": "I'm listing this condo and want to stage it virtually. Will a sectional fit in the living room?", "persona": ["virtual_stager", "furniture_mover"], "must": [["furniture_fit"]], "never": ["fire_preplan", "truck_access"]},
   {"id": "stage-host", "brief": "I host short stays and want to show guests what each room looks like furnished.", "persona": ["virtual_stager"], "must": [["furniture_fit", "tour", "room_sizes"]], "never": ["fire_preplan"]},
   {"id": "quake-kids", "brief": "We live in LA. Where should the kids take cover in an earthquake, and is anything tall near their beds?", "persona": ["la_quake_prep"], "must": [["quake_ready"]], "never": ["flood_rehearsal", "storm_plan"]},
-  {"id": "quake-gas", "brief": "How do we get ready for the big one? I don't even know where our gas shutoff is.", "persona": ["la_quake_prep"], "must": [["quake_ready"]], "never": ["flood_rehearsal"]}
+  {"id": "quake-gas", "brief": "How do we get ready for the big one? I don't even know where our gas shutoff is.", "persona": ["la_quake_prep"], "must": [["quake_ready"]], "never": ["flood_rehearsal"]},
+  {"id": "plants-office-room", "brief": "Which room in this house gets the most sun for my plants, and where should my desk go so the screen has no glare?", "persona": ["room_chooser"], "must": [["sun_rooms"]], "never": ["fire_preplan"]},
+  {"id": "solar-payback", "brief": "Would solar panels on my roof pay for themselves, and how many would fit?", "persona": ["solar_homeowner"], "must": [["solar_roof"]], "never": ["flood_rehearsal"]},
+  {"id": "la-defensible-space", "brief": "After the LA fires I want to know what to clear around my house and whether I'm in a fire hazard zone.", "persona": ["la_fire_homeowner"], "must": [["wildfire_space"]], "never": ["flood_rehearsal"]}
 ]
