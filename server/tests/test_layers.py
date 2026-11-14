@@ -89,5 +89,5 @@ def test_importing_a_source_first_still_gives_the_whole_catalogue():
     code = ("import threshold.layers.sources as s; from threshold.layers import catalog; "
             "ids = {l.id for l in catalog.LAYERS}; assert all(l.id in ids for l in s.MORE), 'layers missing'; "
             "assert set(s.FETCH) <= set(catalog.FETCH); print(len(catalog.LAYERS), len(s.MORE))")
-    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=120)
+    out = subprocess.run([sys.executable, "-c", code], check=False, capture_output=True, text=True, timeout=120)
     assert out.returncode == 0, out.stderr[-400:]
