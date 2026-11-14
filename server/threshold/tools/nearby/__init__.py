@@ -61,9 +61,9 @@ def report(tool_id: str, key: str, lat: float, lon: float, categories: list[str]
                                        findings=[f"{tool_id}:{key}:{prefix}:{cat}"]))
             out["findings"].append(Finding(id=f"{tool_id}:{key}:{prefix}:{cat}", title=f"No {label.lower()} mapped nearby",
                                            status="warn", anchor=geo(*(start or (lon, lat))), source=src("lookup", "low"),
-                                           detail=f"OpenStreetMap has no {label.lower()} within {engine.R_PLACES / 1000:.1f} km "
-                                                  f"(vets within {engine.R_VETS / 1000:.0f} km). OSM can miss places; "
-                                                  "absence here is not proof."))
+                                           detail=f"OpenStreetMap has no {label.lower()} within "
+                                                  f"{(engine.R_VETS if cat in engine.DRIVE else engine.R_PLACES) / 1000:.1f} km. "
+                                                  "OSM can miss places; absence here is not proof."))
             continue
         h = hits[0]
         car = h.get("by") == "car"

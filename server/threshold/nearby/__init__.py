@@ -371,7 +371,11 @@ def nearest(lat: float, lon: float, categories: list[str], mode: str = "walk", k
                          **hit, "route_m": round(hit["route_m"], 1), "minutes": round(hit["route_m"] / sp, 1),
                          "by": "car" if cat in DRIVE else mode})
         best.sort(key=lambda h: h["route_m"])
-        out[cat] = best[:k]
+        kept: list[dict] = []
+        for h in best:  # OSM often maps one park twice (a point and an outline): same name within 300 m is one place
+            if not any(h["name"] == x["name"] and dist_m((h["lon"], h["lat"]), (x["lon"], x["lat"])) < 300 for x in kept):
+                kept.append(h)
+        out[cat] = kept[:k]
     out["_meta"] = {"mode": mode, "speed_m_min": speed, "snap_m": round(snap0, 1) if src is not None else None,
                     "network_nodes": len(coords), "radius_m": R_PLACES, "source": NOTE}
     return out
