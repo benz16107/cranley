@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 
-BINARY = re.compile(r"/(pano|floorplan|drone|splat)(/|$)")  # images and the splat: already compressed, and Range needs raw bytes
+BINARY = re.compile(r"/(pano|floorplan|drone|splat|interior-splat|mesh)(/|$)")  # images and the splat: already compressed, and Range needs raw bytes
 
 
 class JsonGZip(GZipMiddleware):
