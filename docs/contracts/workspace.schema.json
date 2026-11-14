@@ -225,6 +225,18 @@
             "unknown"
           ],
           "type": "string"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Model class the scene draws stretched to exactly this box, such as vehicle/pickup or furniture/sofa; none draws the box alone"
         }
       },
       "required": [

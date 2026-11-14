@@ -148,3 +148,20 @@ def test_a_chosen_room_is_named_and_a_wrong_id_is_an_error():
     assert "unlabelled" not in r.verdict.text
     with pytest.raises(ToolError):
         run(garage_plan(), room="nope")
+
+
+def test_parked_vehicles_name_a_model_that_ships():
+    from pathlib import Path
+
+    from threshold.tools.furniture_fit import MODELS
+    from threshold.tools.garage_fit.vehicles import THING_MODEL, VEHICLES, model_of
+    trucks = run(garage_plan(), vehicle="ford_f150", count=2)
+    assert [o.model for o in trucks.overlays if o.kind == "box" and o.label.startswith("Ford")] == ["vehicle/pickup"] * 2
+    by = {o.label: o for o in run(garage_plan(), count=0, uses=["motorcycle", "workbench"]).overlays if o.kind == "box"}
+    assert by["Motorcycle"].model == "vehicle/motorcycle"
+    assert by["Motorcycle"].size[0] > by["Motorcycle"].size[1]  # a model's length runs along the box's first side
+    assert by["Workbench"].model is None  # its box is bench plus standing room, not a bench
+    assert model_of("golf_cart") is None and model_of("sprinter_high") == "vehicle/van"
+    shipped = Path(__file__).parents[4] / "web/public/models"
+    named = {model_of(v) for v in VEHICLES} | set(THING_MODEL.values()) | set(MODELS.values())
+    assert not [m for m in named - {None} if not (shipped / f"{m}.glb").is_file()]

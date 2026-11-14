@@ -29,6 +29,10 @@ PRESETS = {
     "dining table": ((1.83, 0.91, 0.76), False, "Dining Room", "72 in table, legs on"),
 }
 Obj = Literal[tuple(PRESETS)]
+# The 3D model the scene stretches to the object's box. A mattress is a slab, so its box is already its picture.
+MODELS = {"sofa": "furniture/sofa", "loveseat": "furniture/sofa", "upright piano": "furniture/piano",
+          "refrigerator": "furniture/fridge", "washer": "furniture/washer", "wardrobe": "furniture/wardrobe",
+          "dining table": "furniture/table"}
 
 
 class Inputs(BaseModel):
@@ -53,8 +57,15 @@ def _yaw_near(route_pts: list, pt) -> float:
     return yaw
 
 
+def _door_yaw(plan: dict, opening: str) -> float | None:
+    """The way straight through a doorway: square to its wall."""
+    o = next((o for o in plan["openings"] if o["id"] == opening), None)
+    w = o and next((w for w in plan["walls"] if w["id"] == o["wall"]), None)
+    return math.degrees(math.atan2(w["b"][1] - w["a"][1], w["b"][0] - w["a"][0])) + 90 if w else None
+
+
 def carry_audit(ctx, plan: dict, tool_id: str, box: tuple, flat: bool, target: dict, entrance: str | None,
-                what: str, name: str | None = None) -> dict:
+                what: str, name: str | None = None, model: str | None = None) -> dict:
     """carry() from the main entrance (its door checked too) to `target`. Returns checks, findings, overlays,
     the overall result and the tightest point."""
     sid = plan["sid"]
@@ -98,7 +109,8 @@ def carry_audit(ctx, plan: dict, tool_id: str, box: tuple, flat: bool, target: d
                                    status=status, standard="Geometry: wall opening less 5 cm for a hung door",
                                    findings=[fid] if status != "pass" else []))
         if not d["implausible"]:
-            parts.append((d["slack"], [*d["center"], c["route"]["points"][0][2]], where, status))
+            parts.append((d["slack"], [*d["center"], c["route"]["points"][0][2]], where, status,
+                          _door_yaw(plan, d["opening"])))
     for k, t in enumerate(c["corners"]):
         fid = f"{tool_id}:{sid}:{target['id']}:turn:{k}"
         status = t["status"]
@@ -116,7 +128,7 @@ def carry_audit(ctx, plan: dict, tool_id: str, box: tuple, flat: bool, target: d
                                    unit="m", status=status, standard="L = min over angle of a/sin + b/cos - w/(sin cos)",
                                    findings=[fid] if status != "pass" else []))
         parts.append((s if s is not None else -math.inf, [*t["point"][:2], c["route"]["points"][0][2]],
-                      f"turn {k + 1}", status))
+                      f"turn {k + 1}", status, None))
     results = [d["result"] for d in doors] + [t["result"] for t in c["corners"]]
     out["result"] = "likely fail" if "likely fail" in results else "measure on site" if "measure on site" in results \
         else "likely pass"
@@ -125,11 +137,11 @@ def carry_audit(ctx, plan: dict, tool_id: str, box: tuple, flat: bool, target: d
     out["overlays"].append(RouteOverlay(floor=c["route"]["floor"], points=[tuple(p) for p in route_pts], label=(
         f"{what} to {tname}"), chokes=[]))
     if parts:
-        slack, pt, where, status = min(parts, key=lambda p: p[0])
+        slack, pt, where, status, yaw = min(parts, key=lambda p: p[0])
         out["tight"] = {"slack": slack, "where": where, "status": status}
         out["overlays"].append(BoxOverlay(center=(pt[0], pt[1], pt[2] + box[2] / 2), size=tuple(box),
-                                          yaw_deg=_yaw_near(route_pts, pt), status=status,
-                                          label=f"Tightest: {where}"))
+                                          yaw_deg=_yaw_near(route_pts, pt) if yaw is None else yaw, status=status,
+                                          label=f"Tightest: {where}", model=model))
     return out
 
 
@@ -184,7 +196,8 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     if target is None:
         return ToolResult(scope=scope, assumptions=assumptions, verdict=Verdict(status="unknown", text=(
             f"No {(inputs.room or default_room).lower()} in this scan; name the room to carry it to.")))
-    a = carry_audit(ctx, plan, "furniture_fit", box, upright, target, inputs.entrance, f"The {inputs.object}")
+    a = carry_audit(ctx, plan, "furniture_fit", box, upright, target, inputs.entrance, f"The {inputs.object}",
+                    model=MODELS.get(inputs.object))
     ctx.step(f"Carried a {box[0]:.2f} x {box[1]:.2f} x {box[2]:.2f} m {inputs.object} toward the {label(target).lower()}")
     if a["reason"]:
         return ToolResult(scope=scope, assumptions=assumptions,
