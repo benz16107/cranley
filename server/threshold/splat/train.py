@@ -18,7 +18,7 @@ import numpy as np
 from PIL import Image
 
 from ..sources import matterport as mp
-from . import ROOT, carve, dataset, spz
+from . import ROOT, carve, dataset, seed, spz, virtual
 
 BRUSH = os.environ.get("BRUSH_BIN", str(Path.home() / ".local/share/brush-dl/brush-app-x86_64-unknown-linux-gnu/brush_app"))
 BRUSH_VERSION = "0.3.0"
@@ -45,8 +45,8 @@ def run(sid: str, steps: int = 10000, sh_degree: int = 2, max_splats: int = 1_50
     meta = json.loads((d / "dataset.json").read_text())
     plan = mp.plan(sid)
     panos = {p["id"]: p for p in plan["panos"] if p.get("rotation")}
-    centres = [p["position"] for k, p in panos.items() if k not in set(meta["held_out"])]  # never the held-out sweeps
-    surface = carve.depth_points(sid, plan, panos)
+    sweeps = [p for k, p in panos.items() if k not in set(meta["held_out"])]  # never the held-out sweeps
+    T = virtual.subdivide(seed.mesh_triangles(sid, plan, panos))
     out = root / f"run_{steps}"
     shutil.rmtree(out, ignore_errors=True)
     out.mkdir()
@@ -57,7 +57,7 @@ def run(sid: str, steps: int = 10000, sh_degree: int = 2, max_splats: int = 1_50
     for start, end in zip([0, *ends], ends):
         _brush(d, out, meta, start, end, sh_degree, max_splats, end - start, round(steps * GROWTH_STOP))
         cols = spz.read_ply(out / f"phase_{end}.ply")
-        drop = carve.free_space(np.stack([cols["x"], cols["y"], cols["z"]], 1), surface, centres)
+        drop = carve.free_space(np.stack([cols["x"], cols["y"], cols["z"]], 1), T, sweeps)
         carved.append({"step": end, "splats": len(drop), "removed": int(drop.sum())})
         spz.write_ply(init, {k: v[~drop] for k, v in cols.items()})
     shutil.move(init, out / "carved.ply")

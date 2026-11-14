@@ -24,7 +24,7 @@ from PIL import Image
 
 from ..sources import matterport as mp
 from ..vision.projection import face_basis, quat_matrix
-from . import ROOT, seed
+from . import ROOT, seed, virtual
 
 FACES = range(6)
 
@@ -58,12 +58,12 @@ def rot_to_qvec(R: np.ndarray) -> np.ndarray:
     return q if q[0] >= 0 else -q
 
 
-def order(panos: list[str], every: int) -> tuple[list[tuple[str, int]], int, set[str]]:
+def order(panos: list[str], every: int, extra: list[tuple[str, int]] = ()) -> tuple[list[tuple[str, int]], int, set[str]]:
     """Image order (pano, face) and the eval period that puts held-out sweeps' faces on index % period == 0.
-    Holds out every `every`-th sweep; `every` 0 holds out none (period 0)."""
-    held = set(panos[every // 2::every]) if every else set()
+    Holds out every `every`-th sweep; `every` 0 holds out none (period 0). `extra` items only ever train."""
+    held = held_out(panos, every)
     ev = [(p, f) for p in panos if p in held for f in FACES]
-    tr = [(p, f) for p in panos if p not in held for f in FACES]
+    tr = [(p, f) for p in panos if p not in held for f in FACES] + list(extra)
     if not ev:
         return tr, 0, held
     period = len(tr) // len(ev) + 1
@@ -76,14 +76,26 @@ def order(panos: list[str], every: int) -> tuple[list[tuple[str, int]], int, set
     return out, period, held
 
 
-def build(sid: str, res: int = 1024, every: int = 8, view: str = "furnished", workers: int = 4) -> dict:
-    """Write images/, sparse/0/{cameras,images,points3D}.txt and dataset.json under splat/<sid>/dataset/. Returns the summary."""
+def held_out(panos: list[str], every: int) -> set[str]:
+    return set(panos[every // 2::every]) if every else set()
+
+
+def _line(i: int, R: np.ndarray, t: np.ndarray, cam: int, name: str) -> str:
+    q = rot_to_qvec(R)
+    return f"{i + 1} {' '.join(f'{v:.9f}' for v in q)} {' '.join(f'{v:.6f}' for v in t)} {cam} {name}\n\n"
+
+
+def build(sid: str, res: int = 1024, every: int = 8, view: str = "furnished", workers: int = 4,
+          virtual_views: bool = True, virtual_res: int = 512) -> dict:
+    """Write images/, masks/ (virtual views only), sparse/0/{cameras,images,points3D}.txt and dataset.json under
+    splat/<sid>/dataset/. Returns the summary."""
     plan = mp.plan(sid)
     panos = sorted(p["id"] for p in plan["panos"] if p.get("rotation"))
     by_id = {p["id"]: p for p in plan["panos"]}
     out = dataset_dir(sid)
-    img_dir, sparse = out / "images", out / "sparse" / "0"
-    shutil.rmtree(img_dir, ignore_errors=True)
+    img_dir, mask_dir, sparse = out / "images", out / "masks", out / "sparse" / "0"
+    for d in (img_dir, mask_dir):
+        shutil.rmtree(d, ignore_errors=True)
     img_dir.mkdir(parents=True)
     sparse.mkdir(parents=True, exist_ok=True)
 
@@ -91,18 +103,45 @@ def build(sid: str, res: int = 1024, every: int = 8, view: str = "furnished", wo
         p, f = pf
         return pf, Image.open(io.BytesIO(mp.pano_face(sid, p, f, "2k", view))).convert("RGB")
 
-    seq, period, held = order(panos, every)
     small: dict[tuple[str, int], np.ndarray] = {}
-    lines = []
+    mid: dict[tuple[str, int], np.ndarray] = {}
     with ThreadPoolExecutor(workers) as ex:
-        for i, ((p, f), im) in enumerate(ex.map(face, seq)):
-            name = f"{i:05d}_{p}_{f}.jpg"
-            im.resize((res, res), Image.LANCZOS).save(img_dir / name, quality=94)
-            small[(p, f)] = np.asarray(im.resize((seed.FACE_PX, seed.FACE_PX), Image.BOX))
-            R, t = face_pose(by_id[p]["position"], by_id[p]["rotation"], f)
-            q = rot_to_qvec(R)
-            lines.append(f"{i + 1} {' '.join(f'{v:.9f}' for v in q)} {' '.join(f'{v:.6f}' for v in t)} 1 {name}\n\n")
-    (sparse / "cameras.txt").write_text(f"1 PINHOLE {res} {res} {res / 2} {res / 2} {res / 2} {res / 2}\n")
+        for pf, im in ex.map(face, [(p, f) for p in panos for f in FACES]):
+            small[pf] = np.asarray(im.resize((seed.FACE_PX, seed.FACE_PX), Image.BOX))
+            if virtual_views:
+                mid[pf] = np.asarray(im.resize((virtual_res, virtual_res), Image.BOX))
+
+    held = held_out(panos, every)
+    cams, T, src = [], None, None
+    if virtual_views:
+        try:
+            T = virtual.subdivide(seed.mesh_triangles(sid, plan, {p: by_id[p] for p in panos}))
+        except LookupError:
+            T = None  # no mesh, no depth: real views only
+        if T is not None:
+            train_ids = {p: by_id[p] for p in panos if p not in held}
+            src = virtual.Sources(T, train_ids, {k: v for k, v in mid.items() if k[0] in train_ids})
+            cams = virtual.cameras(src, train_ids, np.random.default_rng(0))
+    vcam = {f"{p}-v": (c, R) for p, c, R in cams}
+    seq, period, held = order(panos, every, [(k, f) for k in vcam for f in (1, 2, 3, 4)])
+
+    lines, masked = [], []
+    for i, (p, f) in enumerate(seq):
+        name = f"{i:05d}_{p}_{f}"
+        if p in vcam:
+            c, Rv = vcam[p]
+            img, m = virtual.render(T, src, c, Rv, f, virtual_res, exclude=p[:-2])
+            mask_dir.mkdir(exist_ok=True)
+            Image.fromarray(img).save(img_dir / f"{name}.jpg", quality=94)
+            Image.fromarray((m * 255).astype(np.uint8)).save(mask_dir / f"{name}.png")
+            masked.append(float(m.mean()))
+            lines.append(_line(i, *virtual._pose(c, Rv, f), 2, f"{name}.jpg"))
+        else:
+            face((p, f))[1].resize((res, res), Image.LANCZOS).save(img_dir / f"{name}.jpg", quality=94)
+            lines.append(_line(i, *face_pose(by_id[p]["position"], by_id[p]["rotation"], f), 1, f"{name}.jpg"))
+    h = virtual_res / 2
+    (sparse / "cameras.txt").write_text(f"1 PINHOLE {res} {res} {res / 2} {res / 2} {res / 2} {res / 2}\n"
+                                        f"2 PINHOLE {virtual_res} {virtual_res} {h} {h} {h} {h}\n")
     (sparse / "images.txt").write_text("".join(lines))
 
     pts, cols, source = seed.points(sid, plan, {p: by_id[p] for p in panos}, small)
@@ -110,6 +149,7 @@ def build(sid: str, res: int = 1024, every: int = 8, view: str = "furnished", wo
         for i, (x, c) in enumerate(zip(pts, cols)):
             fh.write(f"{i + 1} {x[0]:.4f} {x[1]:.4f} {x[2]:.4f} {c[0]} {c[1]} {c[2]} 0\n")
     summary = {"sid": sid, "res": res, "view": view, "images": len(seq), "sweeps": len(panos),
+               "virtual_views": len(masked), "virtual_valid": round(float(np.mean(masked)), 3) if masked else None,
                "eval_period": period, "held_out": sorted(held), "seed_points": len(pts), "seed_source": source}
     (out / "dataset.json").write_text(json.dumps(summary, indent=1))
     return summary
