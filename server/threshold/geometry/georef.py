@@ -1,8 +1,13 @@
 """Scan frame to east/north metres and lat/lon, window compass directions, and when the sun reaches each window.
 
-The conversion is  ENU = Rz(YAW_SIGN * yaw_deg) applied around the translation chosen by TRANSLATION.
-Neither constant is verified against an aerial photo yet: run `python -m threshold.geometry.check_georef` and
-lay the printed corners over the ortho. Until then every result here carries confidence `low`."""
+The conversion is  ENU = Rz(YAW_SIGN * yaw_deg) p + t, with t = geo.translation in east/north metres.
+
+Verified 2026-11-14 against Vexcel building footprints on 40 Houston and Los Angeles houses
+(`server/scripts/check_compass.py`): this convention overlapped the footprint best in 25 of 40 (median IoU 0.57
+against 0.16 to 0.30 for the other three), and fitted it in all 21 houses whose yaw is far enough from 0 and 180
+degrees for the sign to matter. The footprint refit then needs a median 3.3 degree turn and a 1.9 m shift.
+So the rotation is good to a few degrees but the position is off by about 2 m (GPS); a per-scan correction
+is in `plan.geo.fit`, and `plan.quality.georef` is true only when that fit succeeded."""
 from __future__ import annotations
 
 import datetime as dt
@@ -21,9 +26,9 @@ from ._plan import (
     walls_by_id,
 )
 
-YAW_SIGN = 1                  # +1: yaw_deg rotates scan axes onto east/north counter-clockwise. UNVERIFIED.
-TRANSLATION = "scan"          # "scan": ENU = R(p - t); "enu": ENU = R p + t. UNVERIFIED.
-VERIFIED = False
+YAW_SIGN = 1                  # +1: yaw_deg turns scan axes onto east/north counter-clockwise (verified, see above)
+TRANSLATION = "enu"           # "enu": ENU = R p + t, t in east/north metres. "scan" (R(p - t)) was 3.5x further off
+VERIFIED = True
 WGS84_A, WGS84_E2 = 6378137.0, 6.69437999014e-3
 COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
 
@@ -131,8 +136,8 @@ def facing(plan: dict) -> dict:
                     "azimuth_deg": az, "compass": compass(az), "width": o["width"], "height": o["height"],
                     "sill": o["sill"], "center": o["center"]})
     return {"available": True, "openings": out, "verified": VERIFIED,
-            "source": geo_source("Wall normals turned by geo.yaw_deg; the yaw sign is not yet checked on an "
-                                 "aerial photo.", "medium" if VERIFIED else "low")}
+            "source": geo_source("Wall normals turned by geo.yaw_deg (convention checked on 40 houses against "
+                                 "Vexcel footprints; typical error 3 degrees).", "medium" if VERIFIED else "low")}
 
 
 # ---- sun position (NOAA solar calculator equations) ----
@@ -207,5 +212,5 @@ def sun_on_windows(plan: dict, date: dt.date, tz: str | None = None, step_min: i
     return {"available": True, "date": date.isoformat(), "timezone": zone.key, "openings": out,
             "sunrise": rise.strftime("%H:%M") if rise else None, "sunset": sets.strftime("%H:%M") if sets else None,
             "verified": VERIFIED,
-            "source": geo_source("NOAA solar position; window directions depend on the unverified yaw sign; "
-                                 "shading by trees, neighbours and eaves not counted.", "low")}
+            "source": geo_source("NOAA solar position; window directions from geo.yaw_deg (typical error 3 "
+                                 "degrees); shading by trees, neighbours and eaves not counted.", "medium" if VERIFIED else "low")}
