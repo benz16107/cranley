@@ -249,7 +249,7 @@ export function Building({ sid }: { sid: string }) {
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement
-      if (e.metaKey || e.ctrlKey || e.altKey || /^(input|textarea|select)$/i.test(t.tagName) || document.querySelector('[cmdk-root], [role="dialog"]')) return
+      if (e.metaKey || e.ctrlKey || e.altKey || /^(input|textarea|select)$/i.test(t.tagName) || document.querySelector('[cmdk-root], [role="dialog"], [role="menu"]')) return
       const m = MODES[Number(e.key) - 1]
       if (m && v.modes.includes(m.id)) v.setMode(m.id)
       else if (e.key.toLowerCase() === 'k') v.toggleKeep()

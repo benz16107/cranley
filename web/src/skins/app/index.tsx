@@ -6,6 +6,10 @@ import './shell/shell.css'
 import './blocks/blocks.css'
 import './map/map.css'
 import './pages/pages.css'
+import type { SwitcherPlace } from '../../core/index.ts'
 import App from './App.tsx'
 
 export const Root = App
+/* The look switcher's tab sits under the sidebar, where nothing is clicked: table footers and the agent panel's
+   composer use the bottom centre and the bottom right. */
+export const switcher: SwitcherPlace = 'bottom-left'

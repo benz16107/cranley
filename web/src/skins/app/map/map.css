@@ -55,7 +55,8 @@
 @media (max-width: 760px) {
   .ex-body { grid-template-columns: minmax(0, 1fr) !important; }
   .ex[data-view='map'] .ex-side, .ex[data-view='table'] .ex-map { display: none; }
-  .ex-float { left: 8px; right: 8px; top: auto; bottom: 44px; width: auto; max-height: 52%; }
+  .ex-float { left: 8px; right: 8px; top: auto; bottom: 64px; width: auto; max-height: 52%; }
+  .maplegend { bottom: 26px; } /* clear of the look switcher's tab */
   .bar { padding-inline: var(--s-3); }
   .bar .sep { display: none; }
   .crit li { grid-template-columns: minmax(0, 1fr) 84px 60px 24px; }
