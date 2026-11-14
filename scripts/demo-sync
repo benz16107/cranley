@@ -40,7 +40,7 @@ DATA_L = "~/Code/hackathons/hackprinceton26-data"
 KEYS = ("ANTHROPIC_API_KEY", "THRESHOLD_MODEL", "MATTERPORT_API_KEY", "MATTERPORT_API_TOKEN", "MATTERPORT_SDK_KEY",
         "VEXCEL_API_KEY", "LANGSMITH_API_KEY", "LANGSMITH_PROJECT")
 # never copied, whatever a trace says: keys, other threads' scratch, screenshots, workspaces made while recording
-SKIP = re.compile(r"^(\.env|polish/|shots/|workspaces/|reports_out/|demo/run/|raw/|captures/.*\.tmp$)|\.(lock|tmp)$")
+SKIP = re.compile(r"^(\.env|polish/|shots/|workspaces/|reports_out/|demo/run/)|\.(lock|tmp)$")
 OPEN = re.compile(r'(?:openat|stat|newfstatat|statx)\((?:AT_FDCWD|\d+), "([^"]+)".*\) = (\d+)')
 
 

@@ -9,6 +9,8 @@ The agent's prompts carry random ids (ws_, run_, turn_ ...), so a request is mat
 order of first appearance, and the ids in a replayed answer are mapped back to the ids of the request in hand.
 With no exact match, a request at the same place in the same conversation (same system prompt, same number of
 messages, same tool calls so far) gets that answer: a tool's wording may have changed, the turn still goes on.
+Failing that, the same step of a conversation that began with the same user message (the system prompt or the tool
+list changed, as after a merge): a looser match, still better than an agent that stops. Re-record after a merge.
 
 The saved answers are derived from sponsor data: they live in the data folder, never in git.
 
@@ -70,8 +72,10 @@ def canon(body: dict) -> tuple[str, str, list[str]]:
     system = NUM.sub("N", ID.sub("ID", json.dumps(body.get("system"), sort_keys=True)))
     tools = sorted(t.get("name", "") for t in body.get("tools") or [])
     fuzzy = json.dumps([body.get("model"), system, tools, len(msgs), calls])
+    first = NUM.sub("N", ID.sub("ID", json.dumps(msgs[0].get("content") if msgs else None, sort_keys=True)))
+    loose = json.dumps([len(msgs), calls, first])  # the same conversation step after a prompt or tool list changed
     h = lambda s: hashlib.sha256(s.encode()).hexdigest()[:24]
-    return h(norm), h(fuzzy), ids
+    return h(norm), h(fuzzy) + ":" + h(loose), ids
 
 
 def find(key: str, fuzzy: str) -> dict | None:
@@ -84,6 +88,14 @@ def find(key: str, fuzzy: str) -> dict | None:
         except ValueError:
             continue
         if rec.get("fuzzy") == fuzzy:
+            return rec
+    loose = fuzzy.split(":")[-1]
+    for g in sorted(DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+        try:
+            rec = json.loads(g.read_text())
+        except ValueError:
+            continue
+        if rec.get("fuzzy", "").split(":")[-1] == loose:
             return rec
     return None
 
