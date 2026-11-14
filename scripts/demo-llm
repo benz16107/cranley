@@ -140,7 +140,9 @@ class Handler(BaseHTTPRequestHandler):
                 self.log_message("upstream unreachable (%s), replaying", type(e).__name__)
         rec = find(key, fuzzy)
         if rec is None:
-            self.log_message("no saved answer for %s", key)
+            self.log_message("no saved answer for %s (request kept in demo/llm-missed/ to compare)", key)
+            (DIR.parent / "llm-missed").mkdir(exist_ok=True)
+            (DIR.parent / "llm-missed" / f"{key}.json").write_bytes(raw)
             return self.send(503, "application/json", json.dumps({"type": "error", "error": {
                 "type": "overloaded_error", "message": "offline and no recorded answer for this request"}}).encode())
         import time
