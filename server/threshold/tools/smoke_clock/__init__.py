@@ -88,7 +88,8 @@ def _pick_fire(plan: dict, want: str | None) -> dict | None:
 
 def compartments(plan: dict) -> tuple[dict[str, str], dict[str, dict]]:
     """Rooms joined by invisible walls are one open space, so one CFAST compartment; spaces under MIN_AREA_M2
-    (closets) are left out, unless they join two spaces (a small hall), which joins its largest neighbour. Returns room id -> compartment id and compartment id -> {rooms, area, height, origin}."""
+    (closets) are left out, unless they join two spaces (a small hall), which joins its largest neighbour.
+    Returns room id -> compartment id and compartment id -> {rooms, area, height, origin}."""
     polys, z = polygons(plan), floor_z(plan)
     ceiling = default_ceiling(plan) or 2.6
     rooms = {r["id"]: r for r in live_rooms(plan) if polys.get(r["id"]) is not None and polys[r["id"]].area > 0.3}
