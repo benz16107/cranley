@@ -1,0 +1,21 @@
+{
+  "id": "home_security_family",
+  "title": "Family planning home security",
+  "who": "Is planning security cameras and wants every door and ground-floor window watched.",
+  "tools": [
+    "camera_coverage",
+    "window_check",
+    "wifi_coverage",
+    "egress_routes",
+    "room_census"
+  ],
+  "thresholds": {
+    "security.max_cameras": 4,
+    "security.camera_fov_deg": 110,
+    "security.camera_range_m": 9
+  },
+  "layout": {
+    "view": "plan",
+    "lead_tool": "camera_coverage"
+  }
+}
