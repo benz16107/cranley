@@ -53,3 +53,10 @@ def test_a_home_is_not_applicable(monkeypatch):
     r = run_tool("loading_docks", {"scan": "h1"})
     assert r.verdict.status == "unknown" and "home" in r.verdict.text
     assert run_tool("truck_access", {"scan": "h1"}).verdict.status == "unknown"
+
+
+def test_a_bare_point_on_a_house_is_not_applicable(offline):  # noqa: F811
+    offline.setattr(site, "site_facts", lambda lat, lon: facts({"building_type": "single_family"}))
+    for tool in ("truck_access", "loading_docks"):
+        r = run_tool(tool, {"lat": 29.7, "lon": -95.4, "use_vision": False})
+        assert r.verdict.status == "unknown" and "place is a home" in r.verdict.text

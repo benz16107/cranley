@@ -70,11 +70,17 @@ class Site:
         return "CA" if self.lon < -105 else "TX"
 
 
-def not_for_homes(scan: str | None, what: str) -> None:
-    """Truck tools on a house or an apartment unit: say so instead of reading docks off a home."""
-    if scan and (index.rows().get(scan) or {}).get("kind") in ("house", "apartment_unit"):
-        raise NotApplicable(f"This scan is a home, and {what} belong to warehouses and other commercial buildings. "
-                            "Give a commercial property id or a point to check one.")
+HOME_TYPES = ("single_family", "multi_family", "mobile_home")  # Vexcel building_type values that are homes
+
+
+def not_for_homes(scan: str | None, what: str, site: Site | None = None) -> None:
+    """Truck tools on a house or an apartment unit: say so instead of reading docks off a home. With no scan, the
+    site's Vexcel building type decides (a bare point on a house)."""
+    home = (scan and (index.rows().get(scan) or {}).get("kind") in ("house", "apartment_unit")) or \
+        (site is not None and not scan and fact(site, "building_type") in HOME_TYPES)
+    if home:
+        raise NotApplicable(f"This {'scan' if scan else 'place'} is a home, and {what} belong to warehouses and other "
+                            "commercial buildings. Give a commercial property id or a point to check one.")
 
 
 def locate(ctx, w: Where) -> Site:
