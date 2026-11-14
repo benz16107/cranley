@@ -57,5 +57,11 @@
   {"id": "car-search", "brief": "Find houses in Houston whose garage fits two F-150s.", "persona": ["car_owner"], "must": [["garage_fit"]], "never": ["fire_preplan"]},
   {"id": "boat-driveway", "brief": "Can I park my boat trailer off the street at this house?", "persona": ["rv_boat_owner"], "must": [["driveway_fit"]], "never": ["fire_preplan"]},
   {"id": "van-ramp", "brief": "I drive a wheelchair van with a side ramp. Does this garage leave room for the ramp?", "persona": ["wheelchair_van_owner"], "must": [["garage_fit"]], "never": ["fire_preplan"]},
-  {"id": "garage-gym", "brief": "I want to put a squat rack in the garage. Is the ceiling high enough to press overhead?", "persona": ["home_gym_builder"], "must": [["garage_fit"]], "never": ["fire_preplan"]}
+  {"id": "garage-gym", "brief": "I want to put a squat rack in the garage. Is the ceiling high enough to press overhead?", "persona": ["home_gym_builder"], "must": [["garage_fit"]], "never": ["fire_preplan"]},
+  {"id": "dog-house", "brief": "We have a 60 lb lab and we're looking at houses in Houston. Is this one good for her?", "persona": ["dog_owner_home"], "must": [["pet_fit"]], "never": ["fire_preplan", "truck_access"]},
+  {"id": "cat-apartment", "brief": "I'm renting with my indoor cat. Does this apartment allow cats, and is it safe for her?", "persona": ["cat_owner_apartment"], "must": [["pet_fit"]], "never": ["truck_access"]},
+  {"id": "old-dog", "brief": "My dog is 13 and can't do stairs anymore. Will this house work for him?", "persona": ["senior_dog_owner"], "must": [["pet_fit", "stairs_count"]], "never": ["truck_access"]},
+  {"id": "toddler-home", "brief": "We have a two year old. Is this house safe for her, and is there a playground nearby?", "persona": ["parent_young_kids", "pool_safety_parent"], "must": [["kids_fit", "path_to_water"]], "never": ["truck_access"]},
+  {"id": "teen-soccer", "brief": "Our son plays soccer. Are there fields he can bike to from here?", "persona": ["teen_soccer_family"], "must": [["nearby"]], "never": ["fire_preplan"]},
+  {"id": "pickleball", "brief": "I play pickleball most days. How far are the nearest courts?", "persona": ["racket_player"], "must": [["nearby"]], "never": ["fire_preplan"]}
 ]
