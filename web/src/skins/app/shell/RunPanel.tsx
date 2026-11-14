@@ -7,12 +7,11 @@ import { PanelView } from '../blocks/blocks.tsx'
 import { Empty, Icon, IconBtn, RunState, StatusGlyph, ToolKey } from '../design/ui.tsx'
 import { Sheet } from '../design/split.tsx'
 import { sheetFocus } from '../lib/split.ts'
-import { dur } from '../lib/format.ts'
 import { askHere } from '../lib/pending.ts'
 import { goScan } from '../lib/place.ts'
 import { newInvestigation } from './Sidebar.tsx'
 import { useUi } from './store.ts'
-import { ApprovalCard, isApproval, Lanes } from './AgentLive.tsx'
+import { ApprovalCard, ApproveAll, isApproval, Lanes } from './AgentLive.tsx'
 
 const prefText = (p: Pick<Pref, 'value' | 'unit'>) => (typeof p.value === 'boolean' ? (p.value ? 'yes' : 'no') : `${p.value}${p.unit ? ' ' + p.unit : ''}`)
 
@@ -60,7 +59,7 @@ export function RunRow({ r }: { r: Run }) {
       <button type="button" disabled={!has} onClick={() => openRun(r)} title={has ? 'Open this result' : undefined}>
         <ToolKey id={r.tool} title={title} />
         <span className="grow"><span className="t trunc"><b>{title}</b>{where && <span className="muted"> · {where}</span>}</span>{r.summary && <span className="s">{r.summary}</span>}</span>
-        {r.status === 'running' ? <RunState state="running">{''}</RunState> : r.status === 'failed' ? <RunState state="failed" /> : <span className="num muted">{dur(r.ms)}</span>}
+        {r.status === 'running' ? <RunState state="running">{''}</RunState> : r.status === 'failed' && <RunState state="failed" />}
       </button>
     </li>
   )
@@ -98,6 +97,8 @@ function Brief() {
       {open.length > 0 && !editing && (
         <div className="asks">
           <header><h3>{open.every(isApproval) ? (open.length === 1 ? 'The agent is waiting for your approval' : `The agent is waiting for ${open.length} approvals`) : open.length === 1 ? 'One question' : `${open.length} questions`} before the work can go on</h3></header>
+          {/* several approvals at once are usually the same step on several buildings: one press answers them all */}
+          {open.length > 1 && open.every(isApproval) && <ApproveAll open={open} />}
           {open.map((q) => (isApproval(q) ? <ApprovalCard key={q.id} q={q} /> : <QuestionForm key={q.id} q={q} />))}
         </div>
       )}
@@ -153,12 +154,12 @@ function Findings() {
   const doc = useWorkspace((s) => s.doc)
   const order = { fail: 0, warn: 1, unknown: 2, pass: 3 } as const
   const items = [...doc.findings].sort((a, b) => order[a.status] - order[b.status])
-  if (!items.length) return <p className="rp-none">No findings yet. Each one links to its place in the building.</p>
+  if (!items.length) return <p className="rp-none">Nothing checked yet. Each check links to its place in the building.</p>
   return (
     <ul className="flist">
       {items.slice(0, 80).map((f) => (
         <li key={f.id}>
-          <button type="button" disabled={!f.anchor} aria-current={doc.camera?.finding === f.id || undefined} onClick={() => focusFinding(f)} title={f.anchor ? 'Show this in the building' : 'This finding has no place to show'}>
+          <button type="button" disabled={!f.anchor} aria-current={doc.camera?.finding === f.id || undefined} onClick={() => focusFinding(f)} title={f.anchor ? 'Show this in the building' : 'This check has no place to show'}>
             <StatusGlyph status={f.status} />
             <span className="grow"><span className="t">{f.title}</span>{f.detail && <span className="s">{f.detail}</span>}</span>
             {f.anchor && <Icon name="target" size={13} />}
@@ -209,7 +210,7 @@ export function RunPanel({ onClose }: { onClose: () => void }) {
           <Tabs.Root value={tab} onValueChange={(v) => setTab(String(v))}>
             <Tabs.List className="tabs">
               <Tabs.Tab value="plan">Plan{doc.runs.length > 0 && <span className="count">{doc.runs.length}</span>}</Tabs.Tab>
-              <Tabs.Tab value="findings">Findings{doc.findings.length > 0 && <span className="count">{doc.findings.length}</span>}</Tabs.Tab>
+              <Tabs.Tab value="findings">Checks{doc.findings.length > 0 && <span className="count">{doc.findings.length}</span>}</Tabs.Tab>
               <Tabs.Tab value="learned">Learned{doc.prefs.length > 0 && <span className="count">{doc.prefs.length}</span>}</Tabs.Tab>
             </Tabs.List>
             <Tabs.Panel value="plan"><Lanes /><Plan /></Tabs.Panel>

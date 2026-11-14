@@ -1,0 +1,16 @@
+{
+  "id": "virtual_stager",
+  "title": "Agent or host staging a home virtually",
+  "who": "A listing agent or short-stay host who wants to show the rooms furnished: what fits where, how big each room is, and the light.",
+  "tools": [
+    "furniture_fit",
+    "room_sizes",
+    "daylight",
+    "tour"
+  ],
+  "thresholds": {},
+  "layout": {
+    "view": "scene",
+    "lead_tool": "furniture_fit"
+  }
+}

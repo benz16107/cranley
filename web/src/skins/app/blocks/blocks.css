@@ -1,4 +1,5 @@
-/* The twelve blocks. A panel is a list of them separated by hairlines. */
+/* The twelve blocks. A panel is a list of them, set apart by space; hairlines are for rows of a list and cells of a
+   row of values, where the eye runs along them. */
 .panel { border-bottom: 1px solid var(--rule); min-width: 0; }
 .panel > header { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 var(--s-3) 0 6px; position: sticky; top: 0; background: var(--pane); z-index: 1; }
 .panel[data-open='true'] > header { border-bottom: 1px solid var(--rule); }
@@ -8,14 +9,25 @@
 .panel .fold::after { content: ''; position: absolute; inset: 0; }
 @media (hover: hover) and (pointer: fine) { .panel > header:has(.fold:hover) { background: var(--pane-2); } }
 @media (hover: hover) and (pointer: fine) { .panel .fold:hover { color: var(--ink); background: var(--pane-2); } }
-.panel > :not(header) { border-bottom: 1px solid var(--rule); }
-.panel > :last-child { border-bottom: 0; }
+.panel > :last-child { margin-bottom: var(--s-2); }
 .panel.bare { border-bottom: 0; }
 
 .b-verdict { display: grid; gap: 6px; justify-items: start; padding: var(--s-3) var(--s-4); }
 .b-verdict p { font-size: var(--text-sm); font-weight: 520; line-height: 1.45; }
 
-.b-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); overflow: hidden; }
+.b-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); overflow: hidden; border-block: 1px solid var(--rule); }
+.b-from { padding: 6px var(--s-4) 0; }
+/* values from different places each say theirs, on a line of its own under the value */
+.b-metrics > div > .src { grid-column: 1 / -1; justify-self: start; }
+/* A fold inside a result: checks that passed, or how it was worked out. One quiet line until it is opened. */
+.b-fold > summary { display: flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 var(--s-4); color: var(--ink-2); font-size: var(--text-xs); cursor: pointer; list-style: none; }
+.b-fold > summary::-webkit-details-marker { display: none; }
+.b-fold > summary svg { color: var(--ink-3); flex: none; }
+.b-fold[open] > summary svg { rotate: 90deg; }
+.b-fold[open] > summary { color: var(--ink); }
+@media (hover: hover) and (pointer: fine) { .b-fold > summary:hover { background: var(--pane-2); color: var(--ink); } }
+.b-checks { border-top: 1px solid var(--rule); }
+.b-fold > .b-checks { border-top: 0; }
 /* cells share hairlines: each draws its left and top edge, and the grid hides the outer ones */
 .b-metrics > div { padding: 8px var(--s-4) 9px; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; align-items: baseline; box-shadow: -1px -1px 0 var(--rule); }
 .b-metrics dt { grid-column: 1 / -1; }
