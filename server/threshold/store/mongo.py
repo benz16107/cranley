@@ -77,6 +77,7 @@ class MongoStore:
     def __init__(self, uri: str, db: str = "threshold", where: derive.Where = derive.scan_place):
         from . import is_local
         self.client = MongoClient(uri, appname="threshold", tz_aware=True, serverSelectionTimeoutMS=5000)
+        self.uri = uri  # for the agent's MongoDB MCP server; never logged or returned
         self.db = self.client[db]
         self.target = f"{'local' if is_local(uri) else 'atlas'}:{db}"  # names the deployment without its address
         for name in ("ops", "workspaces", "prefs", "history", "memories", "shortlist", "shares", "sensors"):

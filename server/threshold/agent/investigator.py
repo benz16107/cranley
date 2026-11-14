@@ -586,6 +586,8 @@ class Investigation:
                                "notes, tools they removed, buildings they shortlisted). feedback \"rejected\" finds what "
                                "they turned down and why: skip those buildings, or check that reason first. kind: brief, "
                                "finding, note, tool_removed, shortlist. Never quote numbers from it."))
+        from . import mongo_mcp
+        out += mongo_mcp.tools(self.s.store, self.s.base.profile or "default", self.s.base.id)
         route = search.measures_route()
         if route:
             out.append(StructuredTool.from_function(
