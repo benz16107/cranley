@@ -35,7 +35,7 @@ export { mapStyle, type MapPalette } from './basemap.ts'
 export {
   fetchPlan, panoFace, panoEquirect, captureImage, floorplanImage, orthoImage, fetchScans, fetchRecord, fetchDrone, droneImage,
   fetchMeasureFields, searchMeasures, type ScanRow, type MeasureField, type MeasureHit,
-  fetchFloodWet, fetchFactHistory, fetchCaptures, type FloodLevel, type FactRow, type Capture,
+  fetchFloodWet, fetchFactHistory, fetchCaptures, photorealReady, type FloodLevel, type FactRow, type Capture,
 } from './api.ts'
 export {
   Scene, SceneBoundary, useBuildingView, focusFinding, focusAnchor, anchorFloor,

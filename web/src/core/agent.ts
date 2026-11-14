@@ -45,13 +45,15 @@ void server.resume()
 export function startOver() { if (server.refused()) return; playing++; server.forget(); useWorkspace.getState().reset(); lastSids = [] }
 
 /* ---------- composing: who you are, which tools, which questions ---------- */
+/** Resolves when composing has ended: the server's turn has streamed to its end, or the scripted tools and questions
+    have all arrived. A caller that goes straight on (a guided first run) awaits it; the others let it run. */
 export async function compose(sentence: string, needId?: string) {
   if (server.refused()) return // a read-only link: nothing is composed into someone else's workspace
   startOver()
   const live = await server.connect()
   // shown at once; with a server this never reaches it as an op, the turn below carries the sentence
   useWorkspace.setState({ doc: { ...doc(), brief: { text: sentence, facts: [] } } })
-  if (live) { navigate('/', {}, { replace: true }); void serverTurn({ text: sentence }); return }
+  if (live) { navigate('/', {}, { replace: true }); await serverTurn({ text: sentence }); return }
   const need = NEEDS.find((n) => n.id === needId) ?? matchNeed(sentence)
   const my = playing
   navigate('/', { city: need.city, composing: '1' }, { replace: true })

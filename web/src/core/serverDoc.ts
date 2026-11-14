@@ -126,7 +126,7 @@ export function toDoc(ws: J, learned: J[], manifests: Map<string, Manifest>, nam
   const title = (id: string) => manifests.get(id)?.title ?? id
   return {
     id: ws.id,
-    brief: ws.brief?.text ? { text: ws.brief.text, facts: [], limits: ws.brief.limits ?? [] } : null,
+    brief: ws.brief?.text ? { text: ws.brief.text, facts: [], limits: ws.brief.limits ?? [], scope: ws.brief.scope?.sids?.length ? [...ws.brief.scope.sids] : undefined } : null,
     questions: ((ws.questions ?? []) as J[]).map(toQuestion),
     tools: ((ws.tools ?? []) as J[]).filter((t) => t.enabled !== false).map((t): ToolRef => ({ id: t.id, title: title(t.id), summary: manifests.get(t.id)?.summary, reason: t.reason ?? '',
       coverage: t.status === 'planned' ? 'Planned, not built yet' : undefined, by: t.by === 'user' ? 'user' : 'agent' })),

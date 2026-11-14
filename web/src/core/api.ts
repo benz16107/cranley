@@ -30,6 +30,9 @@ const qs = (o: Record<string, string | number | boolean | null | undefined>) =>
 
 /** A whole panorama as one 2:1 image. `view: 'defurnished'` is the empty-room version where the scan has one. */
 export const panoEquirect = (sid: string, pano: string, w = 2048, view: 'furnished' | 'defurnished' = 'furnished') => `/api/scan/${seg(sid)}/pano/${seg(pano)}/equirect.jpg?w=${w}&view=${view}`
+/** Is this scan's photoreal colour made already? Asking does not start making it (opening the building does). */
+export const photorealReady = (sid: string) => getJson<{ state: string }>(`/api/world/${seg(sid)}/mesh/status?start=false`).then((s) => s.state === 'ready', () => false)
+
 /** A phone capture's picture: the photo itself, or frame `n` of a walk-through video for a ref `<id>#<n>`. */
 export const captureImage = (ref: string) => { const [id, n] = ref.split('#'); return n == null ? `/api/capture/${seg(id)}/file` : `/api/capture/${seg(id)}/frame/${seg(n)}.jpg` }
 /** Matterport's own floor plan picture of one floor. */
