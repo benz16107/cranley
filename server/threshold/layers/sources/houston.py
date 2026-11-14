@@ -1,6 +1,6 @@
 """City of Houston's own GIS (mycity2.houstontx.gov, no key): the rules Houston uses instead of zoning (special
 minimum lot sizes and building lines, historic districts), land use as the appraisal district records it, bikeways,
-the Vision Zero high-injury streets, airport noise, hurricane evacuation zones, the 500-year floodplain, libraries,
+the Vision Zero high-injury streets, airport noise, hurricane evacuation zones, libraries,
 parks, police stations, and 311 service requests from the last weeks.
 
 Houston has no zoning code. What a lot can be used for is set by private deed restrictions, which the city does not
@@ -15,8 +15,8 @@ GIS = "https://mycity2.houstontx.gov/gisweb02/rest/services/HoustonMap/"
 PD, TR, NB, PS, FH = (GIS + s + "/MapServer/" for s in ("Planning_and_Development", "Transportation", "Neighborhood",
                                                         "Public_Safety", "Flood_Hazard"))
 SR311 = "https://mycity2.houstontx.gov/gisweb01/rest/services/311/HOUSTON311_RECENT_SR_SNOW/FeatureServer/0"
-COH = dict(source="City of Houston GIS", source_url="https://cohgis-mycity.opendata.arcgis.com/",
-           licence="City of Houston open data (public)", cities=("hou",))
+COH = {"source": "City of Houston GIS", "source_url": "https://cohgis-mycity.opendata.arcgis.com/",
+           "licence": "City of Houston open data (public)", "cities": ("hou",)}
 
 MIN_LOT = PD + "13"
 BUILD_LINE = PD + "12"
@@ -58,7 +58,7 @@ LAYERS, FETCH = collect(
     layer("hou_high_injury", "High-injury streets (Vision Zero)", "Getting around", "line", TR + "22", scope="city",
           fields="Full_Name,total_crash_count,ped_crash_count,bike_crash_count,ped_death_count,bike_death_count,car_death_count",
           name="Full_Name",
-          detail=lambda a: join(f"{a['total_crash_count']} serious crashes" if a.get("total_crash_count") is not None else "",
+          detail=lambda a: join(f"{a['total_crash_count']} crashes counted" if a.get("total_crash_count") is not None else "",
                                 f"{a['ped_crash_count']} involving people walking" if a.get("ped_crash_count") else ""),
           confidence="medium", note="The 2022 Vision Zero high-injury network: the streets where a large share of the city's "
           "traffic deaths and serious injuries happened, from the city's crash analysis.", data_date="2022",
@@ -72,17 +72,12 @@ LAYERS, FETCH = collect(
           detail=lambda a: join((a.get("Name") or "").title(), (a.get("County") or "").title()),
           confidence="high", note="The zip-code zones the region calls to leave, coast first, before a hurricane. "
           "Outside every zone, officials expect people to shelter at home unless told otherwise.", extra={"hue": "--tool-2"}, **COH),
-    layer("hou_500yr", "500-year floodplain (0.2% a year)", "Hazards", "area", FH + "6", grid_z=13, minzoom=11,
-          fields="FLD_ZONE,ZONE_SUBTY", offset=0.00003, name="0.2% annual chance floodplain",
-          detail=lambda a: (a.get("ZONE_SUBTY") or "").strip().capitalize(), confidence="medium",
-          note="FEMA's 0.2% annual chance (500-year) floodplain in Harris County, as the city republishes it. Harvey flooded "
-          "many homes outside both this and the 100-year floodplain.", extra={"hue": "--tool-2"}, **COH),
     layer("hou_libraries", "Public libraries", "Services", "point", NB + "12", scope="city", fields="LIBRARY,ADDRESS",
           name="LIBRARY", detail=lambda a: a.get("ADDRESS") or "", confidence="high",
           note="Houston Public Library branches.", extra={"hue": "--tool-6"}, **COH),
     layer("hou_parks", "City parks", "Services", "area", NB + "14", scope="city", fields="Name,Park_Acres,Park_Type",
           offset=0.00002, name=lambda a: (a.get("Name") or "Park").title(),
-          detail=lambda a: join(f"{a['Park_Acres']:.1f} acres" if a.get("Park_Acres") else "", a.get("Park_Type")),
+          detail=lambda a: join(f"{a['Park_Acres']:.1f} acres" if (a.get("Park_Acres") or 0) >= 0.1 else "", a.get("Park_Type")),
           confidence="high", note="Parks the City of Houston runs. County, state and private parks are not included.",
           extra={"hue": "--tool-4"}, **COH),
     layer("hou_police", "Police stations", "Services", "point", PS + "1", scope="city", fields="STATION,ADDRESS",

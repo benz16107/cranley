@@ -4,6 +4,8 @@ Census API itself now asks for a key). One upstream fetch per city serves all fi
 """
 from __future__ import annotations
 
+import itertools
+
 from ..catalog import CITIES, Layer, arcgis
 from ..lookup import cached
 
@@ -14,14 +16,14 @@ FIELDS = ("GEOID,NAME,County,ALAND,B01001_001E,B01001_calc_pctLT18E,B01001_calc_
           "B25002_001E,B25003_001E,B25003_002E,B25003_003E,B25058_001E,B25077_001E")
 SRC = "US Census Bureau, American Community Survey 5-year estimates (Esri's hosted copy)"
 URL = ACS.format("").rstrip("/")
-COMMON = dict(source=SRC, source_url=URL, licence="Public domain (US Census Bureau); Esri hosting terms apply",
-              attribution="US Census Bureau ACS; Esri", scope="city", shape="area", group="People", minzoom=8)
+COMMON = {"source": SRC, "source_url": URL, "licence": "Public domain (US Census Bureau); Esri hosting terms apply",
+              "attribution": "US Census Bureau ACS; Esri", "scope": "city", "shape": "area", "group": "People", "minzoom": 8}
 NOTE = (" ACS figures are survey estimates with a margin of error, largest in small tracts. Each tract is one colour: "
         "it says nothing about a single street.")
 
 
 def bands(edges: list[float], fmt) -> list[list]:
-    labels = [f"under {fmt(edges[0])}"] + [f"{fmt(a)} to {fmt(b)}" for a, b in zip(edges, edges[1:])] + [f"{fmt(edges[-1])} or more"]
+    labels = [f"under {fmt(edges[0])}"] + [f"{fmt(a)} to {fmt(b)}" for a, b in itertools.pairwise(edges)] + [f"{fmt(edges[-1])} or more"]
     return [[i, t] for i, t in enumerate(labels)]
 
 
@@ -39,9 +41,9 @@ def renters(a: dict) -> float | None:
     return round(100 * rent / occ, 1) if occ and rent is not None else None
 
 
-money = lambda v: f"${v / 1000:.0f}k"  # noqa: E731
-pct = lambda v: f"{v:g}%"  # noqa: E731
-num = lambda v: f"{v:,.0f}"  # noqa: E731
+money = lambda v: f"${v / 1000:.0f}k"
+pct = lambda v: f"{v:g}%"
+num = lambda v: f"{v:,.0f}"
 
 # layer id -> (title, value of a tract, edges, how a value reads, legend title, unit, hue)
 SPEC = {

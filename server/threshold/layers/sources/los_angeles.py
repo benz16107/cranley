@@ -12,7 +12,7 @@ ZIMAS = "https://zimas.lacity.org/arcgis/rest/services/zma/zimas/MapServer/"
 ZONING, GENPLAN = [ZIMAS + "1102", ZIMAS + "1101"], [ZIMAS + "1202", ZIMAS + "1201"]
 BIKEWAYS = "https://services1.arcgis.com/tp9wqSVX1AitKgjd/arcgis/rest/services/LA_City_Bikeways/FeatureServer/0"
 PERMITS = "https://data.lacity.org/resource/pi9x-tg5x.json"  # LADBS building permits issued from 2020 to present
-CITY = dict(cities=("la",), licence="City of Los Angeles open data (public)")
+CITY = {"cities": ("la",), "licence": "City of Los Angeles open data (public)"}
 ZONE_GROUP = {"R": "Residential", "C": "Commercial", "M": "Industrial", "P": "Parking", "O": "Open space", "A": "Agricultural"}
 
 

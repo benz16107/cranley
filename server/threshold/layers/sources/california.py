@@ -10,15 +10,15 @@ CALFIRE = "https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/arcgis/rest/services/{}
 AP, AP_TRACES = CGS.format("CGS_Alquist_Priolo_Fault_Zones"), CGS.format("CGS_Alquist_Priolo_Fault_Traces")
 LIQUEFACTION, LANDSLIDE = CGS.format("CGS_Liquefaction_Zones"), CGS.format("CGS_Landslide_Zones")
 FHSZ_SRA, FHSZ_LRA = CALFIRE.format("FHSZSRA_23_3"), CALFIRE.format("FHSALRA25_v1_All")  # sic: the service is spelled FHSA
-STATE = dict(cities=("la",), source="California Geological Survey", licence="State of California open data (public)",
-             source_url="https://maps.conservation.ca.gov/cgs/EQZApp/", confidence="high")
-FIRE = dict(cities=("la",), source="CAL FIRE Fire Hazard Severity Zones", licence="State of California open data (public)",
-            source_url="https://osfm.fire.ca.gov/what-we-do/community-wildfire-preparedness-and-mitigation/fire-hazard-severity-zones",
-            confidence="high")
+STATE = {"cities": ("la",), "source": "California Geological Survey", "licence": "State of California open data (public)",
+             "source_url": "https://maps.conservation.ca.gov/cgs/EQZApp/", "confidence": "high"}
+FIRE = {"cities": ("la",), "source": "CAL FIRE Fire Hazard Severity Zones", "licence": "State of California open data (public)",
+            "source_url": "https://osfm.fire.ca.gov/what-we-do/community-wildfire-preparedness-and-mitigation/fire-hazard-severity-zones",
+            "confidence": "high"}
 SEVERITY = {"Moderate": 2, "High": 3, "Very High": 5}
-quad = lambda a: join(f"{a['QUAD_NAME']} quadrangle" if a.get("QUAD_NAME") else "",  # noqa: E731
+quad = lambda a: join(f"{a['QUAD_NAME']} quadrangle" if a.get("QUAD_NAME") else "",
                       f"released {a.get('RELEASED') or a.get('MAP_RELEASED')}" if a.get("RELEASED") or a.get("MAP_RELEASED") else "")
-fire = lambda resp: lambda a: {"level": SEVERITY.get(a.get("FHSZ_Description") or "", 1), "resp": resp}  # noqa: E731
+fire = lambda resp: lambda a: {"level": SEVERITY.get(a.get("FHSZ_Description") or "", 1), "resp": resp}
 
 LAYERS, FETCH = collect(
     layer("ca_fault_zones", "Earthquake fault zones (Alquist-Priolo)", "Hazards", "area", AP, grid_z=12, minzoom=10,
