@@ -2,6 +2,7 @@
 // geometry with baked vertex colours (web/src/scene/dev/build-models.mjs), fetched once per page and shared.
 // The overlay scales that cube to the box the tool measured, so the model never brings a size of its own.
 import * as THREE from 'three'
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js' // already in the scene's bundle: the surroundings load with it
 
 const CLASS = /^[a-z]+\/[a-z0-9-]+$/ // the id comes from a tool result and becomes part of a URL
 const ready = new Map<string, THREE.BufferGeometry | null>() // null: no such model, or it failed to load; the box stays
@@ -22,8 +23,7 @@ export function modelGeometry(id: string, onLoad: () => void): THREE.BufferGeome
 }
 
 async function load(id: string): Promise<THREE.BufferGeometry> {
-  // the loader and decoder are only fetched by a page that draws a model
-  const [{ GLTFLoader }, { MeshoptDecoder }] = await Promise.all([import('three/addons/loaders/GLTFLoader.js'), import('three/addons/libs/meshopt_decoder.module.js')])
+  const { MeshoptDecoder } = await import('three/addons/libs/meshopt_decoder.module.js') // only fetched by a page that draws a model
   const gltf = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(`${import.meta.env.BASE_URL}models/${id}.glb`)
   let geo: THREE.BufferGeometry | null = null
   gltf.scene.traverse((o) => { geo ??= (o as THREE.Mesh).isMesh ? (o as THREE.Mesh).geometry : null })
