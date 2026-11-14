@@ -3,7 +3,7 @@ Video (2:00): [link goes here]
 
 ## Measure the building before you commit
 
-Listings say "two-car garage", "accessible", "fits a king bed". Nobody measures before you sign. Threshold is one place where an agent assembles the tools your need requires, from a city map down to a measured doorway, and checks real buildings inside and out. Every number comes from a calculation, never from a model's text.
+Listings say "two-car garage", "accessible", "fits a king bed". Nobody measures before you sign. Cranley is one place where an agent assembles the tools your need requires, from a city map down to a measured doorway, and checks real buildings inside and out. Every number comes from a calculation, never from a model's text.
 
 It is for the person the listing fails: a wheelchair user signing a lease, a Houston family before a storm, a fire crew going into a house it has never seen, a small business checking a space against its headcount, a CoStar researcher checking a record against the building.
 

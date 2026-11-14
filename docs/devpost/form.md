@@ -7,8 +7,8 @@ unticked prize is not judged.
 
 | Field (id) | Required | Draft answer |
 |---|---|---|
-| Name | yes | Threshold (pending the name question) |
-| Tagline (200) | yes | Listings say "accessible" and "two-car garage". Threshold measures it: an agent that checks real buildings, inside and out, before you commit. |
+| Name | yes | Cranley |
+| Tagline (200) | yes | Listings say "accessible" and "two-car garage". Cranley measures it: an agent that checks real buildings, inside and out, before you commit. |
 | Description | yes | `docs/devpost/description.md` |
 | Built with (max 25) | yes | see below |
 | Public Git Repository (29740) | yes | the fresh public repo URL (not created yet) |
@@ -18,7 +18,7 @@ unticked prize is not judged.
 | Did you implement a generative AI model or API (29745) | yes | see below |
 | Gemini project number (29746) | yes | N/A |
 | Discord usernames and names (29747) | yes | ask Ben |
-| Main HackPrinceton track (29748) | yes | Business/Enterprise (default; question 4 in story.md) |
+| Main HackPrinceton track (29748) | yes | Business/Enterprise (default; question 3 in story.md) |
 | Rookie fraction (29749) | yes | "Less than 2/3 rookies" if Ben is the only member or the team is experienced; ask |
 | Rules checkbox (29750) | yes | Ben ticks |
 | Opt-in checkbox (29751) | yes | Ben ticks after choosing prizes |

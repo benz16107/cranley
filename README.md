@@ -1,6 +1,6 @@
-# Threshold (working name)
+# Cranley (code name `threshold`)
 
-Listings say "accessible", "two-car garage", "fits a king bed". Nobody measures before you commit. Threshold is one
+Listings say "accessible", "two-car garage", "fits a king bed". Nobody measures before you commit. Cranley is one
 place where an agent assembles the tools your need requires, from a city map down to a measured doorway, and checks
 real buildings inside and out. Every number comes from a calculation, never from a model's text.
 
@@ -59,7 +59,7 @@ behind the product, per track, is in [`docs/story.md`](docs/story.md).
 ## Data and keys: bring your own
 
 **No sponsor data is in this repository, and none may be added.** CoStar's hackathon terms limit the data to the event
-and forbid it in public repos and demos. To run Threshold on the real layers you need your own access to the Matterport
+and forbid it in public repos and demos. To run Cranley on the real layers you need your own access to the Matterport
 Model API, Vexcel and the CoStar kit, under your own agreement with them.
 
 Keys and data live outside the repo in a data folder, `$THRESHOLD_DATA_DIR` (default
@@ -104,7 +104,7 @@ pnpm test && pnpm build
 Phone companion: open `/m` on a phone over HTTPS (camera, motion and location need a secure origin) and pair with the
 QR code on the desktop's Phone tab.
 
-iPhone app: `ios/Threshold` is an XcodeGen project (`xcodegen` then open in Xcode 27). It has a demo mode with the
+iPhone app: `ios/Threshold` is an XcodeGen project (display name Cranley) (`xcodegen` then open in Xcode 27). It has a demo mode with the
 test scans. `ios/scripts/install.sh` covers USB and TestFlight installs.
 
 MCP server and CLI: every tool is also an MCP tool (read-only by default; agent turns and workspace writes only with

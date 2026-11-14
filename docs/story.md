@@ -1,7 +1,12 @@
-# Threshold: the submission story
+# Cranley: the submission story
 
 The living source for the Devpost page, the README, the site and the 2-minute pitch. Edit this file first; the
-others are generated from it. Owner: the submission thread (`ws/submission`). Working name: Threshold.
+others are generated from it. Owner: the submission thread (`ws/submission`). Product name: Cranley (Ben, 2026-11-14); the code name `threshold` stays on packages,
+folders, the CLI and the MCP server.
+
+Name check (web search, 2026-11-14): no software, app or proptech product called Cranley. Several small UK property
+companies carry the name (Cranley Gardens Property, Cranley Place Management, Cranley Property Company in Guernsey),
+most named after Cranley Gardens and Cranley Place, streets in South Kensington, London. Domains not checked.
 
 Public-text rule: this file goes into a public repo. It holds no sponsor data, no scan ids, no addresses, no
 screenshots of sponsor imagery and no per-building counts. Numbers about our own system (tests, timings, tool
@@ -14,52 +19,39 @@ counts) are fine. Dataset-derived numbers for the spoken pitch live outside the 
 
 Answer these in the thread; the defaults below go in if there is no answer by about 6 am.
 
-1. **Name.** Searched each on 2026-11-14 for obvious conflicts in real estate and buildings:
+1. **Domain.** MLH has a GoDaddy Registry prize (needs a GoDaddy Registry TLD such as `.co`, `.us` or `.club`, not
+   `.com`). Options: buy one for the external site (for example `cranley.co`, availability not checked), or skip.
+   Default: skip; no site goes live before CoStar answers the terms question anyway (see `docs/site-plan.md`).
 
-   | Name | One line | Conflicts found |
-   |---|---|---|
-   | Threshold (keep) | The step across the door: what you learn before you go in | Two real-estate products already use it: Threshold Homes (an AI home concierge, thresholdhomes.ai) and Threshold (home-builder sales software, threshold-io.com). Fine for a hackathon, weak for a domain or a company. |
-   | Sightline | What you can see from where you stand, inside and out | None in real estate or buildings. Used by a Manhattan Associates supply-chain feature, an HVAC compliance tool and a defence video company. |
-   | Sill | The measured line at the bottom of every door and window, the number that decides a flood or a wheelchair | None in real estate. A free Mac screen-sharing app (getsill.app, October 2026) and a UK home-goods shop app. Short and spare. |
-   | Plumb | True vertical; also "to plumb" a building, to find out what is really there | Adjacent conflicts: Plumb Pro and Plumb Roof Pro (construction calculators), Plumb-bob (AR measuring). |
-   | Lintel or Datum | Building words | Not recommended: six companies called Lintel (two in building AI) and at least five called Datum (two in real estate). |
-
-   Default: keep **Threshold** for the submission. If a domain or anything after the event matters, **Sill** is the
-   cleanest short name.
-
-2. **Domain.** MLH has a GoDaddy Registry prize (needs a GoDaddy Registry TLD such as `.co`, `.us` or `.club`, not
-   `.com`). Options: buy one for the external site, or skip. Default: skip until the name is settled; no site goes
-   live before CoStar answers the terms question anyway (see `docs/site-plan.md`).
-
-3. **Tagline.** Candidates (Devpost allows 200 characters):
+2. **Tagline.** Candidates (Devpost allows 200 characters):
    - A. "Tell it what you need from a building. An agent builds the tools, measures the real thing inside and out, and shows its work."
-   - B. "Listings say 'accessible' and 'two-car garage'. Threshold measures it: an agent that checks real buildings, inside and out, before you commit."
+   - B. "Listings say 'accessible' and 'two-car garage'. Cranley measures it: an agent that checks real buildings, inside and out, before you commit."
    - C. "One place where an agent assembles the tools your need requires, from the city map down to a measured doorway, and every number comes from a calculation."
    Default: **B** (problem first, names the product, says what it does).
 
-4. **Main HackPrinceton track.** The form allows exactly one of Healthcare, Sustainability, Business/Enterprise,
+3. **Main HackPrinceton track.** The form allows exactly one of Healthcare, Sustainability, Business/Enterprise,
    Entertainment/Media, Education, Science & Discovery. Default: **Business/Enterprise** (the product is a working
    tool for people who decide about buildings, which is what CoStar's customers do). Pick **Healthcare** instead if
    the pitch leads with the wheelchair and aging-in-place flow, or **Sustainability** if it leads with the Houston
    flood.
 
-5. **LangChain is not on the Devpost prize list.** The handbook lists "Best use of deepagents" but Devpost's prizes do
+4. **LangChain is not on the Devpost prize list.** The handbook lists "Best use of deepagents" but Devpost's prizes do
    not include it, so there is no box to tick. Ask a LangChain rep or #qna on Discord how to enter. Default: name it in
    the description and tell the LangChain judge at the table.
 
-6. **Peri needs a real business consulted during the event.** 147 emails sent, no human reply yet (auto-replies only).
+5. **Peri needs a real business consulted during the event.** About 150 emails sent; the only human reply so far was a decline.
    The rule needs a business name, the person's name and role, and one piece of evidence. Cheapest path: walk into a
    cafe that opens early on Sunday (the outreach list has one opening 6:30 am a minute from the venue), show the field
    report flow, and get a quote and a photo. Default if nobody is consulted: **do not enter Peri** (an entry without
    the evidence is ineligible).
 
-7. **Demo flow per track.** Proposed below under each track. Pick the lead flow for the 2-minute general pitch:
+6. **Demo flow per track.** Proposed below under each track. Pick the lead flow for the 2-minute general pitch:
    wheelchair search (default), Houston flood, or fire pre-plan.
 
-8. **Team and form fields** I cannot know: team members, Discord usernames, schools, rookie fraction. The Gemini
+7. **Team and form fields** I cannot know: team members, Discord usernames, schools, rookie fraction. The Gemini
    project number field is required on the form: answer "N/A".
 
-9. **Repo and licence.** The repo must be public and created during the event. Git history still holds scan ids and
+8. **Repo and licence.** The repo must be public and created during the event. Git history still holds scan ids and
    one address, so the public repo should be a fresh history. Licence: CoStar's terms section 4.2 assigns project IP
    to CoStar, which may limit what licence you can grant. Left to you.
 
@@ -79,7 +71,7 @@ The information exists. Laser scans of the interior, aerial photos sharp enough 
 records for the same address. But each layer sits in its own product, and every existing feature works inside one
 listing at a time. Nobody joins them, and nobody asks your question across a whole city.
 
-## What Threshold is
+## What Cranley is
 
 One place where an agent assembles the tools a person's need requires, from a world explorer down to a measured room.
 
@@ -154,7 +146,7 @@ the headless real-GPU Chrome that renders our screenshots.
 Judged 30% use of the data, 30% agentic depth, 25% usefulness, 15% demo and polish.
 
 **Angle.** The track asks for something that makes CoStar say "we didn't know you could do that with our data". Every
-CoStar product today answers questions inside one listing. Threshold answers a person's question across a whole city,
+CoStar product today answers questions inside one listing. Cranley answers a person's question across a whole city,
 by measurement, with all three layers checking each other.
 
 | Criterion | What serves it |
@@ -199,7 +191,7 @@ Accessibility, get the PDF in seconds. Desktop: the same workspace updates live.
 
 Judged real-world need, usability (could the business adopt it immediately), execution.
 
-**State: no business consulted yet.** See question 6. The entry is only eligible with a business name, the person's
+**State: no business consulted yet.** See question 5. The entry is only eligible with a business name, the person's
 name and role, and one piece of evidence.
 
 **Angle if a business is consulted.** A small business in Princeton is not in CoStar's data. The iPhone app scans the
@@ -213,7 +205,7 @@ their space (or the demo cafe if they declined a scan), then the report.
 
 ### LangChain: Best use of deepagents
 
-Not on the Devpost prize list (question 5). Every feature below does a job in the product; the full table with what
+Not on the Devpost prize list (question 4). Every feature below does a job in the product; the full table with what
 was skipped and why is `$THRESHOLD_DATA_DIR/reports/sponsor-features.md`.
 
 | Feature | Why it is a real use |
@@ -279,7 +271,7 @@ read-only shared workspace; search past work for a phrase that is not in it word
 ### HackPrinceton main track (one of six)
 
 General judges score creativity, utility, charity and avidity. Charity is where the product is strongest: the
-wheelchair user, the family before a storm, the fire crew. Track pick: question 4.
+wheelchair user, the family before a storm, the fire crew. Track pick: question 3.
 
 ---
 
@@ -297,7 +289,7 @@ wheelchair user, the family before a storm, the fire crew. Track pick: question 
 
 ## Built (synced to `main`)
 
-Checked against `git log main` at `7812e95` (2026-11-14, 5:15 pm ET). Update at each merge.
+Checked against `git log main` at `0b08426` (2026-11-14, evening ET). Update at each merge.
 
 **Merged**
 - [x] Data layer: Matterport, Vexcel and CoStar sources, normalized plan format with quality flags (`ws/data`)
@@ -321,6 +313,7 @@ Checked against `git log main` at `7812e95` (2026-11-14, 5:15 pm ET). Update at 
 - [x] Garage and driveway fit with 58 vehicles (`ws/garage`)
 - [x] Pets and kids: pet fit, nearby places from OpenStreetMap, home search by pet policy, fence, pool and yard (`ws/pets`)
 - [x] Feng shui, room sizes, earthquake prep; personas for location scout, virtual stager, LA earthquake prep (`ws/fengshui`)
+- [x] Brand is Cranley in the App look, the phone page, the PDF report and the iPhone display name; code identifiers stay `threshold`
 - [x] MCP server (stdio and `/mcp`), `threshold` CLI, deep agent over MCP, `docs/MCP.md` (`ws/mcp`)
 
 **Not merged yet (building tonight)**
@@ -334,4 +327,4 @@ Checked against `git log main` at `7812e95` (2026-11-14, 5:15 pm ET). Update at 
 
 **Not merged on purpose:** the Overflight look (`ws/design2`).
 
-**Blocked:** iPhone app on a real phone (Apple Program License Agreement); Peri evidence (no business consulted).
+**Blocked:** iPhone app on a real phone (Apple Program License Agreement); Peri evidence (no business consulted; one emailed business declined).

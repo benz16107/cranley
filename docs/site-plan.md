@@ -129,4 +129,4 @@ Everything under `$THRESHOLD_DATA_DIR/shots/` except the folders marked safe abo
 ## Hosting
 
 Static site (Astro or plain HTML) on Vercel or GitHub Pages; no server, no form. The live app itself is never public:
-its API serves sponsor data. A domain is question 2 in `docs/story.md`.
+its API serves sponsor data. A domain is question 1 in `docs/story.md`.
