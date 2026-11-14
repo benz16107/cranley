@@ -28,7 +28,6 @@ ANCHOR = TypeAdapter(Anchor)
 
 RANK = {"fail": 3, "warn": 2, "unknown": 1, "pass": 0}
 LINE_MAX = 170
-PER_TOOL = 2
 SRC = Source(layer="model", method="lookup", confidence="medium",
              note="A tour of findings other tools made; each stop keeps its own finding's words")
 # Tools whose findings a tour is made of when none are handed in, by what the question is about. Fast ones only:
@@ -160,10 +159,13 @@ def build(plan: dict, question: str | None, evidence: list[Evidence], max_stops:
             best[key] = e
     ranked = sorted(best.values(), key=score, reverse=True)
     worth = [e for e in ranked if e.status != "pass"] or ranked
-    # at most PER_TOOL stops from one tool first, so a tour shows each kind of evidence before it repeats one
-    seen: dict[str | None, int] = {}
-    first = [e for e in worth if (seen.__setitem__(e.tool, seen.get(e.tool, 0) + 1) or seen[e.tool]) <= PER_TOOL]
-    chosen = (first + [e for e in worth if e not in first])[:max_stops]
+    # one stop from each tool before a second from any: a tour shows each kind of evidence (a narrow door, a bedroom
+    # with no alarm seen, a room lost to smoke) before it repeats one. Tools go in order of their worst finding.
+    by_tool: dict[str | None, list[Evidence]] = {}
+    for e in worth:
+        by_tool.setdefault(e.tool, []).append(e)
+    rounds = [[g[i] for g in by_tool.values() if i < len(g)] for i in range(max(map(len, by_tool.values()), default=0))]
+    chosen = [e for r in rounds for e in r][:max_stops]
     # walking order: distance of each stop's room from the way in, entry floor first
     dist: dict[str, float] = {}
     exit_opening, routes = None, {}

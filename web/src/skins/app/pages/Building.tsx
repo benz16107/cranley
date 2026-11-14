@@ -331,12 +331,13 @@ export function Building({ sid }: { sid: string }) {
   }
   // a tour that arrives while the person is here (they asked for it, or the agent ended its turn with one) plays
   const stopsKey = stops.map((x) => x.id + x.line).join('|'), toured = useRef(stopsKey)
+  const busy = doc.runs.some((r) => r.status === 'running') || doc.plan.some((x) => x.status === 'active') // an agent turn still moves the camera: the tour waits for it to end
   useEffect(() => {
-    if (stopsKey === toured.current) return
+    if (stopsKey === toured.current || busy) return
     toured.current = stopsKey
     if (!stops.length || performance.now() - born.current < 2500) return
     v.setView((x) => ({ ...x, mode: 'dollhouse', surface: bake.colour === 'ready' ? 'scan' : x.surface, show: { kind: 'tour', playing: true, stops } }))
-  }, [stopsKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [stopsKey, busy]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {

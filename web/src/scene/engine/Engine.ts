@@ -240,7 +240,7 @@ export class Engine {
     this.doll.anim.explode.goal = next.mode === 'dollhouse' ? next.explode ?? 0 : 0
     this.pano.setWipe(next.wipe ?? null, this.w * this.renderer.getPixelRatio())
     if (!!next.measures !== !!prev.measures) this.setOverlays(this.overlays)
-    if (next.focus && JSON.stringify(next.focus) !== JSON.stringify(prev.focus)) this.focusOn(next.focus)
+    if (next.focus && JSON.stringify(next.focus) !== JSON.stringify(prev.focus) && this.shows.active !== 'tour') this.focusOn(next.focus) // a tour holds the camera
     if (differs(next.focus, prev.focus)) this.markCurrent()
     if (next.fit !== prev.fit && next.fit != null && next.mode === prev.mode) this.stepBack()
     this.applyLayers(prev)
