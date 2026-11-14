@@ -85,13 +85,11 @@ def site_facts(lat: float, lon: float) -> dict:
     for obj in ("ac-unit", "chimney", "roof-vent", "satellite-dish", "skylight"):
         add(f"roof_{obj.replace('-', '_')}", f"Roof {obj.replace('-', ' ')}s", s.get(f"roof-objects.{obj}.count"), "count", model)
     defects = [k[len("roof-defects."):-len(".detected")] for k, v in s.items() if k.startswith("roof-defects.") and k.endswith(".detected") and v]
+    defects = [d.split(".")[-1] for d in defects]  # discoloration subtypes come as "discoloration.types.water-pooling"
     add("roof_defects", "Roof defects detected", defects, None, model)
     for d in defects:  # the share of the roof each defect covers
-        add(f"roof_defect_{d.replace('-', '_')}", f"Roof {d.replace('-', ' ')}", _r(s.get(f"roof-defects.{d}.percent")), "%", model)
-    for d in ("water-pooling", "algae-staining", "vent-staining", "vegetation-on-roof"):
-        if s.get(f"roof-defects.discoloration.types.{d}.detected"):
-            add(f"roof_defect_{d.replace('-', '_')}", f"Roof {d.replace('-', ' ')}",
-                _r(s.get(f"roof-defects.discoloration.types.{d}.percent")), "%", model)
+        pct = s.get(f"roof-defects.{d}.percent", s.get(f"roof-defects.discoloration.types.{d}.percent"))
+        add(f"roof_defect_{d.replace('-', '_')}", f"Roof {d.replace('-', ' ')}", _r(pct), "%", model)
     add("pool", "Pool", p.get("pool.detected"), None, model)
     add("pool_area", "Pool area", _r(p.get("pool.total-area")), "m2", model)
     for kind in ("in-ground", "above-ground", "hot-tub"):
