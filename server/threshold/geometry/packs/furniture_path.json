@@ -1,0 +1,16 @@
+{
+  "id": "furniture_path",
+  "title": "Furniture path",
+  "summary": "Whether an object of the given size can be carried from the entrance to each room, through doors and round corners.",
+  "params": {
+    "width": {"default": 2.1, "unit": "m", "label": "Object length (longest side)"},
+    "depth": {"default": 0.9, "unit": "m", "label": "Object depth"},
+    "height": {"default": 0.85, "unit": "m", "label": "Object height"}
+  },
+  "rules": [
+    {"id": "carry_to_room", "measure": "carry_box", "box": ["$width", "$depth", "$height"], "threshold": 0, "unit": "m", "compare": "at_least", "severity": "required",
+     "targets": ["Living Room", "Bedroom", "Dining Room", "Kitchen", "Office"],
+     "text": "The object passes every door (end first) and every corner from the entrance to the room. Measured is the worst clearance left over. Doors are taken as hung (taking one off its hinges adds about 5 cm). Corners use the moving-a-sofa-round-a-corner formula and are an estimate.",
+     "standard": "Geometry only: door opening less a hung-door allowance; right-angle corner formula L = min over angle of a/sin + b/cos - w/(sin cos)"}
+  ]
+}
