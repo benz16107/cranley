@@ -12,7 +12,7 @@ __pycache__/
 # CoStar terms: no sponsor data in this repo, ever.
 data/
 cache/
-fixtures/
+/fixtures/
 *.ply
 *.xyz
 *.obj
