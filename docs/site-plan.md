@@ -65,6 +65,49 @@ and keep one moving element per page (the hero loop).
 | 14 | Phone-to-desktop live sync | MongoDB | re-shoot on the test home | yes after re-shoot | re-shoot |
 | 15 | Claude Code calling the tools over MCP | Ecosystem | re-record on the test home | yes after re-record | re-record |
 
+## Re-shoot list for the media pass (after the build merges)
+
+Three safe sources, and what each can and cannot show:
+
+- **T (test scans):** the made-up home and cafe from `server/threshold/roomplan/demo.py`, uploaded through
+  `POST /api/scans/user` (ids `u_` plus 12 hex). They have walls, doors, windows, rooms and objects, but no
+  panoramas, no mesh, no splat and no location. So: the measured dollhouse, the plan, routes, clearances, checks,
+  reports. Never photoreal, never "on its site".
+- **R (a real RoomPlan scan we made):** a space we own or have written permission to scan, captured on an iPhone
+  (blocked until the app installs on a phone). Same limits as T, but real-looking proportions and furniture.
+- **O (OSM and open layers only):** the map or explorer with the scan coverage layer, aerial imagery and the 3D city
+  switched off. Streets, buildings from OpenStreetMap, open hazard and transit layers, with attribution.
+
+Rules for every shot: start a workspace scoped to the `u_` scan only (`/place` or `brief.set`), so the composer
+cannot pull in a city-wide tool that lists real buildings; hide the sidebar footer's scanned-address count; check the
+frame for an address, a scan id other than the `u_` one, a CoStar field or an aerial tile before keeping it. Save to
+`$THRESHOLD_DATA_DIR/shots/public/` so safe shots never mix with the rest.
+
+| # | Shot | Source | Setup and what must be on screen | Replaces |
+|---|---|---|---|---|
+| 1 | Hero loop, 10 s: type the need, composer adds tools, agent lane runs, verdict, route draws, failing door turns red | T (home) | Brief "I use a wheelchair, 81 cm wide. Can I get from the front door to the bathroom?" scoped to the test home (its bathroom door is 0.71 m, so it fails). Measured 3D, cut open. Record at 1440 px, light theme | `app/`, `home/`, `firstrun/` |
+| 2 | Home page with the composer and persona list, no recents | T | Fresh browser profile; empty Recent and Saved; footer count hidden or cropped | `home/after-*` |
+| 3 | Agent panel: plan todos, two parallel lanes, an approval card | T (home and cafe) | Brief over both test scans that asks for a smoke clock on each, so both lanes pause on the CFAST approval. Crop to the agent panel | `sponsors/approval-card*.png`, `live-subagents.png` |
+| 4 | LangSmith trace of the same turn | T | Trace from shot 3's turn; crop out the project's other runs, which carry real addresses | `sponsors/langsmith-trace.png` |
+| 5 | Phone-to-desktop live sync | T (home) | Desktop workspace on the test home and `/m` paired beside it; type a door width on the phone, the Door widths panel updates. Split-screen recording | `mobile/desktop-0*.png` |
+| 6 | Copy link opens a read-only shared workspace | T | Share the shot-1 workspace; open it in a second browser | none yet |
+| 7 | Renovate: widen the bathroom door, Now and After | T (home) | Renovate tool on the 0.71 m door; the check flips to pass; cost line from the takeoff | `whatif/` |
+| 8 | PDF reports, three pages each | T (cafe) | Accessibility, fire pre-plan and fit-out reports exported as images from `shots/field/test-cafe-*.pdf` | reuse |
+| 9 | iPhone app: scan, plan, tools, measure, floor height | T now, R later | `shots/ios/` and `shots/field/sim/` are already safe; re-take on a real phone with an R scan once the app installs | reuse, then R |
+| 10 | Fire pre-plan and egress on the cafe | T (cafe) | fire_preplan and egress_routes on the cafe: exits, longest walk, narrowest point, plan with the route | `tools/`, `show/` |
+| 11 | Furniture or garage fit with 3D models | T (home) | furniture_fit for a sofa through the front door and hallway; the box or model overlay in the measured 3D. Garage fit needs a garage: add one to the made-up home only if the demo script gets it | `garage/`, `models/` |
+| 12 | Feng shui or pet fit plan overlay | T (home) | Bagua grid or pet hazards drawn on the test home's plan | `fengshui/`, `pets/` |
+| 13 | Claude Code calling a tool over MCP | T | Re-record the asciinema take with `door_widths` or `garage_fit` on the `u_` id; no real scan id in the prompt or the answer | `mcp/claude-code-f150*` |
+| 14 | Neighbourhood map with open layers | O | Explorer on a Princeton or neutral street, scan layer off, satellite and 3D city off; FEMA flood or transit layer on; OSM attribution visible | `explorer/`, `datalayers/` |
+| 15 | Nearby places (parks, vets, schools) | O | `nearby` around a bare point with no scan; map only | `pets/houston-*` |
+| 16 | 3D of a real space | R | A scan we made, measured 3D cut open, one route and one clearance drawn | none yet |
+| 17 | Hardware: mini PC photo and splat training-loss chart | own photo, own log numbers | Photograph the machine; chart loss or steps per second from the Brush logs, no rendered scene | `splat/` |
+
+Cannot be shown publicly without CoStar's written yes, whatever the setup: photoreal interiors, interior or drone
+splats, the Vexcel 3D city or aerial tiles, Harvey water in a real house, record versus reality, search by measurement
+or city census results, Insights charts over real facts. The Devpost video and the in-person demo to CoStar's judges
+are a separate question for CoStar (asked in #costar-group).
+
 ## Current screenshots that are NOT safe for public use
 
 Everything under `$THRESHOLD_DATA_DIR/shots/` except the folders marked safe above. In particular:
