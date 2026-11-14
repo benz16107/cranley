@@ -28,6 +28,8 @@ const qs = (o: Record<string, string | number | boolean | null | undefined>) =>
 
 /** A whole panorama as one 2:1 image. `view: 'defurnished'` is the empty-room version where the scan has one. */
 export const panoEquirect = (sid: string, pano: string, w = 2048, view: 'furnished' | 'defurnished' = 'furnished') => `/api/scan/${sid}/pano/${pano}/equirect.jpg?w=${w}&view=${view}`
+/** A phone capture's picture: the photo itself, or frame `n` of a walk-through video for a ref `<id>#<n>`. */
+export const captureImage = (ref: string) => { const [id, n] = ref.split('#'); return n == null ? `/api/capture/${id}/file` : `/api/capture/${id}/frame/${n}.jpg` }
 /** Matterport's own floor plan picture of one floor. */
 export const floorplanImage = (sid: string, floor: string, flags = 'photogramy') => `/api/scan/${sid}/floorplan/${floor}.jpg?flags=${flags}`
 /** A north-up aerial photo patch, `size_m` metres across, centred on a point. */

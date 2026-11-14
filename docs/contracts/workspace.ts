@@ -271,8 +271,8 @@ export interface Metric {
  * via the `definition` "Source".
  */
 export interface Source {
-  layer: "matterport" | "vexcel" | "costar" | "drone" | "model";
-  method: "geometry" | "vision" | "lookup" | "simulation";
+  layer: "matterport" | "vexcel" | "costar" | "drone" | "model" | "phone";
+  method: "geometry" | "vision" | "lookup" | "simulation" | "sensor" | "manual";
   confidence: "high" | "medium" | "low";
   note?: string | null;
 }
@@ -371,7 +371,7 @@ export interface GeoAnchor {
  * via the `definition` "Media".
  */
 export interface Media {
-  kind: "pano" | "ortho" | "drone";
+  kind: "pano" | "ortho" | "drone" | "phone";
   ref: string;
   box?: [unknown, unknown, unknown, unknown] | null;
 }

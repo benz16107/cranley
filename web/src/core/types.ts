@@ -24,8 +24,9 @@ export type ScanPlan = {
 
 /* ---------- Contract 3: ToolResult ---------- */
 export type Source = {
-  layer: 'matterport' | 'vexcel' | 'costar' | 'drone' | 'model'
-  method: 'geometry' | 'vision' | 'lookup' | 'simulation'
+  /** 'phone': captured by a person on site with the phone app. Methods 'sensor' (tilt, compass, GPS, microphone) and 'manual' (measured and typed in) come with it. */
+  layer: 'matterport' | 'vexcel' | 'costar' | 'drone' | 'model' | 'phone'
+  method: 'geometry' | 'vision' | 'lookup' | 'simulation' | 'sensor' | 'manual'
   confidence: 'high' | 'medium' | 'low'
   note?: string
 }
@@ -43,7 +44,8 @@ export type Check = {
   /** 'claim': `threshold` is what a record or a listing says, not a limit to meet. Missing means 'limit'. */
   kind?: 'limit' | 'claim'
 }
-export type Media = { kind: 'pano' | 'ortho' | 'drone'; ref: string; box?: [number, number, number, number] | null }
+/** kind 'phone': `ref` is a capture id (or `<id>#<n>` for a video frame); its picture is `captureImage(ref)`. */
+export type Media = { kind: 'pano' | 'ortho' | 'drone' | 'phone'; ref: string; box?: [number, number, number, number] | null }
 export type Finding = { id: string; title: string; status: Status; detail?: string; anchor: Anchor | null; source: Source; media?: Media[] }
 export type Assumption = { id: string; label: string; value: number | string | boolean; unit?: string; editable: boolean; min?: number; max?: number; step?: number }
 export type Action = { id: string; label: string; tool?: string; inputs?: Record<string, unknown> }
