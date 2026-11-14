@@ -88,7 +88,8 @@ def test_plain_names_pass():
 
 # --- Range ---
 @pytest.mark.parametrize("header,want", [(None, None), ("bytes=0-99", (0, 99)), ("bytes=100-", (100, 999)), ("bytes=-50", (950, 999)),
-                                         ("bytes=900-5000", (900, 999)), ("bytes=0-1,5-6", None), ("items=0-5", None), ("bytes=-", None)])
+                                         ("bytes=900-5000", (900, 999)), ("bytes=0-1,5-6", None), ("items=0-5", None), ("bytes=-", None),
+                                         ("bytes=-5000", (0, 999))])  # a suffix longer than the file is the whole file
 def test_byte_range_parsing(header, want):
     assert api._byte_range(header, 1000) == want
 

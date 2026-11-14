@@ -82,3 +82,29 @@ def test_a_slow_tool_run_answers_early_and_finishes_in_the_background(tmp_path, 
     quick = c.post(f"/api/tools/room_census/run?workspace={wid}&wait=5", json={"scan": "t1"}).json()
     assert quick["verdict"] and "status" not in quick  # a run that finishes inside the wait answers as it always did
 
+
+
+def test_a_failed_turn_never_shows_a_database_address(tmp_path, monkeypatch):
+    from pymongo.errors import ServerSelectionTimeoutError
+
+    from threshold.api import agent as api
+    monkeypatch.setattr(workspace, "STORE", tmp_path)
+
+    def boom(*a, **k):
+        raise ServerSelectionTimeoutError("cluster0-shard-00-00.abcde.mongodb.net:27017: timed out")
+    monkeypatch.setattr(api, "turn", boom)
+    events = TestClient(app).post("/api/agent/turn", json={"text": "x"}).text
+    assert "event: error" in events and "ServerSelectionTimeoutError" in events and "mongodb.net" not in events
+
+
+def test_a_rejected_op_in_a_list_says_how_many_were_applied(tmp_path, monkeypatch):
+    monkeypatch.setattr(workspace, "STORE", tmp_path)
+    c = TestClient(app)
+    wid = c.post("/api/workspace").json()["doc"]["id"]
+    r = c.post(f"/api/workspace/{wid}/ops", json=[{"op": "tool.enable", "tool": "door_widths"}, {"op": "nonsense"}])
+    assert r.status_code == 422 and "the 1 before it were applied" in r.json()["detail"]
+
+
+def test_equirect_refuses_a_view_that_walks_out_of_the_cache():
+    c = TestClient(app)
+    assert c.get("/api/scan/AAAAAAAAAAA/pano/p1/equirect.jpg", params={"view": "../../../../tmp"}).status_code == 404
