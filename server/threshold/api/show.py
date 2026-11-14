@@ -2,8 +2,6 @@
 workstream. The numbers are the flood and smoke tools' own; see world/storm.py and world/smoke.py."""
 from __future__ import annotations
 
-import functools
-
 from fastapi import APIRouter, HTTPException
 
 from ..tools import ToolError
@@ -20,14 +18,26 @@ def _plan(sid: str) -> dict:
         raise HTTPException(404, f"No scan {sid}: {e}") from None
 
 
-@functools.lru_cache(maxsize=32)
+_kept: dict[tuple[str, str], dict] = {}
+
+
+def _keep(kind: str, sid: str, make) -> dict:
+    """A timeline made once per scan per server run. One that could not be made is asked for again next time: the
+    reason may be a gauge service that was down for a minute."""
+    if (kind, sid) not in _kept:
+        out = make()
+        if not out.get("available"):
+            return out
+        _kept[kind, sid] = out
+    return _kept[kind, sid]
+
+
 def _storm(sid: str) -> dict:
-    return storm.timeline(_plan(sid))
+    return _keep("storm", sid, lambda: storm.timeline(_plan(sid)))
 
 
-@functools.lru_cache(maxsize=32)
 def _belongings(sid: str) -> dict:
-    return storm.belongings(_plan(sid))
+    return _keep("belongings", sid, lambda: storm.belongings(_plan(sid), _storm(sid)))
 
 
 @router.get("/{sid}/storm")

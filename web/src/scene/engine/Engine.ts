@@ -133,7 +133,7 @@ export class Engine {
     this.interior.onChange = layerChanged
     this.shows = new Shows({
       api: opts.api, sid: plan.sid, model: this.model, tokens: this.tokens, rig: this.rig, doll: this.doll, view: () => this.view,
-      setView: (patch) => this.opts.onViewChange({ ...this.view, ...patch }), emit: (st) => this.opts.onShow?.(st), relabel: () => this.syncLabels(),
+      setView: (patch) => this.opts.onViewChange({ ...this.view, ...patch }), emit: (st) => this.opts.onShow?.(st), relabel: () => this.setOverlays(this.rawOverlays),
       invalidate: this.invalidate, home: () => this.dollPose(), aerial: () => this.aerial,
     }, () => this.setOverlays(this.rawOverlays))
     this.scene.add(this.world.group, this.pano.group, this.doll.group, this.scan.group, this.overlays3d.group, this.shows.group, this.splat.group, this.interior.group)

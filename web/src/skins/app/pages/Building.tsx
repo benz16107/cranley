@@ -313,18 +313,18 @@ export function Building({ sid }: { sid: string }) {
     }
     // while something plays, only its own drawing is on the building (a tour's path); the person's choice comes back after
     setPick(kind && spec?.kind !== kind ? (kind === 'tour' && drawn.includes('tour') ? ['tour'] : []) : null)
-    v.setView((x) => {
-      const back = held.current ?? {}; held.current = null // the view the person had before the show set its own
-      if (!kind || x.show?.kind === kind) return { ...x, ...back, show: null }
-      const placed = (v.plan as { geo?: { lat?: number | null } | null } | null)?.geo?.lat != null, photo = bake.colour === 'ready'
-      held.current = { cut: x.cut, env: x.env, pose: x.pose, surface: x.surface, frame: x.frame }
-      // each show in the view it reads best in: the flood on its site; the fire in the house alone with whole walls,
-      // seen from low enough to look under the smoke
-      const beside = { top: -20, right: 20, bottom: -20, left: 150 } // the show's own panel stands at the left of the picture: the building keeps clear of it
-      const look: Partial<SceneView> = kind === 'flood' ? { env: placed ? 'aerial' : x.env, frame: beside } : kind === 'fire' ? { env: 'studio', cut: photo ? null : x.cut, pose: { pitch: 62 }, frame: beside } : {}
-      return { ...x, ...back, mode: 'dollhouse', surface: photo ? 'scan' : x.surface, ...look, show: kind === 'tour' ? { kind, playing: true, stops } : { kind, playing: true } }
-    })
+    const x: SceneView = { ...v.view, ...held.current } // the view the person had before a show set its own
+    held.current = null
+    if (!kind || spec?.kind === kind) { v.setView({ ...x, show: null }); return }
+    const placed = (v.plan as { geo?: { lat?: number | null } | null } | null)?.geo?.lat != null, photo = bake.colour === 'ready'
+    held.current = { cut: x.cut, env: x.env, pose: x.pose, surface: x.surface, frame: x.frame }
+    // each show in the view it reads best in: the flood on its site; the fire in the house alone with whole walls,
+    // seen from low enough to look under the smoke
+    const beside = { top: -20, right: 20, bottom: -20, left: 150 } // the show's own panel stands at the left of the picture: the building keeps clear of it
+    const look: Partial<SceneView> = kind === 'flood' ? { env: placed ? 'aerial' : x.env, frame: beside } : kind === 'fire' ? { env: 'studio', cut: photo ? null : x.cut, pose: { pitch: 62 }, frame: beside } : {}
+    v.setView({ ...x, mode: 'dollhouse', surface: photo ? 'scan' : x.surface, ...look, show: kind === 'tour' ? { kind, playing: true, stops } : { kind, playing: true } })
   }
+  useEffect(() => { held.current = null; setShow(null) }, [sid]) // another scan starts with nothing playing and nothing to put back
   const setSpec = (patch: Partial<ShowSpec>) => v.setView((x) => (x.show ? { ...x, show: { ...x.show, ...patch } } : x))
   const seek = (step: number) => v.setView((x) => (x.show ? { ...x, show: { ...x.show, seek: { n: (x.show.seek?.n ?? 0) + 1, step } } } : x))
   const onShow = (st: ShowState | null) => {

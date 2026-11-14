@@ -51,7 +51,7 @@ export interface ShowCtx {
   /** Change the view as a person would (mode, floor, cut, focus): it goes through the look, so its controls follow. */
   setView: (patch: Partial<View>) => void
   emit: (s: ShowState) => void
-  /** The players' labels changed: lay them out again. */
+  /** The player's labels, or whether it draws the water, changed: lay the overlays and labels out again. */
   relabel: () => void
   invalidate: () => void
   /** The building's whole-view pose, for a tour's opening and closing shots. */

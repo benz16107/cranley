@@ -55,7 +55,8 @@ const FRAG = /* glsl */ `
 export class FloodShow implements Player {
   group = new THREE.Group()
   labels: LabelSpec[] = []
-  ownsWater = true
+  /** A storm that cannot play here leaves a tool's own water level on the building. */
+  get ownsWater() { return this.status !== 'missing' }
   private storm: Storm | null = null
   private things: Belongings | null = null
   private list: 'loading' | 'ready' | 'none' = 'loading'
@@ -89,11 +90,11 @@ export class FloodShow implements Player {
     try {
       const s = await fetchJson<Storm>(`${api}/api/show/${sid}/storm`)
       if (this.gone) return
-      if (!s.available) { this.status = 'missing'; this.reason = s.reason ?? 'No storm record for this scan.'; this.report(); return }
+      if (!s.available) { this.status = 'missing'; this.reason = s.reason ?? 'No storm record for this scan.'; this.report(); this.ctx.relabel(); return }
       this.storm = s; this.pos = s.window[0]
       this.textures(s); this.roomChips(s)
       this.status = 'ready'; this.report(); this.ctx.relabel()
-    } catch { if (!this.gone) { this.status = 'missing'; this.reason = 'The storm record could not be loaded.'; this.report() } return }
+    } catch { if (!this.gone) { this.status = 'missing'; this.reason = 'The storm record could not be loaded.'; this.report(); this.ctx.relabel() } return }
     try { // slow the first time for a scan: a vision model reads the rooms. The water plays without it.
       const t = await fetchJson<Belongings>(`${api}/api/show/${sid}/storm/belongings`)
       if (this.gone) return

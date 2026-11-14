@@ -21,7 +21,7 @@ from .. import (
     field,
     tool,
 )
-from ..registry import REGISTRY, load, run_tool
+from ..registry import REGISTRY, ToolContext, load
 from ..types import Anchor, Media, RouteOverlay, Status
 
 ANCHOR = TypeAdapter(Anchor)
@@ -97,9 +97,9 @@ def gather(ctx, sid: str, question: str | None, min_width_m: float) -> list[Evid
         for name, f in t.inputs.model_fields.items():
             if (f.json_schema_extra or {}).get("x-pref") == "access.door_width_m":
                 given[name] = min_width_m
-        try:
-            r = run_tool(tid, given)
-        except ToolError as e:
+        try:  # the handler itself, with this run's plans: a tour's reading of a tool is not a new result to record
+            r = t.handler(ToolContext(plans=ctx.plans, sites=ctx.sites), t.inputs.model_validate(given))
+        except (ToolError, ValueError) as e:
             ctx.step(f"{t.manifest.title} gave nothing: {str(e)[:120]}")
             continue
         ctx.step(f"{t.manifest.title}: {len(r.findings)} findings")

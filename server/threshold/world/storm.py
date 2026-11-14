@@ -157,7 +157,11 @@ def timeline(plan: dict) -> dict:
     if flood["scenario_fallback"]:
         return {"sid": plan["sid"], "available": False, "reason": flood["scenario_fallback"]}
     site = flood["site"] or {}
-    g = hydrograph(site["lat"], site["lon"])
+    try:
+        g = hydrograph(site["lat"], site["lon"])
+    except (httpx.HTTPError, ValueError, KeyError) as e:
+        return {"sid": plan["sid"], "available": False,
+                "reason": f"The USGS gauge record could not be read ({type(e).__name__}). Try again in a minute."}
     if g is None:
         return {"sid": plan["sid"], "available": False,
                 "reason": "No USGS stream gauge within 15 km kept a whole stage record through Harvey."}
@@ -213,12 +217,12 @@ def timeline(plan: dict) -> dict:
     }
 
 
-def belongings(plan: dict) -> dict:
+def belongings(plan: dict, tl: dict | None = None) -> dict:
     """The valuables tool's inventory, with the water level (scan z) at which each item gets wet, and the loss range
     of what is under water at every step of the storm. Slow the first time: a vision model reads the rooms."""
     from ..tools.valuables_height import WICK_M, inventory
     flood = _flood(plan)
-    tl = timeline(plan)
+    tl = tl or timeline(plan)
     if not tl["available"]:
         return {"sid": plan["sid"], "available": False, "reason": tl["reason"]}
     inv = inventory(plan, flood, 8, lambda _t: None)
