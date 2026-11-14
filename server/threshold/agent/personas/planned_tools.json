@@ -70,5 +70,13 @@
   "room_labeller": {
     "title": "Room labeller",
     "summary": "Labels unlabelled rooms from panoramas and the corrections you have made."
+  },
+  "kids_fit": {
+    "title": "Kids fit",
+    "summary": "Whether a home suits young children: stairs, the pool path, window falls, a yard seen from the kitchen, playgrounds and schools nearby."
+  },
+  "home_search": {
+    "title": "Home search by pets, kids and places nearby",
+    "summary": "Find homes across a city by pet policy, fenced yard, pool, and distance to playgrounds, parks and dog parks."
   }
 }

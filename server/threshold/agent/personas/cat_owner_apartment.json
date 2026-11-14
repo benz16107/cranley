@@ -1,0 +1,26 @@
+{
+  "id": "cat_owner_apartment",
+  "title": "Cat owner in an apartment",
+  "who": "Rents an apartment with an indoor cat: the community's pet policy and fees, windows and a balcony a cat could fall from, a litter box spot away from the kitchen, and a vet nearby.",
+  "tools": [
+    "pet_fit",
+    "nearby",
+    "home_search",
+    "amenity_census"
+  ],
+  "thresholds": {
+    "pets.profile": [
+      {
+        "kind": "cat",
+        "outdoor": false
+      }
+    ],
+    "nearby.profile": "pets",
+    "search.kind": "apartment_unit",
+    "pets.cat": "indoor"
+  },
+  "layout": {
+    "view": "plan",
+    "lead_tool": "pet_fit"
+  }
+}

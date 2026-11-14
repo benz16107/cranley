@@ -1,0 +1,24 @@
+{
+  "id": "teen_soccer_family",
+  "title": "Family with a teenager who plays soccer",
+  "who": "Has a teenager who plays soccer: fields and a high school within a walk or a bike ride, a park nearby, and safe streets to get there.",
+  "tools": [
+    "nearby",
+    "kids_fit",
+    "home_search"
+  ],
+  "thresholds": {
+    "nearby.mode": "cycle",
+    "kids.youngest_age": 14,
+    "nearby.categories": [
+      "soccer",
+      "school_high",
+      "park",
+      "basketball"
+    ]
+  },
+  "layout": {
+    "view": "map",
+    "lead_tool": "nearby"
+  }
+}

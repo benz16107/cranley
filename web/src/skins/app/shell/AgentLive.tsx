@@ -6,6 +6,13 @@ import { Icon, RunState, ToolKey } from '../design/ui.tsx'
 /** A slow or expensive step the agent paused before (deepagents human-in-the-loop). Its id starts `approve:`. */
 export const isApproval = (q: Question) => q.id.startsWith('approve:')
 
+/** Answer every open approval the same way, then let the paused turn carry on: one press where the agent asked
+    several times for the same kind of step. */
+export function ApproveAll({ open }: { open: Question[] }) {
+  const all = (which: 0 | 1) => { for (const q of open) userOp({ op: 'question.answer', id: q.id, answer: (q.options ?? ['Run it', 'Skip it'])[which] }); void turn({}) }
+  return <div className="row"><button type="button" className="btn solid sm" onClick={() => all(0)}>Run all {open.length}</button><button type="button" className="btn sm" onClick={() => all(1)}>Skip all</button></div>
+}
+
 /** Run it, skip it, or stop asking about this tool here. The answer is a workspace op, so every open copy of the
     workspace sees it; then the paused turn carries on from where it stopped. */
 export function ApprovalCard({ q }: { q: Question }) {
