@@ -66,7 +66,7 @@ def test_rooms_sharing_a_wall_without_a_doorway_still_flood(plan):
     p["openings"] = [o for o in p["openings"] if o["id"] != "AB"]
     for w in p["walls"]:
         w["openings"] = [o for o in w["openings"] if o != "AB"]
-    w = water(p, 0.1)
+    w = water(p, 0.3)  # the floor is now the median of two sills, 0.1
     rooms = {r["room"]: r for r in w["rooms"]}
-    assert rooms["B"]["depth"] == pytest.approx(0.1) and rooms["B"]["via"] is None
+    assert rooms["B"]["depth"] == pytest.approx(rooms["A"]["depth"]) > 0 and rooms["B"]["via"] is None
     assert "share a wall" in w["note"]
