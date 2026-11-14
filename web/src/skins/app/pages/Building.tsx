@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Tabs } from '@base-ui/react/tabs'
 import {
   Scene, SceneBoundary, fetchRecord, focusFinding, panoFace, runToolHere, useBuildingView, useBuildings, useWorkspace,
@@ -227,7 +227,8 @@ export function Building({ sid }: { sid: string }) {
   const on = pick ?? (inView && drawn.includes(inView.tool) ? [inView.tool] : drawn)
   const v = useBuildingView(sid, on.length === drawn.length ? undefined : { tools: on })
   const b = useBuildings((s) => s.all.find((x) => x.scans.some((y) => y.sid === sid)))
-  const [tab, setTab] = useState(() => (doc.panels.some((p) => p.sid === sid) ? 'results' : 'overview'))
+  const [picked, setTab] = useState<string | null>(null)
+  const tab = picked ?? (panels.length ? 'results' : 'overview') // until the person picks: results when there are any
 
   const findings = useMemo(() => {
     const mine = new Set(runs.map((r) => r.id))
@@ -239,12 +240,17 @@ export function Building({ sid }: { sid: string }) {
   const count = panels.length, last = panels.at(-1)
   const mine = !!last && !doc.runs.find((r) => r.id === last.run)?.step
   useEffect(() => { setChosen(undefined) }, [count, doc.camera?.finding]) // a new result, or a finding focused: that is the one in view
+  const arrived = `${count}:${last?.run ?? ''}`, seen = useRef(arrived), born = useRef(performance.now())
   useEffect(() => {
-    if (!count) return
+    if (arrived === seen.current) return
+    seen.current = arrived
+    // shortcut: results that show up in the first moments are the saved document loading, not a new run; a link to a
+    // finding must keep its close-up. Upgrade to a "this run just finished" signal from core if one appears.
+    if (!count || performance.now() - born.current < 2500) return
     setTab('results')
     // a tool the person ran: the server's camera closes in on its worst finding, so frame the whole building again
     if (mine) { const t = setTimeout(v.stepBack, 900); return () => clearTimeout(t) }
-  }, [count]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [arrived]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
