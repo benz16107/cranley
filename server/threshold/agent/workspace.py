@@ -5,7 +5,6 @@ The agent and the user change a workspace only through `Session.submit(op)`. The
 """
 from __future__ import annotations
 
-import fcntl
 import json
 import re
 import threading
@@ -679,12 +678,29 @@ def _no_plans(sid: str) -> dict:
     raise LookupError(sid)
 
 
+TRIES = 8  # attempts when another writer keeps appending first
+
+
+def pick_store(root=None, store=None):
+    """The store a session uses: the one given; files under `root`; else MongoDB when THRESHOLD_STORE=mongo; else
+    files under STORE."""
+    from ..store import FileStore, mongo, use_mongo
+    if store is not None:
+        return store
+    if root is None and use_mongo():
+        return mongo()
+    return FileStore(root or STORE)
+
+
 class Session:
-    """One workspace: its log and the document it folds to. Thread-safe; subagents submit in parallel."""
+    """One workspace: its log and the document it folds to. Thread-safe; subagents submit in parallel.
+    Writes are optimistic: when another writer (a second server process, another device) appended first, the store
+    raises Conflict, the session pulls the newer entries, checks the op again against them and retries."""
 
     def __init__(self, id: str, profile: str = "default", created: float | None = None,
-                 log: list[LogEntry] | None = None, root=None):
-        self.root = root or STORE
+                 log: list[LogEntry] | None = None, root=None, store=None):
+        self.root = root or STORE  # case files go here whichever store holds the log
+        self.store = pick_store(root, store)
         self.base = Workspace(id=id, profile=profile, created=created or time.time())
         self.log = log or []
         self.doc = replay(self.base, self.log)
@@ -700,13 +716,25 @@ class Session:
     def path(self):
         return self.root / f"{self.base.id}.json"
 
-    def save(self) -> None:
-        self.root.mkdir(parents=True, exist_ok=True)
-        tmp = self.path.with_suffix(".tmp")
-        tmp.write_text(json.dumps({"id": self.base.id, "profile": self.base.profile, "created": self.base.created,
-                                   "log": [e.model_dump(mode="json", by_alias=True) for e in self.log]}))
-        tmp.replace(self.path)
+    def meta(self) -> dict:
+        return {"id": self.base.id, "profile": self.base.profile, "created": self.base.created}
+
+    def save(self, new_from: int = 0) -> None:
+        """Write the entries from `new_from` on (the file store rewrites the whole log), then the profile."""
+        self.store.save(self.meta(), self.log, new_from, self.doc)
         self.save_profile()
+
+    def sync(self) -> int:
+        """Pull entries other writers appended; listeners hear them. Returns how many."""
+        with self.lock:
+            newer = [LogEntry.model_validate(e) for e in self.store.since(self.base.id, len(self.log))]
+            if newer:
+                self.log += newer
+                self.doc = replay(self.base, self.log)
+                for e in newer:
+                    for fn in list(self.listeners):
+                        fn(e)
+            return len(newer)
 
     def touched(self) -> dict[str, float]:
         """Preference key -> when this workspace last changed it (a pref.set, or an undo that removed one)."""
@@ -725,38 +753,28 @@ class Session:
         """Merge this workspace's preferences into its profile key by key: a key this workspace changed is written
         unless another workspace on the profile changed it later. A removed key stays as a dated deletion, so an
         older copy elsewhere cannot bring it back."""
-        prof = self.root / "profiles" / f"{self.base.profile}.json"
-        prof.parent.mkdir(exist_ok=True)
-        with open(prof.with_suffix(".lock"), "w") as lock:
-            fcntl.flock(lock, fcntl.LOCK_EX)  # other processes and threads on the same profile wait here
-            data = json.loads(prof.read_text()) if prof.exists() else {}
-            for key, at in self.touched().items():
-                if (data.get(key) or {}).get("at", 0) > at:
-                    continue
-                p = self.doc.prefs.get(key)
-                data[key] = {**p.model_dump(mode="json"), "at": at} if p else {"key": key, "value": None, "at": at}
-            tmp = prof.with_suffix(".tmp")
-            tmp.write_text(json.dumps(data))
-            tmp.replace(prof)
+        changes = {}
+        for key, at in self.touched().items():
+            p = self.doc.prefs.get(key)
+            changes[key] = (at, p.model_dump(mode="json") if p else None)
+        if changes:
+            self.store.merge_profile(self.base.profile, changes)
 
     @classmethod
-    def load(cls, id: str, root=None) -> Session:
-        f = (root or STORE) / f"{id}.json"
-        if not f.exists():
-            raise LookupError(f"no workspace {id}")
-        d = json.loads(f.read_text())
-        return cls(d["id"], d["profile"], d["created"], [LogEntry.model_validate(e) for e in d["log"]], root)
+    def load(cls, id: str, root=None, store=None) -> Session:
+        st = pick_store(root, store)
+        d = st.load(id)
+        return cls(d["id"], d["profile"], d["created"], [LogEntry.model_validate(e) for e in d["log"]], root, st)
 
     @classmethod
-    def create(cls, profile: str = "default", root=None) -> Session:
+    def create(cls, profile: str = "default", root=None, store=None) -> Session:
         """A new workspace that starts with what this profile learned in earlier sessions."""
-        s = cls(new_id("ws"), profile, root=root)
-        prof = s.root / "profiles" / f"{profile}.json"
-        for p in (json.loads(prof.read_text()).values() if prof.exists() else []):
+        s = cls(new_id("ws"), profile, root=root, store=store)
+        for p in s.store.profile(profile):
             if p.get("value") is not None:  # a dated deletion
                 s.submit(PrefSet(by="system", key=p["key"], value=p["value"], because=p.get("because"),
                                  reason=p.get("reason") or "From an earlier session"))
-        s.save()
+        s.save(len(s.log))  # each submit above saved its entry; this writes the workspace itself
         return s
 
     # changes
@@ -765,17 +783,38 @@ class Session:
         self.log.append(e)
         if op is not None:
             self.doc = apply(self.doc, op, e.at)
-        for fn in self.listeners:
-            fn(e)
         return e
+
+    def _commit(self, build: Callable[[], Any]):
+        """Run `build` (which appends entries), write them, then tell listeners. On a conflict, take the entries
+        back, pull the newer ones and build again; on any other failure take them back and raise."""
+        from ..store import Conflict
+        for _ in range(TRIES):
+            mark, doc = len(self.log), self.doc
+            try:
+                out = build()
+                self.save(mark)
+            except Exception as err:
+                del self.log[mark:]
+                self.doc = doc
+                if not isinstance(err, Conflict):
+                    raise
+                self.sync()
+                continue
+            for e in self.log[mark:]:
+                for fn in list(self.listeners):
+                    fn(e)
+            return out
+        raise Conflict(f"workspace {self.base.id} kept changing; try again")
 
     def submit(self, op: dict | BaseModel, by: By | None = None, cause: int | None = None) -> list[LogEntry]:
         """Validate and apply one op, then learn from it if the user made it. Returns the entries appended."""
         from . import prefs  # prefs reads this module's types
-        with self.lock:
-            raw = op.model_dump(by_alias=True) if isinstance(op, BaseModel) else dict(op)
-            if by:
-                raw["by"] = by
+        raw = op.model_dump(by_alias=True) if isinstance(op, BaseModel) else dict(op)
+        if by:
+            raw["by"] = by
+
+        def build() -> list[LogEntry]:
             if raw.get("by", "agent") == "agent":
                 parsed, _ = clean(self.doc, raw, self.plans or _no_plans,
                                   self.tools if self.tools is not None else {t.id for t in self.doc.tools})
@@ -789,19 +828,24 @@ class Session:
             if parsed.by == "user":
                 for learned in prefs.derive(before, parsed, self.plans, self.siblings):
                     entries.append(self._append(learned, cause=entries[0].seq))
-            self.save()
             return entries
+
+        with self.lock:
+            return self._commit(build)
 
     def undo(self, seq: int | None = None) -> LogEntry:
         """Undo one entry (default: the user's latest op not yet undone) and what was learned from it."""
-        with self.lock:
+        def build() -> LogEntry:
             undone = {e.undo for e in self.log if e.undo is not None}
-            if seq is None:
-                seq = next((e.seq for e in reversed(self.log)
-                            if e.op is not None and e.op.by == "user" and e.seq not in undone), None)
-            if seq is None or not any(e.seq == seq and e.op is not None for e in self.log) or seq in undone:
+            target = seq
+            if target is None:
+                target = next((e.seq for e in reversed(self.log)
+                               if e.op is not None and e.op.by == "user" and e.seq not in undone), None)
+            if target is None or not any(e.seq == target and e.op is not None for e in self.log) or target in undone:
                 raise LookupError("nothing to undo")
-            e = self._append(None, undo=seq)
+            e = self._append(None, undo=target)
             self.doc = replay(self.base, self.log)
-            self.save()
             return e
+
+        with self.lock:
+            return self._commit(build)
