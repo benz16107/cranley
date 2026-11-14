@@ -25,7 +25,6 @@ GEO_LOW = Source(layer="matterport", method="geometry", confidence="low",
                  note="Part of this rests on an assumption named in the result (a door the scan did not measure)")
 SPEC = Source(layer="model", method="lookup", confidence="medium",
               note="Maker's published size for a recent model year, base trim; edit it for yours")
-NAMES = {"fits": "fits", "tight": "fits, tight", None: "does not fit"}
 WORD = {1: "One", 2: "Two", 3: "Three", 4: "Four", 5: "Five"}
 Use = Literal[tuple(THINGS)]
 
@@ -247,7 +246,6 @@ def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base
     # parking
     lv_need = d.door if not d.towed else 0.6
     if n:
-        lab = NAMES[a["which"]]
         for i, ((u, v), c) in enumerate(zip(a["cars"], a["clear"] or [{}] * n)):
             k = f"car{i + 1}"
             sides = [x for x in (c.get("left"), c.get("right")) if x is not None]

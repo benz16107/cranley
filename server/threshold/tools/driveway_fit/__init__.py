@@ -11,7 +11,7 @@ import statistics
 from typing import Literal
 
 from shapely import wkt as shapely_wkt
-from shapely.geometry import LineString, Point
+from shapely.geometry import Point
 from shapely.ops import unary_union
 
 from ...aerial import detect as aerial_detect
