@@ -267,13 +267,13 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                 + f". {len(rows)} scanned units in all.")
     else:
         text = (f"{n_match} houses in {inputs.city} match." if n_match else f"No scanned houses in {inputs.city} match.")
-        text += f" {len(rows)} scanned houses; " + ", ".join(f"{could[k]} could answer the {k} criterion" for k in asked) + "."
+        text += f" Searched {len(rows)} house scans; " + ", ".join(f"{could[k]} could answer the {k} criterion" for k in asked) + "."
     if inputs.min_flat_pct is not None or (inputs.min_yard_m2 is not None and not could["yard"]):
         text += " Yards are measured only where pet_fit has run; run it on a home to add it."
     if inputs.near:
         text += " Walks are straight-line estimates; open a home's Nearby for the street route."
     metrics = [Metric(id="matches", label=f"Matching {unit}", value=n_match, unit="", source=KIT),
-               Metric(id="searched", label=f"Scanned {'units' if apt else 'houses'}", value=len(rows), unit="", source=KIT),
+               Metric(id="searched", label="Scans searched", value=len(rows), unit="", source=KIT),
                Metric(id="answerable", label="Could answer every criterion", value=pool_n, unit="", source=KIT)] + cells
     return ToolResult(scope=ScansScope(sids=[h[0]["sid"] for h in top]),
                       verdict=Verdict(status="pass" if n_match else "warn", text=text), metrics=metrics, checks=checks,
