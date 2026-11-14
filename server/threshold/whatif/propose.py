@@ -101,7 +101,7 @@ def turn_fixes(plan: dict, room_ids: list[str]) -> list[dict]:
                 if other_before["available"] and other_before["diameter"] >= TURN_M + SCAN_TOLERANCE_M \
                         and o["diameter"] < TURN_M + SCAN_TOLERANCE_M and rooms[other].get("label") not in ABSORB:
                     break  # the neighbour would lose its own turning circle
-                out.append({"edit": e, "target": rid,
+                out.append({"edit": e, "target": f"turn:{rid}",
                             "why": f"turning circle in the {_name(rooms, rid)}, taking {s * 100:.0f} cm from the "
                                    f"{_name(rooms, other)}"})
                 break
@@ -113,7 +113,7 @@ def turn_fixes(plan: dict, room_ids: list[str]) -> list[dict]:
                     continue
                 keep = next(r["id"] for r in after["rooms"] if r["id"] in w["rooms"])
                 if turning_space(after, keep, TURN_M)["diameter"] >= TURN_M + SCAN_TOLERANCE_M:
-                    out.append({"edit": e, "target": rid,
+                    out.append({"edit": e, "target": f"turn:{rid}",
                                 "why": f"turning circle in the {_name(rooms, rid)}, taking in the {_name(rooms, other)}"})
     return out
 
@@ -130,14 +130,14 @@ def propose(plan: dict, goal: str) -> list[dict]:
         bath_doors = [d["opening"] for d in g.get("links", []) + g.get("entrances", [])
                       if d.get("opening") and set(d.get("rooms") or [d.get("room")]) & set(baths)]
         out += door_fixes(plan, narrow + bath_doors, "door on the route from the entrance")
-        out += [{"edit": AddRamp(opening=o), "target": o, "why": "step at a door on the route"}
+        out += [{"edit": AddRamp(opening=o), "target": f"ramp:{o}", "why": "step at a door on the route"}
                 for o in dict.fromkeys(steps) if _ok(plan, AddRamp(opening=o))]
     if goal in ("bathroom_turn", "wheelchair_ready"):
         out += turn_fixes(plan, baths)
     if goal == "wheelchair_ready":
         living = [r["id"] for r in plan["rooms"] if r.get("label") in ("Kitchen", "Bedroom", "Living Room")]
         out += turn_fixes(plan, living)
-        out += [{"edit": GrabBars(room=b), "target": b, "why": "grab bars at the toilet and bathing (FHA Requirement 6)"}
+        out += [{"edit": GrabBars(room=b), "target": f"bars:{b}", "why": "grab bars at the toilet and bathing (FHA Requirement 6)"}
                 for b in baths if _ok(plan, GrabBars(room=b))]
     if goal == "door_widths":
         g = graph(plan)

@@ -58,7 +58,7 @@ def flips(before: dict[str, dict], after: dict[str, dict]) -> list[dict]:
             change = ("fixed" if y["status"] == "pass" else "better") if sy < sx else \
                      ("broke" if x["status"] == "pass" else "worse") if sy > sx else "measure"
         else:
-            change = "gone" if x else "new"
+            change = "gone" if x else "broke" if y["status"] == "fail" else "new"
         c = y or x
         out.append({"key": k, "tool": c["tool"], "check": c["id"], "rule": c["rule"], "unit": c["unit"],
                     "threshold": c.get("threshold"), "change": change,

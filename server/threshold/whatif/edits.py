@@ -111,6 +111,10 @@ def apply(plan: dict, edits: list) -> tuple[dict, list[dict]]:
 
 # ---- lookups ----
 
+def _cm(x: float) -> str:
+    return f"{x * 100:.1f}".rstrip("0").rstrip(".") + " cm"
+
+
 def _by(plan: dict, key: str, id_: str, what: str) -> dict:
     hit = next((x for x in plan[key] if x["id"] == id_), None)
     if hit is None:
@@ -182,6 +186,17 @@ def _fits(wall: dict, center_t: float, width: float, others: list[dict]) -> str 
     return None
 
 
+def _place(wall: dict, t0: float, width: float, others: list[dict]) -> float:
+    """Where along the wall (0..1) an opening this wide fits: its own place if it can, else the nearest place that
+    does, in 1 cm steps (the frame is rebuilt anyway)."""
+    L = wall["length"] or 1e-9
+    tries = sorted((t0 + k * 0.01 / L for k in range(-int(L * 100) - 1, int(L * 100) + 2)), key=lambda t: abs(t - t0))
+    t = next((t for t in tries if 0 <= t <= 1 and _fits(wall, t, width, others) is None), None)
+    if t is None:
+        raise EditError(_fits(wall, min(max(t0, 0.0), 1.0), width, others))
+    return t
+
+
 # ---- edits ----
 
 def _widen_door(plan: dict, e: WidenDoor) -> dict:
@@ -191,18 +206,13 @@ def _widen_door(plan: dict, e: WidenDoor) -> dict:
         raise EditError(f"the opening is already {old:.2f} m wide")
     wall = _by(plan, "walls", o["wall"], "wall")
     others = [x for x in plan["openings"] if x["wall"] == wall["id"] and x["id"] != o["id"]]
-    t0 = _t(wall, o["center"])
-    # keep the centre if it fits; else slide along the wall to the nearest place that does (the frame moves anyway)
-    L = wall["length"] or 1e-9
-    tries = sorted((t0 + k * 0.01 / L for k in range(-int(L * 100), int(L * 100) + 1)), key=lambda t: abs(t - t0))
-    t = next((t for t in tries if 0 <= t <= 1 and _fits(wall, t, e.width_m, others) is None), None)
-    if t is None:
-        raise EditError(_fits(wall, t0, e.width_m, others))
+    t0, L = _t(wall, o["center"]), wall["length"]
+    t = _place(wall, t0, e.width_m, others)
     o["center"], o["width"] = _at(wall, t), e.width_m
     return {"opening": o["id"], "wall": wall["id"], "rooms": o["rooms"], "width": [old, e.width_m],
             "shift_m": round(abs(t - t0) * L, 3), "wall_length": wall["length"],
             "text": f"Widen the door between {' and '.join(_room_name(plan, r) for r in o['rooms']) or 'rooms'} "
-                    f"from {old:.2f} m to {e.width_m:.2f} m"}
+                    f"from {_cm(old)} to {_cm(e.width_m)}"}
 
 
 def _connected(plan: dict, wall: dict) -> list[tuple[dict, str, str | None]]:
@@ -246,21 +256,27 @@ def _move_wall(plan: dict, e: MoveWall) -> dict:
         if cos > 0.26:
             raise EditError("a wall meeting this one is not at right angles to it, so the move would bend it")
     old_a, old_b = list(wall["a"]), list(wall["b"])
+    slid: list[str] = []
     for k in ("a", "b"):
         wall[k] = [wall[k][0] + nx * off, wall[k][1] + ny * off]
     for w, theirs, mine in links:
         w[theirs] = list(wall[mine]) if mine else [w[theirs][0] + nx * off, w[theirs][1] + ny * off]
         w["length"] = math.dist(w["a"], w["b"])
         for o in (x for x in plan["openings"] if x["wall"] == w["id"]):
-            if _fits(w, _t(w, o["center"]), o["width"] or 0, [x for x in plan["openings"]
-                                                             if x["wall"] == w["id"] and x is not o]):
-                raise EditError(f"the {o['type']} in a wall that meets this one would no longer fit")
+            try:
+                t = _place(w, _t(w, o["center"]), o["width"] or 0,
+                           [x for x in plan["openings"] if x["wall"] == w["id"] and x is not o])
+            except EditError:
+                raise EditError(f"the {o['type']} in a wall that meets this one would no longer fit") from None
+            if math.dist(_at(w, t), o["center"]) > 0.005:
+                slid.append(o["id"])
+            o["center"] = _at(w, t)
     for o in (x for x in plan["openings"] if x["wall"] == wall["id"]):
         o["center"] = [o["center"][0] + nx * off, o["center"][1] + ny * off]
     touched = set(rooms) | {r for w, _, _ in links for r in w["rooms"]}
     areas = _reshape(plan, touched)
     return {"wall": wall["id"], "rooms": rooms, "offset_m": round(abs(off), 3), "a": [old_a, wall["a"]],
-            "b": [old_b, wall["b"]], "length": wall["length"], "stretched": [w["id"] for w, _, _ in links],
+            "b": [old_b, wall["b"]], "length": wall["length"], "stretched": [w["id"] for w, _, _ in links], "slid_openings": slid,
             "areas": {k: [round(a, 2) if a else a, round(b, 2)] for k, (a, b) in areas.items()},
             "swept_m2": round(abs(off) * wall["length"], 2),
             "text": f"Move the wall between the {_room_name(plan, rooms[0])} and the {_room_name(plan, rooms[1])} "
@@ -294,7 +310,8 @@ def _remove_wall(plan: dict, e: RemoveWall) -> dict:
     old_keep, old_gone = keep.get("area") or 0, gone.get("area") or 0
     plan["rooms"] = [r for r in plan["rooms"] if r["id"] != gone_id]
     _reshape(plan, {keep_id})
-    keep["area"] = old_keep + old_gone  # the wall's own footprint is too small to matter at this precision
+    if old_keep and old_gone:  # Matterport's areas, summed: the wall's own footprint is too small to matter
+        keep["area"] = old_keep + old_gone
     length = sum(w["length"] for w in walls_before if w["id"] in shared)
     return {"wall": wall["id"], "walls": sorted(shared), "rooms": [keep_id, gone_id], "merged_into": keep_id,
             "removed_openings": dropped, "length": length,
