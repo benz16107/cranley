@@ -42,5 +42,7 @@
   {"id": "none-church-hall", "brief": "Our church needs a hall that seats 150 for Sunday services.", "persona": ["none"], "must": [["room_census", "office_fit"]], "cannot": true},
   {"id": "wheel-home-search", "brief": "I use a wheelchair and want to search every home you have for ones I could live in without renovating.", "persona": ["wheelchair_home_search"], "must": [["measure_search", "step_free_route"]]},
   {"id": "aging-parent", "brief": "My mother is moving in with us and I need to know if this house is safe for an older person to get around.", "persona": ["aging_in_place_planner"], "must": [["aging_in_place", "stairs_count"]]},
-  {"id": "robot-maker", "brief": "We design a wheeled home robot and want to know what share of real homes it can get around.", "persona": ["robot_maker"], "must": [["robot_fit"]]}
+  {"id": "robot-maker", "brief": "We design a wheeled home robot and want to know what share of real homes it can get around.", "persona": ["robot_maker"], "must": [["robot_fit"]]},
+  {"id": "amenity-audit", "brief": "I audit apartment communities and need to check what this one really offers against what its listing says.", "persona": ["amenity_auditor"], "must": [["amenity_census"]]},
+  {"id": "cleaning-bid", "brief": "I run a janitorial company and need to price cleaning this office from the scan.", "persona": ["cleaning_bidder"], "must": [["takeoff_bid"]]}
 ]

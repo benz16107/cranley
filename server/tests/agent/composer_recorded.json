@@ -137,6 +137,36 @@
    }
   ]
  },
+ "I audit apartment communities and need to check what this one really offers against what its listing says.": {
+  "cannot": [
+   "Checking claims that a scan cannot show, such as included utilities, pet policies, concierge hours or how often amenities are open, is not something these tools do."
+  ],
+  "persona": "amenity_auditor",
+  "stated": [],
+  "summary": "You audit apartment communities and need to check what this one really offers against what its listing says.",
+  "tools": [
+   {
+    "id": "amenity_census",
+    "reason": "You get the community's amenities found and counted in its scans, set beside what the listing claims."
+   },
+   {
+    "id": "unit_compare",
+    "reason": "You can line up the units side by side on measured area, rooms, storage, windows and doors to check them against the listed floor plans."
+   },
+   {
+    "id": "storage_space",
+    "reason": "You see how much closet and storage space each unit really has and spot bedrooms listed without a closet."
+   },
+   {
+    "id": "room_labeller",
+    "reason": "You get every shared space named from its panoramas, so you can confirm the clubhouse, gym or business centre is what the listing calls it."
+   },
+   {
+    "id": "property_coverage",
+    "reason": "You learn which floor plans and shared spaces have a scan, so you know which listing claims you can actually check."
+   }
+  ]
+ },
  "I dispatch 53-foot trailers to this warehouse; can they get in and dock?": {
   "cannot": [
    "Nothing here confirms dock height, dock levelers, or whether a dock is open and can be booked at a given time."
@@ -215,6 +245,26 @@
    {
     "id": "property_coverage",
     "reason": "This shows which units and shared spaces have been scanned so far, so you know whose homes are still undocumented."
+   }
+  ]
+ },
+ "I run a janitorial company and need to price cleaning this office from the scan.": {
+  "cannot": [],
+  "persona": "cleaning_bidder",
+  "stated": [],
+  "summary": "You run a janitorial company and need to price cleaning this office from its scan.",
+  "tools": [
+   {
+    "id": "takeoff_bid",
+    "reason": "This gives you cleanable floor area by finish, restroom fixtures and glass from the scan, priced with your own rates and hours per visit."
+   },
+   {
+    "id": "room_labeller",
+    "reason": "This names every room in the office so you can tell restrooms, kitchens, offices and open areas apart when scoping the work."
+   },
+   {
+    "id": "room_census",
+    "reason": "This shows which rooms the office has and how big each kind is, so you can check your bid covers every space."
    }
   ]
  },

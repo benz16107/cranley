@@ -52,7 +52,7 @@ def _describe(faces) -> str:
 
 def room_panos(plan: dict, room: dict) -> list[dict]:
     """Panoramas standing in a room, the one nearest the room's centre first. Matterport leaves `room` empty on
-    many panoramas in small commercial rooms (72 of 81 in the private offices of <scan-id>), so a panorama
+    many panoramas in small commercial rooms (72 of 81 in the private offices of one coworking floor), so a panorama
     with no room that stands inside the room's outline on the same floor counts too."""
     poly = room.get("polygon") or []
     outline = Polygon(poly) if len(poly) >= 3 else None

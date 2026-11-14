@@ -15,14 +15,8 @@ from ..registry import ToolContext, run_tool
 from . import store
 
 OUT = DATA / "shots" / "tools"
-EXAMPLES = [
-    ("room_labeller", {"scan": "<scan-id>"}),
-    ("office_fit", {"scan": "<scan-id>", "headcount": 28, "private_offices": 6, "meeting_rooms": 2, "meeting_seats": 8}),
-    ("amenity_census", {"property": <property-id>}),
-    ("unit_compare", {"property": <property-id>}),
-    ("takeoff_bid", {"scan": "<scan-id>", "trade": "cleaning"}),
-    ("storage_space", {"scan": "<scan-id>"}),
-]
+# [[tool id, inputs]]; the scans and properties are sponsor data, so the list lives in the data folder
+EXAMPLES = [tuple(e) for e in json.loads((DATA / "fixtures" / "office_review_examples.json").read_text())]
 STATUS = {"pass": (46, 139, 87), "warn": (230, 159, 0), "fail": (200, 40, 40), "unknown": (120, 120, 120)}
 
 

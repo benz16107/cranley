@@ -25,14 +25,8 @@ from ..registry import ToolContext
 from . import facts, label_scan
 
 OUT = DATA / "shots" / "tools" / "room_labeller"
-SET = {
-    "office suite": ["<scan-id>", "<scan-id>", "<scan-id>", "<scan-id>", "<scan-id>"],
-    "coworking floor": ["<scan-id>"],
-    "warehouse or flex": ["<scan-id>", "<scan-id>", "<scan-id>"],
-    "apartment amenity": ["<scan-id>", "<scan-id>", "<scan-id>", "<scan-id>", "<scan-id>", "<scan-id>",
-                          "<scan-id>", "<scan-id>", "<scan-id>", "<scan-id>", "<scan-id>", "<scan-id>",
-                          "<scan-id>", "<scan-id>", "<scan-id>", "<scan-id>", "<scan-id>", "<scan-id>"],
-}
+# {kind of space: [sid]}; which scans is sponsor data, so the list lives in the data folder, never in git
+SET: dict[str, list[str]] = json.loads((DATA / "fixtures" / "room_labeller_set.json").read_text())
 
 
 def label() -> None:
