@@ -54,8 +54,13 @@ def run(ctx, inputs: Inputs) -> ToolResult:
               for i, r in enumerate(res["rows"][:50])]
     sids = [r[cols.index("sid")] for r in res["rows"] if isinstance(r[cols.index("sid")], str)][:50] \
         if "sid" in cols else []
-    text = f"{inputs.question.rstrip('?')}: {res['row_count']} rows" + (" (first 200 shown)" if res["truncated"] else "") + "."
+    one = res["rows"][0][0] if len(res["rows"]) == 1 and len(cols) == 1 else None  # a single answer: a count, a median
+    n = res["row_count"]
+    text = (f"{inputs.question.rstrip('?')}: {one}." if one is not None else
+            f"{inputs.question.rstrip('?')}: {n} row{'' if n == 1 else 's'}" + (" (first 200 shown)" if res["truncated"] else "") + ".")
     return ToolResult(scope=ScansScope(sids=sids), verdict=Verdict(status="pass" if res["rows"] else "unknown", text=text),
-                      metrics=[Metric(id="rows", label="Rows", value=res["row_count"], unit="", source=SRC),
+                      metrics=[*([Metric(id="answer", label=cols[0], value=one, unit="", source=SRC)]
+                                 if isinstance(one, (int, float)) and not isinstance(one, bool) else []),
+                               Metric(id="rows", label="Rows", value=res["row_count"], unit="", source=SRC),
                                Metric(id="ms", label="Query time", value=res["ms"], unit="ms", source=SRC)],
                       checks=checks)
