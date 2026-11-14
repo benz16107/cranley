@@ -62,3 +62,10 @@ def test_search_route_needs_an_owner(client):
     assert client.get("/api/history/search?q=door").status_code == 422
     assert client.get("/api/history/shortlist?near=1,2").status_code == 422
     assert client.get("/api/history/shortlist?profile=p&near=500,2").status_code == 422
+
+
+def test_sensor_series_route_needs_mongo():
+    from fastapi.testclient import TestClient
+
+    from threshold.api.app import app
+    assert TestClient(app).get("/api/workspace/ws_x/sensors").status_code == 404  # tests run on the file store

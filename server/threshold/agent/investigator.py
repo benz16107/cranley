@@ -893,7 +893,7 @@ def resume_paused(session: Session, agent_model=None, budget: Budget | None = No
     """Carry on the turns that paused for approvals now answered (latest first), else None."""
     turns = list(dict.fromkeys((q.input.get("x-approval") or {}).get("turn") for q in reversed(session.doc.questions)
                                if q.answered and q.input.get("x-approval")))
-    for t in turns:
+    for t in turns[:3]:  # each check builds the agent; older paused turns are left alone
         inv = Investigation(session, t, budget)
         if not inv.paused(agent_model):
             continue
