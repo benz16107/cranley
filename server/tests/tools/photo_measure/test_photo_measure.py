@@ -110,3 +110,10 @@ def test_a_door_reference_needs_its_width(photo):
     with pytest.raises(ToolError, match="no capture"):
         run_tool("photo_measure", {"capture": "cap_missing", "reference": "card",
                                    "points": {"corners": card_at(0.4, 0.5), "a": px(0, 0.5), "b": px(0.8, 0.5)}}, ToolContext())
+
+
+def test_a_doorway_narrower_than_any_door_is_called_a_misread(photo):
+    sheet = {"corners": card_at(0.30, 0.40, 0.2794, 0.2159), "a": px(0.30, 0.52), "b": px(0.50, 0.52)}
+    r = run_tool("photo_measure", {"capture": photo, "reference": "letter", "points": sheet, "points_from": "manual",
+                                   "what": "the clear width of the doorway"}, ToolContext())
+    assert r.verdict.status == "unknown" and "narrower than any doorway" in r.verdict.text

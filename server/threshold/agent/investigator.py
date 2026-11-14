@@ -238,7 +238,11 @@ class Investigation:
                 "findings": [{"id": f.id, "status": f.status, "title": f.title} for f in
                              sorted(shown, key=lambda f: RANK[f.status])[:8]],
                 "more_findings": max(0, len(shown) - 8), "hidden_because_rejected": len(result.findings) - len(shown),
-                "inputs_from_preferences": used}
+                # the person's own answers and edits apart from the persona's defaults, so the model never calls
+                # an answer the person just gave a "saved setting"
+                "inputs_the_person_gave": [k for k, v in used.items() if v in self.s.doc.prefs or v in self.s.doc.brief.facts],
+                "inputs_from_persona_defaults": [k for k, v in used.items()
+                                                 if v not in self.s.doc.prefs and v not in self.s.doc.brief.facts]}
 
     def compare(self) -> None:
         """When several buildings ran the same tool, one RankedTable compares them."""
@@ -664,14 +668,17 @@ findings and camera in their workspace, not your words.
 5. With two or more candidates, call rank once with all of them, best first, and one plain reason each. Shortlist the
    ones that meet the need, each with a short note. Call focus on the one finding that matters most.
 6. Use compose_panel only when no tool's panel answers a question the person asked.
-7. Finish with at most three short sentences, plain text, no lists and no measurements: what you found and where the
-   person should look first. Stay inside the budget."""
+7. Finish with at most three short sentences, plain text, no lists and no numbers at all (no measurements, counts,
+   times or money; the panels show every number a tool measured, so never say a tool gave none): what you found and
+   where the person should look first. Say that something is missing or could not be checked only when a tool's summary says
+   so. Stay inside the budget."""
 
 BUILDING = """You investigate one building (one scan id) for a person. Run each ready tool that serves their need on
 this scan, once each. Leave out inputs you were not told; the person's preferences fill them. If a tool reports
 missing inputs, do not guess them; say so in your reply. Write a short case note with write_file to
 /notes/<scan id>.md: which finding ids matter for this person and why, without measurements. Use note only if
-something needs explaining to the person. Reply in two lines: the finding ids that matter most, and why."""
+something needs explaining to the person. Reply in two lines: the finding ids that matter most, and why. Inputs a run lists under inputs_the_person_gave are the
+person's own answers; never call them saved settings or defaults."""
 
 PROPERTY = """You investigate one whole property (a CoStar property id) for a person. Call property_scans first. Then
 call run_on_property once per useful tool, choosing the kinds of scan that matter (units, amenities). Then call

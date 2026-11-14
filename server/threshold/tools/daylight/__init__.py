@@ -147,11 +147,13 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         metrics += [Metric(id=f"sun.{k}", label=k, value=v, unit="h", source=sun_src) for k, v in sorted(by_label.items())]
     dark = [f for f in findings if f.status == "warn"]
     lit = len([r for r in rooms.values() if r["windows"]])
-    text = f"{t['windows']} windows over {lit} rooms"
+    text = f"{t['windows']} window{'' if t['windows'] == 1 else 's'} over {lit} room{'' if lit == 1 else 's'}"
     text += f"; {len(dark)} habitable room{'s have' if len(dark) != 1 else ' has'} no window." if dark else "."
     if d["sun"] and best and best[1]["hours"]:
         room = (labels.get(best[0]) or "unlabelled room").lower()
         text += f" {iff}the sunniest room is the {room}." if iff else f" The sunniest room is the {room}."
+    elif not d["sun"]:
+        text += f" {d.get('sun_reason') or 'The scan cannot be placed on a compass.'} Hours of sun cannot be traced."
     return ToolResult(
         scope=scope, verdict=Verdict(status="warn" if dark else "pass", text=text), metrics=metrics, checks=checks,
         findings=findings,

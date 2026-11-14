@@ -84,6 +84,9 @@ def default_site(place: Place) -> Site:
     from ..sources import costar, index
     if place.scan:
         r = index.rows().get(place.scan)
+        if not r and place.scan.startswith("u_"):  # a person's own phone scan: not in the index, no location
+            return Site(place, None, None, sids=[place.scan], located_by="phone scan with no location",
+                        scans=[{"sid": place.scan, "name": None, "kind": None}])
         if not r:
             raise LookupError(f"no scan {place.scan} in the index")
         return _row_site(place, r, "scan index")

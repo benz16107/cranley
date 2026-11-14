@@ -397,6 +397,7 @@ def combine(estimates: list[dict], bound: dict | None = None, override: float | 
         lo, clipped = bound["value_m"], True
         hi = max(hi, lo)
     lo = max(lo, 0.0)
+    hi = max(hi, lo)  # an estimate below the ground must not leave the range upside down
     pairs = [{"a": a["method"], "b": b["method"], "diff_m": round(a["value_m"] - b["value_m"], 3)}
              for i, a in enumerate(pts) for b in pts[i + 1:]]
     return {"available": True, "value_m": round(min(max(best["value_m"], lo), hi), 3), "lo_m": round(lo, 3),

@@ -27,3 +27,10 @@ def test_ranks_by_area_without_rent(monkeypatch):
     res = run_tool("unit_compare", {"scans": ["u1", "u2"]}, ToolContext(plans=plans.__getitem__))
     assert [f.title for f in res.findings] == ["1. u2", "2. u1"]
     assert res.scope.sids == ["u2", "u1"]
+
+
+def test_a_scan_with_no_property_is_not_applicable_rather_than_an_error():
+    from threshold.tools import ToolContext, run_tool
+    res = run_tool("unit_compare", {"scan": "lonely"}, ToolContext(plans=lambda sid: {}))
+    assert res.verdict.status == "unknown" and "no sibling units" in res.verdict.text
+    assert res.scope.sid == "lonely" and not res.findings

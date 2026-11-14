@@ -1,3 +1,4 @@
+from tests.tools._site.fakes import facts, offline  # noqa: F401
 from threshold.tools.daycare_capacity import RULES, capacities, indoor
 
 
@@ -16,3 +17,14 @@ def test_indoor_rooms():
     counted, excluded, unknown = indoor({"rooms": rooms})
     assert [r["id"] for r in counted] == ["a", "d"] and [r["id"] for r in excluded] == ["b", "e"]
     assert [r["id"] for r in unknown] == ["c"]
+
+
+def test_a_campus_sized_parcel_is_not_one_play_yard(offline):  # noqa: F811
+    from threshold.aerial import site
+    from threshold.tools import run_tool
+    offline.setattr(site, "site_facts", lambda lat, lon: facts({"pool": False, "paved_percent": 10}, parcel_m=300))
+    r = run_tool("daycare_capacity", {"lat": 29.7, "lon": -95.4, "use_vision": False})
+    assert r.verdict.status == "unknown" and any(f.title.startswith("Parcel too large") for f in r.findings)
+    offline.setattr(site, "site_facts", lambda lat, lon: facts({"pool": False, "paved_percent": 10}, parcel_m=50))
+    small = run_tool("daycare_capacity", {"lat": 29.7, "lon": -95.4, "use_vision": False})
+    assert {m.id: m.value for m in small.metrics}["cap.outdoor"] > 0

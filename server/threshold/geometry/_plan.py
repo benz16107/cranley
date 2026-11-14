@@ -99,6 +99,14 @@ def cached(plan: dict, key: str, build):
     return _CACHE[k]
 
 
+def indoor_rooms(plan: dict) -> list[dict]:
+    """Rooms that count as floor area: not Matterport's Void and, when the scan has a wall graph, bounded by walls.
+    A room with no walls in a walled scan is a yard, a balcony capture or unscanned space (one reads 1,348 m²)."""
+    rooms = [r for r in plan.get("rooms") or [] if r.get("label") != "Void"]
+    walled = any(r.get("walls") for r in rooms)
+    return [r for r in rooms if r.get("walls") or not walled]
+
+
 def room_label(room: dict) -> str:
     return room.get("label") or "Unlabelled room"
 

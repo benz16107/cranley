@@ -9,7 +9,7 @@ from shapely.geometry import Point
 
 from ...config import CACHE
 from ...geometry._plan import polygons, room_label
-from .. import Source, ToolError
+from .. import NotApplicable, Source, ToolError
 
 GEOM = Source(layer="matterport", method="geometry", confidence="high", note="Matterport wall graph")
 LABELS = Source(layer="matterport", method="lookup", confidence="medium", note="Matterport room classification")
@@ -62,7 +62,7 @@ def scope_sids(scan: str | None, whole_property: bool, property_id: int | None) 
             return [scan], None  # caller says the property could not be found
     sids = costar.scans_of_property(pid)
     if not sids:
-        raise ToolError(f"No scans found for property {pid}.")
+        raise NotApplicable(f"No scans found for property {pid}, so there is nothing to plan.")
     if scan and scan not in sids:
         sids = [scan, *sids]
     return sids, pid

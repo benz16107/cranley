@@ -11,7 +11,7 @@ import re
 
 from pydantic import BaseModel
 
-from .. import Check, Finding, GeoAnchor, Metric, Place, Source, ToolResult, Verdict, field, tool
+from .. import Check, Finding, GeoAnchor, Metric, NotApplicable, Place, Source, ToolResult, Verdict, field, tool
 
 RECORD = Source(layer="costar", method="lookup", confidence="high", note="Floor plans from the CoStar property record")
 NAMES = Source(layer="matterport", method="lookup", confidence="medium", note="Matched on scan names")
@@ -56,8 +56,17 @@ def _beds_baths(name: str) -> tuple[float | None, float | None]:
       blocks=["VerdictHeader", "MetricRow", "CheckList", "StepLog"], personas=["apartment_manager", "costar_researcher"])
 def run(ctx, inputs: Inputs) -> ToolResult:
     site = ctx.site(inputs.place)
+    if site.property_id and not site.record:  # a scan place carries its property id but not the property's record
+        whole = ctx.site(Place(property_id=site.property_id))
+        site.sids, site.scans, site.record = whole.sids, whole.scans, whole.record
     scans = site.scans
     ctx.step(f"Found {len(scans)} scans at {site.address or site.key}")
+    if site.record and not (site.record.get("propertyApartment") or {}):
+        raise NotApplicable("The CoStar record is not an apartment community, so there are no floor plans or shared "
+                            "spaces to check scans against.")
+    if scans and not site.record:
+        raise NotApplicable(f"There is no CoStar property record for this place, so there is no list of floor plans or "
+                            f"shared spaces to hold its {len(scans)} scan{'s' if len(scans) > 1 else ''} against.")
     apt = ((site.record or {}).get("propertyApartment") or {})
     models = apt.get("models") or []
     checks, covered_sids = [], set()

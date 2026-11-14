@@ -11,6 +11,7 @@ from shapely.geometry import LineString, Point
 
 from ...aerial import detect as aerial_detect
 from ...aerial import site as aerial
+from ...geometry._plan import indoor_rooms
 from .. import Check, Finding, Metric, Source, ToolResult, Verdict, field, tool
 from .._site import (
     Where,
@@ -19,6 +20,7 @@ from .._site import (
     geo,
     locate,
     metres,
+    not_for_homes,
     oblique_media,
     pin,
     pins,
@@ -140,7 +142,7 @@ def inside_count(ctx, sid: str) -> dict | None:
     # the largest rooms: a warehouse floor, not the front offices
     found = find_objects(plan, labels=["loading dock door", "roll-up door"], panos=[room_panos(plan, r)[0]["id"] for r in big])
     return {"found": found, "rooms": len(big), "largest_m2": big[0].get("area") or 0,
-            "scanned_m2": sum(r.get("area") or 0 for r in plan["rooms"]),
+            "scanned_m2": sum(r.get("area") or 0 for r in indoor_rooms(plan)),
             "dock": sum(f["label"] == "loading dock door" for f in found),
             "rollup": sum(f["label"] == "roll-up door" for f in found)}
 
@@ -193,6 +195,8 @@ def survey(ctx, s, use_vision: bool = True, inside: bool = True) -> dict:
 def agree(a: float | None, b: float | None) -> str:
     if a is None or b is None:
         return "unknown"
+    if b == 0:  # a record of no doors is contradicted by any door seen
+        return "pass" if a == 0 else "warn"
     return "pass" if abs(a - b) <= max(2, 0.2 * b) else "warn"
 
 
@@ -210,6 +214,7 @@ def agree(a: float | None, b: float | None) -> str:
       overlays=["pins"], annotations={"cost": "slow"},
       examples=["How many dock doors does this warehouse have?", "Which side are the docks on?"])
 def run(ctx, inputs: Inputs) -> ToolResult:
+    not_for_homes(inputs.scan, "loading docks")
     s = locate(ctx, inputs)
     sv = survey(ctx, s, inputs.use_vision, inputs.inside)
     k, rec = s.key, sv["record"]

@@ -92,7 +92,7 @@ def verdict(comps: list[dict]) -> T.Verdict:
         return T.Verdict(status="unknown", text=f"None of the {len(comps)} claims could be checked against this scan.")
     status = "fail" if strong else "warn" if bad else "pass"
     lead = ", ".join(c["label"].lower() for c in (strong or bad)[:3])
-    text = (f"{n['confirmed']} claims confirmed, {n['contradicted']} contradicted, {n['cannot verify']} cannot be "
+    text = (f"{n['confirmed']} claim{'' if n['confirmed'] == 1 else 's'} confirmed, {n['contradicted']} contradicted, {n['cannot verify']} cannot be "
             "verified." + (f" Disagreements: {lead}." if bad else ""))
     return T.Verdict(status=status, text=text)
 

@@ -14,6 +14,7 @@ from .. import (
     Check,
     Finding,
     Metric,
+    NotApplicable,
     ScanScope,
     Source,
     ToolError,
@@ -205,7 +206,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     ev = gather.gather(plan, rec, scan, claims, aerial_on=inputs.aerial, panos_on=inputs.vision) if (inputs.aerial or inputs.vision) else {}
     props = propose(plan, rec, ev)
     if not props:
-        raise ToolError(f"Scan {inputs.scan} has no rooms and no location, so nothing can be derived.")
+        raise NotApplicable(f"Scan {inputs.scan} has no rooms and no location, so nothing can be derived.")
     ctx.step(f"Derived {len(props)} fields from the plan" + (" and the aerial photo" if ev.get("site") else ""))
     sid = inputs.scan
     checks, findings, metrics = [], [], []

@@ -15,6 +15,7 @@ from .. import (
     Check,
     Finding,
     Metric,
+    NotApplicable,
     Pin,
     PinsOverlay,
     RoomAnchor,
@@ -190,7 +191,8 @@ def look_for(ctx, sid: str, am: str) -> dict | None:
 def run(ctx, inputs: Inputs) -> ToolResult:
     pid = inputs.property or (facts.property_id(inputs.scan) if inputs.scan else None)
     if not pid:
-        raise ToolError("Pick a scan that belongs to an apartment community in the CoStar kit, or give its property id.")
+        raise NotApplicable("This scan does not belong to an apartment community in the CoStar kit, so there are no shared "
+                            "amenities to count. Pick a scan of a community, or give its property id.")
     sids = costar.scans_of_property(pid)
     address = costar.joins()["property_address"].get(pid) or str(pid)
     names = {s: facts.scan_name(s) for s in sids}
@@ -292,6 +294,9 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     status = "warn" if missing else "pass" if by_am else "unknown"
     text = (f"{address}: {len(by_am)} amenities seen in {len(read)} scans ({', '.join(sorted(by_am)) or 'none'}); "
             f"{len(set(by_am) & claims)} of {len(claims)} listed amenities confirmed.")
+    if not read:
+        text = (f"{address}: its {len(sids)} scan{'s are' if len(sids) != 1 else ' is a'} unit{'s' if len(sids) != 1 else ''}, "
+                f"none of a shared space, so the {len(claims)} amenities the listing names cannot be checked.")
     if missing:
         text += f" {len(missing)} claimed but not seen."
     if unlisted:

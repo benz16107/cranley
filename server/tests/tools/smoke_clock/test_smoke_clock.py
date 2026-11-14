@@ -32,3 +32,14 @@ def test_no_walls_and_missing_cfast(monkeypatch):
     monkeypatch.setattr(sc, "cfast_bin", lambda: None)
     r = run_tool("smoke_clock", {"scan": "unit"}, ToolContext(plans=plans(unit())))
     assert r.verdict.status == "unknown" and "not installed" in r.verdict.text and not r.checks
+
+
+def test_a_small_hall_between_rooms_stays_in_the_model():
+    from ..conftest import make_plan
+    p = make_plan("hall", [("lr", 0, 0, 5, 4, "Living Room"), ("h", 5, 1, 6, 2, "Hallway"), ("b", 6, 0, 9, 4, "Bedroom"),
+                           ("cl", 5, 3, 6, 4, "Closet")],
+                  doors=[("lr", "h", 0.9), ("h", "b", 0.8), ("b", "cl", 0.6)])
+    comp, _ = sc.compartments(p)
+    assert comp["h"] == comp["lr"] and comp["b"] != comp["lr"] and "cl" not in comp   # the closet joins nothing
+    text, _ = sc.write_input(p, next(r for r in p["rooms"] if r["id"] == "lr"), False, 0.047, 2000)
+    assert f"COMP_IDS = '{comp['lr']}', '{comp['b']}'" in text or f"COMP_IDS = '{comp['b']}', '{comp['lr']}'" in text

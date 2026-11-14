@@ -45,6 +45,21 @@ def test_combine_takes_the_most_precise_and_widens_for_disagreement():
     assert fh.combine([a], override=0.33)["method"] == "measured"
 
 
+def test_an_estimate_below_the_ground_keeps_the_range_in_order():
+    out = fh.combine([fh._est("vexcel_eave", -1.72, 0.34, "low", "")])
+    assert 0 <= out["lo_m"] <= out["value_m"] <= out["hi_m"]
+
+
+def test_an_apartment_unit_skips_the_eave_method(monkeypatch):
+    called, steps = [], []
+    monkeypatch.setattr(scenario, "_kind", lambda sid: "apartment_unit")
+    monkeypatch.setattr(fh, "vexcel_eave", lambda *a, **k: called.append(1))
+    monkeypatch.setattr(scenario, "_heights", lambda *a: [0.0] * len(a[1]))  # no Vexcel call from a test
+    site = {"lat": 29.78, "lon": -95.245, "footprint": "POLYGON((0 0,1 0,1 1,0 0))"}
+    scenario.measure_floor(house(), site, use_drone=False, override=None, steps=steps.append)
+    assert not called and any("one unit" in s for s in steps)
+
+
 def test_drone_rows_turn_into_heights():
     # Camera 1.2 m above a ground plane at z = 0, level, looking north at a wall 15 m away; threshold at 0.3 m.
     lat0, lon0 = 29.78, -95.245

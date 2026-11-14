@@ -42,6 +42,7 @@ def test_tool_runs_without_a_record(office_plan):
     res = run_tool("office_fit", {"scan": "toffice", "headcount": 10, "private_offices": 2, "label_with_vision": False},
                    ToolContext(plans=lambda sid: office_plan))
     assert res.verdict.status == "pass"
+    assert "private offices for the 2 you need" in res.verdict.text and "for 0" not in res.verdict.text
     kinds = [o.kind for o in res.overlays]
     assert "lens" in kinds and "pins" in kinds
     assert {a.id for a in res.assumptions} >= {"office.desk_m2", "office.meeting_seat_m2"}
