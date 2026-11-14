@@ -11,7 +11,7 @@ import re
 
 from pydantic import BaseModel
 
-from .. import Check, Metric, Place, Source, ToolResult, Verdict, field, tool
+from .. import Check, Finding, GeoAnchor, Metric, Place, Source, ToolResult, Verdict, field, tool
 
 RECORD = Source(layer="costar", method="lookup", confidence="high", note="Floor plans from the CoStar property record")
 NAMES = Source(layer="matterport", method="lookup", confidence="medium", note="Matched on scan names")
@@ -81,6 +81,12 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     areas_done = sum(c.status == "pass" for c in checks if c.id.startswith("area."))
     units = sum(s["kind"] == "apartment_unit" for s in scans)
     gaps = [c for c in checks if c.status == "unknown"]
+    anchor = GeoAnchor(geo=(site.lon, site.lat)) if site.lat is not None and site.lon is not None else None
+    findings = [Finding(id=f"property_coverage:{site.key}:{c.id}", title=f"No scan: {c.rule.split(': ', 1)[-1].removeprefix('Floor plan ')}",
+                        status="unknown", detail=c.standard or "", anchor=anchor, source=RECORD if c.id.startswith("plan.") else NAMES)
+                for c in gaps]
+    for f, c in zip(findings, gaps):
+        c.findings = [f.id]
     text = (f"{plans_done} of {len(models)} floor plans and {areas_done} of {len(AREAS)} kinds of shared space have a scan."
             if models else f"The record lists no floor plans; {areas_done} of {len(AREAS)} kinds of shared space have a scan.")
     if not scans:
@@ -92,4 +98,4 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                  Metric(id="unit_scans", label="Unit scans", value=units, unit="", source=NAMES),
                  Metric(id="floor_plans", label="Floor plans in the record", value=len(models), unit="", source=RECORD),
                  Metric(id="floor_plans_scanned", label="Floor plans with a scan", value=plans_done, unit="", source=RECORD)],
-        checks=sorted(checks, key=lambda c: c.status != "unknown"))
+        checks=sorted(checks, key=lambda c: c.status != "unknown"), findings=findings)

@@ -343,8 +343,8 @@ class Investigation:
 
     def fan_out(self, tool_id: str, property_id: int, kinds: list[str] | None = None,
                 scans: list[str] | None = None, max_scans: int | None = None) -> dict:
-        """Run one scan tool over a property's scans, at most `parallel` at once and `max_fan_out` in all, then add one
-        property-level run that aggregates them."""
+        """Run one scan tool over a property's scans not yet checked with it, at most `parallel` at once and
+        `max_fan_out` per call, then upsert one property-level run over every scan of the property checked so far."""
         m = catalog().get(tool_id)
         if not m or m.status != "ready" or "scan" not in m.inputs.get("properties", {}):
             return {"error": f"{tool_id} is not a ready tool that runs on a scan"}
@@ -352,48 +352,56 @@ class Investigation:
             all_scans = self.scans_of(property_id)
         except ToolError as e:
             return {"error": str(e)}
-        pool = [s for s in all_scans if (not kinds or s["kind"] in kinds) and (not scans or s["sid"] in scans)]
-        cap = max(1, min(max_scans or self.budget.max_fan_out, self.budget.max_fan_out))
-        pick = pool[:cap]
-        if not pick:
+
+        def latest() -> dict[str, Run]:
+            ids = {s["sid"] for s in all_scans}
+            return {r.sid: r for r in self.s.doc.runs if r.tool == tool_id and r.sid in ids and r.status != "running"}
+        before = latest()
+        pool = [s for s in all_scans if (not kinds or s["kind"] in kinds)
+                and (s["sid"] in scans if scans else s["sid"] not in before)]
+        pick = pool[:max(1, min(max_scans or self.budget.max_fan_out, self.budget.max_fan_out))]
+        if pick:
+            self.consider(scans=[s["sid"] for s in pick], property_ids=[property_id])
+            with ThreadPoolExecutor(max_workers=self.budget.parallel) as ex:
+                list(ex.map(lambda s: self.run(tool_id, {"scan": s["sid"]}), pick))
+        elif not before:
             return {"error": f"no scans of property {property_id} match kinds {kinds}"}
-        self.consider(scans=[s["sid"] for s in pick], property_ids=[property_id])
-        with ThreadPoolExecutor(max_workers=self.budget.parallel) as ex:
-            outs = list(ex.map(lambda s: self.run(tool_id, {"scan": s["sid"]}), pick))
+        done = latest()
+        name = {s["sid"]: s for s in all_scans}
         checks, counts = [], {k: 0 for k in RANK}
-        for s, o in zip(pick, outs):
-            st = o.get("verdict") or "unknown"
+        for sid, r in done.items():
+            st = r.result.verdict.status if r.result else "unknown"
             counts[st] += 1
-            checks.append(Check(id=f"scan.{s['sid']}", rule=f"{s['name'] or s['sid']} ({s['kind']})", measured=None,
-                                threshold=None, unit="", status=st, standard=o.get("error") or o.get("skipped"),
-                                findings=[f["id"] for f in o.get("findings", [])]))
+            checks.append(Check(id=f"scan.{sid}", rule=f"{name[sid]['name'] or sid} ({name[sid]['kind']})", measured=None,
+                                threshold=None, unit="", status=st, standard=r.error or (r.summary if r.status == "skipped" else None),
+                                findings=[f.id for f in self.s.doc.findings if f.run == r.id and not f.superseded_by]))
         worst = min((c.status for c in checks), key=lambda x: RANK[x])
-        left = len(pool) - len(pick)
+        left = len(all_scans) - len(done)
         src = Source(layer="matterport", method="geometry", confidence="medium",
-                     note=f"Aggregate of {m.title} over {len(pick)} scans")
-        text = (f"{m.title} on {len(pick)} scans: {counts['fail']} fail, {counts['warn']} warn, {counts['pass']} pass, "
-                f"{counts['unknown']} unknown." + (f" {left} more scans were not checked." if left else ""))
-        result = ToolResult(tool=tool_id, scope=PropertyScope(property_id=property_id, sids=[s["sid"] for s in pick]),
+                     note=f"Aggregate of {m.title} over the property's scans")
+        text = (f"{m.title} on {len(done)} of {len(all_scans)} scans: {counts['fail']} fail, {counts['warn']} warn, "
+                f"{counts['pass']} pass, {counts['unknown']} unknown." + (f" {left} scans not checked yet." if left else ""))
+        result = ToolResult(tool=tool_id, scope=PropertyScope(property_id=property_id, sids=list(done)),
                             verdict=Verdict(status=worst, text=text),
-                            metrics=[Metric(id="scans_checked", label="Scans checked", value=len(pick), unit="", source=src),
+                            metrics=[Metric(id="scans_checked", label="Scans checked", value=len(done), unit="", source=src),
                                      Metric(id="scans_not_checked", label="Not checked", value=left, unit="", source=src),
                                      *[Metric(id=f"verdicts.{k}", label=k, value=v, unit="scans", source=src)
                                        for k, v in counts.items()]],
                             checks=sorted(checks, key=lambda c: RANK[c.status]))
         place = Place(property_id=property_id)
         rec = Run(id=new_id("run"), tool=tool_id, place=place, plan_step=self.step,
-                  inputs={"place": place.model_dump(exclude_none=True), "scans": [s["sid"] for s in pick]})
-        steps = [f"Ran {m.title} on {len(pick)} of {len(pool)} matching scans, {self.budget.parallel} at a time"]
+                  inputs={"place": place.model_dump(exclude_none=True), "scans": list(done)})
+        steps = [f"Ran {m.title} on {len(pick)} more scans, {self.budget.parallel} at a time",
+                 f"{len(done)} of {len(all_scans)} scans of the property checked so far"]
         self.emit(RunStart(record=rec, run=rec.id))
         self.emit(RunFinish(id=rec.id, status="done", summary=text, steps=steps, result=result, run=rec.id))
-        done = next(r for r in self.s.doc.runs if r.id == rec.id)
         self.emit(PanelUpsert(panel=Panel(id=f"panel:{tool_id}:{place.key()}", title=f"{m.title}: whole property",
                                           tool=tool_id, run=rec.id,
                                           blocks=[VerdictHeader(run=rec.id), MetricRow(run=rec.id, metrics=["scans_checked", "scans_not_checked"]),
                                                   MiniChart(run=rec.id, title="Scans by verdict",
                                                             metrics=[f"verdicts.{k}" for k in RANK]),
                                                   CheckList(run=rec.id), StepLog(run=rec.id)]), run=rec.id))
-        return {"run": done.id, "property_id": property_id, "verdict": worst, "summary": text,
+        return {"run": rec.id, "property_id": property_id, "verdict": worst, "summary": text, "ran_now": len(pick),
                 "worst_scans": [{"scan": c.id[5:], "status": c.status, "findings": c.findings[:4]}
                                 for c in result.checks[:6]]}
 

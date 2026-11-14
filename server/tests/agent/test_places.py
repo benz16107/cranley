@@ -55,6 +55,9 @@ def test_coverage_runs_on_a_property_without_a_scan():
     assert status["plan.22"] == "unknown"         # attached to a scan this place does not have
     assert status["area.fitness"] == "pass" and status["area.pool"] == "unknown"
     assert r.verdict.status == "warn"
+    gaps = {f.id: f for f in r.findings}
+    assert gaps["property_coverage:p7:area.pool"].title == "No scan: pool" and gaps["property_coverage:p7:area.pool"].anchor.geo
+    assert gaps["property_coverage:p7:plan.22"].title == "No scan: The Two"
     assert run_tool("property_coverage", {"place": {"geo": [-95.0, 29.0]}}, ToolContext(sites=sites)).verdict.status == "unknown"
 
 
@@ -94,9 +97,13 @@ def test_fan_out_is_bounded_and_aggregates(ws):
     metrics = {m.id: m.value for m in agg.result.metrics}
     assert metrics["scans_checked"] == 1 and metrics["scans_not_checked"] == 1 and metrics["verdicts.fail"] == 1
     assert agg.result.checks[0].findings and out["worst_scans"][0]["scan"] == "t1"
-    assert "1 more scans were not checked" in agg.summary
-    out = Investigation(ws).fan_out("door_widths", 7, kinds=["amenity"], max_scans=5)
-    assert out["verdict"] == "fail" and "t2" in ws.doc.brief.scope.sids
+    assert "1 of 2 scans" in agg.summary and "1 scans not checked yet" in agg.summary
+    out = inv.fan_out("door_widths", 7)  # the next call takes the scans not yet checked and aggregates all of them
+    agg = next(r for r in ws.doc.runs if r.id == out["run"])
+    assert out["ran_now"] == 1 and agg.result.scope.sids == ["t1", "t2"] and "t2" in ws.doc.brief.scope.sids
+    assert {m.id: m.value for m in agg.result.metrics}["scans_not_checked"] == 0
+    assert [p.run for p in ws.doc.panels if p.id == "panel:door_widths:p7"] == [agg.id]  # one panel, latest totals
+    assert inv.fan_out("door_widths", 7)["ran_now"] == 0  # nothing left: it re-aggregates without running
 
 
 def test_tool_run_budget_refuses_politely(ws):
