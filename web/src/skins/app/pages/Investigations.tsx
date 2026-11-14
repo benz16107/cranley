@@ -149,8 +149,9 @@ export function Investigation({ id }: { id: string }) {
   if (id !== doc.id) {
     return (
       <div className="page"><div className="inner">
-        <Empty icon="runs" title={seen?.brief || 'This investigation is not the open one'} action={seen ? <button className="btn solid" onClick={() => openSeen(id)}>Open it</button> : <button className="btn" onClick={() => (doc.id ? goInvestigation(doc.id) : newInvestigation())}>Go to the open investigation</button>}>
-          {seen ? `Last changed ${ago(seen.last)}: ${seen.runs} runs, ${seen.findings} findings. Opening it loads the page again.` : 'It is not in this browser’s list. The server keeps one investigation open per browser.'}
+        {/* a link to an investigation made in another browser: its id is enough to open it, if the server still has it */}
+        <Empty icon="runs" title={seen?.brief || 'This investigation is not the open one'} action={seen || id.startsWith('ws_') ? <button className="btn solid" onClick={() => openSeen(id)}>Open it</button> : <button className="btn" onClick={() => (doc.id ? goInvestigation(doc.id) : newInvestigation())}>Go to the open investigation</button>}>
+          {seen ? `Last changed ${ago(seen.last)}: ${seen.runs} runs, ${seen.findings} findings. Opening it loads the page again.` : 'It is not in this browser’s list. Opening it replaces the investigation open in this browser and loads the page again.'}
         </Empty>
       </div></div>
     )
