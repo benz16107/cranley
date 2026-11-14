@@ -53,3 +53,13 @@ def test_each_kind_of_evidence_before_one_repeats():
                      tool="life_safety_census")
     got = {s["from"] for s in build(plan, None, doors + [alarm], 3)["stops"]}
     assert "s" in got and len(got) == 3
+
+
+def test_the_door_standard_picks_the_tools_when_the_question_does_not():
+    import re
+
+    from threshold.tools.tour import TOPICS
+    topic = lambda text: [k for k, (pat, _) in TOPICS.items() if re.search(pat, text.lower())]
+    assert topic("Can I live in this house? ADA 2010 404.2.3, 32 in clear") == ["access"]
+    assert topic("Show me what matters. IBC 2021 1010.1.1, 32 in clear egress") == ["fire"]
+    assert topic("Walk me through this house") == []

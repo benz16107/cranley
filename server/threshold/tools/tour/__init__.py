@@ -33,9 +33,9 @@ SRC = Source(layer="model", method="lookup", confidence="medium",
 # Tools whose findings a tour is made of when none are handed in, by what the question is about. Fast ones only:
 # a tour must not start a fire simulation.
 TOPICS = {
-    "fire": (r"fire|smoke|egress|escape|alarm|captain|pre-?plan|hose|crew|rescue|evacuat",
+    "fire": (r"fire|smoke|egress|escape|alarm|captain|pre-?plan|hose|crew|rescue|evacuat|\bibc\b|nfpa",
              ["egress_routes", "life_safety_census", "door_widths"]),
-    "access": (r"wheel|step-?free|accessib|ramp|walker|stroller|mobility|scooter|disab|aging|age in place",
+    "access": (r"wheel|step-?free|accessib|ramp|walker|stroller|mobility|scooter|disab|aging|age in place|\bada\b|\bfha\b",
                ["door_widths", "step_free_route", "turning_space", "bathroom_clearance"]),
 }
 EVERY = ["egress_routes", "door_widths", "life_safety_census", "step_free_route"]
@@ -62,6 +62,9 @@ class Inputs(BaseModel):
                                                                "them from the tools that suit the question.")
     min_width_m: float = field(0.813, pref="access.door_width_m", unit="m", gt=0.3, le=2,
                                description="Clear width a door must give, used when the tour gathers findings itself")
+    standard: str | None = field(None, pref="access.door_standard",
+                                 description="The standard the person's doors are judged by. It also tells a fire "
+                                             "pre-plan from an access check when the question does not")
     max_stops: int = field(6, ge=2, le=10, description="Most stops")
 
 
@@ -76,10 +79,12 @@ def sentences(text: str, limit: int = LINE_MAX) -> str:
     return out
 
 
-def gather(ctx, sid: str, question: str | None, min_width_m: float) -> list[Evidence]:
-    """Findings from the tools that suit the question, run with the person's door width."""
+def gather(ctx, sid: str, question: str | None, min_width_m: float, standard: str | None = None) -> list[Evidence]:
+    """Findings from the tools that suit the question (or, when it does not say, the person's door standard), run
+    with the person's door width."""
     load()
-    q = (question or "").lower()
+    q = f"{question or ''} {standard or ''}".lower()
+    prefs = {"access.door_width_m": min_width_m, "access.door_standard": standard}
     ids = [t for _, (pat, tools) in TOPICS.items() if re.search(pat, q) for t in tools] or EVERY
     if "egress_routes" in ids:
         try:  # the smoke clock only when its fire model has already run on this scan
@@ -95,8 +100,8 @@ def gather(ctx, sid: str, question: str | None, min_width_m: float) -> list[Evid
             continue
         given = {"scan": sid}
         for name, f in t.inputs.model_fields.items():
-            if (f.json_schema_extra or {}).get("x-pref") == "access.door_width_m":
-                given[name] = min_width_m
+            if prefs.get((f.json_schema_extra or {}).get("x-pref")) is not None:
+                given[name] = prefs[f.json_schema_extra["x-pref"]]
         try:  # the handler itself, with this run's plans: a tour's reading of a tool is not a new result to record
             r = t.handler(ToolContext(plans=ctx.plans, sites=ctx.sites), t.inputs.model_validate(given))
         except (ToolError, ValueError) as e:
@@ -224,7 +229,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     plan = ctx.plan(sid)
     evidence = inputs.findings
     if evidence is None:
-        evidence = gather(ctx, sid, inputs.question, inputs.min_width_m)
+        evidence = gather(ctx, sid, inputs.question, inputs.min_width_m, inputs.standard)
     else:
         ctx.step(f"Took {len(evidence)} findings from the workspace")
     t = build(plan, inputs.question, evidence, inputs.max_stops, ctx.step)
