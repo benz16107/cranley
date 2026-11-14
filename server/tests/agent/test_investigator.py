@@ -97,3 +97,14 @@ def test_short_keeps_whole_sentences():
     text = "First sentence here. " * 20
     assert len(short(text)) <= 280 and short(text).endswith(".")
     assert short("x" * 300).endswith("…") and len(short("x" * 300)) == 280
+
+
+def test_two_buildings_get_a_ranked_table(session):
+    ready(session)
+    session.submit(BriefSet(by="user", scope=Scope(sids=["t1", "t2"])))
+    inv = Investigation(session)
+    runs = [inv.run("door_widths", {"scan": s})["run"] for s in ("t1", "t2")]
+    inv.compare()
+    table = next(p for p in session.doc.panels if p.id == "compare:door_widths").blocks[0]
+    assert table.type == "RankedTable" and table.rows == runs
+    assert {c.metric for c in table.columns} == {"doorways", "narrowest", "too_narrow"}
