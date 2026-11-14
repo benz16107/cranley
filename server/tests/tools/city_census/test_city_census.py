@@ -16,7 +16,10 @@ def test_groups_come_back_as_a_ranked_table(monkeypatch):
     r = run_tool("city_census", {"preset": "wheelchair_homes"})
     assert not r.checks                                            # groups are rows, not "pass" checks
     m = {x.id: x for x in r.metrics}
-    assert m["g0/share"].value == 50.0 and m["g0/share"].unit == "%" and m["g0/scans"].label == "zip 77094"
+    assert m["g0/share"].value == 50.0 and m["g0/share"].unit == "%" and m["g0/scans"].label == "77094"
     t = own_table(load()["city_census"].manifest, SimpleNamespace(id="run_1", result=r))
-    assert t.run == "run_1" and t.rows == ["g0", "g1"] and t.labels["g1"] == "zip 77001"
+    assert t.run == "run_1" and t.rows == ["g0", "g1"] and t.labels["g1"] == "77001"
+    assert t.title == "City census by zip code" and "groups by zip code" in r.verdict.text and "77094 at 50%" in r.verdict.text
+    from threshold.tools.city_census import group_name
+    assert group_name("property_type", "home") == "Homes" and group_name("kind", "apartment_unit") == "Apartment units"
     assert [c.metric for c in t.columns] == ["share", "median", "mean", "scans"]

@@ -132,7 +132,8 @@ def own_table(m, run: Run) -> RankedTable | None:
             labels.setdefault(x.id.split("/", 1)[0], x.label)
     if not m.table or not labels:
         return None
-    return RankedTable(title=m.title, run=run.id, rows=list(labels), labels=labels,
+    by = next((a.value for a in run.result.assumptions if a.id == "group_by"), None)  # name the grouping once
+    return RankedTable(title=f"{m.title} by {by}" if by else m.title, run=run.id, rows=list(labels), labels=labels,
                        columns=[RankedColumn(metric=c.metric, label=c.label, better=c.better) for c in m.table])
 
 
