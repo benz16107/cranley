@@ -31,6 +31,8 @@ export interface Stand {
   enter: number
   /** Zooming the scene out past this returns to the map. */
   leave: number
+  /** The same, when the building is shown alone: the scene cannot pull back further than nine radii. */
+  leaveAlone: number
   verified: boolean
 }
 
@@ -51,7 +53,7 @@ export function stand(plan: ScanPlan, site: Site, view: { w: number; h: number }
   return {
     anchor: site.anchor, target: { e, n, up: base + tall * 0.3 - ground },
     ring: Array.from({ length: 16 }, (_, i) => enu(cx + Math.cos((i / 16) * 2 * Math.PI) * r, cy + Math.sin((i / 16) * 2 * Math.PI) * r)),
-    fit, enter, leave: Math.min(545, Math.max(enter * 1.3, 400)), verified: site.scan_to_enu.verified,
+    fit, enter, leave: Math.min(545, Math.max(enter * 1.3, 400)), leaveAlone: radius * 9 * 0.96, verified: site.scan_to_enu.verified,
   }
 }
 
@@ -62,12 +64,13 @@ export function groundScale(lat: number): { east: number; north: number } {
   const sl = Math.sin(lat * RAD), cl = Math.cos(lat * RAD), w = 1 - WGS_E2 * sl * sl
   return { east: (WGS_A / Math.sqrt(w)) * cl, north: ((WGS_A * (1 - WGS_E2)) / w ** 1.5) * cl }
 }
-/** A point east/north of an anchor as longitude and latitude. Linear in Web Mercator about the anchor, which is how
-    CityMesh draws its tiles, so a camera placed by this sees them where they are drawn. */
+/** A point east/north of a scan's anchor as longitude and latitude, in the map's own metres (Web Mercator about the
+    anchor). That is how CityMesh lays out a scan's patch, so the map's camera placed by this sees the tiles exactly
+    where the building scene's camera sees them. Against true ground distance it is 0.4% off north to south. */
 export function lngLatOf(anchor: { lat: number; lon: number }, e: number, n: number): [number, number] {
-  const g = groundScale(anchor.lat)
-  const y = Math.log(Math.tan(Math.PI / 4 + (anchor.lat * RAD) / 2)) + n / g.north
-  return [anchor.lon + e / g.east / RAD, (2 * Math.atan(Math.exp(y)) - Math.PI / 2) / RAD]
+  const k = WGS_A * Math.cos(anchor.lat * RAD) // the map's metres per radian of longitude here, and per unit of mercator y
+  const y = Math.log(Math.tan(Math.PI / 4 + (anchor.lat * RAD) / 2)) + n / k
+  return [anchor.lon + e / k / RAD, (2 * Math.atan(Math.exp(y)) - Math.PI / 2) / RAD]
 }
 
 /** Where the camera itself is for a pose about a stand's target: longitude, latitude and metres above the ground. */

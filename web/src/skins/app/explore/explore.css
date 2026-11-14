@@ -1,0 +1,53 @@
+/* The world explorer: Explore's map carries on into a building. The map and the building's scene share one
+   rectangle (.ex-map); the scene and its toolbars lie over the map and fade in when the two cameras agree. */
+.ex-head[hidden], .ex-insp[hidden] { display: none; }
+.ex-head .pagehead { min-height: 44px; }                 /* the filter bar's height, so the picture does not move when the two swap */
+.ex-insp { display: flex; min-width: 0; min-height: 0; height: 100%; }
+.ex-insp > .insp { flex: 1; }
+
+.ex-map > .ex-scene { position: absolute; inset: 0; z-index: 4; opacity: 0; pointer-events: none; transition: opacity 320ms var(--ease-out); }
+.ex[data-phase='ready'] .ex-scene { opacity: 1; }
+.ex[data-phase='leaving'] .ex-scene { transition-duration: 260ms; }
+/* the flight in is the app's move: a stray scroll must not stop it half way */
+.ex[data-phase='approach'] .citymap, .ex[data-phase='leaving'] .citymap { pointer-events: none; }
+.ex-scene .work { position: absolute; inset: 0; display: grid; align-content: start; justify-items: start; gap: 6px; padding: 10px; background: none; pointer-events: none; }
+.ex-scene .scene-host { position: absolute; inset: 0; }
+.ex[data-phase='ready'] .ex-scene .scene-host, .ex[data-phase='ready'] .ex-scene .worktools { pointer-events: auto; }
+/* the building's two toolbars float in the picture's corner as the map's own controls do */
+.ex-scene .worktools { position: relative; z-index: 3; max-width: 100%; padding: 3px; gap: 4px; border: 1px solid var(--rule); border-radius: var(--r-2); background: var(--pane); box-shadow: 0 1px 3px light-dark(rgb(24 33 43 / 0.12), rgb(0 0 0 / 0.4)); }
+.ex-scene .worktools > .grow { display: none; }
+@container (max-width: 780px) { .ex-scene .worktools > .seg:first-child button span { display: none; } .ex-scene .worktools > .seg:first-child button { padding: 0 8px; } }
+
+/* On the map: one row of tools in a corner, a readout under it, the legend and the sun strip along the bottom. */
+.maptools { position: absolute; left: 10px; top: 10px; z-index: 2; display: flex; gap: 6px; align-items: center; max-width: calc(100% - 64px); flex-wrap: wrap; }
+.maptools .btn, .maptools .seg { box-shadow: 0 1px 3px light-dark(rgb(24 33 43 / 0.12), rgb(0 0 0 / 0.4)); }
+.maptools .btn { background: var(--pane); }
+.mapctl .needle { display: grid; transition: rotate 120ms var(--ease-out); }
+.mapread { position: absolute; left: 10px; top: 46px; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; max-width: calc(100% - 64px); padding: 4px 9px; background: color-mix(in srgb, var(--pane) 94%, transparent); border: 1px solid var(--rule); border-radius: var(--r-1); font-size: var(--text-xs); }
+.mapread b { font-weight: 600; }
+.mapread .num { font-size: var(--text-2xs); }
+.mapread.opening, .mapread.working { top: auto; left: 50%; bottom: 14px; translate: -50% 0; z-index: 5; }
+.mapfoot { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; pointer-events: none; }
+.mapfoot > * { pointer-events: auto; }
+.mapfoot .maplegend { position: static; max-width: 100%; }
+.maplegend .muted { margin-left: 2px; }
+.sunbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; width: min(100%, 760px); padding: 4px 10px; background: var(--pane); border: 1px solid var(--rule); border-radius: var(--r-2); box-shadow: 0 1px 3px light-dark(rgb(24 33 43 / 0.12), rgb(0 0 0 / 0.4)); font-size: var(--text-xs); }
+.sunbar > svg { color: var(--ink-3); flex: none; }
+.sunbar .field { width: 132px; height: 24px; font-size: var(--text-xs); }
+.sunbar .grow { flex: 1 1 160px; min-width: 120px; }
+.sunbar .num { font-size: var(--text-2xs); }
+.hovertip .of { opacity: 0.7; margin-left: 6px; }
+
+/* A layer's mark, in the list and in the legend: a dot for places, a bar for lines, a square for areas. */
+.swatch { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--hue); }
+.swatch[data-shape='area'] { border-radius: 1px; background: color-mix(in srgb, var(--hue) 40%, transparent); outline: 1px solid var(--hue); outline-offset: -1px; }
+.swatch[data-shape='line'] { height: 2px; width: 12px; border-radius: 1px; }
+.swatch[data-shape='raster'] { border-radius: 1px; background: color-mix(in srgb, var(--hue) 60%, transparent); }
+.swatch[data-shape='readout'] { background: none; outline: 1px solid var(--ink-3); outline-offset: -1px; }
+
+@media (max-width: 760px) {
+  .maptools .seg button { padding: 0 7px; }
+  .mapfoot { bottom: 26px; } /* clear of the look switcher's tab */
+  .sunbar .muted { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .mapctl .needle { transition: none; } }

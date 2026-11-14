@@ -83,7 +83,8 @@ export function Shell() {
   }, [undo])
 
   const page =
-    place.page === 'home' ? <Home /> : place.page === 'explore' ? <Explore /> : place.page === 'building' && place.sid ? <Building sid={place.sid} key={place.sid} />
+    place.page === 'home' ? <Home /> : place.page === 'explore' || (place.page === 'building' && place.sid && !phone) ? <Explore sid={place.page === 'building' ? place.sid : null} />
+    : place.page === 'building' && place.sid ? <Building sid={place.sid} key={place.sid} />
     : place.page === 'investigations' ? <Investigations /> : place.page === 'investigation' ? <Investigation id={place.id!} /> : place.page === 'buildings' ? <Buildings />
     : place.page === 'insights' ? <Insights /> : place.page === 'tools' ? <Tools /> : <Settings />
 

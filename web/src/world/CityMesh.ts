@@ -93,7 +93,13 @@ export class CityMesh implements CustomLayerInterface {
   private shared: Record<string, THREE.IUniform>
   private tiles = new Map<string, Tile>()
   private shown: string[] = []
-  private next: { patch: CityPatch; ring: [number, number][]; urls: string[] } | null = null
+  private next: { patch: CityPatch; ring: [number, number][]; urls: string[]; key: string; exact: boolean } | null = null
+  /** Which request the drawn patch answers: `sid:<id>` or `lat,lon`. A hand-off waits for its scan's patch. */
+  key = ''
+  // A scan's patch is laid out in the map's own metres (Web Mercator's sphere), so the map's camera and the building
+  // scene's are exact copies of each other. A roaming patch is laid out in true metres on the ellipsoid, which keeps
+  // it on the aerial photo to its edge; the two differ by 0.4% north to south.
+  private exact = false
   private queue: string[] = []; private loading = 0
   private anchor = { lat: 0, lon: 0 }
   private ground = 0 // ellipsoid height of the ground at the anchor: drawn at the map's zero
@@ -144,9 +150,9 @@ export class CityMesh implements CustomLayerInterface {
     if (s.cur <= 0.001 || !this.shown.length) { if (moving) map.triggerRepaint(); return }
     // the map's matrix takes Web Mercator (0..1, y south) to the screen; this puts metres east/north/up about the anchor into it
     // (true metres on the ellipsoid across the ground; the map's own metre upward, so its camera heights are ours)
-    const mc = MercatorCoordinate.fromLngLat([this.anchor.lon, this.anchor.lat], 0), g = groundScale(this.anchor.lat)
+    const mc = MercatorCoordinate.fromLngLat([this.anchor.lon, this.anchor.lat], 0), k = mc.meterInMercatorCoordinateUnits(), g = groundScale(this.anchor.lat)
     this.camera.projectionMatrix.fromArray(args.defaultProjectionData.mainMatrix as unknown as number[])
-      .multiply(new THREE.Matrix4().makeTranslation(mc.x, mc.y, 0).scale(new THREE.Vector3(1 / (2 * Math.PI * g.east), -1 / (2 * Math.PI * g.north), mc.meterInMercatorCoordinateUnits())))
+      .multiply(new THREE.Matrix4().makeTranslation(mc.x, mc.y, 0).scale(this.exact ? new THREE.Vector3(k, -k, k) : new THREE.Vector3(1 / (2 * Math.PI * g.east), -1 / (2 * Math.PI * g.north), k)))
     this.camera.projectionMatrixInverse.copy(this.camera.projectionMatrix).invert()
     r.resetState()
     r.setViewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight) // three keeps the size it was made at; the map resizes its canvas
@@ -174,10 +180,10 @@ export class CityMesh implements CustomLayerInterface {
     try { patch = await fetch(`${this.api}/api/layers/city3d?${q}`).then((r) => (r.ok ? r.json() : null)) } catch { patch = null }
     if (this.gone || my !== this.tick) return patch // a later request overtook this one
     if (!patch || !patch.tiles.length) { if (!this.shown.length) { this.status = 'none'; this.onChange() } return patch }
-    const same = this.patch && this.patch.anchor.lat === patch.anchor.lat && this.patch.anchor.lon === patch.anchor.lon && this.patch.tiles.length === patch.tiles.length
+    const same = this.patch && this.exact === 'sid' in at && this.patch.anchor.lat === patch.anchor.lat && this.patch.anchor.lon === patch.anchor.lon && this.patch.tiles.length === patch.tiles.length
     if (same && !this.next) return patch
     const urls = patch.tiles.map((t) => t.url)
-    this.next = { patch, urls, ring: ring ?? Array.from({ length: 16 }, (_, i) => [Math.cos((i / 16) * 2 * Math.PI) * 30, Math.sin((i / 16) * 2 * Math.PI) * 30] as [number, number]) }
+    this.next = { patch, urls, key: 'sid' in at ? `sid:${at.sid}` : q, exact: 'sid' in at, ring: ring ?? Array.from({ length: 16 }, (_, i) => [Math.cos((i / 16) * 2 * Math.PI) * 30, Math.sin((i / 16) * 2 * Math.PI) * 30] as [number, number]) }
     this.status = 'loading'
     urls.forEach((u) => { const t = this.tiles.get(u); if (t) t.used = performance.now() })
     this.queue = urls.filter((u) => !this.tiles.has(u))
@@ -246,8 +252,8 @@ export class CityMesh implements CustomLayerInterface {
   // ---- tiles ----------------------------------------------------------------------------------------------------
 
   private enuOf(lon: number, lat: number): [number, number] {
-    const a = MercatorCoordinate.fromLngLat([this.anchor.lon, this.anchor.lat], 0), p = MercatorCoordinate.fromLngLat([lon, lat], 0), g = groundScale(this.anchor.lat)
-    return [(p.x - a.x) * 2 * Math.PI * g.east, -(p.y - a.y) * 2 * Math.PI * g.north]
+    const a = MercatorCoordinate.fromLngLat([this.anchor.lon, this.anchor.lat], 0), p = MercatorCoordinate.fromLngLat([lon, lat], 0), g = groundScale(this.anchor.lat), k = a.meterInMercatorCoordinateUnits()
+    return this.exact ? [(p.x - a.x) / k, -(p.y - a.y) / k] : [(p.x - a.x) * 2 * Math.PI * g.east, -(p.y - a.y) * 2 * Math.PI * g.north]
   }
   private meshes(urls: string[]) {
     const out: THREE.Object3D[] = []
@@ -303,7 +309,7 @@ export class CityMesh implements CustomLayerInterface {
   }
   private adopt(place: boolean) {
     const n = this.next!
-    this.patch = n.patch; this.anchor = n.patch.anchor
+    this.patch = n.patch; this.anchor = n.patch.anchor; this.key = n.key; this.exact = n.exact
     if (place) { this.shown = n.urls.filter((u) => this.tiles.get(u)?.state === 'ready'); this.place(n) } else this.shown = []
     this.sunLight.target.position.set(0, 0, 0)
   }

@@ -109,15 +109,17 @@ type Props = {
   on: string[]
   /** The instant shadows are cast for, or null for no sun. */
   sun: Date | null
-  /** A building is open in front of the map: it stops following the pointer and choosing its own 3D patch. */
-  quiet?: boolean
+  /** A hand-off is under way or a building is open: the explorer chooses the 3D patch and the camera, not the map. */
+  held?: boolean
+  /** The building's scene is in front of the map: nothing is marked on it. */
+  covered?: boolean
   onSelect: (b: Building | null) => void
   /** The person has zoomed right in on a scanned building. */
   onNear?: (b: Building) => void
 }
 
 export function WorldMap(props: Props) {
-  const { buildings, selected, marks, geo = NO_GEO, look = null, city, scheme, base, layers, on, sun, quiet = false } = props
+  const { buildings, selected, marks, geo = NO_GEO, look = null, city, scheme, base, layers, on, sun, covered = false } = props
   const el = useRef<HTMLDivElement>(null)
   const overlay = useRef<MapLibreOverlay | null>(null)
   const grid = useRef(new Map<string, LayerCollection>())
@@ -128,7 +130,7 @@ export function WorldMap(props: Props) {
   const draw = () => {
     const map = useWorld.getState().map
     if (!map || !overlay.current) return
-    const { buildings: data, selected: sel, marks: agentMarks, geo: marksGeo, fonts, on: shown, quiet: behind } = live.current
+    const { buildings: data, selected: sel, marks: agentMarks, geo: marksGeo, fonts, on: shown, covered: behind } = live.current
     const hover = useWorld.getState().hover
     const z = map.getZoom()
     const ink = tokenRgba('--ink'), paper = tokenRgba('--paper'), accent = tokenRgba('--accent')
@@ -213,10 +215,10 @@ export function WorldMap(props: Props) {
     const settle = (e?: { originalEvent?: unknown }) => {
       const z = map.getZoom(), c = map.getCenter(), now = live.current
       mesh.setShown(z >= MESH_Z - 0.2)
-      if (!now.quiet && z >= MESH_Z) void mesh.want({ lat: c.lat, lon: c.lng })
+      if (!now.held && z >= MESH_Z) void mesh.want({ lat: c.lat, lon: c.lng })
       mesh.shadowsAt(c.lng, c.lat)
       loadGrid()
-      if (!e?.originalEvent || now.quiet || z < ENTER_Z) return
+      if (!e?.originalEvent || now.held || z < ENTER_Z) return
       // the person zoomed right in: a scanned building at the middle of the view is the one they mean
       const near = now.buildings.map((b) => [metres(c, b), b] as const).sort((p, q) => p[0] - q[0])[0]
       if (near && near[0] < Math.max(35, 9000 / 2 ** (z - 12))) now.onNear?.(near[1])
@@ -227,7 +229,7 @@ export function WorldMap(props: Props) {
     map.on('mousemove', (e) => {
       cancelAnimationFrame(tipRaf)
       tipRaf = requestAnimationFrame(() => {
-        if (live.current.quiet || useWorld.getState().hover) { if (useWorld.getState().tip) useWorld.setState({ tip: null }); return }
+        if (live.current.covered || useWorld.getState().hover) { if (useWorld.getState().tip) useWorld.setState({ tip: null }); return }
         const ids = dataLayerIds(map), f = ids.length ? map.queryRenderedFeatures([[e.point.x - 3, e.point.y - 3], [e.point.x + 3, e.point.y + 3]], { layers: ids })[0] : undefined
         const L = f && live.current.layers.find((l) => f.layer.id.startsWith(`L-${l.id}`))
         const p = f?.properties as { name?: string; detail?: string } | undefined
@@ -247,7 +249,7 @@ export function WorldMap(props: Props) {
   }, [])
 
   const map = useWorld((s) => s.map), mesh = useWorld((s) => s.mesh)
-  useEffect(draw, [buildings, selected, marks, geo, map, onKey, quiet]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(draw, [buildings, selected, marks, geo, map, onKey, covered]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // The style follows what is shown: the base view, the scheme's colours, the city's files, the layers that are on.
   const styleKey = `${base}|${scheme}|${city}|${onKey}|${layers.length}`, drawnStyle = useRef(styleKey)
@@ -271,7 +273,7 @@ export function WorldMap(props: Props) {
   useEffect(() => {
     if (!map) return
     if (firstCity.current) { firstCity.current = false; return }
-    if (live.current.selected?.metro === city || live.current.quiet) return
+    if (live.current.selected?.metro === city || live.current.held) return
     const { center, zoom } = CITIES[city]
     if (reduced()) map.jumpTo({ center, zoom, pitch: 0, bearing: 0 })
     else map.flyTo({ center, zoom, pitch: 0, bearing: 0, duration: 2400, curve: 1.25, essential: true })
@@ -280,7 +282,7 @@ export function WorldMap(props: Props) {
   // A point the camera was told to look at: go there, close enough to read the marks.
   const lookKey = look?.join(',')
   useEffect(() => {
-    if (!map || !look || live.current.quiet) return
+    if (!map || !look || live.current.held) return
     const go = () => { map.resize(); const to = { center: look, zoom: 18.2 }; if (reduced()) map.jumpTo(to); else map.flyTo({ ...to, duration: 1400, essential: true }) }
     const t = setTimeout(go, 120) // after the page has laid the map out
     return () => clearTimeout(t)

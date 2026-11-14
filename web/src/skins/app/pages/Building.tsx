@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { Slider } from '@base-ui/react/slider'
 import { Tabs } from '@base-ui/react/tabs'
 import {
@@ -251,7 +252,16 @@ function FactHistory({ sid }: { sid: string }) {
   return <dl className="kv">{rows.slice(0, 60).map((r, i) => <div key={i} style={{ display: 'contents' }}><dt>{String(r.field ?? '')}</dt><dd className="num">{String(r.value ?? '')} {String(r.unit ?? '')}</dd></div>)}</dl>
 }
 
-export function Building({ sid }: { sid: string }) {
+/** Explore shows a building inside its own view (the world explorer): the map and the scene share one rectangle.
+    It gives the three places the page's parts go, hears the scene's camera and state, and is handed the view. */
+export type BuildingHost = {
+  head: HTMLElement; stage: HTMLElement; side: HTMLElement
+  onCamera?: (c: SceneCamera) => void
+  onState?: (s: SceneState) => void
+  bind?: (b: { plan: ScanPlan; setView: (fn: (v: SceneView) => SceneView) => void } | null) => void
+}
+
+export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
   const doc = useWorkspace((s) => s.doc)
   const scheme = useScheme()
   const phone = useIsPhone()
@@ -283,6 +293,7 @@ export function Building({ sid }: { sid: string }) {
   const bake = baked.sid === sid ? baked : { colour: 'unknown' as const, progress: 0 } // what is known of this scan's bake
   const opened = useRef<string | null>(null), chose = useRef<string | null>(null) // the scan whose opening view is settled; the scan on which the person picked a view themselves
   const onScene = (s: SceneState) => {
+    host?.onState?.(s)
     setInterior(s.interior.status !== 'none' && s.interior.status !== 'unknown')
     setBake((b) => (b.sid === sid && b.colour === s.scan.colour && b.progress === s.scan.progress ? b : { sid, colour: s.scan.colour, progress: s.scan.progress }))
     if (s.scan.colour === 'unknown' || opened.current === sid) return
@@ -406,12 +417,12 @@ export function Building({ sid }: { sid: string }) {
     return () => window.removeEventListener('keydown', key)
   })
 
+  useEffect(() => { if (v.plan) host?.bind?.({ plan: v.plan, setView: v.setView }); return () => host?.bind?.(null) }, [v.plan]) // eslint-disable-line react-hooks/exhaustive-deps
   const i = b ? b.scans.findIndex((x) => x.sid === sid) : -1
   const tools = doc.tools
   const fault = (text: string): ReactNode => <div className="scene-state"><Empty icon="warn" title={text} action={<button className="btn" onClick={v.retry}>Try again</button>} /></div>
 
-  return (
-    <div className="bld">
+  const head = (
       <header className="pagehead">
         <IconBtn icon="back" label="Back to the map" onClick={() => go('explore', { city: b?.metro ?? undefined, b: b?.id })} />
         <div className="ttl">
@@ -430,9 +441,8 @@ export function Building({ sid }: { sid: string }) {
         <button type="button" className="btn" aria-pressed={v.kept} onClick={v.toggleKeep} disabled={!v.plan} title="Keep this scan in Buildings ( K )"><Icon name="keep" size={14} />{v.kept ? 'Kept' : 'Keep'}</button>
         <DownloadReport workspace={doc.id} sid={sid} name={v.plan?.name} disabled={!runs.some((r) => r.status === 'done')} />
       </header>
-
-      <Split className="bld-body" off={phone}>
-        <Fill id="scene" min={320}>
+  )
+  const work = (
         <section className="work" aria-label="Building view">
           <div className="worktools">
             <Seg label="View" value={v.mode} onChange={v.setMode} options={MODES.map((m) => ({ id: m.id, label: m.label, icon: m.icon, disabled: !v.modes.includes(m.id), title: v.plan && !v.modes.includes(m.id) ? m.none : undefined }))} />
@@ -491,7 +501,7 @@ export function Building({ sid }: { sid: string }) {
                 {(() => {
                   const scene = (
                     <SceneBoundary key={`${v.sceneKey}:${scheme}`} fallback={fault('The building view stopped on this scan.')}>
-                      <Scene {...v.sceneProps} className="app-scene" switcher={false} prepare onState={onScene} onShow={onShow} onCamera={(c) => camera.current?.(c)} />
+                      <Scene {...v.sceneProps} className="app-scene" switcher={false} prepare onState={onScene} onShow={onShow} onCamera={(c) => { camera.current?.(c); host?.onCamera?.(c) }} />
                     </SceneBoundary>
                   )
                   return <CompareScenes open={showCompare} sid={sid} after={wi.after} mode={v.mode} cameraRef={camera}>{scene}</CompareScenes>
@@ -500,9 +510,8 @@ export function Building({ sid }: { sid: string }) {
             )}
           </div>
         </section>
-        </Fill>
-        <Edge of="insp" label="Resize the inspector" />
-        <Pane id="insp" size={window.innerWidth <= 1180 ? 360 : window.innerWidth <= 1700 ? 352 : 408} min={300} max={760}>
+  )
+  const insp = (
         <Tabs.Root className="insp" value={tab} onValueChange={(t) => setTab(String(t))} aria-label="Inspector">
           <Tabs.List className="tabs">
             <Tabs.Tab value="overview">Overview</Tabs.Tab>
@@ -541,7 +550,15 @@ export function Building({ sid }: { sid: string }) {
           <Tabs.Panel value="record" className="insp-body scroll"><Record sid={sid} /></Tabs.Panel>
           <Tabs.Panel value="history" className="insp-body scroll"><History sid={sid} runs={runs} /></Tabs.Panel>
         </Tabs.Root>
-        </Pane>
+  )
+  if (host) return <>{createPortal(head, host.head)}{createPortal(work, host.stage)}{createPortal(insp, host.side)}</>
+  return (
+    <div className="bld">
+      {head}
+      <Split className="bld-body" off={phone}>
+        <Fill id="scene" min={320}>{work}</Fill>
+        <Edge of="insp" label="Resize the inspector" />
+        <Pane id="insp" size={window.innerWidth <= 1180 ? 360 : window.innerWidth <= 1700 ? 352 : 408} min={300} max={760}>{insp}</Pane>
       </Split>
     </div>
   )

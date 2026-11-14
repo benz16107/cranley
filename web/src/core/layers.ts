@@ -29,9 +29,9 @@ async function get<T>(path: string): Promise<T> {
   return r.json()
 }
 const catalogues = new Map<string, Promise<MapLayer[]>>()
-/** Every layer for a city. One request per city per session. */
-export function fetchLayers(city: string): Promise<MapLayer[]> {
-  let p = catalogues.get(city)
+/** Every layer for a city. One request per city per session; `again` asks afresh (a layer just fetched has its date now). */
+export function fetchLayers(city: string, again = false): Promise<MapLayer[]> {
+  let p = again ? undefined : catalogues.get(city)
   if (!p) { p = get<{ layers: MapLayer[] }>(`/api/layers?city=${city}`).then((x) => x.layers); p.catch(() => catalogues.delete(city)); catalogues.set(city, p) }
   return p
 }
