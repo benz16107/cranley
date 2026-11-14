@@ -124,8 +124,8 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                 Metric(id="difference_deg", label="Apart", value=round(diff), unit="deg", source=src),
                 Metric(id="sun_scan_h", label="Direct sun by the scan's facing", value=scan_hours, unit="h", source=src)]
     text = {"pass": f"{said}, which agrees with the scan ({w['compass']}).",
-            "warn": f"{said}; the scan says {w['compass']}. Too far apart to agree, too close to call wrong: read it again "
-                    "away from metal.",
+            "warn": f"{said}; the scan says {w['compass']}. Too far apart to agree, too close to call wrong: "
+                    + ("a direction picked from eight cannot settle it." if inputs.by_hand else "read it again away from metal."),
             "fail": f"{said}; the scan says {w['compass']}. They cannot both be right, and the sun hours change with it."}[status]
     return ToolResult(
         scope=scope(inputs.scan), verdict=Verdict(status=status, text=text), metrics=metrics, assumptions=assumptions,
