@@ -22,6 +22,7 @@ DEFAULTS = {
     "ceiling_tol_ft": 1.0,  # ceiling height within a foot
     "count_tol": 0.15,      # parking stalls and dock doors within 15% (and at least 2)
 }
+TALL_FT = 13.0  # above this a Matterport room height cannot be trusted to reach the ceiling
 AREA_SCOPES = {"home": ("home",), "unit": ("unit",), "floor": ("floor", "building"), "building": ("building",)}
 
 
@@ -205,9 +206,13 @@ def ceiling(plan: dict, claim: dict, scan: dict, p: dict) -> dict:
     anchor = {"sid": plan["sid"], "room": h["max_room"]} if shed else None
     if abs(ft - want) <= p["ceiling_tol_ft"]:
         return _c(claim, CONFIRMED, "high", head, measured=round(ft, 1), unit="ft", anchor=anchor)
-    partial = shed and ft < want
-    return _c(claim, CONTRADICTED, "medium" if h["of_rooms"] >= 3 and not partial else "low",
-              head + note + ("The scan may not reach the warehouse floor or its tallest bay." if partial else ""),
+    if want > TALL_FT and ft < want:
+        # In the 150-scan audit every industrial scan read 7 to 12 ft against records of 12 to 43 ft: Matterport's
+        # room height stops where the camera's depth reaches, so a scan cannot measure a warehouse's clear height.
+        return _c(claim, UNVERIFIABLE, "medium", head + f"Matterport's room heights stop near the camera's reach, so a "
+                  f"scan cannot measure a ceiling above about {TALL_FT:g} ft such as a warehouse's clear height.",
+                  measured=round(ft, 1), unit="ft", anchor=anchor)
+    return _c(claim, CONTRADICTED, "medium" if h["of_rooms"] >= 3 else "low", head + note,
               measured=round(ft, 1), unit="ft", anchor=anchor)
 
 

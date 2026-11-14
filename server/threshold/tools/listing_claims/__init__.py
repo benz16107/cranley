@@ -14,7 +14,18 @@ from pydantic import BaseModel
 
 from ... import geometry
 from ...geometry.graph import neighbours
-from .. import Action, Assumption, Check, Finding, RoomAnchor, Source, ToolError, ToolResult, field, tool
+from .. import (
+    Action,
+    Assumption,
+    Check,
+    Finding,
+    RoomAnchor,
+    Source,
+    ToolError,
+    ToolResult,
+    field,
+    tool,
+)
 from ..daylight import per_room
 from ..record_vs_reality import audit, gather, result
 from ..record_vs_reality import claims as cl
@@ -54,27 +65,27 @@ def parse(text: str) -> list[dict]:
                         "path": f"listing text: \"{sentence[:160]}\"", "scope": "scan"}
 
     for s in _sentences(text):
-        if m := re.search(r"\b(\d+)\s*(?:-\s*)?(?:bed(?:room)?s?|bd|br)\b", s, re.I):
+        if m := re.search(r"\b(\d+)\s*(?:-\s*)?(?:bed(?:room)?s?|bd|br)\b", s, re.IGNORECASE):
             put("beds", "Bedrooms", int(m.group(1)), None, s)
-        elif re.search(r"\bstudio\b", s, re.I):
+        elif re.search(r"\bstudio\b", s, re.IGNORECASE):
             put("beds", "Bedrooms", 0, None, s)
-        if m := re.search(r"\b(\d+(?:\.\d)?)\s*(?:-\s*)?(?:bath(?:room)?s?|ba)\b", s, re.I):
+        if m := re.search(r"\b(\d+(?:\.\d)?)\s*(?:-\s*)?(?:bath(?:room)?s?|ba)\b", s, re.IGNORECASE):
             put("baths", "Bathrooms", float(m.group(1)), None, s)
-        if m := re.search(r"\b(\d{1,3}(?:,\d{3})+|\d{3,6})\s*(?:\+\s*)?(?:sq\.?\s*ft\.?|square\s*feet|sf|sqft)\b", s, re.I):
+        if m := re.search(r"\b(\d{1,3}(?:,\d{3})+|\d{3,6})\s*(?:\+\s*)?(?:sq\.?\s*ft\.?|square\s*feet|sf|sqft)\b", s, re.IGNORECASE):
             put("area", "Area", int(m.group(1).replace(",", "")), "ft2", s)
-        if m := re.search(r"\b(\d|one|two|three|four|single)[- ]stor(?:y|ies)\b", s, re.I):
+        if m := re.search(r"\b(\d|one|two|three|four|single)[- ]stor(?:y|ies)\b", s, re.IGNORECASE):
             put("stories", "Stories", WORDS.get(m.group(1).lower()) or int(m.group(1)), None, s)
-        if m := re.search(r"\b(\d{1,2})\s*(?:'|’|ft\.?|foot|feet)\s*(?:-\s*)?(?:high\s+)?ceilings?", s, re.I):
+        if m := re.search(r"\b(\d{1,2})\s*(?:'|’|ft\.?|foot|feet)\s*(?:-\s*)?(?:high\s+)?ceilings?", s, re.IGNORECASE):
             put("ceiling_ft", "Ceiling height", int(m.group(1)), "ft", s)
-        elif re.search(r"\b(?:high|tall|soaring|vaulted|lofty|cathedral)\s+ceilings?", s, re.I):
+        elif re.search(r"\b(?:high|tall|soaring|vaulted|lofty|cathedral)\s+ceilings?", s, re.IGNORECASE):
             put("high_ceilings", "High ceilings", True, None, s)
         if re.search(r"natural light|sun-?drenched|sun-?lit|light-?filled|\bbright\b|abundant light|lots of light|"
-                     r"flooded with light", s, re.I):
+                     r"flooded with light", s, re.IGNORECASE):
             put("natural_light", "Plenty of natural light", True, None, s)
-        if m := re.search(r"\b(north|south|east|west)(?:ern)?[- ](?:facing|exposure)", s, re.I):
+        if m := re.search(r"\b(north|south|east|west)(?:ern)?[- ](?:facing|exposure)", s, re.IGNORECASE):
             put("facing", "Facing", m.group(1).lower(), None, s)
         if m := re.search(r"\b(\d+)\s*(?:-\s*)?(?:car garage|parking spaces?|parking spots?|covered (?:parking )?spaces?)",
-                          s, re.I):
+                          s, re.IGNORECASE):
             put("parking_spaces", "Parking spaces", int(m.group(1)), None, s)
         for key, (lab, yes, no) in cl.FEATURES.items():
             if yes.search(s) and not (no and no.search(s)):
@@ -109,7 +120,7 @@ def _light(plan: dict, c: dict, day: dt.date) -> dict:
     ratio = t["glazing_ratio"] or 0
     head = (f"Glass is {ratio:.0%} of the floor area ({t['glazed_area']:.1f} m² of window over {t['floor_area']:.0f} m²); "
             "building codes ask for 8% in living rooms. ")
-    pct = dict(measured=round(100 * ratio), unit="%")
+    pct = {"measured": round(100 * ratio), "unit": "%"}
     if ratio >= 0.10:
         return cmp._c(c, cmp.CONFIRMED, "medium", head, **pct)
     if ratio < 0.05:

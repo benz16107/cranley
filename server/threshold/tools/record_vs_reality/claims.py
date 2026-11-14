@@ -28,17 +28,20 @@ RECORD_KEYS = {
     "year_renovated": ("Year renovated", "building"),
 }
 
+ZERO_IS_UNKNOWN = {"stories", "living_area", "gross_area", "rentable_area", "typical_floor_area", "height",
+                   "ceiling_height", "ceiling_height_main", "unit_area_min", "unit_area_max"}
+
 # Feature sentences in residential-listing-features that a scan or an aerial photo can check.
 FEATURES = {
-    "fireplace": ("Fireplace", re.compile(r"fireplace", re.I), re.compile(r"\bno fireplace", re.I)),
-    "kitchen_island": ("Kitchen island", re.compile(r"\bisland\b", re.I), None),
-    "walk_in_closet": ("Walk-in closet", re.compile(r"walk-?in closet", re.I), None),
-    "wood_floors": ("Hardwood floors", re.compile(r"hardwood|wood floor|wood flooring", re.I), None),
+    "fireplace": ("Fireplace", re.compile(r"fireplace", re.IGNORECASE), re.compile(r"\bno fireplace", re.IGNORECASE)),
+    "kitchen_island": ("Kitchen island", re.compile(r"\bisland\b", re.IGNORECASE), None),
+    "walk_in_closet": ("Walk-in closet", re.compile(r"walk-?in closet", re.IGNORECASE), None),
+    "wood_floors": ("Hardwood floors", re.compile(r"hardwood|wood floor|wood flooring", re.IGNORECASE), None),
     "laundry_in_unit": ("Laundry in the home", re.compile(r"laundry room|laundry in unit|in-unit laundry|"
-                                                          r"inside laundry|laundry closet|washer|dryer|utility room", re.I),
-                        re.compile(r"community|common|shared|on site|on-site|in building|no laundry|hookups? only", re.I)),
-    "garage": ("Garage", re.compile(r"garage", re.I), re.compile(r"\bno garage", re.I)),
-    "pool": ("Private pool", re.compile(r"\bpool\b", re.I), re.compile(r"community|shared|no pool|pool table", re.I)),
+                                                          r"inside laundry|laundry closet|washer|dryer|utility room", re.IGNORECASE),
+                        re.compile(r"community|common|shared|on site|on-site|in building|no laundry|hookups? only", re.IGNORECASE)),
+    "garage": ("Garage", re.compile(r"garage", re.IGNORECASE), re.compile(r"\bno garage", re.IGNORECASE)),
+    "pool": ("Private pool", re.compile(r"\bpool\b", re.IGNORECASE), re.compile(r"community|shared|no pool|pool table", re.IGNORECASE)),
 }
 
 
@@ -54,13 +57,13 @@ def parse_title(name: str | None) -> dict:
     """Beds, baths and area named in a scan title such as "2BR, 1.5BA - 755SF" or "Suite 6A-10,000SF"."""
     n = name or ""
     out: dict = {}
-    if m := re.search(r"(\d+)\s*(?:BR|BD|Bed(?:room)?s?)\b", n, re.I):
+    if m := re.search(r"(\d+)\s*(?:BR|BD|Bed(?:room)?s?)\b", n, re.IGNORECASE):
         out["beds"] = int(m.group(1))
-    elif re.search(r"\bstudio\b", n, re.I):
+    elif re.search(r"\bstudio\b", n, re.IGNORECASE):
         out["beds"] = 0
-    if m := re.search(r"(\d+(?:\.\d)?)\s*(?:BA|Bath(?:room)?s?)\b", n, re.I):
+    if m := re.search(r"(\d+(?:\.\d)?)\s*(?:BA|Bath(?:room)?s?)\b", n, re.IGNORECASE):
         out["baths"] = float(m.group(1))
-    if m := re.search(r"(\d{1,3}(?:,\d{3})+|\d{3,6})\s*(?:SF|Sq\.?\s*Ft\.?|SQFT|square feet)\b", n, re.I):
+    if m := re.search(r"(\d{1,3}(?:,\d{3})+|\d{3,6})\s*(?:SF|Sq\.?\s*Ft\.?|SQFT|square feet)\b", n, re.IGNORECASE):
         out["area"] = int(m.group(1).replace(",", ""))
     return out
 
@@ -119,12 +122,16 @@ def from_record(plan: dict, record: dict | None) -> list[dict]:
     out: list[dict] = []
     rc = (record or {}).get("claims") or {}
     kind = kind_of(record)
+    rl = (record or {}).get("residential_listing") or {}
+    in_building = bool(rl.get("isInCondoBuilding") or ((rl.get("property") or {}).get("address") or {}).get("unitNumber"))
     for key, c in rc.items():
-        if key not in RECORD_KEYS:
-            continue
+        if key not in RECORD_KEYS or (c["value"] == 0 and key in ZERO_IS_UNKNOWN):
+            continue  # the kit records "not known" as 0 for these (concepts/data-quality-and-confidence.md)
         lab, scope = RECORD_KEYS[key]
-        if kind == "home" and key in ("stories", "parking_spaces", "year_built"):
+        if kind == "home" and key in ("parking_spaces", "year_built"):
             scope = "home"
+        if kind == "home" and key == "stories":
+            scope = "building" if in_building else "home"  # a condo listing's stories are the building's
         origin = "listing" if c["path"].startswith("residential-") else "costar"
         out.append({"key": key, "label": lab, "value": c["value"], "unit": c.get("unit"), "path": c["path"],
                     "origin": origin, "scope": scope})

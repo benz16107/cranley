@@ -93,8 +93,9 @@ def _span_m(site: dict, lat: float) -> float:
     return float(min(240.0, max(60.0, side)))
 
 
-def aerial(plan: dict, rec: dict | None, kind: str, claim_keys: set[str]) -> dict:
-    """Aerial evidence for one scan: site facts, an ortho crop, and the detections the claims need."""
+def aerial(plan: dict, rec: dict | None, kind: str, claim_keys: set[str], detect_on: bool = True) -> dict:
+    """Aerial evidence for one scan: site facts, an ortho crop, and (with detect_on) the detections the claims need.
+    Stall counting uses the vision model, so callers that promise no model calls pass detect_on=False."""
     ll = latlon(plan, rec)
     if not ll:
         return {"aerial_error": "Neither the record nor the scan gives a location."}
@@ -115,8 +116,8 @@ def aerial(plan: dict, rec: dict | None, kind: str, claim_keys: set[str]) -> dic
         o = SOURCES["ortho"](lat, lon, span)
     except Exception:  # noqa: BLE001
         pass
-    want_parking = kind != "home" and claim_keys & {"parking_spaces", "parking_ratio"}
-    want_docks = "dock_doors" in claim_keys
+    want_parking = detect_on and kind != "home" and bool(claim_keys & {"parking_spaces", "parking_ratio"})
+    want_docks = detect_on and "dock_doors" in claim_keys
     for name, labels, obliques, method, on in (("parking", [STALL], False, "vision", want_parking),
                                                ("docks", [DOCK], True, "auto", want_docks)):
         if not on:
@@ -188,11 +189,12 @@ def panoramas(plan: dict, home_like: bool, keys: set[str], max_panos: int = 5) -
     return {"objects": objs, "objects_rooms": [r["id"] for r in rooms], "objects_panos": panos, "fixtures": fixtures}
 
 
-def gather(plan: dict, rec: dict | None, scan: dict, claims: list[dict], *, aerial_on: bool, panos_on: bool) -> dict:
+def gather(plan: dict, rec: dict | None, scan: dict, claims: list[dict], *, aerial_on: bool, panos_on: bool,
+           detect_on: bool | None = None) -> dict:
     keys = {c["key"] for c in claims}
     ev: dict = {}
     if aerial_on:
-        ev.update(aerial(plan, rec, scan["kind"], keys))
+        ev.update(aerial(plan, rec, scan["kind"], keys, panos_on if detect_on is None else detect_on))
     if panos_on:
         if keys & {"fireplace", "kitchen_island", "wood_floors", "laundry_in_unit", "has_sprinklers", "baths",
                    "unit_baths", "title_baths"}:

@@ -11,7 +11,6 @@ import datetime as dt
 from pydantic import BaseModel
 
 from ... import geometry
-from ...geometry import georef
 from .. import (
     Assumption,
     Check,
