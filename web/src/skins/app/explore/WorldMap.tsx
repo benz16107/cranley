@@ -3,8 +3,8 @@ import { create } from 'zustand'
 import { MapLibreOverlay } from '@deck.gl/maplibre'
 import { PathLayer, ScatterplotLayer, TextLayer } from 'deck.gl'
 import {
-  CITIES, CityMesh, MapLibre, SCENE_FOV, SLOT, fetchLayerTile, layerCityUrl, mapStyle, sunPosition,
-  type BaseView, type Building, type CityId, type GeoMarks, type LayerCollection, type MapLayer,
+  CITIES, MapLibre, SCENE_FOV, SLOT, fetchLayerTile, layerCityUrl, loadCityMesh, mapStyle, sunPosition,
+  type BaseView, type Building, type CityId, type CityMesh, type GeoMarks, type LayerCollection, type MapLayer,
 } from '../../../core/index.ts'
 import { tokenCss, tokenRgba } from '../design/ui.tsx'
 
@@ -205,18 +205,17 @@ export function WorldMap(props: Props) {
       center: start ? [start.lon, start.lat] : CITIES[city].center, zoom: start ? 15 : CITIES[city].zoom, minZoom: 3, maxZoom: 21.4, maxPitch: 80,
     })
     map.setVerticalFieldOfView(SCENE_FOV) // the building scene's lens, so the two cameras can be laid on each other
-    const mesh = new CityMesh()
-    mesh.onChange = () => useWorld.setState({ city3d: { status: mesh.status, progress: mesh.progress, capture: (mesh.patch?.capture?.[0] ?? '').slice(0, 7).replace('/', '-') } })
+    let mesh: CityMesh | null = null, gone = false
     overlay.current = new MapLibreOverlay({ interleaved: true, layers: [], getCursor: ({ isHovering }) => (isHovering ? 'pointer' : 'grab') })
     map.addControl(overlay.current as never)
-    const ensure = () => { try { if (map.isStyleLoaded() && !map.getLayer(mesh.id)) map.addLayer(mesh, SLOT.solid) } catch { /* the style is still changing: the next event tries again */ } }
+    const ensure = () => { try { if (mesh && map.isStyleLoaded() && !map.getLayer(mesh.id)) map.addLayer(mesh, SLOT.solid) } catch { /* the style is still changing: the next event tries again */ } }
     let raf = 0, tipRaf = 0
     const onMove = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { useWorld.setState((s) => ({ tick: s.tick + 1, zoom: map.getZoom(), pitch: map.getPitch(), bearing: map.getBearing() })); draw() }) }
     const settle = (e?: { originalEvent?: unknown }) => {
       const z = map.getZoom(), c = map.getCenter(), now = live.current
-      mesh.setShown(z >= MESH_Z - 0.2)
-      if (!now.held && z >= MESH_Z) void mesh.want({ lat: c.lat, lon: c.lng })
-      mesh.shadowsAt(c.lng, c.lat)
+      mesh?.setShown(z >= MESH_Z - 0.2)
+      if (!now.held && z >= MESH_Z) void mesh?.want({ lat: c.lat, lon: c.lng })
+      mesh?.shadowsAt(c.lng, c.lat)
       loadGrid()
       if (!e?.originalEvent || now.held || z < ENTER_Z) return
       // the person zoomed right in: a scanned building at the middle of the view is the one they mean
@@ -238,13 +237,21 @@ export function WorldMap(props: Props) {
       })
     })
     map.on('mouseout', () => useWorld.setState({ tip: null }))
-    map.on('load', () => { useWorld.setState({ map, mesh, zoom: map.getZoom() }); ensure(); settle(); draw() })
-    ;(el.current as unknown as { __map?: unknown; __mesh?: unknown }).__map = map // check scripts find the map and the 3D city here, as they find the scene's engine
-    ;(el.current as unknown as { __mesh?: unknown }).__mesh = mesh
+    map.on('load', () => { useWorld.setState({ map, zoom: map.getZoom() }); ensure(); settle(); draw() })
+    const host = el.current as unknown as { __map?: unknown; __mesh?: unknown }
+    host.__map = map // check scripts find the map and the 3D city here, as they find the scene's engine
+    // the 3D city arrives a moment after the map: it brings three.js, which the first paint of the page does not wait for
+    void loadCityMesh().then((Mesh) => {
+      if (gone) return
+      const m = mesh = new Mesh()
+      m.onChange = () => useWorld.setState({ city3d: { status: m.status, progress: m.progress, capture: (m.patch?.capture?.[0] ?? '').slice(0, 7).replace('/', '-') } })
+      host.__mesh = m; useWorld.setState({ mesh: m })
+      ensure(); if (map.loaded()) settle()
+    })
     document.fonts.load('600 10px "Martian Mono Variable"').then(() => { live.current.fonts = true; draw() })
     const ro = new ResizeObserver(() => map.resize())
     ro.observe(el.current!)
-    return () => { ro.disconnect(); mesh.dispose(); map.remove(); useWorld.setState({ map: null, mesh: null, hover: null, tip: null }) }
+    return () => { gone = true; ro.disconnect(); mesh?.dispose(); map.remove(); useWorld.setState({ map: null, mesh: null, hover: null, tip: null }) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

@@ -217,6 +217,40 @@ scan's name) and `doc.plan` for what it is doing, `m.look` and `m.geo` for what 
 Measurement search for the map: `searchMeasures(['floors==1', 'bath_route_door>=0.81'], { city: 'Houston' })` returns
 rows with `lat`, `lon`, `why` and `values`; `fetchMeasureFields()` lists what can be searched.
 
+## The world explorer
+
+One view from the city down to a room: the map carries on into the aerial photo, Vexcel's 3D city mesh and then a
+building's own scene. `skins/app/pages/Explore.tsx` and `skins/app/explore/` are the worked example.
+
+```ts
+mapStyle(palette, { base, closeUp })      // base: 'streets' | 'aerial' | 'terrain' | 'plain' (BASE_VIEWS has their labels);
+                                          // closeUp: the zoom by which the aerial photo has faded in under any base
+SLOT.data, SLOT.solid, SLOT.marks         // ids of empty layers in that style: insert data under the first, 3D under
+                                          // the second, marks under the third, and the map's names stay on top
+MAP_CREDIT[base], MAP_CREDIT.close        // who to credit for the ground, far out and close in
+
+fetchLayers(city): MapLayer[]             // the data layers: title, group, source, confidence, note, the day our copy
+                                          // was fetched. Print these; never write a source or a caveat yourself
+layerCityUrl(id, city)                    // a 'city' layer's GeoJSON, as a map source's data
+fetchLayerTile(id, z, x, y)               // one tile of a 'grid' layer at its own grid_z
+fetchWeather(city), fetchSite(sid)
+
+const Mesh = await loadCityMesh()         // the 3D city as a MapLibre custom layer (three.js comes with it, on demand)
+const mesh = new Mesh(); map.addLayer(mesh, SLOT.solid)
+mesh.want({ lat, lon }) / mesh.want({ sid }, ring)   // the tiles round a point, or exactly a scan's own
+mesh.setShown(on), mesh.setSun({ azimuth, altitude } | null), mesh.sunlight(lon, lat, from, to, sunAt)
+
+sunPosition(date, lat, lon), sunDay(date, lat, lon), zonedInstant(y, m, d, minutes, zone)
+```
+
+**Handing over between the map and the scene.** Both use the same lens (`SCENE_FOV`; set it with
+`map.setVerticalFieldOfView`) and draw the same city mesh. `stand(plan, site, { w, h })` works out where the scene's
+camera target is in the world and the ranges at which to swap (`enter`, `leave`); `cameraOf(stand, { bearing, pitch,
+range })` gives the camera itself, which `map.calculateCameraOptionsFromCameraLngLatAltRotation` turns into a place
+for the map. Give the scene `pose: { bearing, pitch, range: stand.enter }` and `env: 'aerial'`, wait for `onCamera`
+to report it there and `onState` to report its surroundings in, and wait for `mesh.key === 'sid:<sid>'`: then the two
+pictures agree and one can fade over the other. Mesh against mesh they were within 1 px on 2026-11-14.
+
 ## One building
 
 ```tsx

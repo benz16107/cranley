@@ -34,7 +34,9 @@ export { mapStyle, BASE_VIEWS, SLOT, MAP_CREDIT, type MapPalette, type BaseView,
 // ---- the world explorer: data layers on the map, the 3D city in the map's own canvas, the sun, and the camera
 // arithmetic for handing over between the map and the building scene (README: "The world explorer")
 export { fetchLayers, layerCityUrl, fetchLayerTile, fetchWeather, fetchSite, type MapLayer, type Weather, type LayerCollection } from './layers.ts'
-export { CityMesh, type CityPatch } from '../world/CityMesh.ts'
+export type { CityMesh, CityPatch } from '../world/CityMesh.ts'
+/** The 3D city layer, loaded on demand: it brings three.js with it, which a page that never zooms in should not pay for. */
+export const loadCityMesh = () => import('../world/CityMesh.ts').then((m) => m.CityMesh)
 export { FOV as SCENE_FOV, stand, cameraOf, lngLatOf, rangeOfZoom, zoomOfRange, type Site, type Stand, type Pose } from '../world/handoff.ts'
 export { sunPosition, sunDay, zonedInstant } from '../world/sun.ts'
 
