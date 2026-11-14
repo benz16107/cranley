@@ -10,9 +10,9 @@ from __future__ import annotations
 
 import math
 
+import shapely
 from pydantic import BaseModel
 from shapely.geometry import Point, shape
-from shapely.ops import transform
 
 from ...layers import catalog, lookup
 from ...layers.sources import federal, houston, los_angeles
@@ -49,7 +49,7 @@ def source(note: str, confidence: str = "high") -> Source:
 def metres_to(geom: dict, lon: float, lat: float) -> float:
     """Distance from a point to a shape, in metres, on a flat plane centred on the point (good over a few kilometres)."""
     k = 111320 * math.cos(math.radians(lat))
-    return transform(lambda x, y, z=None: ((x - lon) * k, (y - lat) * 111320), shape(geom)).distance(Point(0, 0))
+    return shapely.transform(shape(geom), lambda c: (c - (lon, lat)) * (k, 111320)).distance(Point(0, 0))
 
 
 def broadband(p, site) -> None:

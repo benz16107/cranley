@@ -214,4 +214,4 @@ def locate(ctx, place):
 
 # Last, once this module is whole: importing the catalogue loads every source module, and those import this one. A tool
 # that reached the source modules before the catalogue would leave the catalogue without them.
-from . import catalog  # noqa: E402, F401
+from . import catalog  # noqa: F401
