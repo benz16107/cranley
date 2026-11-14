@@ -14,7 +14,8 @@ from typing import Annotated, Any
 
 import anyio
 from mcp.server.fastmcp import Context, FastMCP
-from mcp.types import CallToolResult, TextContent, Tool as MCPTool, ToolAnnotations
+from mcp.types import CallToolResult, TextContent, ToolAnnotations
+from mcp.types import Tool as MCPTool
 from pydantic import Field
 
 from ..tools import ToolError

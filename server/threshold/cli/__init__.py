@@ -69,9 +69,9 @@ def cmd_building(a) -> object:
     lines = [f"{s['sid']}  {s['name']}", f"  {s['address'] or ''} ({s['kind']}, {s['city'] or ''})"]
     if "rooms" in p:
         q = p["quality"]
-        lines += [f"  floors {len(p['floors'])}, rooms {p['rooms']['count']}, area {p['rooms']['total_area_m2']} m2, "
-                  f"doorways {p['openings']['doorways']} (narrowest {p['openings']['narrowest_doorway_m']} m), "
-                  f"windows {p['openings']['windows']}, panoramas {p['panos']}",
+        lines += [(f"  floors {len(p['floors'])}, rooms {p['rooms']['count']}, area {p['rooms']['total_area_m2']} m2, "
+                   f"doorways {p['openings']['doorways']} (narrowest {p['openings']['narrowest_doorway_m']} m), "
+                   f"windows {p['openings']['windows']}, panoramas {p['panos']}"),
                   "  has: " + ", ".join(k for k in ("walls", "polygons", "openings", "labels", "georef") if q.get(k)),
                   "  rooms: " + ", ".join(f"{k} {v}" for k, v in p["rooms"]["by_label"].items())]
     else:

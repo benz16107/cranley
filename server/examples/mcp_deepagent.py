@@ -11,7 +11,7 @@ import sys
 from deepagents import create_deep_agent
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
-from threshold.agent.llm import chat  # Claude with the key from $THRESHOLD_DATA_DIR/.env
+from threshold.agent.llm import chat  # noqa: I001  Claude with the key from $THRESHOLD_DATA_DIR/.env
 
 SERVER = pathlib.Path(__file__).resolve().parents[1]
 
