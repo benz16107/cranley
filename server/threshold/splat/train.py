@@ -100,9 +100,10 @@ def publish(sid: str, out: Path, steps: int, sh_degree: int, max_splats: int, se
     side = {
         "schema": "interior-splat/1", "sid": sid,
         "frame": "scanplan", "units": "m", "up": "+z",
+        "transform": [v for row in IDENTITY for v in row],  # what the viewer reads (web/src/world/InteriorSplat.ts)
         "to_scanplan": IDENTITY,
-        "convention": "Splat positions are ScanPlan scan-frame metres (x, y on the floor, z up); to_scanplan is a "
-                      "row-major 4x4 taking splat coordinates to the scan frame. No axis flip in the .spz or the .ply. "
+        "convention": "Splat positions are ScanPlan scan-frame metres (x, y on the floor, z up); transform (16 numbers, "
+                      "row by row) and to_scanplan (the same as a 4x4) take splat coordinates to the scan frame. No axis flip in the .spz or the .ply. "
                       "Place in the world with the plan's geo (ENU = Rz(yaw) p + translation).",
         "files": {"spz": {"url": f"/api/scan/{sid}/interior-splat", "bytes": (root / "interior.spz").stat().st_size},
                   "ply": {"url": f"/api/scan/{sid}/interior-splat?format=ply", "bytes": (root / "interior.ply").stat().st_size}},
