@@ -40,6 +40,12 @@ def price(pid: str) -> tuple[float, str]:
     return p[1], p[3]
 
 
+def anchor_of(res: ToolResult | None, checks: list[Check]):
+    """The anchor of the first finding these checks point at, so a fix shows where it is."""
+    by = {f.id: f for f in (res.findings if res else [])}
+    return next((by[fid].anchor for c in checks for fid in c.findings if fid in by and by[fid].anchor), None)
+
+
 def fixes_for(doors: ToolResult | None, baths: ToolResult | None, egress: ToolResult | None, need_m: float) -> list[dict]:
     """The fix list from the sub-results: {priority, area, title, qty, unit_cost, total, source, why}. Pure."""
     out = []
@@ -49,16 +55,17 @@ def fixes_for(doors: ToolResult | None, baths: ToolResult | None, egress: ToolRe
                 cost, src = price("widen_door")
                 out.append({"priority": 1, "area": "egress", "title": "Widen the widest way out to a full exit width", "qty": 1,
                             "unit_cost": cost, "total": cost, "source": src,
-                            "why": f"Widest doorway out is {c.measured:.2f} m against {c.threshold:.2f} m"})
+                            "why": f"Widest doorway out is {c.measured:.2f} m against {c.threshold:.2f} m",
+                            "anchor": anchor_of(egress, [c])})
             if c.id.startswith("length:") and c.status in ("warn", "fail") and c.measured is not None:
                 out.append({"priority": 1, "area": "egress", "title": "Way out longer than the travel distance limit", "qty": 1,
                             "unit_cost": None, "total": None, "source": "No price: confirm sprinklers (300 ft allowed) or add an exit",
                             "why": f"{c.measured:.0f} m to an entrance against {c.threshold:.0f} m (200 ft, IBC 2021 Table 1017.2, "
-                                   "Group B without sprinklers)", "measured": c.measured})
+                                   "Group B without sprinklers)", "measured": c.measured, "anchor": anchor_of(egress, [c])})
             if c.id.startswith("pinch:") and c.status == "fail":
                 out.append({"priority": 1, "area": "egress", "title": "Clear or widen a narrow hallway on a way out", "qty": 1,
                             "unit_cost": None, "total": None, "source": "No price in the cost book: get a quote",
-                            "why": f"Hallway {c.measured:.2f} m wide"})
+                            "why": f"Hallway {c.measured:.2f} m wide", "anchor": anchor_of(egress, [c])})
     if doors:
         narrow = [c for c in doors.checks if c.status == "fail" and c.measured is not None]
         close = [c for c in narrow if c.measured >= need_m - 0.05]   # within 5 cm: swing-clear hinges gain about that much
@@ -67,23 +74,25 @@ def fixes_for(doors: ToolResult | None, baths: ToolResult | None, egress: ToolRe
             cost, src = price("offset_hinges")
             out.append({"priority": 2, "area": "access", "title": "Swing-clear hinges on doors just under 32 in", "qty": len(close),
                         "unit_cost": cost, "total": cost * len(close), "source": src,
-                        "why": ", ".join(f"{c.measured:.2f} m" for c in close[:8])})
+                        "why": ", ".join(f"{c.measured:.2f} m" for c in close[:8]), "anchor": anchor_of(doors, close)})
         if wide:
             cost, src = price("widen_door")
             out.append({"priority": 2, "area": "access", "title": "Widen doorways well under 32 in", "qty": len(wide),
                         "unit_cost": cost, "total": cost * len(wide), "source": src,
-                        "why": ", ".join(f"{c.measured:.2f} m" for c in wide[:8])})
+                        "why": ", ".join(f"{c.measured:.2f} m" for c in wide[:8]), "anchor": anchor_of(doors, wide)})
     if baths:
         grab = [c for c in baths.checks if c.status == "fail" and "grab" in c.rule.lower()]
         if grab:
             cost, src = price("grab_bar")
             out.append({"priority": 2, "area": "access", "title": "Grab bars at the toilet (side and rear)", "qty": 2 * len(grab),
-                        "unit_cost": cost, "total": cost * 2 * len(grab), "source": src, "why": f"{len(grab)} restrooms without them seen"})
+                        "unit_cost": cost, "total": cost * 2 * len(grab), "source": src, "why": f"{len(grab)} restrooms without them seen",
+                        "anchor": anchor_of(baths, grab)})
         turn = [c for c in baths.checks if c.status == "fail" and "turn" in c.rule.lower()]
         if turn:
             out.append({"priority": 2, "area": "access", "title": "Restroom too small to turn a wheelchair: reconfigure",
                         "qty": len(turn), "unit_cost": None, "total": None, "source": "No price in the cost book: get a quote",
-                        "why": ", ".join(f"{c.measured:.2f} m circle" for c in turn if c.measured is not None)})
+                        "why": ", ".join(f"{c.measured:.2f} m circle" for c in turn if c.measured is not None),
+                        "anchor": anchor_of(baths, turn)})
     return sorted(out, key=lambda f: (f["priority"], -(f["total"] or 0)))
 
 
@@ -156,7 +165,9 @@ def run(ctx, i: Inputs) -> ToolResult:
     for r in (doors, baths, egress):
         if r:
             bad = [c for c in r.checks if c.status in ("fail", "warn")]
-            checks += [c.model_copy(update={"id": f"{r.tool}.{c.id}"}) for c in bad[:15]]
+            checks += [c.model_copy(update={"id": f"{r.tool}.{c.id}"} | (
+                {"standard": "IBC 2021 Table 1017.2: exit access travel distance, Group B, 200 ft without sprinklers, 300 ft with"}
+                if c.id.startswith("length:") else {})) for c in bad[:15]]
             findings += [f for f in r.findings if f.status in ("fail", "warn")][:8]
     if seen is not None:
         vis = Source(layer="model", method="vision", confidence="medium", note="Vision model on each room's central panorama")
@@ -189,7 +200,8 @@ def run(ctx, i: Inputs) -> ToolResult:
     for n, f in enumerate(fixes, start=1):
         fid = f"facility_audit:{sid}:fix_{n}"
         findings.insert(n - 1, Finding(id=fid, title=f"Fix {n} ({f['area']}): {f['title']}",
-                                       status="fail" if f["priority"] == 1 else "warn" if f["priority"] == 2 else "unknown", anchor=None, source=BOOK,
+                                       status="fail" if f["priority"] == 1 else "warn" if f["priority"] == 2 else "unknown",
+                                       anchor=f.get("anchor"), source=BOOK,
                                        detail=f"{f['why']}. " + (f"{f['qty']} x ${f['unit_cost']:,.0f} = ${f['total']:,.0f} ({f['source']})."
                                                                 if f["total"] is not None else f"{f['qty']} to do. {f['source']}.")))
         if f["total"] is not None:

@@ -76,6 +76,7 @@ DEFAULTS = {"industrial": {"clear_height_min_ft": 24, "docks_min": 2, "parking_r
             "flex": {"clear_height_min_ft": 16, "docks_min": 0, "parking_ratio_min": 2, "highway_max_km": 5},
             "office": {"parking_ratio_min": 3, "highway_max_km": 8, "transit_max_m": 800},
             "retail": {"parking_ratio_min": 4, "highway_max_km": 8, "transit_max_m": 800}}
+BREAKER_CAP = 40.0  # the score shown for a candidate that fails a must-have
 UNVERIFIED_PENALTY = 10  # points off the score for each must-have with no evidence
 SF_PER_PERSON = {"office": (150, 250), "flex": (250, 500), "industrial": (500, 2000), "retail": (100, 300)}
 SCAN = Source(layer="matterport", method="geometry", confidence="high", note="Measured on the scan's floor plan")
@@ -148,6 +149,7 @@ class Cand:
     coverage: float = 0.0
     breakers: list[str] = dc_field(default_factory=list)
     unverified: list[str] = dc_field(default_factory=list)
+    raw: float | None = None        # the weighted score before a deal-breaker caps it
 
 
 def lin(x: float, ok: float, zero: float) -> float:
@@ -312,8 +314,8 @@ def score_osm(c: Cand, req: dict, t: dict) -> list[Cell]:
         out.append(Cell("transit", None, 0.0, req.get("transit_max_m") or 800, "fail",
                         "No bus stop within 1 km or station within 2 km in OpenStreetMap", OSM, None))
     sub = nb.get("substation")
-    out.append(Cell("substation", sub["km"] if sub else None, lin(sub["km"], 2, 8) if sub else 30.0, 2,
-                    status_of(lin(sub["km"], 2, 8) if sub else 30.0),
+    out.append(Cell("substation", sub["km"] if sub else None, lin(sub["km"], 2, 8) if sub else None, 2,
+                    status_of(lin(sub["km"], 2, 8) if sub else None),
                     f"Nearest mapped substation {sub['km']:.1f} km" if sub else "No substation mapped within 3 km "
                     "(OpenStreetMap misses some)", OSM, sub["km"] if sub else None))
     hubs = [x for x in (nb.get("airport"), nb.get("port")) if x]
@@ -476,6 +478,9 @@ def evaluate(ctx, c: Cand, i: Inputs, req: dict, weights: dict, must: list[str],
         elif cell.status == "fail":
             c.breakers.append(k)
     c.total = round(max(0.0, num / den - UNVERIFIED_PENALTY * len(c.unverified)), 1) if den else None
+    if c.breakers and c.total is not None:
+        c.raw = c.total
+        c.total = min(c.total, BREAKER_CAP)  # a building that fails a must-have never outscores one that meets them
 
 
 @tool(id="site_scorecard", title="Site scorecard", icon="trophy",
@@ -524,9 +529,12 @@ def run(ctx, i: Inputs) -> ToolResult:
         homes = parse_homes(i.employees)
 
     if i.candidates:
-        if len(i.candidates) < 2:
+        given = list(i.candidates)
+        if i.place and i.place.key() not in {p.key() for p in given}:
+            given = [i.place] + given[:9]  # the selected building is always one of the candidates
+        if len(given) < 2:
             raise ToolError("Give at least two candidates to compare, or none to search.")
-        cands = [candidate(ctx, p) for p in i.candidates]
+        cands = [candidate(ctx, p) for p in given]
         how = f"{len(cands)} candidates given"
     else:
         origin, here = None, None
@@ -570,13 +578,14 @@ def build(cands: list[Cand], i: Inputs, req: dict, weights: dict, must: list[str
             metrics.append(Metric(id=f"{c.key}/{k}", label=label, value=cell.display if cell and isinstance(cell.display, (int, float)) else None,
                                   unit=CRITERIA[k][1], source=cell.source if cell else SCORE))
         metrics.append(Metric(id=f"score.{c.key}", label=c.name, value=c.total, unit="/100", source=SCORE))
-        for k, w in weights.items():
+        for k, w in sorted(weights.items(), key=lambda kw: (kw[0] not in must, -kw[1])):  # must-haves first
             cell = c.cells.get(k)
             fid = f"site_scorecard:{c.key}:{k}"
             st = cell.status if cell else "unknown"
             checks.append(Check(id=f"{c.key}.{k}", rule=f"{CRITERIA[k][0]}, {c.name}" + (" (must)" if k in must else ""),
-                                measured=cell.value if cell and isinstance(cell.value, (int, float)) else None,
-                                threshold=cell.threshold if cell else None, unit=CRITERIA[k][1], status=st,
+                                measured=(cell.value if isinstance(cell.value, (int, float)) else cell.score) if cell else None,
+                                threshold=cell.threshold if cell else None,
+                                unit=CRITERIA[k][1] if not cell or isinstance(cell.value, (int, float)) else "/100", status=st,
                                 standard=(cell.source.note if cell else "No evidence for this criterion"),
                                 findings=[fid] if cell and (k in c.breakers or k in must) else []))
             if cell and (k in c.breakers or (k in must and st != "unknown")):
@@ -588,7 +597,7 @@ def build(cands: list[Cand], i: Inputs, req: dict, weights: dict, must: list[str
         weak = [CRITERIA[k][0].lower() for k, cl in c.cells.items() if k in weights and cl.status in ("warn", "fail")]
         missing = [CRITERIA[k][0].lower() for k in weights if k not in c.cells or c.cells[k].score is None]
         detail = (f"Rank {rank}, score {c.total if c.total is not None else 'n/a'}/100 from {c.coverage}% of the weighted "
-                  f"criteria." + (f" Deal-breakers: {', '.join(CRITERIA[k][0].lower() for k in c.breakers)}." if c.breakers else "")
+                  f"criteria." + (f" It would score {c.raw} but a failed must-have caps it at {BREAKER_CAP:g}." if c.raw else "") + (f" Deal-breakers: {', '.join(CRITERIA[k][0].lower() for k in c.breakers)}." if c.breakers else "")
                   + (f" Strong: {', '.join(good)}." if good else "") + (f" Weak: {', '.join(weak)}." if weak else "")
                   + (f" No evidence: {', '.join(missing)}." if missing else "")
                   + (f" Must-haves not verified ({UNVERIFIED_PENALTY} points off each): "
