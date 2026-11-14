@@ -10,12 +10,13 @@ export interface Style { tint: RGB; amt: number; wash: number; height: number; a
 export interface Box { floor: number; elem: number; kind: 0 | 1 | 2; cx: number; cy: number; dx: number; dy: number; s0: number; s1: number; z0: number; z1: number; t: number }
 
 export const STUB = 0.18        // metres a dimmed wall keeps, so the plan still reads
-const CAMERA_HEIGHT_GUESS = 1.45 // only used when a floor has no panoramas
+const CAMERA_HEIGHT = 1.4       // a Matterport tripod; only used for a floor with no doorway sills, as on the server
 
 export interface Model {
   plan: ScanPlan                // the plan as drawn: rooms that arrived without an outline get one derived from their walls
   floorZ: number[]              // elevation of each floor in scan z, index = position in plan.floors
   floorH: number[]              // typical room height per floor
+  groundFloor: number           // the floor that stands on the ground outside: the lowest that is not a basement
   floorOf: Map<string, number>
   bounds: Bounds; floorBounds: Bounds[]
   maxH: number
@@ -26,7 +27,7 @@ export interface Model {
   hasWalls: boolean
 }
 
-const median = (v: number[]) => { const s = [...v].sort((a, b) => a - b); return s.length ? s[s.length >> 1] : NaN }
+const median = (v: number[]) => { const s = [...v].sort((a, b) => a - b); return s.length ? (s[(s.length - 1) >> 1] + s[s.length >> 1]) / 2 : NaN }
 
 /**
  * A room's outline from its boundary walls, for rooms the ScanPlan left without a polygon. Those are rooms with a wall
@@ -69,12 +70,16 @@ export function buildModel(source: ScanPlan): Model {
   }) }
   const floorOf = new Map(plan.floors.map((f, i) => [f.id, i]))
   const panoZ = plan.floors.map((f) => median(plan.panos.filter((p) => p.floor === f.id).map((p) => p.position[2])))
-  // The lowest floor sits at z = 0 in Matterport's frame; upper floors are offset by the tripod height difference.
-  const base = Number.isFinite(panoZ[0]) ? panoZ[0] : CAMERA_HEIGHT_GUESS
   const floorH = plan.floors.map((f) => median(plan.rooms.filter((r) => r.floor === f.id && r.height).map((r) => r.height!)) || 2.6)
+  // Each floor's level in scan z, found as the server finds it (geometry/_plan.py floor_z): opening sills are absolute
+  // scan z, so the median doorway sill on a floor is its level; a floor with no doorway stands a tripod height under
+  // its panoramas; one with neither is stacked on the floor below. Matterport's origin can be on any floor, so the
+  // lowest floor is not at 0 (a house scanned from upstairs has its ground floor 3 m down), and everything else in
+  // the scan frame (overlays, panoramas, the scanned mesh, the splats) is drawn where it is, with no offset.
   let acc = 0
-  const floorZ = plan.floors.map((_, i) => {
-    const z = i === 0 ? 0 : Number.isFinite(panoZ[i]) ? panoZ[i] - base : acc
+  const floorZ = plan.floors.map((f, i) => {
+    const sills = plan.openings.filter((o) => o.floor === f.id && o.type !== 'window' && o.sill != null).map((o) => o.sill!)
+    const z = sills.length ? median(sills) : Number.isFinite(panoZ[i]) ? panoZ[i] - CAMERA_HEIGHT : acc
     acc = z + floorH[i] + 0.3
     return z
   })
@@ -91,6 +96,7 @@ export function buildModel(source: ScanPlan): Model {
   const R = plan.rooms.length, W = plan.walls.length
   return {
     plan, floorZ, floorH, floorOf, bounds, floorBounds,
+    groundFloor: Math.max(0, plan.floors.findIndex((f) => !/basement|cellar/i.test(f.label ?? ''))),
     maxH: Math.max(2.4, ...plan.rooms.map((r) => r.height ?? 0)),
     elemCount: 1 + R + W + plan.openings.length,
     roomElem: new Map(plan.rooms.map((r, i) => [r.id, 1 + i])),
@@ -145,7 +151,8 @@ export function openingSpan(m: Model, o: Opening) {
   const w = m.wallById.get(o.wall)!
   const L = w.length || 1e-6, dx = (w.b[0] - w.a[0]) / L, dy = (w.b[1] - w.a[1]) / L
   const s = (o.center[0] - w.a[0]) * dx + (o.center[1] - w.a[1]) * dy, half = (o.width ?? 0.8) / 2
-  const sill = Math.max(0, o.sill ?? 0), H = wallHeight(m, w)
+  const fz = m.floorZ[m.floorOf.get(o.floor) ?? 0] ?? 0
+  const sill = Math.max(0, (o.sill ?? fz) - fz), H = wallHeight(m, w) // a sill is absolute scan z: here it is its height above its own floor
   return { w, dx, dy, s0: Math.max(0, s - half), s1: Math.min(L, s + half), sill, head: Math.min(H, sill + (o.height ?? 2.03)), H }
 }
 
