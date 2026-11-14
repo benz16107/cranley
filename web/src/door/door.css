@@ -1,7 +1,9 @@
 /* The front door is the cover sheet of the set, laid on the left of the stage. The map stays live beside it. */
-.app[data-view='door'] { grid-template-columns: 0 minmax(0, 1fr) 0; column-gap: 0; }
-.app[data-view='door'] .dock { margin-left: calc(min(620px, 100vw - 24px) + var(--gap)); }
-.app[data-view='door'] .free { left: calc(min(620px, 100vw - 24px) + var(--gap)); }
+@media (min-width: 761px) {
+  .app[data-view='door'] { grid-template-columns: 0 minmax(0, 1fr) 0; column-gap: 0; }
+  .app[data-view='door'] .dock { margin-left: calc(min(620px, 100vw - 24px) + var(--gap)); }
+  .app[data-view='door'] .free { left: calc(min(620px, 100vw - 24px) + var(--gap)); }
+}
 .door { position: absolute; left: var(--gap); top: calc(var(--bar-h) + var(--gap)); bottom: var(--gap); width: min(620px, calc(100vw - 2 * var(--gap))); z-index: 4; padding: 0 var(--s-6) var(--s-6); }
 .sheethead { display: flex; justify-content: space-between; padding: var(--s-4) 0 var(--s-3); border-bottom: 1px solid var(--ink); margin-bottom: var(--s-7); position: sticky; top: 0; background: var(--pane); z-index: 1; }
 .door h1 { font-size: clamp(2rem, 3.4vw, var(--text-3xl)); line-height: 1.02; font-weight: 700; font-stretch: 112%; letter-spacing: -0.02em; max-width: 12em; }
@@ -16,7 +18,7 @@
 .door .idx { margin-top: var(--s-7); padding-bottom: var(--s-2); border-bottom: 1px solid var(--rule-strong); }
 
 /* the index of starting points: rows of a sheet list, not cards */
-.needs button { width: 100%; display: grid; grid-template-columns: 28px 1fr auto; gap: 3px var(--s-3); align-items: baseline; padding: 13px 0; border-bottom: 1px solid var(--rule); transition: background-color var(--dur-1) ease, padding var(--dur-2) var(--ease-out); }
+.needs button { width: 100%; display: grid; grid-template-columns: 28px 1fr auto; gap: 3px var(--s-3); align-items: baseline; padding: 13px 0; border-bottom: 1px solid var(--rule); transition: background-color var(--dur-1) ease; }
 .needs .n { font-size: 0.62rem; color: var(--ink-3); }
 .needs .who { font-size: var(--text-md); color: var(--ink-2); }
 .needs .who b { color: var(--ink); font-weight: 620; }

@@ -121,6 +121,7 @@ export function CityMap({ buildings, selected, marks, city, scheme, inset, frame
   useEffect(() => {
     if (!map) return
     const pad = () => {
+      if (map.isMoving()) { map.once('moveend', pad); return } // setting padding would cut a flight short
       const f = frame.current?.getBoundingClientRect(), c = el.current!.getBoundingClientRect()
       map.setPadding(inset || !f ? { top: 0, right: 0, bottom: 0, left: 0 }
         : { top: Math.max(0, f.top - c.top), left: Math.max(0, f.left - c.left), right: Math.max(0, c.right - f.right), bottom: Math.max(0, c.bottom - f.bottom) })

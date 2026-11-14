@@ -113,10 +113,14 @@ export function BuildingList({ items, onPick, empty }: { items: Building[]; onPi
 /* ---------- the callout: the scans at one address ---------- */
 const KIND_LABEL: Record<Kind, string> = { home: 'House', apartment: 'Apartment', amenity: 'Shared room', office: 'Office', other: 'Other' }
 
-export function BuildingCard({ b, onClose }: { b: Building; onClose: () => void }) {
+export function BuildingCard({ b, onClose, visible = true }: { b: Building; onClose: () => void; visible?: boolean }) {
   const shortlist = useWorkspace((s) => s.doc.shortlist)
   const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => { ref.current?.querySelector<HTMLElement>('.scanrow')?.focus({ preventScroll: true }) }, [b.id])
+  // Focus moves into the card once it can be seen, unless the person is already typing somewhere else.
+  useEffect(() => {
+    const at = document.activeElement
+    if (visible && (!at || at === document.body || at.tagName === 'CANVAS' || at.closest('.search'))) ref.current?.querySelector<HTMLElement>('.scanrow')?.focus({ preventScroll: true })
+  }, [b.id, visible])
   return (
     <div className="bcard" ref={ref} role="dialog" aria-label={`Scans at ${b.address}`} onKeyDown={(e) => e.key === 'Escape' && onClose()}>
       <header>
@@ -168,7 +172,7 @@ export function Callout({ b, frame, onClose }: { b: Building; frame: RefObject<H
   return (
     <div className="callout" style={{ visibility: hidden ? 'hidden' : 'visible' }}>
       <svg className="leader" aria-hidden="true"><polyline points={`${x},${y} ${right ? left : left + W},${top + 22}`} /></svg>
-      <div className="float" style={{ translate: `${left}px ${top}px`, width: W }}><BuildingCard b={b} onClose={onClose} /></div>
+      <div className="float" style={{ translate: `${left}px ${top}px`, width: W }}><BuildingCard b={b} onClose={onClose} visible={!hidden} /></div>
     </div>
   )
 }

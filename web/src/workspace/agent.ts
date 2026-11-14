@@ -1,6 +1,6 @@
 import { toast } from 'sonner'
 import { dispatch, useWorkspace } from './store.ts'
-import type { Action, Block, Doc, Op, OpInput, Panel, ScanPlan, ToolResult } from './types.ts'
+import type { Action, Block, Doc, Op, OpInput, Panel, Question, ScanPlan, ToolResult } from './types.ts'
 import { fetchPlan } from '../lib/api.ts'
 import { currentRoute, navigate } from '../lib/router.ts'
 import { CITIES, useBuildings, type Building } from '../map/buildings.ts'
@@ -74,11 +74,7 @@ export async function compose(sentence: string, needId?: string) {
 /** Every question answered: start the investigation. */
 export async function investigate() {
   const d = doc()
-  for (const q of d.questions) {
-    if (q.answer == null || !q.pref) continue
-    const value = q.answer === 'Yes' ? true : q.answer === 'No' ? false : typeof q.answer === 'string' && /^[\d.]+/.test(q.answer) ? parseFloat(q.answer) : q.answer
-    say({ op: 'pref.set', key: q.pref, label: prefLabel(q.pref) ?? q.text, value, unit: typeof value === 'number' ? (q.unit ?? String(q.answer).replace(/^[\d.]+\s*/, '')) : undefined, from: `You answered “${q.text}”` })
-  }
+  for (const q of d.questions) if (q.answer != null && q.pref) say(answerPref(q, q.answer))
   if (live) { void serverTurn('Start the investigation.'); return }
   const need = matchNeed(d.brief?.text ?? '')
   if (!need.scripted || !d.tools.some((t) => t.id === 'access')) {
@@ -87,6 +83,13 @@ export async function investigate() {
     return
   }
   await playAccess({ city: need.city })
+}
+
+/** An answer to a tool's question becomes a preference, with the question kept as where it came from. */
+export function answerPref(q: Question, answer: string | number) {
+  const value = answer === 'Yes' ? true : answer === 'No' ? false : typeof answer === 'string' && /^[\d.]+/.test(answer) ? parseFloat(answer) : answer
+  return { op: 'pref.set' as const, key: q.pref!, label: prefLabel(q.pref!) ?? q.text, value,
+    unit: typeof value === 'number' ? (q.unit ?? String(answer).replace(/^[\d.]+\s*/, '')) : undefined, from: `You answered “${q.text}”` }
 }
 
 const prefLabel = (key: string) => ({ 'access.door_clear': 'Clear door width', 'access.turning': 'Turning circle', 'access.turning_needed': 'Turning space in the bathroom', 'access.route_to': 'Route drawn to' } as Record<string, string>)[key]
@@ -110,7 +113,7 @@ function candidateAddresses(all: Building[], city: Need['city']): { b: Building;
   const one = (b: Building) => b.scans.filter((s) => /\b1 ?(br|bed)/i.test(s.name))
   return all.filter((x) => x.metro === city && one(x).length >= 2)
     .sort((p, q) => Math.hypot(p.lon - cx, p.lat - cy) - Math.hypot(q.lon - cx, q.lat - cy))
-    .slice(0, 4).map((b) => ({ b, sids: one(b).slice(0, 3).map((s) => s.sid) }))
+    .slice(0, 10).map((b) => ({ b, sids: one(b).slice(0, 3).map((s) => s.sid) }))
 }
 
 const STEPS = ['Find one-bedroom units to compare', 'Read each floor plan', 'Trace the way in and measure every doorway', 'Rank the units', 'Show what decides it']
@@ -129,38 +132,49 @@ export async function playAccess(opts: { sids?: string[]; city?: Need['city']; q
   if (!doc().tools.some((t) => t.id === 'access')) say({ op: 'tool.enable', tool: { ...TOOLS.access, reason: 'You asked for it on this scan.' } })
 
   say({ op: 'plan.set', steps: planSteps(0) })
-  // Either the scans were named, or the agent tries addresses in turn until one has doorways to measure.
-  const named = opts.sids?.length ? [{ b: buildingOf(all, opts.sids[0]), sids: opts.sids }] : null
-  const tries = named ?? candidateAddresses(all, opts.city ?? 'hou')
-  if (!tries.length) { toast.error('No one-bedroom units found to compare in this city.'); say({ op: 'plan.set', steps: [] }); return }
-  let home: Building | undefined, sids: string[] = []
-  const plans: ScanPlan[] = []
-  for (const [n, t] of tries.entries()) {
-    home = t.b; sids = t.sids; plans.length = 0
-    if (!named) { navigate('/map', { city: home?.metro ?? undefined }, { keep: true }); await wait(n ? 300 : 900 * pace) }
-    if (!alive()) return
-    if (home && !opts.quick) say({ op: 'camera.focus', anchor: { geo: [home.lon, home.lat] } })
-    await wait(1400 * pace)
-    say({ op: 'plan.set', steps: planSteps(1) })
-    for (const sid of sids) {
+  const hasDoors = (p: ScanPlan) => p.openings.some((o) => o.type === 'doorway')
+  let home: Building | undefined, sids = opts.sids ?? []
+  if (sids.length) home = buildingOf(all, sids[0])
+  else {
+    // Many unit scans carry rooms but no wall outline. Probe one scan per address, nearest the centre first
+    // and at most ten, until one has doorways to measure. Each probe is one cached request.
+    const tries = candidateAddresses(all, opts.city ?? 'hou')
+    if (!tries.length) { toast.error('No one-bedroom units found to compare in this city.'); say({ op: 'plan.set', steps: [] }); return }
+    navigate('/map', { city: opts.city ?? 'hou' }, { keep: true })
+    await wait(700 * pace)
+    for (const t of tries) {
       if (!alive()) return
-      const id = `read:${sid}`, t1 = performance.now()
-      const name = home?.scans.find((x) => x.sid === sid)?.name ?? sid
-      say({ op: 'run.start', id, tool: 'access', label: name, step: 's2' })
-      try {
-        const plan = await fetchPlan(sid)
-        plans.push(plan)
-        await wait(350 * pace)
-        say({ op: 'run.finish', id, ms: performance.now() - t1, summary: `${plan.rooms.length} rooms, ${plan.openings.filter((o) => o.type === 'doorway').length} doorways` })
-      } catch (e) { say({ op: 'run.finish', id, status: 'failed', summary: (e as Error).message }) }
+      const id = `probe:${t.sids[0]}`, t1 = performance.now()
+      say({ op: 'run.start', id, tool: 'access', label: t.b.address.split(',')[0], step: 's1' })
+      const ok = await fetchPlan(t.sids[0]).then(hasDoors, () => false)
+      await wait(260 * pace)
+      say({ op: 'run.finish', id, ms: performance.now() - t1, summary: ok ? 'Has a wall outline with doorways' : 'No wall outline, so nothing to measure' })
+      home = t.b; sids = t.sids
+      if (ok) break
     }
-    if (named || plans.some((p) => p.openings.some((o) => o.type === 'doorway')) || n === tries.length - 1) break
-    log.push({ id: `skip${n}`, label: `No wall outline at ${home?.address.split(',')[0]}`, detail: 'Trying the next address', ms: performance.now() - t0 })
-    say({ op: 'plan.set', steps: planSteps(0) })
+    if (!alive()) return
+  }
+  lastSids = sids
+  // show the address on the map only when the agent chose it; a named scan is already in view
+  if (home && !opts.sids?.length) say({ op: 'camera.focus', anchor: { geo: [home.lon, home.lat] } })
+  log.push({ id: 'l1', label: STEPS[0], detail: home ? home.address.split(',')[0] : undefined, ms: performance.now() - t0 })
+  await wait(1500 * pace)
+
+  say({ op: 'plan.set', steps: planSteps(1) })
+  const plans: ScanPlan[] = []
+  for (const sid of sids) {
+    if (!alive()) return
+    const id = `read:${sid}`, t1 = performance.now()
+    const name = home?.scans.find((x) => x.sid === sid)?.name ?? sid
+    say({ op: 'run.start', id, tool: 'access', label: name, step: 's2' })
+    try {
+      const plan = await fetchPlan(sid)
+      plans.push(plan)
+      await wait(350 * pace)
+      say({ op: 'run.finish', id, ms: performance.now() - t1, summary: `${plan.rooms.length} rooms, ${plan.openings.filter((o) => o.type === 'doorway').length} doorways` })
+    } catch (e) { say({ op: 'run.finish', id, status: 'failed', summary: (e as Error).message }) }
   }
   if (!alive()) return
-  lastSids = sids
-  log.push({ id: 'l1', label: STEPS[0], detail: home ? home.address.split(',')[0] : undefined, ms: performance.now() - t0 })
   if (!plans.length) { toast.error('None of the plans loaded.', { description: 'Check that the data server is running.' }); return }
   log.push({ id: 'l2', label: STEPS[1], detail: `${plans.length} of ${sids.length} loaded`, ms: performance.now() - t0 })
 
@@ -212,7 +226,8 @@ export async function playAccess(opts: { sids?: string[]; city?: Need['city']; q
   const worstFirst = [...best.r.findings].sort((a, b) => rank[b.status] - rank[a.status])
   if (!opts.quick) {
     const entrance = best.r.findings[0]
-    if (entrance?.anchor) say({ op: 'camera.focus', anchor: entrance.anchor, finding: entrance.id })
+    // open the chosen scan even when nothing in it could be measured
+    say({ op: 'camera.focus', anchor: entrance?.anchor ?? { sid: best.plan.sid, point: [0, 0, 0] }, finding: entrance?.id })
     await wait(1700)
     if (!alive()) return
     if (worstFirst[0]?.anchor && worstFirst[0].id !== entrance?.id) say({ op: 'camera.focus', anchor: worstFirst[0].anchor, finding: worstFirst[0].id })

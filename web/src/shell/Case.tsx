@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { Popover } from '@base-ui/react/popover'
 import { Switch } from '@base-ui/react/switch'
 import { useWorkspace, userOp } from '../workspace/store.ts'
-import type { Pref, Question } from '../workspace/types.ts'
-import { ask, compose, investigate, runToolHere } from '../workspace/agent.ts'
+import type { Pref, Question, Run } from '../workspace/types.ts'
+import { answerPref, ask, compose, investigate, runToolHere } from '../workspace/agent.ts'
 import { Icon, ToolKey } from '../design/ui.tsx'
 import { navigate, useRoute } from '../lib/router.ts'
 
@@ -12,7 +12,11 @@ const prefText = (p: Pick<Pref, 'value' | 'unit'>) => (typeof p.value === 'boole
 /* ---------- questions the tools need answered, asked inline ---------- */
 export function QuestionForm({ q }: { q: Question }) {
   const [n, setN] = useState('')
-  const answer = (a: string | number) => userOp({ op: 'question.answer', id: q.id, answer: a })
+  const started = useWorkspace((s) => s.doc.plan.length > 0)
+  const answer = (a: string | number) => {
+    userOp({ op: 'question.answer', id: q.id, answer: a })
+    if (started && q.pref) userOp(answerPref(q, a)) // answered after the work began: it counts at once
+  }
   return (
     <fieldset className="question">
       <legend>{q.text}</legend>
@@ -65,6 +69,25 @@ export function BriefCard() {
   )
 }
 
+/** The tool calls made for one step. A long run of them folds to the latest three. */
+function StepRuns({ runs }: { runs: Run[] }) {
+  const [all, setAll] = useState(false)
+  if (!runs.length) return null
+  const shown = all ? runs : runs.slice(-3)
+  return (
+    <ul className="runs">
+      {runs.length > shown.length && <li><button className="link" onClick={() => setAll(true)}>{runs.length - shown.length} earlier</button></li>}
+      {shown.map((r) => (
+        <li key={r.id} data-status={r.status}>
+          <span className="rl">{r.label}</span>
+          <span className="num">{r.status === 'running' ? 'working' : r.status === 'failed' ? 'failed' : r.ms != null ? (r.ms < 1000 ? `${Math.round(r.ms)} ms` : `${(r.ms / 1000).toFixed(1)} s`) : ''}</span>
+          {r.summary && <span className="rs">{r.summary}</span>}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 /* ---------- the plan: the agent's steps, live, with each tool call under the step it serves ---------- */
 export function PlanCard() {
   const plan = useWorkspace((s) => s.doc.plan), runs = useWorkspace((s) => s.doc.runs)
@@ -79,15 +102,7 @@ export function PlanCard() {
           <li key={s.id} data-status={s.status} aria-current={s.status === 'active' ? 'step' : undefined}>
             <span className="num n">{String(i + 1).padStart(2, '0')}</span>
             <span className="t">{s.label}</span>
-            <ul className="runs">
-              {runs.filter((r) => r.step === s.id).map((r) => (
-                <li key={r.id} data-status={r.status}>
-                  <span className="rl">{r.label}</span>
-                  <span className="num">{r.status === 'running' ? 'working' : r.status === 'failed' ? 'failed' : r.ms != null ? (r.ms < 1000 ? `${Math.round(r.ms)} ms` : `${(r.ms / 1000).toFixed(1)} s`) : ''}</span>
-                  {r.summary && <span className="rs">{r.summary}</span>}
-                </li>
-              ))}
-            </ul>
+            <StepRuns runs={runs.filter((r) => r.step === s.id)} />
           </li>
         ))}
       </ol>
@@ -132,9 +147,10 @@ export function Dock({ onAddTool }: { onAddTool: () => void }) {
         {tools.map((t) => (
           <li key={t.id} className="arrive">
             <Popover.Root>
-              <Popover.Trigger className="tool"><ToolKey id={t.id} title={t.title} code={t.code} /><span>{t.title}</span></Popover.Trigger>
-              <Popover.Portal><Popover.Positioner side="top" align="start" sideOffset={10}><Popover.Popup className="pop why">
-                <Popover.Title className="label">Why this is here</Popover.Title>
+              <Popover.Trigger className="tool" aria-label={`${t.title}. Why this is here.`}><ToolKey id={t.id} title={t.title} code={t.code} /><span>{t.title}</span></Popover.Trigger>
+              <Popover.Portal><Popover.Positioner side="top" align="start" sideOffset={10}><Popover.Popup className="pop whypop">
+                <Popover.Title className="ttl"><ToolKey id={t.id} title={t.title} code={t.code} /> {t.title}</Popover.Title>
+                <span className="label">Why this is here</span>
                 <p className="reason">{t.reason || 'You added it.'}</p>
                 {t.summary && <p className="muted">{t.summary}</p>}
                 <dl><dt>Works on</dt><dd>{t.coverage ?? 'Not stated'}</dd><dt>Added by</dt><dd>{t.by === 'agent' ? 'The agent, from your brief' : 'You'}</dd></dl>

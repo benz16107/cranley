@@ -18,7 +18,7 @@
 .cities { display: flex; align-self: stretch; position: relative; margin-left: var(--s-2); }
 .cities button { display: grid; align-content: center; gap: 4px; padding: 0 var(--s-4); min-width: 148px; border-left: 1px solid var(--rule); color: var(--ink-3); transition: color var(--dur-2) ease; }
 .cities button:last-of-type { border-right: 1px solid var(--rule); }
-.cities b { font-weight: 550; font-size: var(--text-sm); line-height: 1; }
+.cities b { font-weight: 550; font-size: var(--text-sm); line-height: 1; white-space: nowrap; }
 .cities .num { font-size: 0.6rem; }
 .cities button[aria-pressed='true'] { color: var(--ink); }
 .cities button[aria-pressed='true'] b { font-weight: 680; }
@@ -98,6 +98,9 @@
 .tool { display: inline-flex; align-items: center; gap: var(--s-2); height: 34px; padding: 0 10px 0 6px; border: 1px solid var(--rule-strong); border-radius: var(--r-1); font-weight: 550; white-space: nowrap;
   transition: background-color var(--dur-1) ease, scale var(--dur-1) var(--ease-out); }
 .tool:active { scale: 0.97; }
+/* more than three tools: the chips fold to their two-letter keys; the name is in the popover */
+.dock .tools:has(li:nth-child(5)) .tool:not(.add) > span:not(.toolkey) { display: none; }
+.dock .tools:has(li:nth-child(5)) .tool:not(.add) { padding: 0 6px; }
 .tool.add { border-style: dashed; color: var(--ink-2); font-weight: 450; padding-left: 10px; }
 .tool[data-popup-open] { background: var(--pane-2); }
 @media (hover: hover) and (pointer: fine) { .tool:hover { background: var(--pane-2); } }
@@ -107,9 +110,10 @@
 .ask input::placeholder { color: var(--ink-3); }
 .ask:focus-within { box-shadow: inset 0 -2px 0 var(--accent); }
 .tray { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px; border-left: 1px solid var(--rule); color: var(--ink-2); }
-.why { width: 290px; display: grid; gap: var(--s-2); }
-.why .reason { font-size: var(--text-sm); font-weight: 520; color: var(--ink); }
-.why .row { display: flex; gap: var(--s-2); margin-top: var(--s-1); }
+.whypop { width: 290px; display: grid; gap: var(--s-2); }
+.whypop .ttl { display: flex; align-items: center; gap: var(--s-2); font-size: var(--text-sm); font-weight: 650; padding-bottom: var(--s-2); border-bottom: 1px solid var(--rule); margin-bottom: var(--s-1); }
+.whypop .reason { font-size: var(--text-sm); font-weight: 520; color: var(--ink); }
+.whypop .row { display: flex; gap: var(--s-2); margin-top: var(--s-1); }
 .listpop { width: 300px; padding: var(--s-2); }
 .listpop .label { padding: 4px 4px 2px; display: block; }
 .blist { max-height: 300px; }
@@ -135,8 +139,8 @@
 .scanhead .btn[aria-pressed='true'] { background: var(--ink); color: var(--pane); border-color: var(--ink); }
 .scene { flex: 1; min-height: 0; position: relative; }
 .scene .state { position: absolute; inset: 0; display: grid; place-content: center; gap: var(--s-3); justify-items: center; }
-.scenenote { position: absolute; right: 12px; bottom: 12px; }
-.lenslegend { position: absolute; right: 12px; top: 64px; padding: var(--s-2) var(--s-3); display: grid; gap: 6px; }
+.scenenote { position: absolute; right: 12px; top: 60px; background: var(--paper); padding: 2px 4px; }
+.lenslegend { position: absolute; right: 12px; top: 88px; padding: var(--s-2) var(--s-3); display: grid; gap: 6px; }
 .lenslegend .steps { display: flex; } .lenslegend .steps i { width: 22px; height: 8px; }
 .lenslegend .ends { display: flex; justify-content: space-between; font-size: 0.62rem; }
 
@@ -224,7 +228,7 @@
   .stage { padding-bottom: 112px; }
   .scan { margin: 0; outline: 0; border-width: 0 0 1px; bottom: 112px; }
   .scanhead { flex-wrap: wrap; }
-  .mapwrap[data-inset='true'] { display: none; }
+  .mapwrap[data-inset='true'], .scenenote { display: none; }
   .sheet { position: fixed; inset: 0 0 0 0; top: auto; height: 100dvh; z-index: 8; background: var(--pane); border-radius: var(--r-sheet) var(--r-sheet) 0 0; box-shadow: var(--lift); display: flex; flex-direction: column; outline: none; }
   .grip { width: 36px !important; height: 4px !important; margin: 8px auto 4px !important; background: var(--rule-strong) !important; }
   .sheetbody { flex: 1; padding-bottom: 48px; }

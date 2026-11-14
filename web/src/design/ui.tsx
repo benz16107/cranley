@@ -60,9 +60,9 @@ const LAYER: Record<Source['layer'], [short: string, long: string]> = {
   model: ['Model', 'Model judgement'],
 }
 const METHOD: Record<Source['method'], [short: string, long: string]> = {
-  geometry: ['Geom', 'Calculated from geometry'],
-  vision: ['Vision', 'Read from a photo by a vision model'],
-  lookup: ['Lookup', 'Looked up, not measured'],
+  geometry: ['Geo', 'Calculated from geometry'],
+  vision: ['Vis', 'Read from a photo by a vision model'],
+  lookup: ['Look', 'Looked up, not measured'],
   simulation: ['Sim', 'Simulated'],
 }
 const CONF = { high: 3, medium: 2, low: 1 } as const
@@ -73,7 +73,7 @@ export function SourceChip({ source }: { source: Source }) {
   return (
     <Popover.Root>
       <Popover.Trigger className="src" aria-label={`Source: ${LAYER[source.layer][1]}, ${METHOD[source.method][1]}, ${source.confidence} confidence`}>
-        {LAYER[source.layer][0]} · {METHOD[source.method][0]}
+        {LAYER[source.layer][0]}·{METHOD[source.method][0]}
         <span className="pips" aria-hidden="true">{[1, 2, 3].map((i) => <i key={i} className={i > n ? 'off' : ''} />)}</span>
       </Popover.Trigger>
       <Popover.Portal>

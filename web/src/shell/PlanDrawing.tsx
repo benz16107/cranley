@@ -172,7 +172,7 @@ export function PlanDrawing({ plan, overlays, view, onPick, mini, selected }: Pr
           <text x={u * 14} y={-u * 10} fontSize={u * 9.5}>AGENT</text>
         </g>
       )}
-      {!mini && <g className="barscale" transform={`translate(${box[0] + u * 22} ${box[1] + box[3] - u * 22})`}>
+      {!mini && <g className="barscale" transform={`translate(${box[0] + box[2] - u * 26 - 5} ${box[1] + box[3] - u * 22})`}>
         <rect width={1} height={u * 4} /><rect className="odd" x={1} width={1} height={u * 4} /><rect x={2} width={3} height={u * 4} className="odd2" />
         <text x={0} y={-u * 5} fontSize={u * 9.5}>0</text><text x={5} y={-u * 5} fontSize={u * 9.5} textAnchor="middle">5 m</text>
       </g>}

@@ -156,9 +156,9 @@ function MiniChart({ b }: { b: Extract<Block, { type: 'MiniChart' }> }) {
     <figure className="b-chart">
       <figcaption><span className="label">{b.title}</span><SourceChip source={b.source} /></figcaption>
       <div className="bars" role="img" aria-label={`${b.title}: ${b.bars.map((x) => `${x.label} ${fmt(x.value)} ${b.unit}`).join(', ')}`}>
-        {b.mark && <span className="mark" style={{ bottom: `${(b.mark.value / max) * 100}%` }}><span className="num">{b.mark.label}</span></span>}
+        {b.mark && <span className="limit" style={{ bottom: `${(b.mark.value / max) * 100}%` }}><span className="num">{b.mark.label}</span></span>}
         {b.bars.map((x, i) => (
-          <span key={i} className="bar" title={`${x.label}: ${fmt(x.value)} ${b.unit}`}>
+          <span key={i} className="col" title={`${x.label}: ${fmt(x.value)} ${b.unit}`}>
             <i style={{ height: `${(x.value / max) * 100}%`, background: x.status ? `var(--${x.status})` : 'var(--ramp-4)' }} />
           </span>
         ))}

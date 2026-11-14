@@ -11,7 +11,7 @@ import type { Anchor, BuildingSceneProps, ScanPlan, SceneView } from '../workspa
 import { PanelView, focusAnchor, focusFinding } from '../workspace/blocks.tsx'
 import { replayDemo } from '../workspace/agent.ts'
 import { BriefCard, Dock, LearnedCard, PlanCard } from './Case.tsx'
-import { LensLegend, PlanDrawing } from './PlanDrawing.tsx'
+import { anchorFloor, LensLegend, PlanDrawing } from './PlanDrawing.tsx'
 import { CommandMenu } from './CommandMenu.tsx'
 import { FrontDoor } from '../door/FrontDoor.tsx'
 import { useScheme, useTheme } from './theme.ts'
@@ -64,8 +64,13 @@ function ScanStage({ sid, frame }: { sid: string; frame: React.RefObject<HTMLDiv
     const f = doc.findings.find((x) => x.anchor && JSON.stringify(x.anchor) === JSON.stringify(anchor))
     if (f) focusFinding(f); else focusAnchor(anchor)
   }
-  const view: SceneView = { mode: 'plan', floor: floor ?? plan?.floors[0]?.id, focus: cam?.anchor, agentAt: cam?.by === 'agent' ? cam.anchor : null }
   const floors = plan ? [...plan.floors].sort((a, b) => a.sequence - b.sequence) : []
+  // A finding on another floor brings that floor up. On any other floor there is nothing of it to point at.
+  const camFloor = plan && cam ? anchorFloor(plan, cam.anchor) : null
+  useEffect(() => { if (camFloor) setFloor(camFloor) }, [camFloor, cam])
+  const shownFloor = floor ?? floors[0]?.id
+  const here = cam && (!camFloor || camFloor === shownFloor) ? cam : null
+  const view: SceneView = { mode: 'plan', floor: shownFloor, focus: here?.anchor, agentAt: here?.by === 'agent' ? here.anchor : null }
   return (
     <div className="scan" ref={frame}>
       <header className="pane scanhead">
@@ -90,7 +95,7 @@ function ScanStage({ sid, frame }: { sid: string; frame: React.RefObject<HTMLDiv
         {!plan && !error && <div className="state skeleton" aria-label="Loading the plan" />}
         {plan && (
           <Suspense fallback={<div className="state skeleton" />}>
-            {RealScene ? <RealScene plan={plan} overlays={overlays} onPick={onPick} view={view} /> : <PlanDrawing plan={plan} overlays={overlays} onPick={onPick} view={view} selected={cam?.anchor} />}
+            {RealScene ? <RealScene plan={plan} overlays={overlays} onPick={onPick} view={view} /> : <PlanDrawing plan={plan} overlays={overlays} onPick={onPick} view={view} selected={here?.anchor} />}
           </Suspense>
         )}
       </div>
@@ -114,7 +119,7 @@ export function Shell() {
   const doc = useWorkspace((s) => s.doc), follow = useWorkspace((s) => s.follow), undo = useWorkspace((s) => s.undo)
   const filters = useMemo(() => readFilters(route.q), [route.q])
   const shown = useMemo(() => all.filter((b) => matches(b, filters)), [all, filters])
-  const selected = useMemo(() => all.find((b) => b.id === route.q.get('b')) ?? null, [all, route.q])
+  const selected = useMemo(() => all.find((b) => b.id === route.q.get('b')) ?? (route.sid ? all.find((b) => b.scans.some((x) => x.sid === route.sid)) : undefined) ?? null, [all, route.q, route.sid])
   const marks = useMemo(() => {
     const sids = new Set([...doc.panels.map((p) => p.sid), ...doc.shortlist.map((s) => s.sid)])
     return all.filter((b) => b.scans.some((s) => sids.has(s.sid)))
@@ -140,6 +145,7 @@ export function Shell() {
       const mod = e.metaKey || e.ctrlKey
       if (mod && e.key.toLowerCase() === 'k') { e.preventDefault(); setMenu((m) => (m ? false : 'all')) }
       if (mod && e.key.toLowerCase() === 'z' && !/input|textarea/i.test((e.target as HTMLElement).tagName)) { e.preventDefault(); undo() }
+      if (e.key === 'Escape' && !e.defaultPrevented && !document.querySelector('[data-open], [cmdk-root]') && new URLSearchParams(window.location.search).has('b') && window.location.pathname === '/map') setQuery({ b: null }, false)
     }
     window.addEventListener('keydown', key)
     return () => window.removeEventListener('keydown', key)

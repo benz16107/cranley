@@ -108,8 +108,8 @@ button.chip[aria-pressed='true'] { background: var(--ink); color: var(--pane); b
 .glyph[data-status='unknown'] { color: var(--unknown); }
 
 .src {
-  display: inline-flex; align-items: center; gap: 5px;
-  height: 18px; padding: 0 5px;
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 18px; padding: 0 4px;
   border: 1px solid var(--rule); border-radius: var(--r-1);
   font: 500 0.59rem / 1 var(--font-mono); font-stretch: 80%; letter-spacing: 0.02em; text-transform: uppercase;
   color: var(--ink-2); white-space: nowrap; position: relative;
@@ -137,3 +137,8 @@ button.chip[aria-pressed='true'] { background: var(--ink); color: var(--pane); b
 
 /* ---------- scrolling ---------- */
 .scroll { overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--rule-strong) transparent; overscroll-behavior: contain; }
+
+/* Reduced motion: nothing travels. State changes still show, at once, through colour, glyph and label. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+}

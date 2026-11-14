@@ -1,32 +1,20 @@
-# React + TypeScript + Vite
+# Threshold web
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+The shell (everything here except `src/scene/`), the city map and the workspace renderer.
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```
+cd ../server && uv sync && uv run uvicorn threshold.api.app:app --port 8787
+pnpm install && pnpm dev            # proxies /api to 8787, or set THRESHOLD_API
+pnpm test                           # reducer, filters and the fixture audit (node --test)
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+| Path | What |
+|---|---|
+| `/` | Front door: say who you are, or pick a starting point |
+| `/map?city=hou&kind=apartment&drone=1&empty=1&rooms=3-8&b=<lon,lat>` | City map, its filters and the selected address |
+| `/scan/<sid>?f=<finding>&demo=access` | One scan. `demo=access` replays the scripted audit on it |
+
+- `src/design/` holds the tokens and the rules (`README.md`). Read it before adding UI.
+- `src/workspace/types.ts` is the one file of shared types, to be swapped for `docs/contracts/workspace.ts`.
+- `src/workspace/agent.ts` tries `POST /api/agent/turn` and falls back to the fixtures in `src/fixtures/`.
+- `design-lab/` keeps the two direction studies (`sheet.html`, `instrument.html`).
