@@ -25,7 +25,7 @@ class Fake:
 
 
 def test_presets_exist_and_name_known_tools():
-    assert len(personas()) >= 11
+    assert len(personas()) >= 11  # tool workstreams add presets as new files
     for p in personas().values():
         assert set(p.tools) <= set(catalog()), p.id
     assert catalog()["not_built_yet"].status == "planned" and catalog()["door_widths"].status == "ready"
