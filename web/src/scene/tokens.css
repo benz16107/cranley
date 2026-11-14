@@ -1,0 +1,31 @@
+/* Scene tokens. Stand-ins until the shell publishes web/src/design/: swap the values here, nothing else reads raw colours.
+   Colours the 3D renderer reads (tokens.ts) must be 6-digit hex. */
+.th-scene {
+  --scene-stage: #e7e4dc;      /* behind the building: warm drafting paper, never pure white */
+  --scene-paper: #f7f4ed;      /* wall faces, label chips */
+  --scene-ink: #20242b;        /* cut faces of walls, linework, text */
+  --scene-ink-2: #5d636b;      /* secondary text */
+  --scene-hairline: rgb(32 36 43 / 0.16);
+  --scene-accent: #2447d6;     /* the one accent: selection, routes, the current scan position. Cool, because interiors are warm */
+  --scene-glass: #cdd8dc;
+  --scene-water: #3a7d92;
+  --scene-ramp-lo: #e4e9f5;    /* sequential lens ramp, low to high */
+  --scene-ramp-hi: #1c2e84;
+
+  /* One status scale. Each fill carries its own text colour and a paper ring, so it reads on photos and on dark walls. */
+  --scene-pass: #1a7f50;
+  --scene-warn: #d08a0c;
+  --scene-fail: #c93426;
+  --scene-unknown: #6f757d;
+  --scene-on-status: #ffffff;
+  --scene-on-warn: #20242b;
+
+  --scene-font: 'IBM Plex Sans Condensed', 'Avenir Next Condensed', system-ui, sans-serif;
+  --scene-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --scene-text-xs: 10.5px;
+  --scene-text-sm: 12px;
+  --scene-text-md: 13.5px;
+  --scene-radius: 3px;         /* instrument corners: tight */
+  --scene-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --scene-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
