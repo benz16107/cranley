@@ -1,0 +1,16 @@
+{
+  "id": "family_neighbourhood_check",
+  "title": "Family checking a neighbourhood",
+  "who": "Is choosing a home and wants every hazard at the address (flood, fire, earthquake, heat, noise) and what the neighbourhood is like.",
+  "tools": [
+    "hazard_profile",
+    "area_profile",
+    "connectivity",
+    "permit_history"
+  ],
+  "thresholds": {},
+  "layout": {
+    "view": "map",
+    "lead_tool": "hazard_profile"
+  }
+}

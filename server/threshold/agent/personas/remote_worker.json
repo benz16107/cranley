@@ -1,13 +1,16 @@
 {
   "id": "remote_worker",
   "title": "Remote worker",
-  "who": "Works from home and needs strong Wi-Fi and a quiet room for the office.",
+  "who": "Works from home and needs strong Wi-Fi and a quiet room for the office, fast home internet, a quiet street and transit or a bike route for the days out.",
   "tools": [
     "wifi_coverage",
     "quiet_rooms",
+    "connectivity",
     "office_fit",
     "daylight",
-    "room_census"
+    "room_census",
+    "hazard_profile",
+    "area_profile"
   ],
   "thresholds": {
     "wifi.router_class": "typical"

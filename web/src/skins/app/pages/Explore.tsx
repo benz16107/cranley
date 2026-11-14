@@ -1,13 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Popover } from '@base-ui/react/popover'
 import {
-  CITIES, KINDS, ROOMS_MAX, fetchMeasureFields, navigate, orthoImage, searchMeasures, setQuery, useMapModel, useRoute, useWorkspace, userOp,
-  type Building, type CityId, type Kind, type MeasureField, type MeasureHit,
+  BASE_VIEWS, CITIES, KINDS, ROOMS_MAX, fetchLayers, fetchMeasureFields, navigate, orthoImage, searchMeasures, setQuery, useMapModel, useRoute, useWorkspace, userOp,
+  type BaseView, type Building as BuildingRow, type CityId, type Kind, type MapLayer, type MeasureField, type MeasureHit,
 } from '../../../core/index.ts'
-import { DataTable, Empty, Icon, IconBtn, Menu, MenuBtn, Seg, SourceChip, useColumns, type Col } from '../design/ui.tsx'
+import { DataTable, Empty, Icon, IconBtn, Menu, MenuBtn, RunState, Seg, SourceChip, useColumns, type Col } from '../design/ui.tsx'
 import { int, num, plural } from '../lib/format.ts'
 import { goScan } from '../lib/place.ts'
-import { CityMap, useMap } from '../map/CityMap.tsx'
+import { Legend, MapNav, MapTools, SunBar, WeatherChip, sunInstant, sunNow, type SunAt } from '../explore/Controls.tsx'
+import { useHandoff } from '../explore/useHandoff.ts'
+import { WorldMap, useWorld } from '../explore/WorldMap.tsx'
+import '../explore/explore.css'
+import { Building } from './Building.tsx'
 import { useScheme } from '../shell/theme.ts'
 import { useIsPhone } from '../shell/store.ts'
 import { Edge, Fill, Pane, Split } from '../design/split.tsx'
@@ -89,7 +93,7 @@ function RoomsFilter({ rooms }: { rooms: [number, number] }) {
 }
 
 /* ---------- the scans at one address ---------- */
-function BuildingDetail({ b, onClose }: { b: Building; onClose: () => void }) {
+function BuildingDetail({ b, onClose }: { b: BuildingRow; onClose: () => void }) {
   const shortlist = useWorkspace((s) => s.doc.shortlist), panels = useWorkspace((s) => s.doc.panels)
   return (
     <section className="bdetail" aria-label={`Scans at ${b.address}`}>
@@ -127,23 +131,46 @@ function BuildingDetail({ b, onClose }: { b: Building; onClose: () => void }) {
 }
 
 function HoverTip() {
-  const map = useMap((s) => s.map), hover = useMap((s) => s.hover)
-  useMap((s) => s.tick)
-  if (!map || !hover) return null
-  const p = map.project([hover.lon, hover.lat])
-  return <div className="tip hovertip" style={{ translate: `${p.x}px ${p.y}px` }}>{hover.address.split(',')[0]} · {plural(hover.count, 'scan')}</div>
+  const map = useWorld((s) => s.map), hover = useWorld((s) => s.hover), tip = useWorld((s) => s.tip)
+  useWorld((s) => s.tick)
+  if (map && hover) { const p = map.project([hover.lon, hover.lat]); return <div className="tip hovertip" style={{ translate: `${p.x}px ${p.y}px` }}>{hover.address.split(',')[0]} · {plural(hover.count, 'scan')}</div> }
+  if (!tip) return null
+  // a feature of a data layer: its name, its detail, and which layer it is
+  return <div className="tip hovertip" style={{ translate: `${tip.x}px ${tip.y}px` }}>{tip.title}{tip.detail && ` · ${tip.detail}`}{tip.title !== tip.layer && <span className="of"> {tip.layer}</span>}</div>
 }
 
-export function Explore() {
+/** The layers that are on, as the address bar holds them: missing is the catalogue's own defaults, `none` is none. */
+const readLayers = (q: URLSearchParams) => { const v = q.get('app_l'); return v == null ? null : v === 'none' ? [] : v.split(',').filter(Boolean) }
+
+export function Explore({ sid = null }: { sid?: string | null }) {
   const m = useMapModel()
   const { q } = useRoute()
   const scheme = useScheme()
   const phone = useIsPhone()
   const doc = useWorkspace((s) => s.doc)
-  const map = useMap((s) => s.map)
-  const f = m.filters, city = f.city
-  const view = (phone ? (q.get('app_view') === 'table' ? 'table' : 'map') : (q.get('app_view') as View) || 'split') as View
+  const f = m.filters
+  // A building is open in this view: the map hands over to its scene in the same rectangle, and back.
+  const inside = !!sid && !phone
+  const city = inside && m.selected?.metro ? m.selected.metro : f.city
+  const view = (phone ? (q.get('app_view') === 'table' ? 'table' : 'map') : inside ? 'split' : (q.get('app_view') as View) || 'split') as View
   const [text, setText] = useState('')
+
+  // The ground the map is drawn on and the layers over it. Chosen here, kept in the address bar for a link, and
+  // held in state so they outlast a visit to a building (whose own links do not carry them).
+  const [base, setBaseOnly] = useState<BaseView>(() => BASE_VIEWS.find((b) => b.id === q.get('app_base'))?.id ?? 'streets')
+  const [picked, setPicked] = useState<string[] | null>(() => readLayers(q))
+  const [layers, setLayers] = useState<MapLayer[]>([])
+  useEffect(() => { let on = true; fetchLayers(city).then((l) => on && setLayers(l), () => on && setLayers([])); return () => { on = false } }, [city])
+  const on = useMemo(() => picked ?? (layers.length ? layers.filter((l) => l.on).map((l) => l.id) : ['scans']), [picked, layers])
+  const setBase = (b: BaseView) => { setBaseOnly(b); setQuery({ app_base: b === 'streets' ? null : b }) }
+  const toggle = (id: string) => {
+    const next = on.includes(id) ? on.filter((x) => x !== id) : [...on, id]
+    setPicked(next); setQuery({ app_l: next.join(',') || 'none' })
+    if (!on.includes(id)) setTimeout(() => fetchLayers(city, true).then(setLayers, () => {}), 4000) // a layer fetched for the first time has its date now
+  }
+  const [sunAt, setSunAt] = useState<SunAt>(() => sunNow(city))
+  const sunOn = on.includes('sun'), sunKey = `${sunOn}|${sunAt.date}|${sunAt.minutes}|${city}`
+  const sun = useMemo(() => (sunOn ? sunInstant(sunAt, city) : null), [sunKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // search by measurement: the criteria are in the address bar, the answer comes from the server
   const where = useMemo(() => readWhere(q), [q]), key = where.join(';')
@@ -161,11 +188,27 @@ export function Explore() {
   const measured = key !== ''
 
   const marks = useMemo(() => new Set(m.marks.map((b) => b.id)), [m.marks])
-  const bySid = useMemo(() => { const x = new Map<string, Building>(); for (const b of m.all) for (const s of b.scans) x.set(s.sid, b); return x }, [m.all])
-  const hitBuildings = useMemo(() => [...new Set(found.rows.map((r) => bySid.get(r.sid)).filter((b): b is Building => !!b))], [found.rows, bySid])
+  const bySid = useMemo(() => { const x = new Map<string, BuildingRow>(); for (const b of m.all) for (const s of b.scans) x.set(s.sid, b); return x }, [m.all])
+  const hitBuildings = useMemo(() => [...new Set(found.rows.map((r) => bySid.get(r.sid)).filter((b): b is BuildingRow => !!b))], [found.rows, bySid])
   const rows = useMemo(() => { const t = text.trim().toLowerCase(); return t ? m.shown.filter((b) => (b.address + ' ' + b.scans.map((s) => s.name).join(' ')).toLowerCase().includes(t)) : m.shown }, [m.shown, text])
+  const shown = useMemo(() => (inside ? m.all.filter((b) => b.metro === city) : measured ? hitBuildings : m.shown), [inside, m.all, city, measured, hitBuildings, m.shown])
 
-  const cols = useMemo<Col<Building>[]>(() => [
+  // ---- the hand-off: a building opens inside the map's own rectangle, and zooming back out returns to the map
+  const [stage, setStage] = useState<HTMLElement | null>(null), [headEl, setHead] = useState<HTMLElement | null>(null)
+  const [sceneEl, setScene] = useState<HTMLElement | null>(null), [sideEl, setSide] = useState<HTMLElement | null>(null)
+  const kept = { app_base: base === 'streets' ? null : base, app_l: picked ? picked.join(',') || 'none' : null }
+  const back = () => navigate('/map', { city, b: m.selected?.id, ...kept })
+  const hand = useHandoff(inside ? sid : null, stage, back)
+  const phase = hand.phase, covered = phase === 'ready'
+  /** Open a scan of this building here. On a phone the building is a page of its own. */
+  const enter = (b: BuildingRow, scan = b.scans[0]?.sid) => { if (scan) goScan(scan, { b: b.id, city: b.metro ?? city, ...kept }) }
+  const select = (b: BuildingRow | null) => (phone || !b ? m.select(b) : enter(b))
+  const host = useMemo(() => (headEl && sceneEl && sideEl ? { head: headEl, stage: sceneEl, side: sideEl, hold: hand.hold, ...hand.host } : null), [headEl, sceneEl, sideEl, hand.host, hand.hold])
+  // once the scene has faded in the map under it is not drawn at all, so the browser has one 3D picture to put on screen, not two
+  const [under, setUnder] = useState(false)
+  useEffect(() => { if (!covered) { setUnder(false); return } const t = setTimeout(() => setUnder(true), 600); return () => clearTimeout(t) }, [covered])
+
+  const cols = useMemo<Col<BuildingRow>[]>(() => [
     { id: 'address', label: 'Address', fixed: true, sort: (b) => b.address, cell: (b) => <><span className="strong">{b.address.split(',')[0]}</span>{marks.has(b.id) && <span className="chip visited" title="The open investigation has results or kept scans here">In this investigation</span>}</> },
     { id: 'kind', label: 'Kind', width: '28%', sort: (b) => b.kinds[0], cell: (b) => <span className="dim">{b.kinds.map((k) => KIND_LABEL[k]).join(', ')}</span> },
     { id: 'scans', label: 'Scans', num: true, width: 62, sort: (b) => b.count, cell: (b) => int(b.count) },
@@ -185,11 +228,10 @@ export function Explore() {
 
   const setKinds = (k: Kind) => { const next = f.kinds.includes(k) ? f.kinds.filter((x) => x !== k) : [...f.kinds, k]; setQuery({ kind: next.join(',') || null }) }
   const active = f.kinds.length + Number(f.drone) + Number(f.empty) + Number(f.rooms[0] > 0 || f.rooms[1] < ROOMS_MAX) + Number(measured)
-  const select = (b: Building | null) => m.select(b)
 
   const side = (
     <div className="ex-side">
-      {m.selected && <BuildingDetail b={m.selected} onClose={() => select(null)} />}
+      {phone && m.selected && <BuildingDetail b={m.selected} onClose={() => m.select(null)} />}
       <div className="bar thin">
         {measured ? (
           <p className="grow small">
@@ -203,11 +245,11 @@ export function Explore() {
       </div>
       {measured ? (
         <DataTable label="Scans that match the measured criteria" noun="scan" cols={hitCols} rows={found.state === 'ready' && found.key === `${key}@${city}` ? found.rows : []} rowKey={(r) => r.sid} loading={found.state === 'loading'}
-          onRow={(r) => goScan(r.sid, { b: bySid.get(r.sid)?.id })}
+          onRow={(r) => { const b = bySid.get(r.sid); if (b && !phone) enter(b, r.sid); else goScan(r.sid, { b: b?.id }) }}
           empty={found.state === 'error' ? <Empty icon="warn" title="The search did not run">{found.error}</Empty> : <Empty icon="ruler" title="No scan matches">Loosen a criterion, or try the other city.</Empty>} />
       ) : (
         <DataTable label={`Scanned buildings in ${CITIES[city].name}`} noun="building" cols={table.shown} rows={rows} rowKey={(b) => b.id} loading={m.state === 'loading'} selected={m.selected?.id ?? null}
-          onRow={(b) => select(m.selected?.id === b.id ? null : b)} sortBy={{ col: 'scans', dir: -1 }}
+          onRow={(b) => (phone ? m.select(m.selected?.id === b.id ? null : b) : enter(b))} sortBy={{ col: 'scans', dir: -1 }}
           empty={m.state === 'error' ? <Empty icon="warn" title="The building list did not load" action={<button className="btn" onClick={m.reload}>Try again</button>}>Is the data server running?</Empty>
             : <Empty icon="filter" title="No building passes these filters" action={<button className="btn" onClick={() => { setText(''); navigate('/map', { city }) }}>Clear the filters</button>} />} />
       )}
@@ -215,8 +257,10 @@ export function Explore() {
   )
 
   return (
-    <div className="ex" data-view={view}>
-      <div className="bar">
+    <div className="ex" data-view={view} data-phase={phase} data-under={under || undefined}>
+      {/* a building's own header takes the filter bar's place while it is open */}
+      <div className="ex-head" ref={setHead} hidden={!inside} />
+      {!inside && <div className="bar">
         <Seg label="City" value={city} onChange={(c: CityId) => navigate('/map', { city: c, b: null }, { keep: true })} options={(Object.keys(CITIES) as CityId[]).map((c) => ({ id: c, label: CITIES[c].name }))} />
         <span className="sep" />
         <MenuBtn trigger={<button type="button" className="chip" aria-pressed={f.kinds.length > 0}>{f.kinds.length ? `Kind: ${f.kinds.map((k) => KINDS.find((x) => x.id === k)!.label).join(', ')}` : 'Kind'}<Icon name="down" size={10} /></button>}>
@@ -232,33 +276,37 @@ export function Explore() {
         <RoomsFilter rooms={f.rooms} />
         <span className="sep" />
         <MeasureBuilder where={where} fields={fields} />
-        {active > 0 && <button type="button" className="btn sm quiet" onClick={() => navigate('/map', { city, app_view: q.get('app_view') })}>Clear {active === 1 ? 'the filter' : `${active} filters`}</button>}
+        {active > 0 && <button type="button" className="btn sm quiet" onClick={() => navigate('/map', { city, app_view: q.get('app_view'), ...kept })}>Clear {active === 1 ? 'the filter' : `${active} filters`}</button>}
         <span className="grow" />
         <Seg label="Layout" compact value={view} onChange={(v: View) => setQuery({ app_view: v === 'split' && !phone ? null : v })}
           options={phone ? [{ id: 'map', label: 'Map', icon: 'map' }, { id: 'table', label: 'Table', icon: 'table' }] : [{ id: 'map', label: 'Map', icon: 'map' }, { id: 'split', label: 'Split', icon: 'split' }, { id: 'table', label: 'Table', icon: 'table' }]} />
-      </div>
+      </div>}
       <Split className="ex-body" off={phone}>
         {(phone || view !== 'table') && <Fill key="map" id="map" min={320}>
-        <div className="ex-map">
-          <CityMap buildings={measured ? hitBuildings : m.shown} selected={m.selected} marks={m.marks} geo={m.geo} look={m.look} city={city} scheme={scheme} onSelect={select} />
-          <HoverTip />
-          {view === 'map' && m.selected && <div className="ex-float"><BuildingDetail b={m.selected} onClose={() => select(null)} /></div>}
-          <div className="mapctl">
-            <IconBtn icon="plus" label="Zoom in" className="btn icon" onClick={() => map?.zoomIn()} />
-            <IconBtn icon="minus" label="Zoom out" className="btn icon" onClick={() => map?.zoomOut()} />
-          </div>
-          <p className="maplegend">
-            <span><i className="dot" />Scanned building</span>
-            {m.marks.length > 0 && <span><i className="ringmark" />In this investigation ({m.marks.length})</span>}
-            {(m.geo.paths.length > 0 || m.geo.pins.length > 0) && <span><i className="pathmark" />Drawn by a tool</span>}
-            <span className="muted">© OpenStreetMap · OpenFreeMap</span>
-          </p>
-          {view === 'map' && <p className="mapcount">{measured ? `${int(hitBuildings.length)} buildings with a matching scan` : `${int(m.shown.length)} buildings`}{doc.runs.some((r) => r.status === 'running') ? ' · the agent is working' : ''}</p>}
+        <div className="ex-map" ref={setStage}>
+          <WorldMap buildings={shown} selected={m.selected} marks={m.marks} geo={m.geo} look={m.look} city={city} scheme={scheme} base={base} layers={layers} on={on} sun={sun}
+            held={phase !== 'map'} covered={covered} onSelect={select} onNear={(b) => phase === 'map' && !phone && enter(b)} />
+          {/* the open building's scene and its toolbars: they fade in over the map when the two cameras agree */}
+          <div className="ex-scene" ref={setScene} />
+          {!covered && <>
+            <HoverTip />
+            <MapTools base={base} onBase={setBase} layers={layers} on={on} toggle={toggle} reset={() => { setPicked(null); setQuery({ app_l: null }) }} city={city} />
+            {on.includes('weather') && <WeatherChip city={city} source={layers.find((l) => l.id === 'weather')} />}
+            <MapNav />
+            <div className="mapfoot">
+              <Legend layers={layers} on={on} base={base} marks={m.marks.length} drawn={m.geo.paths.length > 0 || m.geo.pins.length > 0} />
+              {sunOn && <SunBar city={city} value={sunAt} onChange={setSunAt} source={layers.find((l) => l.id === 'sun')} />}
+            </div>
+            {phone && view === 'map' && m.selected && <div className="ex-float"><BuildingDetail b={m.selected} onClose={() => m.select(null)} /></div>}
+          </>}
+          {phase === 'approach' && <p className="mapread opening" role="status"><RunState state="running">Opening {m.selected ? m.selected.address.split(',')[0] : 'the building'}</RunState></p>}
+          {doc.runs.some((r) => r.status === 'running') && !covered && view === 'map' && <p className="mapread working" role="status">The agent is working</p>}
         </div>
         </Fill>}
-        {!phone && view === 'split' && <Edge key="edge" of="list" label="Resize the list" />}
-        {phone || view === 'split' ? <Pane key="list" id="list" size="44%" min={360} max="72%">{side}</Pane> : view === 'table' && <Fill key="list" id="table">{side}</Fill>}
+        {!phone && view === 'split' && <Edge key="edge" of="list" label={inside ? 'Resize the inspector' : 'Resize the list'} />}
+        {phone || view === 'split' ? <Pane key="list" id="list" size="44%" min={360} max="72%"><div className="ex-insp" ref={setSide} hidden={!inside} />{!inside && side}</Pane> : view === 'table' && <Fill key="list" id="table">{side}</Fill>}
       </Split>
+      {inside && host && <Building key={sid} sid={sid!} host={host} />}
     </div>
   )
 }
