@@ -1,0 +1,68 @@
+# Threshold for iPhone. XcodeGen spec: edit this, never the .xcodeproj (which is not committed).
+#   cd ios/Threshold && xcodegen generate
+name: Threshold
+options:
+  bundleIdPrefix: com.benzhou
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "18.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+    SWIFT_APPROACHABLE_CONCURRENCY: YES
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: 1
+    DEVELOPMENT_TEAM: 744282DWSN
+    CODE_SIGN_STYLE: Automatic
+
+targets:
+  Threshold:
+    type: application
+    platform: iOS
+    sources: [Threshold]
+    info:
+      path: Threshold/Info.plist
+      properties:
+        CFBundleDisplayName: Threshold
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        ITSAppUsesNonExemptEncryption: false
+        NSCameraUsageDescription: Threshold uses the camera and LiDAR to scan rooms, measure doors and steps, and read the workspace code on your computer.
+        NSLocationWhenInUseUsageDescription: Threshold records where a scan was made and which way a window faces, so the tools can place your home on the map.
+        NSMotionUsageDescription: Threshold reads the barometer to measure how far your front door sits above the street.
+        # The Threshold server runs on the tailnet over plain HTTP (http://linuxbox:8787).
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.benzhou.threshold
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+
+  ThresholdTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [ThresholdTests]
+    dependencies:
+      - target: Threshold
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.benzhou.threshold.tests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/Threshold.app/Threshold
+        BUNDLE_LOADER: $(TEST_HOST)
+
+schemes:
+  Threshold:
+    build:
+      targets:
+        Threshold: all
+        ThresholdTests: [test]
+    test:
+      targets: [ThresholdTests]
