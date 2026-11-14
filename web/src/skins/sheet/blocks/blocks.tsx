@@ -6,7 +6,7 @@ import { Switch } from '@base-ui/react/switch'
 import type { Action, Block, Doc, Finding, Panel, ScanPlan, Status } from '../../../core/index.ts'
 import { focusAnchor, focusFinding, useWorkspace, userOp } from '../../../core/index.ts'
 import { Icon, SourceChip, StatusGlyph, statusWord, ToolKey } from '../design/ui.tsx'
-import { fetchPlan, panoFace } from '../../../core/index.ts'
+import { captureImage, fetchPlan, panoFace } from '../../../core/index.ts'
 import { navigate } from '../../../core/index.ts'
 import { PlanDrawing } from '../shell/PlanDrawing.tsx'
 import { runAction } from '../../../core/index.ts'
@@ -82,7 +82,8 @@ function Thumb({ f, n }: { f: Finding; n: number }) {
   const sid = f.anchor && 'sid' in f.anchor ? f.anchor.sid : null
   // Contract 3: a panorama ref is "<sid>/<pano>/<face>". The fixtures give the position alone, on the finding's scan.
   const [a, b, c] = m?.ref.split('/') ?? []
-  const src = m && b ? panoFace(a, b, c ? Number(c) : 1) : m && sid ? panoFace(sid, m.ref) : null
+  const phone = f.media?.find((x) => x.kind === 'phone') // a capture taken on site outranks the scan's panorama
+  const src = phone ? captureImage(phone.ref) : m && b ? panoFace(a, b, c ? Number(c) : 1) : m && sid ? panoFace(sid, m.ref) : null
   return (
     <span className={`thumb ${state === 'loading' && src ? 'skeleton' : state !== 'ok' ? 'hatch' : ''}`}>
       {src && state !== 'none' && <img src={src} alt="" loading="lazy" width={640} height={640} data-ok={state === 'ok'} onLoad={() => setState('ok')} onError={() => setState('none')} />}

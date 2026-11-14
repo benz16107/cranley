@@ -21,11 +21,12 @@ export function Glyph({ status, size = 11 }: { status: Status; size?: number }) 
 
 const LAYER: Record<Source['layer'], [short: string, long: string]> = {
   matterport: ['Scan', 'Interior scan (Matterport)'], vexcel: ['Aerial', 'Aerial survey (Vexcel)'], costar: ['Record', 'Property record (CoStar)'],
-  drone: ['Drone', 'Drone capture'], model: ['Model', 'Model judgement'],
+  drone: ['Drone', 'Drone capture'], model: ['Model', 'Model judgement'], phone: ['Phone', 'Captured on site with a phone'],
 }
 const METHOD: Record<Source['method'], [short: string, long: string]> = {
   geometry: ['measured', 'Calculated from geometry'], vision: ['seen', 'Read from a photo by a vision model'],
   lookup: ['looked up', 'Looked up, not measured'], simulation: ['simulated', 'Simulated'],
+  sensor: ['sensed', 'Read by the phone\'s sensors'], manual: ['taped', 'Measured on site and typed in'],
 }
 const PIPS = { high: 3, medium: 2, low: 1 } as const
 

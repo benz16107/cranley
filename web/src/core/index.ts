@@ -33,7 +33,7 @@ export { mapStyle, type MapPalette } from './basemap.ts'
 
 // ---- one building: the plan, panorama images, and the bridge to the shared 3D scene
 export {
-  fetchPlan, panoFace, panoEquirect, floorplanImage, orthoImage, fetchScans, fetchRecord, fetchDrone, droneImage,
+  fetchPlan, panoFace, panoEquirect, captureImage, floorplanImage, orthoImage, fetchScans, fetchRecord, fetchDrone, droneImage,
   fetchMeasureFields, searchMeasures, type ScanRow, type MeasureField, type MeasureHit,
 } from './api.ts'
 export {

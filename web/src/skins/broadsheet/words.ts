@@ -35,8 +35,8 @@ export const word = (n: number) => (Number.isInteger(n) && n >= 0 && n <= 10 ? W
 export const plural = (n: number, one: string, many = one + 's') => (n === 1 ? one : many)
 
 export const STATUS_WORD: Record<Status, string> = { pass: 'Passes', warn: 'Close call', fail: 'Does not pass', unknown: 'Not measured' }
-const LAYER: Record<Source['layer'], string> = { matterport: 'Scan', vexcel: 'Aerial survey', costar: 'Property record', drone: 'Drone capture', model: 'Model' }
-const METHOD: Record<Source['method'], string> = { geometry: 'geometry', vision: 'read from photos', lookup: 'looked up', simulation: 'simulation' }
+const LAYER: Record<Source['layer'], string> = { matterport: 'Scan', vexcel: 'Aerial survey', costar: 'Property record', drone: 'Drone capture', model: 'Model', phone: 'Phone on site' }
+const METHOD: Record<Source['method'], string> = { geometry: 'geometry', vision: 'read from photos', lookup: 'looked up', simulation: 'simulation', sensor: 'sensor reading', manual: 'measured by hand' }
 /** Where a number came from and how sure it is, as one line. */
 export const sourceLine = (s: Source) => `${LAYER[s.layer] ?? s.layer} ${METHOD[s.method] ?? s.method} · ${s.confidence} confidence`
 
