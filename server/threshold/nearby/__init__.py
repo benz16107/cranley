@@ -50,11 +50,11 @@ _lock = threading.Lock()
 _last = [0.0]
 
 # id: (label, profiles, test(tags) -> bool). A place can match several categories (a park with a playground tag).
-_T = lambda k, *vs: (lambda t: t.get(k) in vs)  # noqa: E731
-_SPORT = lambda *vs: (lambda t: bool(set(re.split(r"[;,]\s*", t.get("sport", ""))) & set(vs)))  # noqa: E731
-_STREETY = re.compile(r"\b(drive|dr|street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|plaza|court|ct|place|pl)\.?$", re.I)
-_NAMED = lambda t: bool(t.get("name"))  # noqa: E731
-_PUBLIC = lambda t: t.get("access") not in ("private", "no", "customers") or t.get("leisure") == "sports_centre"  # noqa: E731
+_T = lambda k, *vs: (lambda t: t.get(k) in vs)
+_SPORT = lambda *vs: (lambda t: bool(set(re.split(r"[;,]\s*", t.get("sport", ""))) & set(vs)))
+_STREETY = re.compile(r"\b(drive|dr|street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|plaza|court|ct|place|pl)\.?$", re.IGNORECASE)
+_NAMED = lambda t: bool(t.get("name"))
+_PUBLIC = lambda t: t.get("access") not in ("private", "no", "customers") or t.get("leisure") == "sports_centre"
 _LEVELS = {"elementary": r"elementary|primary|\bel\b|\bes\b", "middle": r"middle|intermediate|junior high|\bms\b",
            "high": r"\bhigh\b|\bhs\b|secondary|academy of"}
 
@@ -124,7 +124,7 @@ def cell(lat: float, lon: float) -> tuple[float, float]:
 
 def query(lat: float, lon: float) -> str:
     """The one Overpass request for the cell around (lat, lon)."""
-    a = lambda r: f"(around:{r},{lat},{lon})"  # noqa: E731
+    a = lambda r: f"(around:{r},{lat},{lon})"
     rp, rn = R_PLACES, R_NET
     return (f"[out:json][timeout:120];"
             f"(nwr{a(rp)}[leisure~\"^(dog_park|playground|park|nature_reserve|swimming_pool|water_park|fitness_centre|"

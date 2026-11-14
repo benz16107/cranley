@@ -6,7 +6,17 @@ from __future__ import annotations
 from typing import Literal
 
 from ... import nearby as engine
-from .. import Assumption, Check, Finding, Metric, Source, ToolResult, Verdict, field, tool
+from .. import (
+    Assumption,
+    Check,
+    Finding,
+    Metric,
+    Source,
+    ToolResult,
+    Verdict,
+    field,
+    tool,
+)
 from .._site import Where, geo, geo_route, locate, pin, pins
 
 Category = Literal[tuple(engine.CATEGORIES)]
@@ -134,7 +144,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     ctx.step(f"Routed over {r['meta']['network_nodes']} street nodes")
     close = [c for c in r["checks"] if c.status == "pass"]
     missing = [c for c in r["checks"] if c.status == "fail"]
-    names = lambda cs: ", ".join(engine.CATEGORIES[c.id.split(".", 1)[1]][0].lower() for c in cs)  # noqa: E731
+    names = lambda cs: ", ".join(engine.CATEGORIES[c.id.split(".", 1)[1]][0].lower() for c in cs)
     text = (f"{len(close)} of {len(cats)} kinds of places are within a {inputs.ok_min:g}-minute {inputs.mode}"
             + (f": {names(close)}." if close else ".") + (f" Far or missing: {names(missing)}." if missing else ""))
     status = "pass" if len(close) == len(cats) else "warn" if close else "fail"

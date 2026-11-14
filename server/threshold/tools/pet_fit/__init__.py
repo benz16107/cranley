@@ -18,10 +18,37 @@ from shapely.geometry import Point
 from shapely.ops import nearest_points
 
 from ...sources import index
-from .. import (Assumption, Check, Finding, Metric, NotApplicable, OpeningAnchor, Pin, PinsOverlay, RoomAnchor, ScanScope, Source,
-                ToolResult, Verdict, field, tool)
+from .. import (
+    Assumption,
+    Check,
+    Finding,
+    Metric,
+    NotApplicable,
+    OpeningAnchor,
+    Pin,
+    PinsOverlay,
+    RoomAnchor,
+    ScanScope,
+    Source,
+    ToolResult,
+    Verdict,
+    field,
+    tool,
+)
 from .._access import quality
-from .._site import Site, Where, capture, footprint, geo, geo_route, locate, ortho_media, parcel, pin, to_m
+from .._site import (
+    Site,
+    Where,
+    capture,
+    footprint,
+    geo,
+    geo_route,
+    locate,
+    ortho_media,
+    parcel,
+    pin,
+    to_m,
+)
 from .._site import align as al
 from ..nearby import assumptions as near_assumptions
 from ..nearby import report as near_report
@@ -187,7 +214,7 @@ def outdoor(ctx, inputs: Inputs, E: dict, s: Site, plan: dict | None) -> None:
 def rules(p: Pet, E: dict, k: str) -> list[tuple]:
     """(check id, rule, measured, threshold, unit, status, standard, finding id, reason when not a pass) for one pet."""
     R = []
-    add = lambda *a: R.append(a)  # noqa: E731
+    add = lambda *a: R.append(a)
     sz = size(p)
     apt, lst, st = E.get("apt"), E.get("listing") or {}, E.get("stairs")
     # policy
@@ -314,7 +341,7 @@ def unit_floor(address: str) -> tuple[int | None, str | None]:
     a 3 or 4 digit unit is usually floor then door ("3516" is floor 35). shortcut: numbering schemes vary by building;
     use the CoStar unit's floor when the kit carries one."""
     import re
-    m = re.search(r",\s*(?:apt|unit|#|suite)?\s*([A-Za-z]*)\s*(\d+)?\s*,", address, re.I)
+    m = re.search(r",\s*(?:apt|unit|#|suite)?\s*([A-Za-z]*)\s*(\d+)?\s*,", address, re.IGNORECASE)
     if not m:
         return None, None
     pre, num = (m.group(1) or "").lower(), m.group(2)

@@ -63,18 +63,18 @@ def listing(b: dict) -> dict:
     lst = b.get("listing") or {}
     pets = lines(b, "Pet Policy")
     return {"has": bool(b.get("features") or lst), "pet_friendly": lst.get("isPetFriendly"),
-            "pets": pets, "no_pets": any(re.search(r"no pets", x, re.I) for x in pets),
-            "fence": [x for x in allx if re.search(r"fenc|block wall", x, re.I)],
+            "pets": pets, "no_pets": any(re.search(r"no pets", x, re.IGNORECASE) for x in pets),
+            "fence": [x for x in allx if re.search(r"fenc|block wall", x, re.IGNORECASE)],
             "floors": lines(b, "Flooring"),
             "pool": lines(b, "Pool"),
-            "dog_park": [x for x in lines(b, "Recreation", "Community Features", "Amenities") if re.search(r"dog|pet", x, re.I)],
+            "dog_park": [x for x in lines(b, "Recreation", "Community Features", "Amenities") if re.search(r"dog|pet", x, re.IGNORECASE)],
             "id": lst.get("id")}
 
 
 def fenced(lst: dict) -> str | None:
     """'yes' when a listing line names a fence around the yard or lot, 'partial' for a partial one; a fence around the
     pool or spa alone does not count."""
-    ls = [x.lower() for x in lst.get("fence") or [] if not re.search(r"pool|spa", x, re.I)]
+    ls = [x.lower() for x in lst.get("fence") or [] if not re.search(r"pool|spa", x, re.IGNORECASE)]
     if not ls:
         return None
     return "partial" if any("partial" in x for x in ls) else "yes"
