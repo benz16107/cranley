@@ -274,6 +274,10 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                                     detail=f"{len(hits)} {key} seen in {fx['rooms']} wet rooms; child-height fixtures not told apart."))
     if cap is None:
         status, text = "unknown", "Neither the scan nor the aerial photo gives enough to size a daycare here."
+    elif in_ft2 is None:  # outdoor space alone is no capacity: indoor space and toilets usually decide it
+        status = "unknown"
+        text = (f"Without a scan only the outdoor space is known: it would allow about {caps['outdoor']} children under {st} "
+                "rules. Indoor space, toilets and sinks decide the licence and need a scan.")
     else:
         status = "pass" if cap >= 13 else "warn"
         names = {"indoor": "indoor space", "outdoor": "outdoor play space", "toilets": "toilets", "sinks": "sinks"}

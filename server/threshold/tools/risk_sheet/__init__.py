@@ -141,8 +141,8 @@ def run(ctx, inputs: Inputs) -> ToolResult:
 
     # wildfire defensible space: Los Angeles, or wherever Vexcel reports trees close to the building
     z1, z2 = fact(s, "defensible_zone1_tree"), fact(s, "defensible_zone2_tree")
-    if s.state == "CA" or (z1 or 0) > 0:
-        st = "unknown" if z1 is None else "fail" if z1 > 10 else "warn" if (z2 or 0) > 30 else "pass"
+    if s.state == "CA":  # wildfire is a Los Angeles question here; Houston's risk is water and wind
+        st = "unknown" if z1 is None else "fail" if z1 > 30 else "warn" if z1 > 10 or (z2 or 0) > 30 else "pass"
         fid = f"risk_sheet:{k}:wildfire"
         checks.append(Check(id="defensible_space", rule="Tree cover within 5 ft of the building", measured=z1, threshold=10,
                             unit="%", status=st, standard="Defensible space zone 0 (0 to 5 ft)", findings=[fid]))

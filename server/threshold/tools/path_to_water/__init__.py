@@ -243,7 +243,9 @@ def run(ctx, inputs: Inputs) -> ToolResult:
              f"overlap {a.get('iou')} ({conf})")
     lat0 = s.lat
     fwd = to_m(lat0)[0]
-    fp_m = metres(fp, lat0) if fp is not None else None
+    # the house is the scanned outline placed on the map: Vexcel's footprint is the roofline, which takes in covered
+    # patios, and pools often sit right at its edge
+    house_m = metres(a["outline"], lat0).buffer(0) if a.get("available") else (metres(fp, lat0) if fp is not None else None)
     pool_m = metres(pool["polygon"], lat0) if pool else None
 
     doors = exterior_doors(plan)
@@ -257,7 +259,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
             line = LineString([p, q])
             d["yard_m"] = line.length
             d["pool_ll"] = to_m(lat0)[1](q.x, q.y)
-            d["direct"] = fp_m is None or line.intersection(fp_m.buffer(-0.5)).length < 0.5
+            d["direct"] = house_m is None or line.intersection(house_m.buffer(-0.3)).length < 0.5
         else:
             d["direct"] = None
     pool_doors = sorted([d for d in doors if d["direct"]], key=lambda d: d["yard_m"])
@@ -390,7 +392,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         text = (f"{len(open_routes)} of {len(routes)} routes from a bedroom reach the pool with no barrier seen."
                 if open_routes else f"Every one of {len(routes)} routes meets a barrier ({'pool fence' if fence else 'door hardware'}).")
         if fixes:
-            text += f" First fix: {fixes[0][1].lower()}."
+            text += f" First fix: {fixes[0][1][0].lower() + fixes[0][1][1:]}."
     if conf == "low":
         text += " Low confidence: the plan does not sit well on the aerial footprint."
     return ToolResult(scope=s.scope, verdict=Verdict(status=status, text=text), metrics=metrics, checks=checks,
