@@ -50,3 +50,10 @@ def test_no_walls_gives_unknown_not_an_error(no_walls):
         r = evaluate_pack(no_walls, p["id"])
         assert r["verdict"]["status"] in ("unknown", "warn", "fail", "pass")
     assert evaluate_pack(no_walls, "wheelchair")["verdict"]["status"] == "unknown"
+
+
+def test_a_storey_high_step_is_stairs_not_a_threshold(plan):
+    next(o for o in plan["openings"] if o["id"] == "BC")["sill"] = 2.8
+    f = next(f for f in evaluate_pack(plan, "wheelchair")["findings"] if f["anchor"].get("opening") == "BC"
+             and f["id"].startswith("wheelchair.thresholds"))
+    assert f["result"] == "measure on site" and "stairs" in f["detail"]

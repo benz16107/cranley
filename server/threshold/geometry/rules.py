@@ -30,6 +30,7 @@ from .routes import reach, route
 
 PACK_DIR = pathlib.Path(__file__).parent / "packs"
 SKIP_DOOR_LABELS = {"Closet", "Void", "Pantry"}
+STAIR_STEP_M = 0.4
 WORST = ["likely fail", "measure on site", "likely pass"]
 
 
@@ -95,8 +96,12 @@ def m_threshold_step(plan, rule, params):
         if d.get("sill") is None:
             continue
         step = abs(d["sill"] - fz.get(d["floor"], 0.0))
+        stair = step > STAIR_STEP_M  # a stair opening or a door filed on the wrong floor, not a threshold
         out.append({"measured": step, "anchor": {"opening": d["opening"]}, "label": f"Sill, {names}",
-                    "point": d["center"], "detail": f"Sill {step * 100:.0f} cm from the floor level of this storey."})
+                    "point": d["center"], "result": "measure on site" if stair else None,
+                    "detail": f"Sill {step:.2f} m off this storey's floor level: probably stairs or a split "
+                              f"level, check on site." if stair else
+                              f"Sill {step * 100:.0f} cm from the floor level of this storey."})
     return out
 
 
