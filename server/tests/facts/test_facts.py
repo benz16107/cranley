@@ -155,6 +155,25 @@ def test_read_only_sql_refuses_writes_at_every_layer(schema):
     assert db.rows("SELECT count(*) AS n FROM scan")[0]["n"] == 3
 
 
+def test_reader_cannot_read_workspace_ids(schema):
+    # a workspace id gives write access to it, so the agent's SQL role must never see op_log or its chunks
+    record.record_op("ws_secret", {"seq": 1, "at": 1_763_000_100.0, "op": {"op": "brief.set", "by": "user"},
+                                   "undo": None, "cause": None})
+    record.flush()
+    assert db.rows("SELECT count(*) AS n FROM op_log WHERE workspace = 'ws_secret'")[0]["n"] == 1   # the owner sees it
+    with pytest.raises(ValueError, match="op_log"):
+        ask.run("SELECT workspace FROM op_log")
+    ask.run("SELECT 1")
+    c = ask._reader["con"]
+    chunks = [r["c"] for r in db.rows("SELECT show_chunks('threshold.op_log')::text AS c")]
+    assert chunks
+    for sql in ["SELECT workspace FROM threshold.op_log", *(f"SELECT workspace FROM {ch}" for ch in chunks)]:
+        with pytest.raises(pg8000.native.DatabaseError):
+            c.run(sql)
+        c.run("ROLLBACK")
+    assert ask.run("SELECT sum(ops) AS n FROM ops_hourly")["rows"][0][0] >= 1                       # counts stay readable
+
+
 def test_flood_runs_store_depth_series(schema):
     from datetime import UTC, datetime
 
