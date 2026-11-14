@@ -12,7 +12,7 @@ from ._plan import (
     walls_by_id,
 )
 
-PASSABLE = ("doorway", "opening")
+PASSABLE = ("doorway", "opening", "divider")  # a divider is Matterport's open boundary between two rooms (no wall)
 
 
 def room_graph(plan: dict) -> dict:
@@ -32,11 +32,12 @@ def room_graph(plan: dict) -> dict:
         listed = [r for r in o.get("rooms") or [] if r in rooms]
         found = listed if len(listed) >= 2 else listed + [r for r in rooms_beside(plan, o, walls.get(o["wall"]))
                                                          if r not in listed]
-        base = {"opening": o["id"], "kind": o["type"], "floor": o["floor"], "width": o.get("width"),
+        kind = "opening" if o["type"] == "divider" else o["type"]
+        base = {"opening": o["id"], "kind": kind, "floor": o["floor"], "width": o.get("width"),
                 "height": o.get("height"), "sill": o.get("sill"), "center": o["center"], "wall": o["wall"]}
         if len(found) >= 2:
             links.append({"id": o["id"], **base, "rooms": found[:2], "inferred": len(listed) < 2})
-        elif len(found) == 1:
+        elif len(found) == 1 and o["type"] != "divider":  # a divider with one room scanned is no way out
             entrances.append({"id": o["id"], **base, "room": found[0], "inferred": len(listed) == 0})
         else:
             unplaced.append(base)

@@ -43,3 +43,28 @@ def test_a_small_hall_between_rooms_stays_in_the_model():
     assert comp["h"] == comp["lr"] and comp["b"] != comp["lr"] and "cl" not in comp   # the closet joins nothing
     text, _ = sc.write_input(p, next(r for r in p["rooms"] if r["id"] == "lr"), False, 0.047, 2000)
     assert f"COMP_IDS = '{comp['lr']}', '{comp['b']}'" in text or f"COMP_IDS = '{comp['b']}', '{comp['lr']}'" in text
+
+
+def test_a_stalled_cfast_is_stopped_and_its_timeline_kept(monkeypatch, tmp_path):
+    exe = tmp_path / "fake_cfast"   # writes 2 min of output, then crawls forever like a stiff plan
+    exe.write_text("#!/bin/sh\nprintf 'ID,TRGFEDG_1\\n,\\n,T_C3\\n,\\n0,0\\n60,0.1\\n120,0.5\\n' > case_devices.csv\n"
+                   "echo 'Status at T =    1.20E+02 DT = 4.8E-02' > case.status\nsleep 30\n")
+    exe.chmod(0o755)
+    monkeypatch.setattr(sc, "cfast_bin", lambda: str(exe))
+    monkeypatch.setattr(sc, "RUNS", tmp_path / "runs")
+    res = sc.run_cfast("case a", stall_s=0.5, poll_s=0.1)
+    assert res["stopped_s"] == 120 and res["time"][-1] == 120
+    assert sc.run_cfast("case a")["stopped_s"] == 120          # cached: the stall is not waited out twice
+    exe.write_text("#!/bin/sh\nprintf 'ID,X\\n,\\n,T_C3\\n,\\n0,0\\n5,0\\n' > case_devices.csv\nsleep 30\n")
+    import pytest
+    with pytest.raises(sc.NotApplicable):                      # stalled before a minute: no timeline at all
+        sc.run_cfast("case b", stall_s=0.5, poll_s=0.1)
+
+
+def test_a_bedroom_with_no_path_from_the_fire_is_not_applicable(monkeypatch):
+    from ..conftest import make_plan
+    p = make_plan("island", [("lr", 0, 0, 5, 4, "Living Room"), ("b", 6, 0, 9, 4, "Bedroom"), ("h", 9, 0, 11, 4, "Hallway")],
+                  doors=[("b", "h", 0.8), ("lr", None, 0.9)])
+    monkeypatch.setattr(sc, "cfast_bin", lambda: "/bin/false")
+    r = run_tool("smoke_clock", {"scan": "island", "fire_room": "Living Room"}, ToolContext(plans=lambda s: p))
+    assert r.verdict.status == "unknown" and "no doorway joins" in r.verdict.text
