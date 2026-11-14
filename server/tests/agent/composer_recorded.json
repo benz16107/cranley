@@ -477,6 +477,29 @@
    }
   ]
  },
+ "I work in community risk reduction and need to find the homes in this neighbourhood with missing smoke alarms.": {
+  "cannot": [
+   "Confirming that a smoke alarm actually works, or spotting one the ceiling photos missed, still needs an in-person check.",
+   "Homes that have never been scanned cannot be checked, so they will not appear in the results."
+  ],
+  "persona": "community_risk_officer",
+  "stated": [],
+  "summary": "A community risk reduction worker who needs to find the homes in this neighbourhood that are missing smoke alarms.",
+  "tools": [
+   {
+    "id": "life_safety_census",
+    "reason": "You get a list of bedrooms where no smoke alarm was seen in the ceiling photos, as leads for home visits."
+   },
+   {
+    "id": "smoke_clock",
+    "reason": "You can show residents how much survivable time a closed bedroom door buys, to back up your alarm and door message."
+   },
+   {
+    "id": "egress_routes",
+    "reason": "You can see which bedrooms have only one way out, so those homes go to the top of your visit list."
+   }
+  ]
+ },
  "I'm a CoStar researcher checking whether our record for this property is still right.": {
   "cannot": [],
   "persona": "costar_researcher",
@@ -552,6 +575,30 @@
    {
     "id": "room_census",
     "reason": "This tells you which rooms the office has and which have no type, so you know what you are walking into."
+   }
+  ]
+ },
+ "I'm a fire training officer and I want to run size-up drills for my crews on real houses.": {
+  "cannot": [],
+  "persona": "fire_training_officer",
+  "stated": [],
+  "summary": "A fire training officer who wants to run size-up drills for crews on real houses and grade them against the measured interior.",
+  "tools": [
+   {
+    "id": "size_up_quiz",
+    "reason": "Your crews read a house from outside and get graded against what was actually measured inside."
+   },
+   {
+    "id": "egress_routes",
+    "reason": "After the size-up, you can show crews the real way out of every room, the single-exit rooms and the hose stretch."
+   },
+   {
+    "id": "smoke_clock",
+    "reason": "You can teach how much survivable time each bedroom has with its door open or closed, which sharpens search priorities."
+   },
+   {
+    "id": "fire_preplan",
+    "reason": "You get a printable pre-incident sheet for each drill house to use in the debrief."
    }
   ]
  },

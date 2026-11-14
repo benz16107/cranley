@@ -8,7 +8,7 @@ def test_tools_workspace_ops_and_undo(tmp_path, monkeypatch):
     monkeypatch.setattr(workspace, "STORE", tmp_path)
     c = TestClient(app)
     tools = {t["id"]: t for t in c.get("/api/tools").json()}
-    assert tools["door_widths"]["status"] == "ready" and tools["fire_preplan"]["status"] == "planned"
+    assert tools["door_widths"]["status"] == "ready" and tools["not_built_yet"]["status"] == "planned"  # the stub from conftest: every real tool is built
     assert c.post("/api/tools/nope/run", json={}).status_code == 404
     assert c.post("/api/tools/door_widths/run", json={"scan": "x"}).status_code == 400
 

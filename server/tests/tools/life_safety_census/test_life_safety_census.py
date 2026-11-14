@@ -41,5 +41,5 @@ def test_dark_ceiling_and_unread_scan_are_could_not_see(monkeypatch):
 
 def test_state_from_address():
     assert census.state_of({"address": "<address>, Los Angeles, CA"}) == "CA"
-    assert census.state_of({"address": "<address>, Houston, TX"}) == "TX"
+    assert census.state_of({"address": "12 Sample Creek Ln, Houston, TX"}) == "TX"
     assert census.state_of({"address": "1 Main St, Trenton, NJ"}) is None
