@@ -43,3 +43,40 @@ def test_turn_takes_places_and_a_budget_and_streams_done(tmp_path, monkeypatch):
     assert seen["places"] == [{"property_id": 7}, {"geo": (-95.3, 29.7)}] and seen["budget"].parallel == 2
     assert c.post("/api/agent/turn", json={"places": [{}]}).status_code == 422
     assert c.post("/api/agent/turn", json={"budget": {"parallel": 99}}).status_code == 422
+
+
+def test_a_slow_tool_run_answers_early_and_finishes_in_the_background(tmp_path, monkeypatch):
+    import threading
+    import time
+
+    from threshold.agent import investigator
+    from threshold.api import agent as api
+    monkeypatch.setattr(workspace, "STORE", tmp_path)
+    monkeypatch.setattr(api, "_sessions", {})
+    release, real = threading.Event(), investigator.run_tool
+
+    def slow(tool_id, inputs, ctx=None):  # the tool reports a step, then takes its time
+        ctx.step("Half way")
+        release.wait(5)
+        return real(tool_id, inputs, ctx)
+    monkeypatch.setattr(investigator, "run_tool", slow)
+    c = TestClient(app)
+    wid = c.post("/api/workspace").json()["doc"]["id"]
+    s = api.session(wid)
+    investigator.attach(s, lambda sid: {"sid": sid, "rooms": [{"id": "r1", "label": "Bedroom", "area": 12.0, "floor": "f1"}],
+                                        "floors": [{"id": "f1"}], "walls": [], "openings": [], "panos": []})
+    c.post(f"/api/workspace/{wid}/ops", json={"op": "brief.set", "scope": {"sids": ["t1"]}})
+    out = c.post(f"/api/tools/room_census/run?workspace={wid}&wait=0.2", json={"scan": "t1"}).json()
+    assert out["status"] == "running" and out["run"]
+    run = next(r for r in c.get(f"/api/workspace/{wid}").json()["doc"]["runs"] if r["id"] == out["run"])
+    assert run["status"] == "running" and run["steps"] == ["Half way"]  # progress is in the workspace while it runs
+    release.set()
+    for _ in range(100):
+        run = next(r for r in c.get(f"/api/workspace/{wid}").json()["doc"]["runs"] if r["id"] == out["run"])
+        if run["status"] != "running":
+            break
+        time.sleep(0.05)
+    assert run["status"] == "done" and c.get(f"/api/workspace/{wid}").json()["doc"]["panels"]
+    quick = c.post(f"/api/tools/room_census/run?workspace={wid}&wait=5", json={"scan": "t1"}).json()
+    assert quick["verdict"] and "status" not in quick  # a run that finishes inside the wait answers as it always did
+

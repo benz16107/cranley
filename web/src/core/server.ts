@@ -126,11 +126,20 @@ export async function runTool(tool: string, sid: string, inputs: J = {}): Promis
   if (!(ws!.tools as J[]).some((t) => t.id === tool && t.enabled !== false)) setup.push({ op: 'tool.enable', tool, reason: 'You asked for it on this scan.' })
   if (setup.length && !(await post(setup))) return
   const poll = setInterval(() => void sync(), 900) // the run and its steps show while the request is open
-  const r = await fetch(`/api/tools/${tool}/run?workspace=${id}`, { method: 'POST', headers: json,
+  // wait=2: a tool that takes longer answers { status: 'running' } and finishes on the server (see below)
+  const r = await fetch(`/api/tools/${tool}/run?workspace=${id}&wait=2`, { method: 'POST', headers: json,
     body: JSON.stringify({ ...('scan' in props ? { scan: sid } : 'place' in props ? { place: { scan: sid } } : {}), ...inputs }) }).catch(() => null)
   clearInterval(poll)
-  const out: J = r?.ok ? await r.json() : { error: r ? `The server answered ${r.status}.` : 'The server is not answering.' }
+  let out: J = r?.ok ? await r.json() : { error: r ? `The server answered ${r.status}.` : 'The server is not answering.' }
   await sync()
+  // A slow tool (a smoke simulation takes minutes) keeps running on the server. Its steps and its result arrive as
+  // ordinary workspace ops, so every look shows it as a running run; here we only keep reading until it settles.
+  for (let i = 0; out.status === 'running' && i < 1500; i++) {
+    const run = (ws?.runs as J[] | undefined)?.find((x) => x.id === out.run)
+    if (!run || run.status !== 'running') { out = run?.status === 'error' ? { error: run.error ?? 'The tool stopped.' } : {}; break }
+    await new Promise((res) => setTimeout(res, 1200))
+    await sync()
+  }
   const missing = /^missing inputs/.test(out.error ?? '') ? (m?.inputs.required ?? []).filter((k) => props[k]?.['x-ask'] && !(ws!.questions as J[]).some((q) => q.key === (props[k]['x-pref'] ?? `${tool}.${k}`))) : []
   if (missing.length) { // the tool needs something only the person knows: ask, then run when it is answered
     ask = { tool, sid }
