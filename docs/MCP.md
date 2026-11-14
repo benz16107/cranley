@@ -5,7 +5,7 @@ terminal. The server reads the same registry as the web app, so a tool added und
 shows up in both without further changes.
 
 It runs on your machine with your data folder (`$THRESHOLD_DATA_DIR`, default
-`~/Code/hackathons/hackprinceton26-data`) and keys (`$THRESHOLD_DATA_DIR/.env`). Results are for the
+`<data-dir>`) and keys (`$THRESHOLD_DATA_DIR/.env`). Results are for the
 person running it: lists stop at 25 rows, findings at 50, and no tool returns panorama or floor plan images.
 
 ## What it exposes
@@ -24,9 +24,9 @@ result's own fields: the verdict, the metrics with their confidence, failing che
 ## Claude Code
 
 ```sh
-claude mcp add threshold -- uv run --directory ~/Code/hackathons/hackprinceton26/server python -m threshold.mcp
+claude mcp add threshold -- uv run --directory <repo>/server python -m threshold.mcp
 # with agent turns and workspace writes:
-claude mcp add threshold-write -- uv run --directory ~/Code/hackathons/hackprinceton26/server python -m threshold.mcp --write
+claude mcp add threshold-write -- uv run --directory <repo>/server python -m threshold.mcp --write
 ```
 
 Then ask: "Will an F-150 fit in the garage of scan <scan-id>?" Claude calls `garage_fit` and answers from
@@ -53,20 +53,20 @@ On the machine that has the repo and the data folder:
   "mcpServers": {
     "threshold": {
       "command": "uv",
-      "args": ["run", "--directory", "~/Code/hackathons/hackprinceton26/server", "python", "-m", "threshold.mcp"]
+      "args": ["run", "--directory", "<repo>/server", "python", "-m", "threshold.mcp"]
     }
   }
 }
 ```
 
-From a laptop, with the server on linuxbox:
+From a laptop, with the server on another machine (`<server-host>`) reachable by ssh:
 
 ```json
 {
   "mcpServers": {
     "threshold": {
       "command": "ssh",
-      "args": ["linuxbox", "cd ~/Code/hackathons/hackprinceton26/server && uv run python -m threshold.mcp"]
+      "args": ["<server-host>", "cd <repo>/server && uv run python -m threshold.mcp"]
     }
   }
 }
@@ -81,7 +81,7 @@ From a laptop, with the server on linuxbox:
   "mcpServers": {
     "threshold": {
       "command": "uv",
-      "args": ["run", "--directory", "~/Code/hackathons/hackprinceton26/server", "python", "-m", "threshold.mcp"]
+      "args": ["run", "--directory", "<repo>/server", "python", "-m", "threshold.mcp"]
     }
   }
 }

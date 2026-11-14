@@ -163,6 +163,9 @@ export class CityMesh implements CustomLayerInterface {
     r.render(this.scene, this.camera)
     if (range) gl.depthRange(range[0], range[1])
     r.resetState()
+    // The map's flat layers drawn after this one (data, marks) test against the depth buffer. Left as it is, the mesh
+    // would hide every one of them; cleared, they lie over the city like a transparency on a model.
+    gl.depthMask(true); gl.clear(gl.DEPTH_BUFFER_BIT)
     this.frames++
     if (moving) map.triggerRepaint()
   }

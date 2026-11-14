@@ -43,7 +43,7 @@ const LAYER_HUE: Record<string, string> = {
   hydrants: '--tool-3', hospitals: '--tool-5', schools: '--tool-6', parcels: '--ink-2', transit: '--tool-1', ev: '--tool-4', radar: '--tool-2',
 }
 
-/** The map style for a base view with the chosen data layers spliced in under the 3D city and the names. A pure
+/** The map style for a base view with the chosen data layers spliced in over the 3D city and under the names. A pure
     function of what is shown, so every change is one `setStyle` and the map works out the difference. */
 function styleFor(base: BaseView, city: CityId, layers: MapLayer[], on: string[], grid: Map<string, LayerCollection>) {
   const style = mapStyle(palette(), { base, closeUp: CLOSE_Z })
@@ -85,7 +85,9 @@ function styleFor(base: BaseView, city: CityId, layers: MapLayer[], on: string[]
       }
     }
   }
-  const at = style.layers.findIndex((l) => l.id === SLOT.data)
+  // Over the 3D city, not under it: close in the mesh covers the whole ground, and a layer under it could not be seen.
+  // They lie flat over the mesh as the building marks do (CityMesh clears its depth when it has drawn).
+  const at = style.layers.findIndex((l) => l.id === SLOT.marks)
   return { ...style, sources: { ...style.sources, ...sources }, layers: [...style.layers.slice(0, at), ...drawn, ...style.layers.slice(at)] } as typeof style
 }
 const dataLayerIds = (map: MapLibre) => map.getStyle().layers.filter((l) => l.id.startsWith('L-') && l.type !== 'raster').map((l) => l.id)
@@ -269,6 +271,7 @@ export function WorldMap(props: Props) {
   useEffect(() => {
     if (!map || drawnStyle.current === styleKey) return
     drawnStyle.current = styleKey
+    for (const id of [...grid.current.keys()]) if (!on.includes(id)) grid.current.delete(id) // switched off: switching it on again asks afresh
     map.setStyle(styleFor(base, city, layers, on, grid.current))
     map.once('styledata', () => { draw(); loadGrid() })
   }, [styleKey, map]) // eslint-disable-line react-hooks/exhaustive-deps
