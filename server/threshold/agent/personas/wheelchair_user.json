@@ -7,7 +7,8 @@
     "step_free_route",
     "turning_space",
     "bathroom_clearance",
-    "room_census"
+    "room_census",
+    "tour"
   ],
   "thresholds": {
     "access.door_width_m": 0.813,

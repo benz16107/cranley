@@ -6,7 +6,8 @@
     "fire_preplan",
     "egress_routes",
     "door_widths",
-    "room_census"
+    "room_census",
+    "tour"
   ],
   "thresholds": {
     "access.door_width_m": 0.813,
