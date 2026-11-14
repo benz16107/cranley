@@ -2,6 +2,8 @@
 
     uv run python -m threshold.facts migrate          apply migrations
     uv run python -m threshold.facts load             scans, buildings, measures, rooms, doors and seed facts
+                                                     (on the cloud database it needs --yes: it empties the flood
+                                                     series and room descriptions too)
     uv run python -m threshold.facts flood [--city Houston --kind house --limit 200]
     uv run python -m threshold.facts rooms [--limit 300]      describe rooms with the vision model and embed them
     uv run python -m threshold.facts compress         convert every finished chunk to the columnstore; print ratios
@@ -25,7 +27,7 @@ from . import db
 def main(argv=None) -> int:
     a = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     a.add_argument("cmd", choices=["migrate", "load", "flood", "rooms", "compress", "stats", "bench", "ops", "drop_all"])
-    a.add_argument("--yes", action="store_true", help="confirm drop_all")
+    a.add_argument("--yes", action="store_true", help="confirm drop_all, or load on the cloud database")
     a.add_argument("--target", choices=sorted(db.TARGETS), help="drop_all: which database (required)")
     a.add_argument("--city", default="Houston")
     a.add_argument("--kind", default="house")
@@ -42,6 +44,12 @@ def main(argv=None) -> int:
             return 1
         print(f"{args.target}: {db.drop_all(target=args.target)}")
         return 0
+    if args.cmd == "load" and not db.is_local(db.url()) and not args.yes:
+        # load empties scan, building, measures, room, door, room_text, flood_run and flood_depth before refilling
+        # the first five; the flood series and room descriptions then have to be rebuilt (flood, rooms: model calls)
+        print("load on the cloud database deletes the flood series and the room descriptions along with the tables "
+              "it reloads. Confirm with --yes, then run flood and rooms again.")
+        return 1
     if args.cmd == "migrate":
         out = db.migrate()
     elif args.cmd == "load":

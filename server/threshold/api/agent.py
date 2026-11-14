@@ -1,12 +1,13 @@
 """Agent routes (Contract 2): tools, agent turns as server-sent events of workspace ops, and workspaces."""
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import queue
 import threading
 from typing import Any
 
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -20,6 +21,7 @@ from ..tools import Place, ToolError, run_tool
 router = APIRouter(prefix="/api")
 _sessions: dict[str, Session] = {}
 _lock = threading.Lock()
+_background = concurrent.futures.ThreadPoolExecutor(max_workers=4, thread_name_prefix="tool-run")  # runs that outlive their request
 
 
 def session(id: str) -> Session:
@@ -29,7 +31,9 @@ def session(id: str) -> Session:
                 _sessions[id] = attach(Session.load(id))
             except LookupError as e:
                 raise HTTPException(404, str(e)) from None
-        return _sessions[id]
+        s = _sessions[id]
+    s.sync()  # another server process may have appended (MongoDB store); a no-op for files
+    return s
 
 
 def view(s: Session, log: bool = False) -> dict:
@@ -46,13 +50,28 @@ def tools() -> list[dict]:
 
 
 @router.post("/tools/{tool_id}/run")
-def tool_run(tool_id: str, inputs: dict[str, Any] = Body(default={}), workspace: str | None = None) -> dict:
+def tool_run(tool_id: str, inputs: dict[str, Any] = Body(default={}), workspace: str | None = None,
+             wait: float | None = Query(None, ge=0, le=600, description="seconds to wait before answering")) -> dict:
     """Run a tool. With ?workspace=<id> the run goes into that workspace (inputs left out come from its
-    preferences) and the reply is the run summary; without it, the bare ToolResult."""
+    preferences) and the reply is the run summary; without it, the bare ToolResult.
+
+    With ?workspace and ?wait=<seconds> a slow tool (a smoke simulation takes minutes) does not hold the request
+    open: when the run has not finished in that time the reply is `{"status": "running", "run": <id>}` and the run
+    carries on in the background. Its `run.start`, `run.progress` and `run.finish` ops, findings, overlays and panel
+    reach the workspace exactly as they do for a fast tool, so a client follows it by reading the workspace."""
     if tool_id not in catalog():
         raise HTTPException(404, f"Unknown tool {tool_id}")
     if workspace:
-        return Investigation(session(workspace)).run(tool_id, inputs)
+        s = session(workspace)
+        if wait is None:
+            return Investigation(s).run(tool_id, inputs)
+        before = {r.id for r in s.doc.runs}
+        job = _background.submit(Investigation(s).run, tool_id, inputs)
+        try:
+            return job.result(timeout=wait)
+        except concurrent.futures.TimeoutError:
+            started = next((r.id for r in reversed(s.doc.runs) if r.id not in before and r.tool == tool_id), None)
+            return {"status": "running", "run": started, "tool": tool_id}
     try:
         return run_tool(tool_id, inputs).model_dump(mode="json")
     except ToolError as e:

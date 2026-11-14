@@ -25,6 +25,11 @@ def url() -> str | None:
     return env().get("TIGER_DATABASE_URL")
 
 
+def is_local(u: str | None) -> bool:
+    """True when the URL names a database on this machine (the Docker copy), false for the cloud service."""
+    return bool(u) and (urlparse(u).hostname or "localhost") in ("localhost", "127.0.0.1", "::1")
+
+
 @functools.cache
 def _params(u: str) -> dict:
     p = urlparse(u)

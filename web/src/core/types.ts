@@ -8,7 +8,12 @@ export type Status = 'pass' | 'warn' | 'fail' | 'unknown'
 export type Pt = [number, number]
 export type ScanPlan = {
   schema: string; sid: string; name: string; address: string; city: string; segment: string
-  geo: { lat: number; lon: number; yaw_deg: number } | null
+  /** Where the scan is on the map. `yaw_deg` turns the scan frame onto east/north, counter-clockwise (settled on 40
+      houses). `fit` is the per-scan check against the building footprint; trust a map position only when
+      `quality.georef` is true (it is false for a unit inside a larger building, where the check cannot run). */
+  geo: { lat: number; lon: number; yaw_deg: number; fit?: { rotation_deg: number; shift_m: number; iou: number; verified: boolean } | null } | null
+  /** What the scan can answer. `walls_source: 'dxf'` means the walls were recovered from the drawing, not measured. */
+  quality?: { walls: boolean; polygons: boolean; openings: boolean; labels: boolean; georef: boolean; walls_source?: string; walls_confidence?: string; notes?: string[] }
   has: { splat: boolean; defurnished: boolean; room_labels: boolean; openings: boolean }
   floors: { id: string; label: string; sequence: number }[]
   walls: { id: string; floor: string; a: Pt; b: Pt; type: 'wall' | 'invisible'; thickness: number; rooms: string[]; openings: string[] }[]

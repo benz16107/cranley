@@ -1,5 +1,6 @@
 import { Component, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { Mode, Overlay as SceneOverlay, Pick, ScanPlan as ScenePlan, View } from '../scene/types.ts'
+import type { CameraInfo, Mode, Overlay as SceneOverlay, Pick, ScanPlan as ScenePlan, View } from '../scene/types.ts'
+import type { SceneState as EngineState } from '../scene/engine/Engine.ts'
 import type { BuildingSceneProps } from '../scene/BuildingScene.tsx'
 import { fetchPlan } from './api.ts'
 import { replayDemo } from './agent.ts'
@@ -17,6 +18,10 @@ export const Scene = lazy(() => import('../scene/BuildingScene.tsx').then((m) =>
 export type SceneMode = Mode
 export type SceneView = View
 export type SceneProps = BuildingSceneProps
+/** What `onCamera` reports: bearing, pitch, range and fov, and where the focused thing is on screen. */
+export type SceneCamera = CameraInfo
+/** What `onState` reports: the mode, whether it is loading, the drone capture's progress. */
+export type SceneState = EngineState
 
 /** Looking at a finding: the building view frames its anchor and whatever lists it can mark it as current. */
 export function focusFinding(f: Finding | undefined) {

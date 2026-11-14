@@ -35,7 +35,7 @@ export class Labels {
   }
 
   /** Place every label. `lift(floor)` is how far that floor is currently raised; `eye` is set inside a panorama. */
-  update(camera: THREE.PerspectiveCamera, w: number, h: number, lift: (f: number) => number, cut: (elem: number | undefined, full: number) => number, shown: (f: number) => boolean, pano: { eye: Vec3; floorId: string | null } | null, opacity: number) {
+  update(camera: THREE.PerspectiveCamera, w: number, h: number, lift: (f: number) => number, cut: (elem: number | undefined, full: number) => number, shown: (f: number) => boolean, pano: { eye: Vec3; floorId: string | null } | null, opacity: number, off: [number, number] = [0, 0]) {
     const f = h / 2 / Math.tan((camera.fov * Math.PI) / 360)
     this.root.style.opacity = String(opacity)
     for (const it of this.items.values()) {
@@ -51,7 +51,7 @@ export class Labels {
           on = d < 14 && this.m.plan.floors[spec.floor]?.id === pano.floorId && !sightBlocked(this.m, pano.floorId!, pano.eye[0], pano.eye[1], spec.pos[0], spec.pos[1], spec.skipWall)
         }
         if (on) {
-          const x = w / 2 + (this.v.x * f) / depth, y = h / 2 - (this.v.y * f) / depth
+          const x = w / 2 + off[0] + (this.v.x * f) / depth, y = h / 2 + off[1] - (this.v.y * f) / depth
           on = x > -80 && x < w + 80 && y > -40 && y < h + 40
           if (on) el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`
         }

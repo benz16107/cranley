@@ -30,6 +30,8 @@ export interface ScanPlan {
   schema: string; sid: string; name: string | null; address: string | null
   has: { splat: boolean; defurnished: boolean; room_labels: boolean; openings: boolean }
   floors: Floor[]; walls: Wall[]; openings: Opening[]; rooms: Room[]; panos: Pano[]; floorplans: FloorplanImage[]
+  /** The compass rotation from the scan frame to east/north (Contract 1). Only `pose.bearing` reads it. */
+  geo?: { yaw_deg?: number | null; fit?: { rotation_deg?: number; verified?: boolean } | null } | null
 }
 
 export type Anchor =
@@ -59,6 +61,36 @@ export interface View {
   explode?: number        // 0..1, how far stacked floors are pulled apart
   wipe?: number | null    // 0..1 screen position of the furnished | empty divider in a panorama; null is off
   measures?: boolean      // show opening widths
+
+  // ---- where the camera puts its subject. All optional; leaving them out is the behaviour before they existed. ----
+  /** The free part of the picture: CSS px in from each edge of the scene element (missing sides are 0). Everything
+      outside it has interface on it. Fits and focuses use this rectangle, not the whole canvas, by shifting the
+      projection (verticals stay vertical; labels, pins and picking follow). A change eases over 400 ms. */
+  frame?: { top?: number; right?: number; bottom?: number; left?: number } | null
+  /** Panorama only: vertical field of view in degrees, clamped to 34..96. null is the default (76). It is applied
+      when it changes and when a panorama is entered; the person's own zoom then stays until it changes again. */
+  fov?: number | null
+  /** Panorama only: which way to look, in the scan frame as Contract 3 defines it (yaw counter-clockwise from +x,
+      pitch positive looking up). Applied when it changes and when a panorama is entered; a focus on a panorama
+      anchor at that position wins. The person's drag then stays until it changes again. */
+  look?: { yaw_deg: number; pitch_deg: number } | null
+  /** Dollhouse and splat: where the outside camera stands, in map terms. bearing: compass degrees the camera looks
+      toward (0 north, clockwise; uses plan.geo, and without it 0 is the scan's +y). pitch: degrees from straight
+      down (0 plan view, 90 horizon), clamped to the mode's limits. range: metres from the target, or 'fit' (the
+      default) for the mode's own fitted distance. A change flies there; the person's drag then stays. */
+  pose?: { bearing?: number; pitch?: number; range?: number | 'fit' } | null
+  /** Dollhouse and splat: a slow turn about the target in degrees per second (positive is counter-clockwise seen
+      from above). 0 stops it; leaving it out keeps the splat's own slow drift. A drag stops it until it changes. */
+  orbit?: number
+}
+
+/** What onCamera reports: the camera in the same units as `pose` and `fov`, and where `view.focus` is on screen. */
+export interface CameraInfo {
+  mode: Mode
+  moving: boolean          // a designed flight is in progress
+  bearing: number; pitch: number; range: number; fov: number
+  /** view.focus in CSS px inside the scene element; visible is false behind the camera or outside the canvas. */
+  focus: { x: number; y: number; visible: boolean } | null
 }
 
 export type Pick =
