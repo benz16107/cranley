@@ -72,9 +72,13 @@ def test_cube_lookup_reads_the_face_a_direction_points_at():
     assert mesh.cube_lookup(cube, d)[:, 0].tolist() == [2, 1, 6, 4]  # faces 1 (forward), 0 (up), 5 (down), 3 (back)
 
 
+def _door(floor: str, sill: float) -> dict:
+    return {"floor": floor, "type": "doorway", "sill": sill}
+
+
 def test_pack_layout():
     V, F = _room()
-    plan = {"floors": [{"elevation": 0.0}, {"elevation": 2.0}]}
+    plan = {"floors": [{"id": "a"}, {"id": "b"}], "openings": [_door("a", 0.0), _door("b", 2.0)]}
     floor = mesh.floor_of(V, F, plan)
     assert floor[0] == 0 and floor[2] == 1  # the floor's triangles, then the ceiling's (above the second floor's start)
     data = mesh.pack(V, F, np.zeros((len(F), 3, 2), np.float32), floor)
@@ -158,9 +162,22 @@ def test_trim_keeps_the_rooms_and_drops_the_yard_in_an_l_shaped_corner():
                   [7, 7, 0], [8, 7, 0], [7.5, 8, 0],              # in the corner the L leaves open
                   [0.5, 0.5, 9], [1.5, 0.5, 9], [1, 1.5, 9]], np.float32)  # far above the ceiling
     F = np.arange(9, dtype=np.int32).reshape(3, 3)
-    plan = {"floors": [{"elevation": 0.0}], "walls": [], "panos": [],
+    plan = {"floors": [{"id": "a"}], "walls": [], "panos": [],
             "rooms": [{"polygon": [[0, 0], [10, 0], [10, 4], [0, 4]], "height": 2.5}, {"polygon": [[0, 4], [4, 4], [4, 10], [0, 10]], "height": 2.5}]}
     assert mesh.trim(V, F, plan).tolist() == [[0, 1, 2]]
+
+
+def test_a_ground_floor_under_the_scan_origin_is_kept_and_is_the_first_floor():
+    # Matterport put this scan's origin upstairs: the ground floor's doorways sit 3.18 m under it
+    V = np.array([[1, 1, -3.1], [2, 1, -3.1], [1.5, 2, -3.1],     # the ground floor's floor
+                  [1, 1, 0.1], [2, 1, 0.1], [1.5, 2, 0.1],        # the upper floor's floor
+                  [1, 1, -6], [2, 1, -6], [1.5, 2, -6]], np.float32)  # far under the house
+    F = np.arange(9, dtype=np.int32).reshape(3, 3)
+    plan = {"floors": [{"id": "a"}, {"id": "b"}], "walls": [], "panos": [], "openings": [_door("a", -3.18), _door("b", 0.02)],
+            "rooms": [{"polygon": [[0, 0], [4, 0], [4, 4], [0, 4]], "height": 2.6}]}
+    kept = mesh.trim(V, F, plan)
+    assert kept.tolist() == [[0, 1, 2], [3, 4, 5]]
+    assert mesh.floor_of(V, kept, plan).tolist() == [0, 1]
 
 
 def test_a_mesh_of_loose_triangles_is_welded_and_not_mistaken_for_specks():

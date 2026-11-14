@@ -123,7 +123,7 @@ export class Engine {
     }
     const b = this.model.bounds, layerChanged = () => { this.invalidate(); this.pushState() }
     this.world = new WorldView(this.renderer, opts.api, plan.sid, this.tokens.stage,
-      this.model.plan.rooms.filter((r) => r.polygon.length > 2).map((r) => r.polygon), [(b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2], this.radius())
+      this.model.plan.rooms.filter((r) => r.polygon.length > 2).map((r) => r.polygon), [(b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2], this.radius(), this.model.floorZ[this.model.groundFloor])
     this.world.onChange = layerChanged
     const du = this.doll.uniforms
     this.scan = new ScanMesh(opts.api, plan.sid, this.tokens, { uCut: du.uCut, uFloorShow: du.uFloorShow, uFloorZ: du.uFloorZ, base: this.model.floorZ })
@@ -269,7 +269,7 @@ export class Engine {
 
   private centre(floor = -1) {
     const b = floor >= 0 ? this.model.floorBounds[floor] : this.model.bounds
-    return new THREE.Vector3((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2, floor >= 0 ? this.model.floorZ[floor] : 1)
+    return new THREE.Vector3((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2, floor >= 0 ? this.model.floorZ[floor] : this.model.floorZ[0] + 1)
   }
   private radius() { const b = this.model.bounds; return Math.max(4, Math.hypot(b.maxX - b.minX, b.maxY - b.minY) / 2) }
   /** The free rectangle of view.frame: its size, and how far its centre is from the canvas centre (CSS px). */
@@ -296,14 +296,14 @@ export class Engine {
   private lookPose = lookAngles
   private splatDist() { return SPLAT_DIST * (this.h / this.free().h) }
   private dollPose() {
-    const tall = this.model.floorZ[this.model.floorZ.length - 1] + this.model.maxH
+    const base = this.model.floorZ[0], tall = this.model.floorZ[this.model.floorZ.length - 1] + this.model.maxH - base // the building's height above its lowest floor
     // fit the footprint to the narrower of the free rectangle's two view angles, so a phone-shaped viewport (or a
     // picture with panels over part of it) still shows the whole building
     const t = Math.tan((DOLL_FOV * Math.PI) / 360), fr = this.free(), fit = Math.min(Math.atan(t * (fr.h / this.h)), Math.atan(t * (fr.w / this.h)))
     // 0.66 is tuned to the default three-quarter angle; a look that sets its own frame or angle gets a fit that
     // holds from any side
     const snug = this.view.frame || this.view.pose ? 0.86 : 0.66
-    return { target: this.centre().setZ(tall * 0.3), az: -2.05, pol: 0.86, dist: ((this.radius() + tall * 0.25) / Math.sin(fit)) * snug, fov: DOLL_FOV }
+    return { target: this.centre().setZ(base + tall * 0.3), az: -2.05, pol: 0.86, dist: ((this.radius() + tall * 0.25) / Math.sin(fit)) * snug, fov: DOLL_FOV }
   }
   private planFloor() { return (this.view.floor && this.model.floorOf.get(this.view.floor)) || 0 }
   private planPose() {
@@ -333,7 +333,7 @@ export class Engine {
       if (start) this.goPano(start, true)
     } else {
       Object.assign(L, { minPol: 0.25, maxPol: 1.5, minDist: 8, maxDist: 160, minFov: DOLL_FOV, maxFov: DOLL_FOV })
-      const c = this.splat.status === 'ready' ? this.splat.centre : new THREE.Vector3(0, 0, 2)
+      const c = this.splat.status === 'ready' ? this.splat.centre : new THREE.Vector3(0, 0, this.model.floorZ[0] + 2)
       rig.flyTo(this.withPose({ target: c.clone(), az: rig.pose.az, pol: 1.08, dist: this.splatDist(), fov: DOLL_FOV }), 1300)
       this.drift = !reducedMotion()
     }
@@ -460,7 +460,7 @@ export class Engine {
     const bb = this.model.bounds, topF = this.view.floor ? this.model.floorOf.get(this.view.floor) ?? 0 : this.model.floorZ.length - 1
     const cutAbove = (f: number) => this.doll.floorZ(f) + Math.min(this.doll.anim.cut.cur, this.model.floorH[f] + 0.3)
     const slab = (z0: number, z1: number) => ({ centre: [(bb.minX + bb.maxX) / 2, (bb.minY + bb.maxY) / 2, (z0 + z1) / 2], half: [(bb.maxX - bb.minX) / 2 + 1.2, (bb.maxY - bb.minY) / 2 + 1.2, (z1 - z0) / 2] })
-    this.splat.cut.set(this.splat.shown, site ? [slab(cutAbove(0) + (1 - smooth(0, 1, open)) * 16, 80)] : [], aerial ? SPLAT_CLEAR_M + 8 : 0, [(bb.minX + bb.maxX) / 2, (bb.minY + bb.maxY) / 2, 0])
+    this.splat.cut.set(this.splat.shown, site ? [slab(cutAbove(0) + (1 - smooth(0, 1, open)) * 16, 80)] : [], aerial ? SPLAT_CLEAR_M + 8 : 0, [(bb.minX + bb.maxX) / 2, (bb.minY + bb.maxY) / 2, this.model.floorZ[0]])
     this.interior.cut.set(this.interior.shown, splatIn ? this.model.floorZ.slice(0, topF + 1).map((_, f) => slab(cutAbove(f), f < topF ? Math.max(cutAbove(f) + 0.01, this.doll.floorZ(f + 1) - 0.2) : 80)) : [])
     if (this.interior.update(dt)) moving = true
     this.scan.setWater(this.doll.anim.water.cur)

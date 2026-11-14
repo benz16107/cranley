@@ -194,7 +194,7 @@ export class Dollhouse {
       uniforms: { uInk: { value: new THREE.Vector3(...tok.grid) }, uCentre: { value: new THREE.Vector2((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2) }, uRadius: { value: r }, uReveal: this.uniforms.uReveal,
         uBox: { value: new THREE.Vector4((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2, (b.maxX - b.minX) / 2, (b.maxY - b.minY) / 2) } },
     }))
-    this.ground.position.set((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2, -0.03)
+    this.ground.position.set((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2, m.floorZ[0] - 0.03)
     this.ground.renderOrder = -1
     this.group.add(this.ground)
     this.update(1)
