@@ -29,11 +29,17 @@ export function kindOf(name: string, segment: string): Kind {
 const metroOf = (lon: number, lat: number): CityId | null =>
   lon > -119.6 && lon < -117 && lat > 33 && lat < 35 ? 'la' : lon > -96.6 && lon < -94 && lat > 28.8 && lat < 31 ? 'hou' : null
 
-type Feature = { geometry: { coordinates: [number, number] }; properties: { address: string; city: string; segment: string; count: number; splat: boolean; defurnished: boolean; scans: { sid: string; name: string; rooms: number; panos: number }[] } }
+/** The server's kind per scan (GET /api/buildings), folded into the five the filter offers. */
+const KIND: Record<string, Kind> = { apartment_unit: 'apartment', house: 'home', amenity: 'amenity', office: 'office' }
+
+/** One feature per building: scans that share a CoStar property, else an address. `scans` rows are compact:
+    [sid, name, kind, rooms, panos]. */
+type Row = [sid: string, name: string, kind: string | null, rooms: number | null, panos: number | null]
+type Feature = { geometry: { coordinates: [number, number] }; properties: { id?: string; address: string | null; city: string | null; segment: string; count: number; splat: boolean; defurnished: boolean; scans: Row[] } }
 export function toBuildings(features: Feature[]): Building[] {
   return features.map(({ geometry: { coordinates: [lon, lat] }, properties: p }) => {
-    const scans = p.scans.map((s) => ({ ...s, kind: kindOf(s.name, p.segment) }))
-    return { id: `${lon},${lat}`, lon, lat, address: p.address || 'Address not recorded', city: p.city, metro: metroOf(lon, lat), scans,
+    const scans = p.scans.map(([sid, name, kind, rooms, panos]) => ({ sid, name: name ?? sid, rooms: rooms ?? 0, panos: panos ?? 0, kind: (kind && KIND[kind]) || (kind ? 'other' : kindOf(name ?? '', p.segment)) }))
+    return { id: p.id ?? `${lon},${lat}`, lon, lat, address: p.address || 'Address not recorded', city: p.city ?? '', metro: metroOf(lon, lat), scans,
       count: p.count, splat: p.splat, defurnished: p.defurnished, kinds: [...new Set(scans.map((s) => s.kind))], rooms: Math.max(0, ...scans.map((s) => s.rooms)) }
   })
 }

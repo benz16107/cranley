@@ -5,7 +5,7 @@ import { kindOf, matches, readFilters, search, toBuildings } from './buildings.t
 const feature = (lon: number, lat: number, address: string, names: string[], segment = 'commercial', extra = {}) => ({
   geometry: { coordinates: [lon, lat] as [number, number] },
   properties: { address, city: '', segment, count: names.length, splat: false, defurnished: false, ...extra,
-    scans: names.map((name, i) => ({ sid: `s${i}`, name, rooms: 3 + i, panos: 5 })) },
+    scans: names.map((name, i): [string, string, string | null, number, number] => [`s${i}`, name, null, 3 + i, 5]) },
 })
 const all = toBuildings([
   feature(-95.4, 29.7, '1 Test St', ['1BR, 1BA - 700SF', 'Fitness Center']),
@@ -20,6 +20,12 @@ test('kind is read from the scan name and segment', () => {
   assert.equal(kindOf('14th Floor', 'commercial'), 'office')
   assert.equal(kindOf('9 Any Rd', 'residential'), 'home')
   assert.equal(kindOf('Warehouse', 'commercial'), 'other')
+})
+
+test('the server\'s kind per scan wins over the guess from the name', () => {
+  const [b] = toBuildings([{ geometry: { coordinates: [-95.4, 29.7] }, properties: { id: 'p1', address: null, city: null, segment: 'commercial', count: 2, splat: false, defurnished: false,
+    scans: [['a', 'Pool', 'apartment_unit', 4, 9], ['b', 'Dock', 'warehouse', null, 3]] } }])
+  assert.deepEqual([b.id, b.address, b.kinds, b.rooms, b.scans[1].rooms], ['p1', 'Address not recorded', ['apartment', 'other'], 4, 0])
 })
 
 test('filters read from the URL and narrow the list', () => {
