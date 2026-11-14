@@ -170,6 +170,10 @@ def timeline(plan: dict) -> dict:
         "time": g["time"], "tz_offset_h": -5,
         "level": [round(lv["mid"] - d, 3) for d in drop],
         "level_lo": [round(lv["lo"] - d, 3) for d in drop], "level_hi": [round(lv["hi"] - d, 3) for d in drop],
+        "outside_m": [round(max(0.0, lv["mid"] - d - ground_z), 2) for d in drop],
+        "inside_m": [round(max(0.0, lv["mid"] - d - ref), 2) for d in drop],
+        "rooms_wet": [sum(1 for r in rooms if r["floods_at"] is not None and lv["mid"] - d > max(r["floods_at"], r["floor_z"]))
+                      for d in drop],
         "ground_z": round(ground_z, 3), "floor_z": round(ref, 3), "peak_time": g["peak_time"],
         "window": window, "ground": grid,
         "peak": {"depth_m": round(sc["depth_m"], 2), "lo_m": round(sc["lo_m"], 2), "hi_m": round(sc["hi_m"], 2),
