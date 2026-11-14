@@ -131,7 +131,7 @@ export class CityMesh implements CustomLayerInterface {
     if (this.renderer) return // put back after a change of style: everything is already made
     const r = this.renderer = new THREE.WebGLRenderer({ canvas: map.getCanvas(), context: gl, antialias: true })
     r.autoClear = false
-    r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap; r.shadowMap.autoUpdate = false
+    r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFShadowMap; r.shadowMap.autoUpdate = false
     const draco = new DRACOLoader(decoders), ktx = new KTX2Loader(decoders).detectSupport(r)
     this.loader = new GLTFLoader().setDRACOLoader(draco).setKTX2Loader(ktx)
     this.pump()
@@ -156,8 +156,12 @@ export class CityMesh implements CustomLayerInterface {
     this.camera.projectionMatrixInverse.copy(this.camera.projectionMatrix).invert()
     r.resetState()
     r.setViewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight) // three keeps the size it was made at; the map resizes its canvas
-    if (this.sunLight.parent && r.shadowMap.needsUpdate) this.aimSun()
+    // The map leaves a narrowed depth range set for its own layers. A shadow map drawn through it stores depths about
+    // 0.1% short, which reads back as everything being in shade, so the frame that redraws the shadows uses the full range.
+    const shadows = this.sunLight.parent && r.shadowMap.needsUpdate, range = shadows ? (gl.getParameter(gl.DEPTH_RANGE) as Float32Array) : null
+    if (shadows) { this.aimSun(); gl.depthRange(0, 1) }
     r.render(this.scene, this.camera)
+    if (range) gl.depthRange(range[0], range[1])
     r.resetState()
     this.frames++
     if (moving) map.triggerRepaint()

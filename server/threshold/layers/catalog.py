@@ -29,7 +29,7 @@ CITIES: dict[str, tuple[float, float, float, float]] = {
     "la": (-118.75, 33.65, -117.85, 34.40),
 }
 PAGE = 2000
-MAX_PAGES = 12
+MAX_PAGES = 60
 
 
 @dataclass(frozen=True)
@@ -130,10 +130,12 @@ def arcgis(url: str, box: tuple[float, float, float, float], fields: str = "", o
            where: str = "1=1") -> tuple[list[dict], bool]:
     """Features of one ArcGIS layer inside a box, as GeoJSON features in WGS84, and whether the answer was cut short."""
     out: list[dict] = []
-    for page in range(MAX_PAGES):
+    for _ in range(MAX_PAGES):
+        # the next page starts after what has arrived: a service may hand back fewer than asked for (FEMA's sends 500
+        # of its heavier shapes), and stepping by the asked-for size would skip the rest
         params = {"where": where, "geometry": ",".join(f"{v:.6f}" for v in box), "geometryType": "esriGeometryEnvelope",
                   "inSR": 4326, "outSR": 4326, "spatialRel": "esriSpatialRelIntersects", "outFields": fields or "OBJECTID",
-                  "returnGeometry": "true", "geometryPrecision": 6, "f": "geojson", "resultOffset": page * PAGE,
+                  "returnGeometry": "true", "geometryPrecision": 6, "f": "geojson", "resultOffset": len(out),
                   "resultRecordCount": PAGE}
         if offset:
             params["maxAllowableOffset"] = offset
@@ -175,7 +177,9 @@ def _tidy(layer: str, f: dict) -> dict | None:
 # ---- other sources ------------------------------------------------------------------------------------------------
 
 def _harvey(_city: str) -> tuple[list[dict], bool]:
-    from ..tools.flood_rehearsal import public  # the flood tool already keeps the marks; one copy on disk
+    from ..tools.flood_rehearsal import (
+        public,  # the flood tool already keeps the marks; one copy on disk
+    )
     feats = []
     for m in public.event_marks("harvey_2017"):
         if m.get("latitude_dd") is None or m.get("longitude_dd") is None:
@@ -277,7 +281,7 @@ def city_geojson(layer: str, city: str) -> bytes:
 
 def tile_box(z: int, x: int, y: int) -> tuple[float, float, float, float]:
     n = 2 ** z
-    lat = lambda t: math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * t / n))))  # noqa: E731
+    lat = lambda t: math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * t / n))))
     return x / n * 360 - 180, lat(y + 1), (x + 1) / n * 360 - 180, lat(y)
 
 

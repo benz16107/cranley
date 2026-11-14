@@ -12,7 +12,7 @@ import math
 from ..aerial import vexcel
 from ..sources.upstream import cache_path, write_atomic
 from ..world import tiles3d
-from .catalog import CITIES, city_of, tile_box
+from .catalog import city_of, tile_box
 
 ORTHO_Z = (14, 21)          # below 14 a free national mosaic is sharp enough; 21 is Vexcel's finest
 ORTHO_LAYER = "urban"
