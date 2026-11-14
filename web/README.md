@@ -10,7 +10,8 @@ pnpm test                           # reducer, filters and the fixture audit (no
 
 | Path | What |
 |---|---|
-| `/sheet`, `/a`, `/b`, `/c` | The front door in each look: Sheet (the first shell), Overflight, Broadsheet, Maquette. `/` opens `/sheet` |
+| `/app` | The product: the App look. `/` and links without a look (`/map`, `/scan/<sid>`) open here |
+| `/sheet`, `/a`, `/b`, `/c` | The front door in each earlier look: Sheet (the first shell), Overflight, Broadsheet, Maquette. The tab at the edge of the screen (or Alt+L) switches |
 | `/<look>/map?city=hou&kind=apartment&drone=1&empty=1&rooms=3-8&b=<building id>` | City map, its filters and the selected building |
 | `/<look>/scan/<sid>?f=<finding>&v=<mode>&demo=access` | One scan. `demo=access` replays the scripted audit on it |
 | `/study/a`, `/study/b`, `/study/c` | The three design studies |

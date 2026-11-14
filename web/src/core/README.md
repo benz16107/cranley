@@ -39,6 +39,7 @@ imports your CSS. `main.tsx` reads the first path segment, loads that one skin a
 | `/a` | `skins/overflight/` | A, Overflight |
 | `/b` | `skins/broadsheet/` | B, Broadsheet |
 | `/c` | `skins/maquette/` | C, Maquette |
+| `/app` | `skins/app/` | App, the default: `/` and links without a look open here. |
 
 A small tab at the edge of the screen (in a shadow root, so your CSS cannot touch it) opens the same place in another
 look. Alt+L steps to the next one. It sits at the bottom centre unless your `index.tsx` says otherwise:
