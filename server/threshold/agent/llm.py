@@ -4,6 +4,7 @@
 `Model` is the seam tests fake: the composer only ever calls `structured`."""
 from __future__ import annotations
 
+import os
 from typing import Protocol, TypeVar
 
 from pydantic import BaseModel
@@ -17,8 +18,23 @@ class Model(Protocol):
     def structured(self, system: str, user: str, schema: type[T]) -> T: ...
 
 
+def tracing() -> bool:
+    """LangSmith traces every agent turn (main agent, subagents, tool calls, approvals) when LANGSMITH_API_KEY is in
+    the data folder's .env; LANGSMITH_TRACING=false turns it off (tests do). LangChain reads os.environ, so copy it."""
+    e = env()
+    on = bool(e.get("LANGSMITH_API_KEY")) and e.get("LANGSMITH_TRACING", "true").lower() != "false"
+    if on:
+        for k in ("LANGSMITH_API_KEY", "LANGSMITH_PROJECT", "LANGSMITH_ENDPOINT"):
+            if e.get(k):
+                os.environ.setdefault(k, e[k])
+        os.environ.setdefault("LANGSMITH_PROJECT", "threshold")
+    os.environ["LANGSMITH_TRACING"] = "true" if on else "false"
+    return on
+
+
 def chat(max_tokens: int = 2048):
     from langchain_anthropic import ChatAnthropic
+    tracing()
     e = env()
     if not e.get("ANTHROPIC_API_KEY"):
         raise RuntimeError("ANTHROPIC_API_KEY is not set (environment or $THRESHOLD_DATA_DIR/.env)")
