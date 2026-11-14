@@ -25,10 +25,12 @@ from .. import (
 from ..record_vs_reality import claims as cl
 from ..record_vs_reality import gather
 from ..record_vs_reality import measure as ms
+from ..record_vs_reality.compare import TALL_FT
 
 AMENITY_ROOMS = ("Laundry", "Pantry", "Office", "Exercise Room", "Garage", "Patio", "Balcony", "Loft", "Bonus Room",
                  "Game Room", "Den", "Workshop", "Utility Room")
 PITCH_M = 2.0  # a pitched roof's ridge sits about this far above the top storey's ceiling
+LOWER_BOUND = {"parking_stalls_seen", "dock_doors_seen"}  # counts from above miss things
 EXACT = {"bedrooms", "bathrooms", "floors_scanned", "stories_estimate", "garage_stalls", "walk_in_closets"}
 AMENITY_OBJECTS = ("fireplace", "kitchen island", "washer", "dryer", "bathtub", "sprinkler head")
 
@@ -79,7 +81,8 @@ def propose(plan: dict, rec: dict | None, ev: dict) -> list[dict]:
         add("ceiling_height_typical", "Typical ceiling height", round(h["median_m"] * ms.M_FT, 1), "ft", src,
             "ceiling_height_main" if "ceiling_height_main" in rc else None)
         add("ceiling_height_max", "Tallest ceiling", round(h["max_m"] * ms.M_FT, 1), "ft", src,
-            "ceiling_height" if "ceiling_height" in rc else None, anchor={"sid": sid, "room": h["max_room"]})
+            "ceiling_height" if (rc.get("ceiling_height") or {}).get("value", 99) <= TALL_FT else None,
+            anchor={"sid": sid, "room": h["max_room"]})
     wb = ms.windows_by_room(plan)
     if wb["available"]:
         t = wb["total"]
@@ -174,6 +177,8 @@ def _agree(p: dict) -> str:
     if r is None:
         return "new"
     a, b = _num(p["value"]), _num(r)
+    if p["field"] in LOWER_BOUND and a is not None and b is not None:
+        return "differs" if a > b + max(2, 0.15 * b) else "same"
     if p["field"] in EXACT and a is not None and b is not None:
         return "same" if a == b else "differs"
     if a is None or b is None:
@@ -210,7 +215,9 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         src = Source(**p["source"])
         shown = ", ".join(p["value"]) if isinstance(p["value"], list) else (
             ("yes" if p["value"] else "no") if isinstance(p["value"], bool) else f"{p['value']:,}" if isinstance(p["value"], (int, float)) else p["value"])
-        rec_txt = {"new": "The record has no value for this.", "same": f"The record agrees ({p['record']}).",
+        rec_txt = {"new": "The record has no value for this.",
+               "same": f"The record agrees ({p['record']})." if p["field"] not in LOWER_BOUND else
+               f"The record says {p['record']}; a count from above is a lower bound, so it does not dispute that.",
                    "differs": f"The record says {p['record']} ({p['record_path']})."}[state]
         findings.append(Finding(id=fid, title=f"{'Proposed' if state == 'new' else 'Measured'}: {p['label']}",
                                 status="warn" if state == "differs" else "pass",

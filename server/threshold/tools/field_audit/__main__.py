@@ -18,6 +18,39 @@ from ..registry import default_plan
 from . import TABLE, draw, run_audit, to_result
 
 
+def picture(summary: list[dict], result: dict):
+    """Bars of how often each field disagrees, then the deep checks' evidence crops."""
+    from PIL import Image, ImageDraw
+
+    from ..record_vs_reality.review import COLOR, PAD, THUMB, W, _crop, _font
+    rows = [s for s in summary if s["checked"]]
+    top = result["findings"]
+    thumbs = [(f, im) for f in top for m in (f.get("media") or [])[:1] if (im := _crop(m)) is not None][:8]
+    h = PAD * 3 + 34 * len(rows) + 30 + 22 * len(top) + ((len(thumbs) + 3) // 4) * (THUMB + 40)
+    img = Image.new("RGB", (W, h), "white")
+    d = ImageDraw.Draw(img)
+    f = _font(15)
+    d.text((PAD, PAD), result["verdict"]["text"][:140], fill=(0, 0, 120), font=f)
+    y = PAD * 2 + 10
+    for s in rows:
+        share = s["share"] or 0
+        d.text((PAD, y), f"{s['field']}", fill=(0, 0, 0), font=f)
+        d.rectangle([260, y, 260 + int(600 * share), y + 22], fill=COLOR["fail"] if share > 0.25 else COLOR["warn"])
+        d.text((870, y), f"{s['contradicted']} of {s['checked']} disagree" + (f", {s['over_10pct']} over 10%" if s.get("over_10pct") else ""),
+               fill=(0, 0, 0), font=f)
+        y += 34
+    y += 10
+    for t in top:
+        d.text((PAD, y), f"[{t['status']}] {t['title']}"[:140], fill=COLOR.get(t["status"], (0, 0, 0)), font=f)
+        y += 22
+    y += 10
+    for i, (fd, im) in enumerate(thumbs):
+        x, yy = PAD + (i % 4) * (THUMB + 10), y + (i // 4) * (THUMB + 40)
+        img.paste(im, (x, yy))
+        d.text((x, yy + im.height + 4), fd["title"][:34], fill=(0, 0, 0), font=_font(13))
+    return img
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=str(DATA / "shots" / "tools" / "field_audit"))
@@ -46,6 +79,7 @@ def main(argv: list[str] | None = None) -> int:
     r = to_result(res)
     r.tool = "field_audit"
     (out / "result.json").write_text(r.model_dump_json(indent=1))
+    picture(res["summary"], json.loads(r.model_dump_json())).save(out / "field_audit.png")
     print(r.verdict.text)
     return 0
 
