@@ -11,6 +11,7 @@ dependencies = [
   "shapely>=2.0",
   "pillow>=10.4",
   "pyzipper>=0.4.0",
+  "anthropic>=2.8",
 ]
 
 [dependency-groups]
