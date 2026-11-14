@@ -170,3 +170,12 @@ def test_virtual_views_never_take_an_eval_slot():
     ev = [i for i, (p, _) in enumerate(seq) if p in held]
     assert ev == list(range(0, len(seq), period))
     assert all(not seq[i][0].endswith("-v") for i in ev)
+
+
+def test_outside_keeps_only_the_building():
+    from threshold.splat import carve
+    plan = {"floors": [{"id": "f1", "sequence": 0}],
+            "rooms": [{"floor": "f1", "polygon": [[0, 0], [4, 0], [4, 3], [0, 3]], "height": 2.5}],
+            "panos": [{"floor": "f1", "position": [2, 1.5, 1.4]}], "openings": []}
+    xyz = np.array([[2, 1.5, 1.0], [4.2, 1.5, 1.0], [6, 1.5, 1.0], [2, 1.5, 3.5], [2, 1.5, -1.0]])
+    assert carve.outside(xyz, plan).tolist() == [False, False, True, True, True]

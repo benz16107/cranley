@@ -13,7 +13,11 @@ kitchen island and the ceiling (<scan-id>, 2026-11-14).
 from __future__ import annotations
 
 import numpy as np
+import shapely
+from shapely.geometry import Polygon
+from shapely.ops import unary_union
 
+from ..vision.locate import floor_z
 from . import dataset, seed, virtual
 
 CLEAR = 0.12
@@ -43,3 +47,29 @@ def free_space(xyz: np.ndarray, T: np.ndarray, sweeps: list[dict], px: int = PX)
             surf = D[v, u]
             out[idx] |= np.isfinite(surf) & (z[ok] < surf * 0.96 - CLEAR)  # no mesh in that direction: keep
     return out
+
+
+FOOT_MARGIN = 0.3   # metres beyond the room outlines (wall thickness, frames)
+BELOW, ABOVE = 0.3, 0.4
+
+
+def outside(xyz: np.ndarray, plan: dict) -> np.ndarray:
+    """True for splats outside the building: not over any floor's room outlines (plus FOOT_MARGIN), or not between
+    that floor's level and its tallest room. What the sweeps saw through windows is the drone splat's job; left in,
+    it wraps the interior in a shell of blurred garden and sky. A floor with no outlines keeps all of its height."""
+    keep = np.zeros(len(xyz), bool)
+    heights = [r["height"] for r in plan["rooms"] if r.get("height")]
+    default = float(np.median(heights)) if heights else seed.DEFAULT_HEIGHT
+    for f in plan["floors"]:
+        rooms = [r for r in plan["rooms"] if r["floor"] == f["id"]]
+        rings = [r["polygon"] for r in rooms] + [q for r in rooms for q in r.get("extra_polygons") or []]
+        polys = [Polygon(q).buffer(0) for q in rings if len(q) >= 3]
+        z0 = floor_z(plan, f["id"])
+        top = z0 + max([r["height"] for r in rooms if r.get("height")] or [default]) + ABOVE
+        inz = (xyz[:, 2] >= z0 - BELOW) & (xyz[:, 2] <= top)
+        if not polys:
+            keep |= inz
+            continue
+        foot = unary_union(polys).buffer(FOOT_MARGIN)
+        keep[inz] |= shapely.contains_xy(foot, xyz[inz, 0], xyz[inz, 1])
+    return ~keep

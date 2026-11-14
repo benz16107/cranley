@@ -57,7 +57,8 @@ def run(sid: str, steps: int = 10000, sh_degree: int = 2, max_splats: int = 1_50
     for start, end in zip([0, *ends], ends):
         _brush(d, out, meta, start, end, sh_degree, max_splats, end - start, round(steps * GROWTH_STOP))
         cols = spz.read_ply(out / f"phase_{end}.ply")
-        drop = carve.free_space(np.stack([cols["x"], cols["y"], cols["z"]], 1), T, sweeps)
+        xyz = np.stack([cols["x"], cols["y"], cols["z"]], 1)
+        drop = carve.free_space(xyz, T, sweeps) | carve.outside(xyz, plan)
         carved.append({"step": end, "splats": len(drop), "removed": int(drop.sum())})
         spz.write_ply(init, {k: v[~drop] for k, v in cols.items()})
     shutil.move(init, out / "carved.ply")
