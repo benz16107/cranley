@@ -54,8 +54,10 @@
 /* a clearance measured on the route: a tag on a short string over the bar the scene draws across the path */
 .mq-scene.th-scene .th-chip-measure[data-status] { translate: -9px calc(-100% - 20px); overflow: visible; box-shadow: none; filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.42)); clip-path: none; }
 .mq-scene.th-scene .th-chip-measure[data-status]::after { content: ''; position: absolute; left: 8.5px; top: 100%; width: 1px; height: 20px; background: var(--scene-paper); }
-.mq-scene.th-scene .th-chip-route { background: var(--tape); color: var(--tape-ink); }
-.mq-scene.th-scene .th-chip-route .th-chip-text { color: inherit; font-weight: 700; }
+/* where a route ends: a card label with a square of tape. Yellow stays for the route itself and for "this one". */
+.mq-scene.th-scene .th-chip-route { padding-left: 22px; }
+.mq-scene.th-scene .th-chip-route::before { content: ''; position: absolute; left: 7px; top: 50%; width: 9px; height: 9px; margin-top: -4.5px; background: var(--tape); box-shadow: 0 0 0 1px var(--scene-ink); }
+.mq-scene.th-scene .th-chip-route .th-chip-text { color: var(--scene-ink); font-weight: 650; }
 .mq-scene.th-scene .th-chip-water { background: var(--scene-water); color: #fff; }
 .mq-scene.th-scene .th-chip-water .th-chip-text { color: inherit; opacity: 0.86; }
 .mq-scene.th-scene .th-room { font-size: 11.5px; }
@@ -64,7 +66,7 @@
 .mq-scene.th-scene .th-cut, .mq-scene.th-scene .th-floors { display: none; }
 .mq-scene.th-scene .th-inset { display: none; }
 .mq-scene.th-scene[data-mode='pano'] .th-inset { display: block; left: auto; right: 24px; bottom: 28px; width: 232px; border-radius: 0; box-shadow: var(--lie); } /* where you stand, on a plan card */
-.mq-scene.th-scene .th-legend { right: calc(var(--sheet-w) + 52px); top: 250px; bottom: auto; width: 190px; padding: 10px 12px; border-radius: 0; box-shadow: var(--lie); }
+.mq-scene.th-scene .th-legend { right: calc(var(--sheet-w) + 52px); top: 306px; bottom: auto; width: 190px; padding: 10px 12px; border-radius: 0; box-shadow: var(--lie); }
 .mq-scene.th-scene .th-legend-title { font-size: 10.5px; letter-spacing: 0.14em; }
 .mq-scene.th-scene .th-legend-bar { height: 10px; box-shadow: none; }
 .mq-scene.th-scene .th-note { bottom: 44px; padding: 8px 12px; border-radius: 0; box-shadow: var(--lie); font-size: 13px; }

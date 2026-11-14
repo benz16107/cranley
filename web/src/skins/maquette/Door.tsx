@@ -91,7 +91,7 @@ export function Door() {
           {doc.plan.length > 0 ? <><p>{(doc.plan.find((s) => s.status === 'active') ?? doc.plan.at(-1)!).label}</p><button className="mq-btn is-tape" onClick={() => navigate('/map', {}, { keep: true })}>{doc.plan.some((s) => s.status !== 'done') ? 'Watch it on the table' : 'See it on the table'}</button></> : (
             <div className="go">
               <button className="mq-btn is-tape" disabled={open.length > 0 || !doc.tools.length} onClick={() => void investigate()}>{open.length ? `${open.length} left to answer` : 'Start the investigation'}</button>
-              {open.length > 0 && <button className="mq-link" onClick={() => void investigate()}>Use the suggested answers</button>}
+              {open.length > 0 && open.every((q) => q.hint != null) && <button className="mq-link" onClick={() => void investigate()}>Use the suggested answers</button>}
             </div>
           )}
           <button className="mq-link" onClick={() => { startOver(); navigate('/', {}, { replace: true }) }}>Start over</button>

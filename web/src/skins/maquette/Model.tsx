@@ -139,8 +139,6 @@ export function Model({ sid, sheet }: { sid: string; sheet: ReturnType<typeof us
         )}
       </div>
 
-      {/* the tracing sheet: its tab names the lens, so what is on the model is never a guess */}
-      {panel && !inside && <div className="mq-trace" key={panel.id}><span className="mq-caps">Laid on the model <b>{panel.title}</b></span></div>}
       <svg className="mq-thread" aria-hidden="true"><line ref={thread} /></svg>
 
       <Print onHome={() => navigate('/')}>
@@ -186,6 +184,8 @@ export function Model({ sid, sheet }: { sid: string; sheet: ReturnType<typeof us
             {mode !== 'splat' && <label className="sw"><Switch.Root className="mq-switch" checked={!!v.view.measures} onCheckedChange={(on) => v.setView((s) => ({ ...s, measures: on }))}><Switch.Thumb className="mq-knob" /></Switch.Root>Door widths</label>}
             {mode === 'pano' && plan.has.defurnished && <label className="sw"><Switch.Root className="mq-switch" checked={v.view.wipe != null} onCheckedChange={(on) => v.setView((s) => ({ ...s, wipe: on ? 0.5 : null }))}><Switch.Thumb className="mq-knob" /></Switch.Root>Empty the room</label>}
           </div>
+          {/* the tracing sheet's tab: it names the lens, so whose marks are on the model is never a guess */}
+          {panel && mode !== 'splat' && <p className="mq-trace mq-caps" key={panel.id}>Laid on the model <b>{panel.title}</b></p>}
         </div>
       )}
 

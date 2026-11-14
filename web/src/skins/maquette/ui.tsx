@@ -38,7 +38,7 @@ export function Src({ source }: { source: Source }) {
         {LAYER[source.layer][0]}, {METHOD[source.method][0]}
         <span className="mq-pips" aria-hidden="true">{[1, 2, 3].map((i) => <i key={i} className={i > n ? 'off' : ''} />)}</span>
       </Popover.Trigger>
-      <Popover.Portal><Popover.Positioner sideOffset={6} align="start"><Popover.Popup className="mq-pop">
+      <Popover.Portal><Popover.Positioner className="mq-popper" sideOffset={6} align="start"><Popover.Popup className="mq-pop">
         <dl><dt>Layer</dt><dd>{LAYER[source.layer][1]}</dd><dt>Method</dt><dd>{METHOD[source.method][1]}</dd><dt>Confidence</dt><dd style={{ textTransform: 'capitalize' }}>{source.confidence}</dd></dl>
         {source.note && <p className="mq-dim">{source.note}</p>}
       </Popover.Popup></Popover.Positioner></Popover.Portal>

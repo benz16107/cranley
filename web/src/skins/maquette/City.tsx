@@ -25,7 +25,7 @@ const STATUS_RGB: Record<Status, [number, number, number]> = { pass: [26, 127, 8
 const WIDE = -0.5 // a pitched view shows less ground than a flat one at the same zoom
 /** The open part of the table: clear of what is printed at the left and the stack at the right; with an address
     card out, clear of that too, so the block it describes stands above it. */
-const pad = (card: boolean) => (window.innerWidth > 760 ? { left: 470, right: document.querySelector('.mq-app[data-sheet]') ? 440 : 240, top: 40, bottom: card ? 400 : 0 } : { left: 0, right: 0, top: 300, bottom: card ? 300 : 110 })
+const pad = (card: boolean) => (window.innerWidth > 760 ? { left: 470, right: document.querySelector('.mq-sheets .mq-sheet') ? 440 : 240, top: 40, bottom: card ? 400 : 0 } : { left: 0, right: 0, top: 300, bottom: card ? 300 : 110 })
 const KIND_LABEL: Record<Kind, string> = { home: 'House', apartment: 'Apartment', amenity: 'Shared room', office: 'Office', other: 'Other' }
 
 /* ---------- a thing tied to a place on the table: a tag on its string ---------- */
@@ -91,7 +91,7 @@ function Table({ shown, selected, tags, paths, pins, hits, city, look, onSelect 
   const firstCity = useRef(true)
   useEffect(() => { if (!map) return; if (firstCity.current) { firstCity.current = false; return } if (live.current.selected?.metro !== city) go({ center: CITIES[city].center, zoom: CITIES[city].zoom + WIDE }, 2400) }, [city, map]) // eslint-disable-line react-hooks/exhaustive-deps
   const lookKey = look?.join(',')
-  useEffect(() => { if (look) go({ center: look, zoom: 18 }, 1500) }, [lookKey, map]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (look) go({ center: look, zoom: 17.2 }, 1500) }, [lookKey, map]) // close enough to read the marks, far enough to keep the blocks around it // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!map || look) return
     if (!selected) { map.easeTo({ padding: pad(false), duration: reduced() ? 0 : 500 }); return }
@@ -201,7 +201,7 @@ function ByMeasure({ city, hits, onHits, all }: { city: CityId; hits: MeasureHit
   return (
     <Popover.Root onOpenChange={(o) => o && load()}>
       <Popover.Trigger className="mq-toggle" aria-pressed={where.length > 0}>By measurement{where.length > 0 && <span className="mq-num"> {hits.length}</span>}</Popover.Trigger>
-      <Popover.Portal><Popover.Positioner side="bottom" align="start" sideOffset={8}><Popover.Popup className="mq-pop mq-measure">
+      <Popover.Portal><Popover.Positioner className="mq-popper" side="bottom" align="start" sideOffset={8}><Popover.Popup className="mq-pop mq-measure">
         <span className="mq-caps">Find homes by what is measured inside</span>
         <form className="mq-row" onSubmit={(e) => { e.preventDefault(); if (val.trim()) { run([...where, `${field}${op}${val.trim()}`]); setVal('') } }}>
           <select className="mq-field" value={field} onChange={(e) => setField(e.target.value)} aria-label="Measure" style={{ width: 190 }}>
@@ -296,7 +296,7 @@ export function City() {
           <button className="mq-toggle" aria-pressed={filters.empty} onClick={() => setQuery({ empty: filters.empty ? null : '1' })}>Empty-room view</button>
           <Popover.Root>
             <Popover.Trigger className="mq-toggle" aria-pressed={rooms}>Rooms <span className="mq-num">{filters.rooms[0]} to {filters.rooms[1] >= ROOMS_MAX ? `${ROOMS_MAX}+` : filters.rooms[1]}</span></Popover.Trigger>
-            <Popover.Portal><Popover.Positioner side="bottom" align="start" sideOffset={8}><Popover.Popup className="mq-pop" style={{ width: 280 }}>
+            <Popover.Portal><Popover.Positioner className="mq-popper" side="bottom" align="start" sideOffset={8}><Popover.Popup className="mq-pop" style={{ width: 280 }}>
               <span className="mq-caps">Rooms in the largest scan at an address</span>
               <Slider.Root value={filters.rooms} min={0} max={ROOMS_MAX} minStepsBetweenValues={1}
                 onValueChange={(v) => { const [lo, hi] = v as number[]; setQuery({ rooms: lo === 0 && hi === ROOMS_MAX ? null : `${lo}-${hi === ROOMS_MAX ? '' : hi}` }) }}>

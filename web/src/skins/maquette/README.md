@@ -12,7 +12,7 @@ Each physical thing stands for one product idea, and makes it clearer than a pan
 |---|---|---|
 | A tag on a string | A finding (`pins`, a clearance on a route) | The scene places each pin at its anchor; the tag's string comes down to a foot on that exact doorway. Number and status mark always, words when there are few, on hover, and always for the current one. |
 | Yellow tape | The route, the agent, "this one" | One colour for one meaning: where to go and where to look. The route in the model and on a plan, the block the agent is reading, the current tag, the current check, the current print. |
-| A sheet of tracing paper | The sheet on top of the stack is a lens | Only that tool's marks are on the model, and a tab on the sheet's top edge names it. Five tools' overlays are never drawn at once. |
+| A sheet of tracing paper | The sheet on top of the stack is a lens | Only that tool's marks are on the model, and a taped tab of tracing paper under the view controls names it. Five tools' overlays are never drawn at once. |
 | Blue acetate | Water | The scene raises the water to the tool's level; depth tags are blue. |
 | A photo print | A photograph a finding was judged from | The print of the finding being looked at lies on the table, taped, with a thread to its tag in the model. "Stand here" enters the 360° photo at the place it was taken. |
 | Two prints beside the model | The doors into the 360° interior and the drone capture | They are real thumbnails of what is behind them. Inside either, the table is put away and one strip of tape leads back (so does Escape). |

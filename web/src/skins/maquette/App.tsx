@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Toaster, toast } from 'sonner'
 import { Drawer } from 'vaul'
-import { currentRoute, focusFinding, onNotice, setQuery, useRoute, useWorkspace } from '../../core/index.ts'
+import { currentRoute, focusFinding, onNotice, setQuery, useMapModel, useRoute, useWorkspace } from '../../core/index.ts'
 import { City } from './City.tsx'
 import { Door } from './Door.tsx'
 import { Model } from './Model.tsx'
@@ -17,7 +17,8 @@ export default function App() {
   const phone = usePhone()
   const [menu, setMenu] = useState<false | 'all' | 'tools'>(false)
   const view = route.path === '/scan' && route.sid ? 'scan' : route.path === '/map' ? 'map' : 'door'
-  const sheet = useSheet(view === 'scan' ? route.sid : null)
+  const { selected } = useMapModel()
+  const sheet = useSheet(view === 'scan' ? route.sid : null, view === 'map' && selected ? selected.scans.map((s) => s.sid) : [])
 
   // what core has to say outside the workspace is a slip of paper pushed in from the top edge
   useEffect(() => onNotice((n) => (n.kind === 'error' ? toast.error : toast)(n.title, { description: n.description })), [])

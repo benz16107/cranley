@@ -25,14 +25,14 @@ export function Sheets({ sid, sheet, onAdd }: { sid: string | null; sheet: Retur
           <li key={t.id}>
             <Popover.Root>
               <Popover.Trigger className="mq-tool" data-on={active?.tool === t.id || undefined} aria-label={`${t.title}. Why this is here.`}>{t.title}</Popover.Trigger>
-              <Popover.Portal><Popover.Positioner side="left" align="start" sideOffset={10}><Popover.Popup className="mq-pop">
+              <Popover.Portal><Popover.Positioner className="mq-popper" side="left" align="start" sideOffset={10}><Popover.Popup className="mq-pop">
                 <Popover.Title render={<h3 />}>{t.title}</Popover.Title>
                 <span className="mq-caps">Why this is here</span>
                 <p>{t.reason || 'You added it.'}</p>
                 {t.summary && <p className="mq-dim">{t.summary}</p>}
                 <dl><dt>Works on</dt><dd>{t.coverage ?? 'Not stated'}</dd><dt>Laid out by</dt><dd>{t.by === 'agent' ? 'The agent, from your brief' : 'You'}</dd></dl>
                 <div className="mq-row">
-                  {sid && <Popover.Close className="mq-btn is-tape is-sm" onClick={() => runToolHere(t.id, sid)}>Run on this scan</Popover.Close>}
+                  {sid ? <Popover.Close className="mq-btn is-tape is-sm" onClick={() => runToolHere(t.id, sid)}>Run on this scan</Popover.Close> : <span className="mq-dim">Open a building to run it.</span>}
                   <Popover.Close className="mq-btn is-quiet is-sm" onClick={() => userOp({ op: 'tool.disable', id: t.id })}>Put it away</Popover.Close>
                 </div>
               </Popover.Popup></Popover.Positioner></Popover.Portal>
@@ -67,7 +67,7 @@ export function Sheets({ sid, sheet, onAdd }: { sid: string | null; sheet: Retur
       {elsewhere.length > 0 && (
         <Popover.Root>
           <Popover.Trigger className="mq-else"><span className="mq-num">{elsewhere.length}</span> {elsewhere.length === 1 ? 'sheet' : 'sheets'} on other {sid ? 'places' : 'buildings'}</Popover.Trigger>
-          <Popover.Portal><Popover.Positioner side="left" align="end" sideOffset={10}><Popover.Popup className="mq-pop mq-index">
+          <Popover.Portal><Popover.Positioner className="mq-popper" side="left" align="end" sideOffset={10}><Popover.Popup className="mq-pop mq-index">
             <span className="mq-caps">Every sheet</span>
             <ul>
               {elsewhere.map((p) => { const v = block(p, 'VerdictHeader'); return (

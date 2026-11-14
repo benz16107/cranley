@@ -192,7 +192,7 @@ function Assumed({ b, ctx }: { b: Of<'AssumptionChips'>; ctx: Ctx }) {
         return (
           <Popover.Root key={a.id}>
             <Popover.Trigger className="mq-chip" aria-label={`${a.label}: ${a.value} ${a.unit ?? ''}. Change it.`}>{body}</Popover.Trigger>
-            <Popover.Portal><Popover.Positioner sideOffset={6} align="start"><Popover.Popup className="mq-pop"><AssumeEdit a={a as typeof a & { value: number }} /></Popover.Popup></Popover.Positioner></Popover.Portal>
+            <Popover.Portal><Popover.Positioner className="mq-popper" sideOffset={6} align="start"><Popover.Popup className="mq-pop"><AssumeEdit a={a as typeof a & { value: number }} /></Popover.Popup></Popover.Positioner></Popover.Portal>
           </Popover.Root>
         )
       })}

@@ -9,14 +9,16 @@ export { lensOverlays } from './lens.ts'
 type Of<T extends Block['type']> = Extract<Block, { type: T }>
 export const block = <T extends Block['type']>(p: Panel | null | undefined, type: T) => p?.blocks.find((b): b is Of<T> => b.type === type)
 
-/** The sheets that belong to where the person is: this scan's on a building, the ones about many places on the city table. */
-export const panelsHere = (doc: Doc, sid: string | null) => doc.panels.filter((p) => (sid ? p.sid === sid : !p.sid))
+/** The sheets that belong to where the person is: this scan's on a building; on the city table, the ones about many
+    places and those of the selected address (a site tool's result sends the view there to see its marks). */
+export const panelsHere = (doc: Doc, sid: string | null, at: string[] = []) => doc.panels.filter((p) => (sid ? p.sid === sid : !p.sid || at.includes(p.sid)))
 
 /** The sheet on top of the stack, and how to bring another one up. */
-export function useSheet(sid: string | null) {
+export function useSheet(sid: string | null, at: string[] = []) {
   const doc = useWorkspace((s) => s.doc)
   const { q } = useRoute()
-  const here = useMemo(() => panelsHere(doc, sid), [doc, sid])
+  const atKey = at.join(',')
+  const here = useMemo(() => panelsHere(doc, sid, at), [doc, sid, atKey]) // eslint-disable-line react-hooks/exhaustive-deps
   const active = here.find((p) => p.id === q.get('c_p')) ?? here.at(-1) ?? null
   // a finding focused from the model, the plan or a link brings its own sheet to the top
   const focus = doc.camera?.finding

@@ -131,7 +131,9 @@ textarea.mq-field { resize: vertical; line-height: 1.35; }
 .mq-thumb:has(:focus-visible), .mq-thumb:focus-visible { outline: 2px solid var(--tape); outline-offset: 2px; }
 .is-print .mq-track { background: var(--print-2); } .is-print .mq-range, .is-print .mq-thumb { background: var(--print); } .is-print .mq-thumb { box-shadow: 0 0 0 2px var(--mat); }
 
-/* ---- paper picked up: popovers. They grow from what was pressed. ---- */
+/* ---- paper picked up: popovers. They grow from what was pressed. The positioner is the element that is placed, so
+   the layer is set on it: above everything laid on the table. ---- */
+.mq-popper { z-index: 60; }
 .mq-pop { z-index: 60; width: max-content; max-width: min(360px, calc(100vw - 32px)); padding: 16px 18px; background: var(--card); color: var(--ink); box-shadow: var(--lift); font-size: 14px;
   transform-origin: var(--transform-origin); transition: opacity 150ms var(--ease-out), scale 150ms var(--ease-out); }
 .mq-pop[data-starting-style], .mq-pop[data-ending-style] { opacity: 0; scale: 0.97; }

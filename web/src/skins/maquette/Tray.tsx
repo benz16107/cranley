@@ -51,7 +51,7 @@ export function Questions() {
     <section className="mq-ask-card mq-paper" aria-label="Questions to answer">
       <h2 className="mq-caps">{open.length === 1 ? 'One question before this runs' : `${open.length} questions before this runs`}</h2>
       {open.map((q) => <QuestionForm key={q.id} q={q} />)}
-      {doc.brief && !doc.plan.length && <button className="mq-link" onClick={() => void investigate()}>Use the suggested answers and start</button>}
+      {doc.brief && !doc.plan.length && open.every((q) => q.hint != null) && <button className="mq-link" onClick={() => void investigate()}>Use the suggested answers and start</button>}
     </section>
   )
 }
@@ -90,7 +90,7 @@ export function Tray() {
           <span className="mq-caps">Brief</span>
           <span className="said">{brief ? brief.text : 'Nothing asked yet. Say who you are and the right tools are laid out.'}</span>
         </Popover.Trigger>
-        <Popover.Portal><Popover.Positioner side="top" align="start" sideOffset={10}><Popover.Popup className="mq-pop mq-brief-pop">
+        <Popover.Portal><Popover.Positioner className="mq-popper" side="top" align="start" sideOffset={10}><Popover.Popup className="mq-pop mq-brief-pop">
           <span className="mq-caps">Your brief</span>
           {edit != null ? (
             <form onSubmit={(e) => { e.preventDefault(); const t = edit.trim(); setEdit(null); if (t && t !== brief?.text) void compose(t) }}>
@@ -117,7 +117,7 @@ export function Tray() {
             {plan.length > 0 && <span className="ticks" aria-hidden="true">{plan.map((s) => <i key={s.id} data-status={s.status} />)}</span>}
             {running && (plan.length > 0 || running.summary) && <span className="run">{plan.length > 0 && <span>{running.label}</span>}<small>{running.summary ?? 'working'}</small></span>}
           </Popover.Trigger>
-          <Popover.Portal><Popover.Positioner side="top" align="start" sideOffset={10}><Popover.Popup className="mq-pop mq-plan-pop">
+          <Popover.Portal><Popover.Positioner className="mq-popper" side="top" align="start" sideOffset={10}><Popover.Popup className="mq-pop mq-plan-pop">
             <span className="mq-caps">{plan.length ? 'The plan' : 'Tool runs'}</span>
             <ol className="mq-steps">
               {plan.map((s, i) => (
@@ -135,7 +135,7 @@ export function Tray() {
         <div className="mq-planline is-idle">
           <span className="mq-caps">{open ? `${open} to answer` : 'Ready'}</span>
           <button className="mq-btn is-tape is-sm" disabled={open > 0} onClick={() => void investigate()}>Start the investigation</button>
-          {open > 0 && <button className="mq-link" onClick={() => void investigate()}>Use the suggested answers</button>}
+          {open > 0 && doc.questions.every((q) => q.answer != null || q.hint != null) && <button className="mq-link" onClick={() => void investigate()}>Use the suggested answers</button>}
         </div>
       ) : null}
 
@@ -147,7 +147,7 @@ export function Tray() {
       <footer className="mq-tray-foot">
         <Popover.Root>
           <Popover.Trigger className="mq-count" aria-label={`What I have learned, ${prefs.length} items`}><span className="mq-num">{prefs.length}</span> learned</Popover.Trigger>
-          <Popover.Portal><Popover.Positioner side="top" align="start" sideOffset={10}><Popover.Popup className="mq-pop">
+          <Popover.Portal><Popover.Positioner className="mq-popper" side="top" align="start" sideOffset={10}><Popover.Popup className="mq-pop">
             <span className="mq-caps">What I have learned</span>
             {!prefs.length && <p className="mq-dim">Nothing yet. An answer, a control you move or a correction you make is kept here, and each can be undone.</p>}
             <ul className="mq-learned">
@@ -162,7 +162,7 @@ export function Tray() {
         </Popover.Root>
         <Popover.Root>
           <Popover.Trigger className="mq-count" aria-label={`Shortlist, ${shortlist.length} kept`}><span className="mq-num">{shortlist.length}</span> kept</Popover.Trigger>
-          <Popover.Portal><Popover.Positioner side="top" align="start" sideOffset={10}><Popover.Popup className="mq-pop">
+          <Popover.Portal><Popover.Positioner className="mq-popper" side="top" align="start" sideOffset={10}><Popover.Popup className="mq-pop">
             <span className="mq-caps">Kept</span>
             {!shortlist.length && <p className="mq-dim">Nothing kept yet. Keep a scan from its building and it is listed here.</p>}
             <ul className="mq-kept">

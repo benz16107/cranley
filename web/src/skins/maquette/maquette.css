@@ -25,7 +25,7 @@
 .mq-big-n number-flow-react { --number-flow-mask-height: 0.06em; }
 .mq-city .mq-big-n, .mq-model .mq-big-n { text-shadow: 0 2px 14px rgb(20 25 23 / 0.55); } /* over the map and the model the print needs a little ground */
 .mq-big-n small { margin-left: 0.07em; font-size: 0.32em; font-weight: 800; color: var(--print-2); }
-.mq-big-wait { display: block; width: 2.4em; height: 0.74em; background: repeating-linear-gradient(-45deg, var(--line) 0 6px, transparent 6px 12px); }
+.mq-big-wait { display: block; width: 1.9em; height: 0.62em; margin: 0.12em 0; background: repeating-linear-gradient(-45deg, var(--line) 0 2px, transparent 2px 12px); box-shadow: inset 0 0 0 1px var(--line); } /* the figure's place, hatched, while it is not known */
 .mq-big-c { margin-top: 24px; font-size: 13px; line-height: 1.75; letter-spacing: 0.14em; color: var(--print); pointer-events: auto; text-shadow: 0 1px 10px rgb(20 25 23 / 0.7); text-wrap: balance; }
 .mq-big-c .mq-num { letter-spacing: 0; }
 [data-view='scan'] .mq-big-n { font-size: clamp(80px, 12.4vw, 188px); }
@@ -42,7 +42,7 @@
 @media (hover: hover) and (pointer: fine) { .mq-toggle:hover, .mq-back:hover, .mq-keep:hover, .mq-cities button:hover { color: var(--print); } }
 
 /* ================= the front door ================= */
-.mq-door { overflow: hidden auto; }
+.mq-door { overflow: hidden auto; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
 .mq-ask { position: absolute; right: var(--gutter); top: 96px; width: min(600px, 43vw); display: grid; grid-template-columns: 1fr auto; gap: 12px 14px; align-items: stretch; }
 .mq-ask label { grid-column: 1 / -1; color: var(--print); }
 .mq-ask textarea { min-height: 84px; padding: 16px 18px; border: 0; outline-offset: 3px; resize: none; rotate: -0.5deg; font-size: 19px; font-weight: 500; line-height: 1.28; }
@@ -141,7 +141,7 @@
 .mq-address .body { display: grid; grid-template-columns: 132px 1fr; gap: 14px; padding: 0 18px 14px; }
 .mq-address .has { display: grid; align-content: start; gap: 6px; }
 .mq-address .has .mq-caps { font-size: 10.5px; }
-.mq-address ul { overflow-y: auto; border-top: 1px solid var(--rule); overscroll-behavior: contain; }
+.mq-address ul { overflow-y: auto; border-top: 1px solid var(--rule); overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--rule) transparent; }
 .mq-address li { display: flex; align-items: center; padding-right: 8px; border-bottom: 1px solid var(--rule); }
 .mq-address li:last-child { border-bottom: 0; }
 .mq-address .open { flex: 1; min-width: 0; padding: 10px 8px 10px 18px; font-size: 15px; }
@@ -164,15 +164,13 @@
 @keyframes mq-unroll { from { transform: scaleX(0.08); } to { transform: scaleX(1); } }
 .mq-fault { position: absolute; left: 50%; top: 46%; translate: -50% -50%; z-index: 5; display: grid; justify-items: start; gap: 12px; max-width: 340px; padding: 18px 20px; font-size: 15px; }
 
-/* the tracing sheet: laid over the model when a tool's sheet is on top. Its tab names the lens. */
-.mq-trace { position: absolute; z-index: 1; left: 520px; right: calc(var(--sheet-w) + 44px); top: 226px; height: 170px; rotate: 0.4deg; pointer-events: none;
-  border: 1px solid rgb(246 244 236 / 0.5); border-bottom: 0; -webkit-mask-image: linear-gradient(#000 30%, transparent); mask-image: linear-gradient(#000 30%, transparent); /* the top of the sheet; it fades where the model begins */
+/* the tracing sheet's tab: a strip of tracing paper taped under the view controls, naming the lens */
+.mq-trace { position: relative; padding: 7px 12px 8px; background: rgb(246 244 236 / 0.9); color: var(--ink-2); font-size: 10.5px; rotate: 0.6deg; box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
   transition: opacity 320ms var(--ease-out), translate 320ms var(--ease-out), rotate 320ms var(--ease-out); }
-@starting-style { .mq-trace { opacity: 0; translate: 72px 0; rotate: 2.4deg; } }
-.mq-trace::before, .mq-trace::after { content: ''; position: absolute; top: -8px; width: 40px; height: 14px; background: rgb(236 226 188 / 0.9); } /* masking tape at the two top corners */
-.mq-trace::before { left: -12px; rotate: -4deg; } .mq-trace::after { right: -12px; rotate: 3deg; }
-.mq-trace span { position: absolute; right: 40px; top: -1px; padding: 6px 11px 7px; background: rgb(246 244 236 / 0.92); color: var(--ink-2); font-size: 10.5px; }
-.mq-trace span b { margin-left: 6px; color: var(--ink); font-weight: 750; }
+@starting-style { .mq-trace { opacity: 0; translate: 56px 0; rotate: 3deg; } }
+.mq-trace b { margin-left: 6px; color: var(--ink); font-weight: 750; }
+.mq-trace::before, .mq-trace::after { content: ''; position: absolute; top: -6px; width: 30px; height: 12px; background: rgb(236 226 188 / 0.92); } /* masking tape */
+.mq-trace::before { left: -10px; rotate: -5deg; } .mq-trace::after { right: -10px; rotate: 4deg; }
 .mq-thread { position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
 .mq-thread line { stroke: var(--tape); stroke-width: 1.5; opacity: 0; transition: opacity 160ms ease; }
 
@@ -213,6 +211,7 @@
 .mq-found .mq-row { justify-content: space-between; margin-top: 4px; }
 .mq-found .mq-photo[data-state='none'] { display: none; }
 [data-inside] .mq-found { width: 264px; } [data-inside] .mq-found .mq-photo { display: none; }
+.mq-model[data-mode='splat'] .mq-found { display: none; } /* the drone capture carries no tags, so no print over it */
 /* inside a photograph the table is put away: the print line sits on a strip of mat, the ticket keeps only its ask line */
 .mq-model[data-inside] .mq-print { right: auto; padding: 0 16px; margin-left: -16px; background: rgb(44 53 50 / 0.9); text-shadow: none; }
 .mq-app:has(.mq-model[data-inside]) .mq-tray > :not(.mq-say), .mq-app:has(.mq-model[data-inside]) .mq-ask-card { display: none; }
@@ -272,7 +271,8 @@
 /* ================= the far edge: tools as sheets, the result on top ================= */
 .mq-sheets { position: absolute; z-index: 4; right: 24px; top: 20px; bottom: 28px; width: var(--sheet-w); display: flex; flex-direction: column; align-items: stretch; gap: 10px; pointer-events: none; }
 .mq-sheets > * { pointer-events: auto; }
-.mq-tools { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.mq-tools { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; flex: none; max-height: 118px; overflow-y: auto; padding: 1px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; } /* three rows; more scroll */
+.mq-tools li:last-child { order: -1; } /* laying another tool is always in reach */
 .mq-tool { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; background: rgb(44 53 50 / 0.9); box-shadow: inset 0 0 0 1px rgb(233 236 228 / 0.42); color: var(--print); font-size: 12.5px; font-weight: 650; white-space: nowrap;
   transition: opacity 320ms var(--ease-out), translate 320ms var(--ease-out), rotate 320ms var(--ease-out), scale 140ms var(--ease-out), background-color 140ms ease; }
 @starting-style { .mq-tool { opacity: 0; translate: 44px 0; rotate: 3deg; } } /* a tool that is added slides in from the far edge */
@@ -414,7 +414,6 @@ p.b-plan { aspect-ratio: auto; }
   .mq-views { gap: 6px; } .mq-views button { width: 62px; height: 54px; } .mq-views button.is-print { width: 76px; height: 60px; } .mq-views .mq-photo { height: 34px; }
   .mq-viewtools { justify-content: flex-start; gap: 0 12px; font-size: 10px; } .mq-viewtools label > div:first-of-type { width: 84px; }
   .mq-return { top: 196px; }
-  .mq-trace { display: none; }
   .mq-found { left: 16px; right: 16px; bottom: 122px; width: auto; rotate: none; display: grid; grid-template-columns: 96px 1fr; gap: 0 10px; }
   .mq-found figcaption { padding-top: 0; } .mq-found p { display: none; }
 
@@ -422,7 +421,7 @@ p.b-plan { aspect-ratio: auto; }
   .mq-grip { width: 44px !important; height: 4px !important; margin: 10px auto 8px !important; background: var(--print-2) !important; border-radius: 0 !important; }
   .mq-drawer-body { flex: 1; overflow-y: auto; display: grid; align-content: start; gap: 14px; padding: 4px 16px 64px; }
   .mq-drawer .mq-sheets { position: static; width: auto; }
-  .mq-drawer .mq-tools { justify-content: flex-start; }
+  .mq-drawer .mq-tools { justify-content: flex-start; max-height: none; }
   .mq-drawer .mq-sheet-body { overflow: visible; }
   .mq-ask-card { rotate: none; }
 }
@@ -436,7 +435,7 @@ p.b-plan { aspect-ratio: auto; }
 
 @media (prefers-reduced-motion: reduce) {
   .mq-starters li, .mq-laid li, .mq-pinned, .mq-address, .mq-trace, .mq-return, .mq-found, .mq-ask-card, .mq-tool, .mq-sheet, .mq-views button, .mq-printlet, .mq-starter .sheet { transition-property: opacity, background-color, box-shadow; }
-  @starting-style { .mq-starters li { translate: 0 calc(var(--lift) * -1); } .mq-laid li { translate: none; rotate: var(--tilt); } .mq-pinned { translate: calc(50% - 9px) 0; } .mq-address, .mq-trace, .mq-return, .mq-found, .mq-ask-card, .mq-tool, .mq-sheet { translate: none; rotate: none; } }
+  @starting-style { .mq-starters li { translate: 0 calc(var(--lift) * -1); } .mq-laid li { translate: none; rotate: var(--tilt); } .mq-pinned { translate: calc(50% - 9px) 0; } .mq-address, .mq-return, .mq-found, .mq-ask-card, .mq-tool, .mq-sheet { translate: none; rotate: none; } .mq-trace { translate: none; rotate: 0.6deg; } }
   .mq-pinned .string, .mq-sheet-body, .mq-plan-tape, .mq-unroll i, .mq-laid li.is-wait, .mq-pinned .pulse, .mq-planline .now[data-live]::before, .b-working { animation: none; }
   @media (hover: hover) { .mq-starter:hover .sheet, .mq-views button:hover, .mq-printlet:not(:disabled):hover { translate: none; } }
 }
