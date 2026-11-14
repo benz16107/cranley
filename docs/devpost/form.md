@@ -11,7 +11,7 @@ unticked prize is not judged.
 | Tagline (200) | yes | Listings say "accessible" and "two-car garage". Cranley measures it: an agent that checks real buildings, inside and out, before you commit. |
 | Description | yes | `docs/devpost/description.md` |
 | Built with (max 25) | yes | see below |
-| Public Git Repository (29740) | yes | the fresh public repo URL (not created yet) |
+| Public Git Repository (29740) | yes | https://github.com/benz16107/cranley (being built from a cleaned history) |
 | Universities (29742) | yes | fill in for every member |
 | Technology feedback (29743) | yes | see below |
 | GenAI used, dropdown (29744) | yes | Anthropic, Other |

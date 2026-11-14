@@ -129,4 +129,4 @@ external binary), Apple RoomPlan and ARKit, OpenStreetMap (ODbL) and USGS high-w
 
 ## Licence
 
-Not chosen yet. Note that CoStar's hackathon terms (section 4.2) assign project IP to CoStar.
+All rights reserved; see the event terms (CoStar's hackathon terms, section 4.2, assign project IP to CoStar).

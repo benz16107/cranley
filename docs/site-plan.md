@@ -3,7 +3,20 @@
 A one-page site in the style of Ben's earlier submissions (tesseraphoto.com had a hero, how it works, and one page
 per sponsor track). Source of every word: `docs/story.md`.
 
-## The constraint that shapes every visual
+## What may be shown where (updated 2026-11-14, 5:45 pm)
+
+| Where | Real product with Matterport, Vexcel and CoStar content on screen | Raw data files | Source of the rule |
+|---|---|---|---|
+| Devpost page and gallery | **Yes** | No | CoStar organizer (tweidling) in #costar-group, 5:42 pm: "Yes absolutely" to showing screenshots of the app displaying scans, imagery and records |
+| Demo video | **Yes** | No | same answer |
+| In-person demo to judges | Yes | No | same answer |
+| Public repo (`benz16107/cranley`) | No: no screenshots of sponsor content, no data | No | the terms; the README says sponsor data is not included and "All rights reserved; see the event terms" |
+| External website | **Ask CoStar first.** Until then, the conservative plan below | No | the question did not cover a website |
+
+Even where allowed, prefer frames without a private home's street address in large type; crop the address line when
+it adds nothing. Gallery picks with captions: `$THRESHOLD_DATA_DIR/submission/gallery/CAPTIONS.md`.
+
+## The constraint that shapes every website visual (until CoStar answers about the site)
 
 CoStar's hackathon terms say no CoStar, Matterport or Vexcel data in a public demo or repo, the data is usable only
 until Sunday 4:00 pm ET and must then be deleted with every derivative, and section 4.2 assigns project IP to CoStar.
@@ -65,7 +78,10 @@ and keep one moving element per page (the hero loop).
 | 14 | Phone-to-desktop live sync | MongoDB | re-shoot on the test home | yes after re-shoot | re-shoot |
 | 15 | Claude Code calling the tools over MCP | Ecosystem | re-record on the test home | yes after re-record | re-record |
 
-## Re-shoot list for the media pass (after the build merges)
+## Re-shoot list for the website (after the build merges)
+
+This list is for the external website only. Devpost and the video can use the real product; their retakes (for
+the Cranley brand) are listed in `$THRESHOLD_DATA_DIR/submission/gallery/CAPTIONS.md`.
 
 Three safe sources, and what each can and cannot show:
 
@@ -105,10 +121,13 @@ frame for an address, a scan id other than the `u_` one, a CoStar field or an ae
 
 Cannot be shown publicly without CoStar's written yes, whatever the setup: photoreal interiors, interior or drone
 splats, the Vexcel 3D city or aerial tiles, Harvey water in a real house, record versus reality, search by measurement
-or city census results, Insights charts over real facts. The Devpost video and the in-person demo to CoStar's judges
-are a separate question for CoStar (asked in #costar-group).
+or city census results, Insights charts over real facts. Devpost, the video and the in-person demo may show all of
+this (CoStar, 5:42 pm); the website may not until CoStar says so.
 
-## Current screenshots that are NOT safe for public use
+## Current screenshots that are NOT safe for the website or the repo
+
+(They are fine for Devpost and the video since CoStar's 5:42 pm answer, apart from the "Threshold" brand on every
+App-look shot taken before the rename.)
 
 Everything under `$THRESHOLD_DATA_DIR/shots/` except the folders marked safe above. In particular:
 

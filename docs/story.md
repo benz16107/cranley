@@ -9,7 +9,9 @@ companies carry the name (Cranley Gardens Property, Cranley Place Management, Cr
 most named after Cranley Gardens and Cranley Place, streets in South Kensington, London. Domains not checked.
 
 Public-text rule: this file goes into a public repo. It holds no sponsor data, no scan ids, no addresses, no
-screenshots of sponsor imagery and no per-building counts. Numbers about our own system (tests, timings, tool
+screenshots of sponsor imagery and no per-building counts. Devpost and the video may show the real product with
+sponsor content on screen (CoStar organizer in #costar-group, 2026-11-14 5:42 pm: "Yes absolutely"); raw data files
+never. The external website stays on the conservative plan until CoStar answers for it (`docs/site-plan.md`). Numbers about our own system (tests, timings, tool
 counts) are fine. Dataset-derived numbers for the spoken pitch live outside the repo in
 `$THRESHOLD_DATA_DIR/submission/pitch-numbers.md`.
 
@@ -21,7 +23,7 @@ Answer these in the thread; the defaults below go in if there is no answer by ab
 
 1. **Domain.** MLH has a GoDaddy Registry prize (needs a GoDaddy Registry TLD such as `.co`, `.us` or `.club`, not
    `.com`). Options: buy one for the external site (for example `cranley.co`, availability not checked), or skip.
-   Default: skip; no site goes live before CoStar answers the terms question anyway (see `docs/site-plan.md`).
+   Default: skip; the site waits for CoStar's answer about websites anyway (see `docs/site-plan.md`).
 
 2. **Tagline.** Candidates (Devpost allows 200 characters):
    - A. "Tell it what you need from a building. An agent builds the tools, measures the real thing inside and out, and shows its work."
@@ -51,9 +53,9 @@ Answer these in the thread; the defaults below go in if there is no answer by ab
 7. **Team and form fields** I cannot know: team members, Discord usernames, schools, rookie fraction. The Gemini
    project number field is required on the form: answer "N/A".
 
-8. **Repo and licence.** The repo must be public and created during the event. Git history still holds scan ids and
-   one address, so the public repo should be a fresh history. Licence: CoStar's terms section 4.2 assigns project IP
-   to CoStar, which may limit what licence you can grant. Left to you.
+8. **Repo and licence.** Decided by the lead: the public repo is `benz16107/cranley`, built from a cleaned history
+   (no scan ids on any tracked file), README saying sponsor data is not included and "All rights reserved; see the
+   event terms". Its URL goes in the Devpost form's repository field once it exists.
 
 ---
 
