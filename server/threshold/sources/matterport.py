@@ -61,8 +61,8 @@ def model(sid: str) -> dict:
 @functools.lru_cache(maxsize=512)
 def plan_json(sid: str) -> bytes:
     p = normalize(model(sid), index().get(sid))
-    fit = footprint.scan_fit(p)
-    apply_georef_fit(p, fit, footprint.verdict(fit))
+    fit, ring = footprint.scan_fit(p)
+    apply_georef_fit(p, fit, footprint.verdict(fit), ring)
     return json.dumps(p, separators=(",", ":")).encode()
 
 

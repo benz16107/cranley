@@ -10,6 +10,9 @@ Fields added to the contract (none renamed, none changed in meaning):
   rooms[].extra_polygons             further disjoint outlines when one room has several parts
   rooms[].center(_source)            a point inside the room: the outline's, else the mean of its panoramas
   rooms[].area_source                "matterport" | "polygon" | None
+  openings[].exterior(_source)       true (leads outside) | false (to another room or unscanned space inside) | None
+  openings[].on_outline              the opening sits on the outer edge of its floor's scanned area
+  stairs                             panorama pairs that connect floors: floors, panos, rooms, points, rise_m, run_m
   geo.fit                            footprint refit: rotation_deg, shift_m, residual_m, method, iou, verified
   quality.georef                     true only when geo.fit verified the compass and position against the footprint
 """
@@ -18,7 +21,7 @@ from __future__ import annotations
 import math
 from statistics import median
 
-from shapely.geometry import LineString, Polygon
+from shapely.geometry import LineString, Point, Polygon
 from shapely.geometry.polygon import orient
 from shapely.ops import polygonize, unary_union
 
@@ -44,6 +47,10 @@ MIN_WALL = 0.05      # m; shorter edges are vertex noise, not walls
 MIN_FACE = 1e-4      # m²; smaller faces are slivers from rounding
 MIN_PART = 0.05      # m²; a second disjoint outline smaller than this is dropped
 AREA_TOLERANCE = 0.25  # an outline whose area differs from Matterport's by more than this is flagged
+ON_OUTLINE_M = 0.25    # an opening this close to the floor's outer edge is on it (openings sit on wall centre lines)
+SHARED_BUILDING = {"apartment_unit", "amenity", "office", "retail", "other"}  # a door on the edge may lead to a corridor
+STAIR_RUN_PER_RISE = (0.3, 2.5)  # horizontal over vertical distance for a neighbour pair to count as stairs
+MIN_STAIR_RISE = 0.4   # m; smaller steps between floors are the same level split in two
 
 
 def _yaw_deg(q: dict | None) -> float | None:
@@ -187,10 +194,70 @@ def normalize(model: dict, index_row: dict | None = None) -> dict:
                        | {"floor": (fp.get("floor") or {}).get("id")}
                        for fp in (model.get("assets") or {}).get("floorplans") or []],
     }
+    _exterior(plan, row.get("kind"))
+    plan["stairs"] = _stairs(plan)
     plan["quality"] = _quality(plan, dropped)
     for r in plan["rooms"]:
         del r["_outline_area"]
     return plan
+
+
+def _floor_outlines(plan: dict) -> dict:
+    """Per floor: the union of its room outlines with small gaps between rooms closed."""
+    by: dict[str, list] = {}
+    for r in plan["rooms"]:
+        if len(r.get("polygon") or []) >= 3 and r.get("label") != "Void":
+            by.setdefault(r["floor"], []).append(Polygon(r["polygon"]).buffer(0.15, join_style="mitre"))
+    return {f: unary_union(ps).buffer(-0.15, join_style="mitre") for f, ps in by.items()}
+
+
+def _exterior(plan: dict, kind: str | None) -> None:
+    """openings[].exterior from the outline alone. A window on the outer edge faces outside. So does a door on the
+    outer edge of a house; in a shared building (unit, office) it may open to a corridor, so it stays None until
+    the footprint check (apply_georef_fit) decides. An opening between two rooms, or inside the outline, is not
+    exterior."""
+    outlines = _floor_outlines(plan)
+    for o in plan["openings"]:
+        shape = outlines.get(o["floor"])
+        rings = [g.exterior for g in getattr(shape, "geoms", [shape])] if shape is not None and not shape.is_empty else []
+        pt = Point(o["center"])
+        o["on_outline"] = any(ring.distance(pt) <= ON_OUTLINE_M for ring in rings)
+        if len(o["rooms"]) >= 2:
+            o["exterior"], o["exterior_source"] = False, "rooms"
+        elif not rings or not o["rooms"]:
+            o["exterior"], o["exterior_source"] = None, None
+        elif not o["on_outline"]:
+            o["exterior"], o["exterior_source"] = False, "outline"
+        elif o["type"] == "window" or kind not in SHARED_BUILDING:
+            o["exterior"], o["exterior_source"] = True, "outline"
+        else:
+            o["exterior"], o["exterior_source"] = None, "outline"
+
+
+def _stairs(plan: dict) -> list[dict]:
+    """Panorama neighbour pairs on different floors whose slope fits a stair (not a view across a double-height
+    room). Each pair is one walkable link between floors; a staircase usually gives several."""
+    panos = {p["id"]: p for p in plan["panos"]}
+    elev = {f["id"]: f.get("elevation") for f in plan["floors"]}
+    out, seen = [], set()
+    for a in plan["panos"]:
+        for bid in a["neighbors"]:
+            b = panos.get(bid)
+            if b is None or b["floor"] == a["floor"] or None in (a["floor"], b["floor"]):
+                continue
+            lo, hi = sorted((a, b), key=lambda p: (elev.get(p["floor"]) or 0, p["position"][2]))
+            key = (lo["id"], hi["id"])
+            if key in seen:
+                continue
+            seen.add(key)
+            rise = hi["position"][2] - lo["position"][2]
+            run = math.dist(lo["position"][:2], hi["position"][:2])
+            if rise < MIN_STAIR_RISE or not STAIR_RUN_PER_RISE[0] <= run / rise <= STAIR_RUN_PER_RISE[1]:
+                continue
+            out.append({"id": f"stair{len(out)}", "floors": [lo["floor"], hi["floor"]], "panos": [lo["id"], hi["id"]],
+                        "rooms": [lo["room"], hi["room"]], "points": [lo["position"], hi["position"]],
+                        "rise_m": round(rise, 2), "run_m": round(run, 2), "source": "pano_neighbors"})
+    return out
 
 
 def _quality(plan: dict, dropped: int) -> dict:
@@ -206,6 +273,9 @@ def _quality(plan: dict, dropped: int) -> dict:
     counts = {"walls": len(walls), "rooms": len(rooms), "rooms_void": len(plan["rooms"]) - len(rooms),
               "rooms_unbounded": len(rooms) - len(bounded), "rooms_with_polygon": len(with_poly), "rooms_labelled": len(labelled), "openings": len(plan["openings"]),
               "floors": len(plan["floors"]), "panos": len(plan["panos"]), "polygon_area_mismatch": len(off),
+              "openings_exterior": sum(o["exterior"] is True for o in plan["openings"]),
+              "openings_exterior_unknown": sum(o["exterior"] is None for o in plan["openings"]),
+              "stairs": len(plan["stairs"]),
               "edges_dropped": dropped}
     q = {"walls": len(walls) >= 3,
          "polygons": bool(bounded) and len(with_poly) >= 0.5 * len(bounded),
@@ -233,14 +303,33 @@ def _quality(plan: dict, dropped: int) -> dict:
     return {**q, "counts": counts, "notes": notes}
 
 
-def apply_georef_fit(plan: dict, fit: dict | None, verified: bool) -> dict:
-    """Record the footprint check (sources/footprint.py) on the plan: geo.fit, quality.georef and a note."""
+FOOTPRINT_EDGE_M = 1.0   # an outline door within this of the roof edge leads outside (eaves 0.3-0.6 m)
+FOOTPRINT_INSIDE_M = 2.0  # one further inside the roof than this leads to unscanned space (garage, corridor)
+
+
+def apply_georef_fit(plan: dict, fit: dict | None, verified: bool, footprint_enu: list | None = None) -> dict:
+    """Record the footprint check (sources/footprint.py) on the plan: geo.fit, quality.georef and a note. With a
+    verified fit and the footprint ring (east/north metres), also settle which outline openings lead outside."""
     geo, q = plan.get("geo"), plan["quality"]
     if not geo or geo.get("lat") is None or geo.get("yaw_deg") is None:
         return plan
     geo["fit"] = {**fit, "verified": verified} if fit else None
     q["georef"] = verified
     q["counts"]["georef_residual_m"] = fit["residual_m"] if fit else None
+    if verified and footprint_enu:
+        from .geometry import georef  # georef reads geo.fit, which is now set
+        roof = Polygon(footprint_enu)
+        for o in plan["openings"]:
+            if not o.get("on_outline") or len(o["rooms"]) != 1:
+                continue
+            p = Point(georef.to_enu(plan, *o["center"]))
+            d = roof.exterior.distance(p)
+            if d <= FOOTPRINT_EDGE_M:
+                o["exterior"], o["exterior_source"] = True, "footprint"
+            elif roof.contains(p) and d > FOOTPRINT_INSIDE_M:
+                o["exterior"], o["exterior_source"] = False, "footprint"
+        q["counts"]["openings_exterior"] = sum(o["exterior"] is True for o in plan["openings"])
+        q["counts"]["openings_exterior_unknown"] = sum(o["exterior"] is None for o in plan["openings"])
     if verified:
         q["notes"].append(f"compass and position checked against the Vexcel building footprint: corrected by "
                           f"{fit['rotation_deg']:+.1f} deg and {fit['shift_m']:.1f} m, outline within "

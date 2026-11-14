@@ -23,7 +23,7 @@ from .upstream import cache_path, write_atomic
 MIN_IOU = 0.6         # below this the outline and the footprint are not the same building
 MAX_RESIDUAL_M = 1.5  # median distance from the fitted outline to the footprint edge
 MAX_ROTATION_DEG = 20  # a refit turning more than this is a wrong match, not a correction
-FIT_VERSION = 1
+FIT_VERSION = 2
 
 
 def plan_outline(plan: dict) -> Polygon | None:
@@ -119,20 +119,21 @@ def verdict(f: dict | None) -> bool:
         and abs(f["rotation_deg"]) < MAX_ROTATION_DEG - 0.5
 
 
-def scan_fit(plan: dict, fetch: bool = True) -> dict | None:
-    """The footprint fit for a scan, cached on disk. None when the scan has no geo or no outline, or when
-    fetch is False and nothing is cached. Never raises for an upstream failure (returns None)."""
+def scan_fit(plan: dict, fetch: bool = True) -> tuple[dict | None, list | None]:
+    """(fit, footprint ring in east/north metres) for a scan, cached on disk. (None, None) when the scan has no
+    geo or no outline, or when fetch is False and nothing is cached. Never raises for an upstream failure."""
     f = cache_path("georef_fit", f"{plan['sid']}.json")
     if f.exists():
         hit = json.loads(f.read_text())
         if hit.get("version") == FIT_VERSION:
-            return hit["fit"]
+            return hit["fit"], hit.get("footprint_enu")
     if not fetch or not (plan.get("geo") or {}).get("lat") or plan_outline(plan) is None:
-        return None
+        return None, None
     try:
         fp = footprint_enu(plan)
     except Exception:  # Vexcel down or no key: the plan still loads, unverified
-        return None
+        return None, None
     out = fit(plan, fp) if fp is not None else None
-    write_atomic(f, json.dumps({"version": FIT_VERSION, "fit": out}).encode())
-    return out
+    ring = [[round(x, 3), round(y, 3)] for x, y in fp.exterior.coords] if fp is not None else None
+    write_atomic(f, json.dumps({"version": FIT_VERSION, "fit": out, "footprint_enu": ring}).encode())
+    return out, ring
