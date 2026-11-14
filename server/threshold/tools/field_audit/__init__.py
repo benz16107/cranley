@@ -209,6 +209,12 @@ def judge(row: dict, plan: dict, deep: dict, labels: list[dict] | None) -> tuple
         if n == want:
             return "measurement", (f"Reading the panoramas finds {rooms}, as the record says; Matterport's labels were "
                                    "wrong (a room furnished otherwise, or a utility room with a bed-sized floor).")
+        able = _bedroom_capable(plan, labels)
+        if n < want <= n + len(able):
+            return "measurement", (f"Reading the panoramas finds {rooms}, but {len(able)} more room"
+                                   f"{'s are' if len(able) != 1 else ' is'} bedroom-sized with a window and furnished "
+                                   f"as {', '.join(sorted({lab.lower() for _, lab in able}))}: bedrooms used another way "
+                                   "would make the record's count right. Labels follow furniture, not closets.")
         if n == got and (n > want or whole):
             return "record", (f"Reading the panoramas also finds {rooms}, and " + (
                 "the scan holds more than the record allows." if n > want else
@@ -241,6 +247,25 @@ def judge(row: dict, plan: dict, deep: dict, labels: list[dict] | None) -> tuple
             return "measurement", "The scan covers the office part of a warehouse; the clear height is in the bays."
         return "unclear", "Dropped ceilings and partial scans both lower the measured height."
     return "unclear", (c["reason"][:200] if c else "The full check did not reach this claim.")
+
+
+FLEX = {"Office", "Den", "Bonus Room", "Loft", "Game Room", "Exercise Room", "office", "private office"}
+
+
+def _bedroom_capable(plan: dict, labels: list[dict]) -> list[tuple[str, str]]:
+    """(room, label) of rooms that are not bedrooms by furniture but could be: at least 7 m2, labelled as a flexible
+    room by Matterport or the panoramas, with a window when the scan marks windows."""
+    seen = {x.get("room"): x["label"] for x in labels}
+    has_windows = any(o["type"] == "window" for o in plan.get("openings") or [])
+    out = []
+    for r in plan["rooms"]:
+        lab = seen.get(r["id"]) or r.get("label")
+        if lab == "Bedroom" or lab not in FLEX or (r.get("area") or 0) < 7:
+            continue
+        lit = any(o["type"] == "window" and r["id"] in (o.get("rooms") or []) for o in plan.get("openings") or [])
+        if lit or not has_windows:
+            out.append((r["id"], lab))
+    return out
 
 
 def deep_check(picked: list[dict], plans, step=lambda s: None) -> None:

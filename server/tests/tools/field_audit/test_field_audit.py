@@ -56,3 +56,11 @@ def test_run_audit_end_to_end(monkeypatch):
     r = to_result(out)
     assert r.scope.sids == ["h1", "h2"] and any(m.id == "disagree.area" for m in r.metrics)
     assert all(f.id.startswith("field_audit:") for f in r.findings)
+
+
+def test_offices_with_windows_can_be_the_missing_bedrooms():
+    plan = make_home()
+    next(r for r in plan["rooms"] if r["id"] == "B1")["label"] = "Office"  # B1 has a window
+    r = row("x", "bedrooms", "beds", 2, 1)
+    got = judge(r, plan, {"comparisons": [], "evidence": {}}, [{"room": "B2", "label": "Bedroom"}, {"room": "B1", "label": "Office"}])
+    assert got[0] == "measurement" and "office" in got[1]
