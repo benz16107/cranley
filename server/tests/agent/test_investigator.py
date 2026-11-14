@@ -111,3 +111,16 @@ def test_two_buildings_get_a_ranked_table(session):
     table = next(p for p in session.doc.panels if p.id == "compare:door_widths").blocks[0]
     assert table.type == "RankedTable" and table.rows == runs
     assert {c.metric for c in table.columns} == {"doorways", "narrowest", "too_narrow"}
+
+
+def test_field_check_in_a_turn_lists_the_real_tasks_and_offers_the_phone_only_before_it_is_used(session, monkeypatch, tmp_path):
+    from threshold.capture import store
+    monkeypatch.setattr(store, "ROOT", tmp_path)
+    ready(session)
+    inv = Investigation(session)
+    inv.run("door_widths", {"scan": "t1"})
+    first = inv.run("field_check", {"scan": "t1"})
+    assert "on-site checks" in first["summary"] and "Continue on phone" in first["summary"]
+    store.save(session.base.id, store.Meta(kind="reading", scan="t1"), None)      # a phone has now sent something
+    later = inv.run("field_check", {"scan": "t1"})
+    assert "on-site checks" in later["summary"] and "Continue on phone" not in later["summary"]

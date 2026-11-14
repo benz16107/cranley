@@ -212,6 +212,12 @@ class Investigation:
             need = ", ".join(n for n, _ in missing)
             self.emit(RunFinish(id=rec.id, status="error", error=f"needs {need}", run=rec.id))
             return {"run": rec.id, "error": f"missing inputs the person has not given: {need}"}
+        if tool_id == "field_check" and inputs.get("tasks") is None:
+            # the workspace's real on-site tasks, so a turn never tells someone already on the phone to open it there;
+            # the "open it on a phone" offer only while no phone has sent anything to this workspace
+            from ..capture import apply, store
+            inputs = {**inputs, "tasks": [t for t in apply.phone_tasks(self.s) if t["sid"] == inputs.get("scan")],
+                      "offer_phone": not store.listing(self.s.base.id)}
         ctx = ToolContext(plans=prefs.with_labels(self.s.plans, doc),
                           on_step=lambda text: self.emit(RunProgress(id=rec.id, step=short(text, 200), run=rec.id)))
         if self.s.sites:

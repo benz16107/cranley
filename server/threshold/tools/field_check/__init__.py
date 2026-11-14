@@ -53,6 +53,8 @@ class Inputs(BaseModel):
     scan: str = field(source="selection.scan", description="Scan id")
     tasks: list[Task] | None = Field(None, description="The scan's phone tasks with their outcomes, from the capture "
                                                        "routes. Missing when run by hand: then it explains how to start.")
+    offer_phone: bool = Field(False, description="Set by the server: no phone has sent anything to this workspace yet, "
+                                                 "so the verdict says how to start one. Never set on the phone.")
 
 
 def fmt(v: float | None, unit: str) -> str:
@@ -115,7 +117,8 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     worst = max((t.outcome.status for t in done), key=["unknown", "pass", "warn", "fail"].index, default="unknown")
     parts = [f"{n} {SAID[k]}" if k != "measured" else f"{n} measured for the first time" for k, n in tally.items() if n]
     text = (f"{len(done)} of {len(tasks)} on-site checks done" + (": " + ", ".join(parts) if parts else "") + "."
-            + (f" {left} still to do." if left else ""))
+            + (f" {left} still to do." if left else "")
+            + (" Open this workspace on a phone (Continue on phone) to do them." if left and inputs.offer_phone else ""))
     return ToolResult(
         # with checks still to do, "pass" would overstate the visit: only a problem found so far is reported early
         scope=sc, verdict=Verdict(status="unknown" if not done or (left and worst == "pass") else worst, text=text),
