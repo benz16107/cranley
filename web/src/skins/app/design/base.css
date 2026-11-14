@@ -224,7 +224,7 @@ button.chip[aria-pressed='true'] { background: var(--accent-wash); border-color:
 .card > header p { color: var(--ink-3); font-size: var(--text-xs); }
 .card > .body { padding: var(--s-4); }
 .card .tbl th:first-child, .card .tbl td:first-child { padding-left: var(--s-4); }
-.card .tbl tbody tr:last-child td { border-bottom: 0; }
+.card .tbl tbody tr:last-child :is(td, th) { border-bottom: 0; } /* a ranked table's first cell is a row header */
 .stats { display: flex; border: 1px solid var(--rule); border-radius: var(--r-2); background: var(--pane); overflow-x: auto; scrollbar-width: none; }
 .stats > div { flex: 1 1 0; min-width: 76px; padding: 9px var(--s-4) 10px; border-left: 1px solid var(--rule); display: grid; gap: 3px; align-content: start; }
 .stats > div:first-child { border-left: 0; }
