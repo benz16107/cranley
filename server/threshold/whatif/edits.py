@@ -250,7 +250,9 @@ def _move_wall(plan: dict, e: MoveWall) -> dict:
         if e.grow not in rooms:
             raise EditError(f"the wall is not on the {e.grow} room")
         r = next(r for r in plan["rooms"] if r["id"] == e.grow)
-        c = r.get("center") or Polygon(r["polygon"]).representative_point().coords[0]
+        c = r.get("center") or (Polygon(r["polygon"]).representative_point().coords[0] if len(r.get("polygon") or []) >= 3 else None)
+        if c is None:
+            raise EditError(f"the {r.get('label') or 'room'} has no outline, so which side grows is unknown")
         mid = _at(wall, 0.5)
         side = (c[0] - mid[0]) * nx + (c[1] - mid[1]) * ny  # >0: the grown room is on the +normal side
         off = -abs(off) if side > 0 else abs(off)
@@ -282,7 +284,7 @@ def _move_wall(plan: dict, e: MoveWall) -> dict:
     touched = set(rooms) | {r for w, _, _ in links for r in w["rooms"]}
     areas = _reshape(plan, touched)
     return {"wall": wall["id"], "rooms": rooms, "offset_m": round(abs(off), 3),
-            "short": f"Move wall {abs(off) * 100:.0f} cm, {_pair(plan, rooms)}", "a": [old_a, wall["a"]],
+            "short": f"Move wall {abs(off) * 100:.0f} cm, {' and '.join(_room_name(plan, r) for r in rooms)}", "a": [old_a, wall["a"]],
             "b": [old_b, wall["b"]], "length": wall["length"], "stretched": [w["id"] for w, _, _ in links], "slid_openings": slid,
             "areas": {k: [round(a, 2) if a else a, round(b, 2)] for k, (a, b) in areas.items()},
             "swept_m2": round(abs(off) * wall["length"], 2),
