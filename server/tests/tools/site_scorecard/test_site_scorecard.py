@@ -118,3 +118,13 @@ def test_fix_list_prices_from_the_cost_book():
     fixes = fixes_for(doors, None, egress, 0.813)
     assert [f["priority"] for f in fixes] == [1, 2, 2]
     assert {f["title"]: f["total"] for f in fixes}["Swing-clear hinges on doors just under 32 in"] == 250
+
+
+def test_a_team_is_sized_against_the_marketed_space_that_fits(kit_rows):
+    ROWS[1]["available"] = {"sf": 120000, "max_contiguous_sf": 100000, "spaces": [5000, 22000, 100000]}
+    try:
+        res = run_tool("site_scorecard", {"profile": "industrial", "candidates": [{"property_id": 1}, {"property_id": 2}],
+                                          "size_min_sf": 18000, "size_max_sf": 30000, "use_osm": False}, ctx())
+    finally:
+        ROWS[1]["available"] = {"sf": 50000, "max_contiguous_sf": 50000}
+    assert {x.id: x.value for x in res.metrics}["p1/size"] == 22000

@@ -40,6 +40,7 @@ LIMITS = ("The kit holds only the 3,339 properties on CoStar's Matterport captur
           "list, not the whole market. Rents are asking (face) rents, not signed or effective rents, and they mix service "
           "types (triple net excludes operating costs; full service includes them). Space marketed for lease is not "
           "vacancy, and the kit has no market vacancy rate, absorption or rent growth.")
+LOW_RENT = 0.4
 PROFILE_TYPE = {"office": 5, "industrial": 2, "retail": 6, "flex": 7}
 
 
@@ -181,6 +182,11 @@ def build(subj: dict, comps: list[dict], r: float, inputs: Inputs, scope, key: s
                                 status="pass", detail="; ".join(bits) + ".", anchor=geo(c["lon"], c["lat"]), source=src))
         ps.append(pin(f"comp_{c['id']}", c["lon"], c["lat"], f"comp {i + 1}", "pass"))
     med_rent, med_sale = kit.median(comp_rents), kit.median(comp_sales)
+    for f, c in zip([f for f in findings if f.id.startswith(f"market_comps:{key}:")], comps):
+        cr = kit.asking_rent(c)
+        if cr and med_rent and cr["rate"] < LOW_RENT * med_rent:  # a monthly rate filed as yearly, or yard and land space
+            f.detail += (f" This rent is under {LOW_RENT:.0%} of the comp median: it may be a monthly rate recorded as "
+                         "yearly, or yard space; check the listing.")
     metrics[:0] = [m for m in (
         Metric(id="comps", label="Comps", value=len(comps), unit="", source=DERIVED),
         Metric(id="median_rent", label="Comp median asking rent", value=round(med_rent, 2) if med_rent else None, unit="$/ft²/yr", source=KIT),
