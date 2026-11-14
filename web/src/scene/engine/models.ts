@@ -29,13 +29,14 @@ async function load(id: string): Promise<THREE.BufferGeometry> {
   gltf.scene.traverse((o) => { geo ??= (o as THREE.Mesh).isMesh ? (o as THREE.Mesh).geometry : null })
   const col = (geo as THREE.BufferGeometry | null)?.getAttribute('color')
   if (!geo || !col) throw new Error(`models/${id}.glb has no coloured mesh`)
-  // Clay: the source's paint is mostly taken out so the status tint is the only colour a model carries, and its
-  // darks (glass, tyres) are lifted off black. Done once here, in the sRGB the scene's other shaders write.
+  // Clay: the source's paint becomes a light body with dark glass and tyres, so the status tint is the only colour a
+  // model carries. Done once here, in the sRGB the scene's other shaders write.
   const c = new THREE.Color()
   for (let i = 0; i < col.count; i++) {
     c.fromBufferAttribute(col, i).convertLinearToSRGB()
-    const l = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b
-    col.setXYZ(i, 0.2 + 0.8 * (l + (c.r - l) * 0.2), 0.2 + 0.8 * (l + (c.g - l) * 0.2), 0.2 + 0.8 * (l + (c.b - l) * 0.2))
+    const l = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b, t = Math.min(1, Math.max(0, (l - 0.22) / 0.2)), v = 0.2 + 0.8 * t * t * (3 - 2 * t) // the sources' glass and tyres sit under 0.25, their paint over 0.4
+    const k = (x: number) => Math.min(1, Math.max(0, v + (x - l) * 0.12)) // the attribute is 8-bit: past 1 it would wrap
+    col.setXYZ(i, k(c.r), k(c.g), k(c.b))
   }
   return geo
 }
@@ -48,7 +49,7 @@ export const modelMaterial = new THREE.ShaderMaterial({
     void main() {
       mat3 im = mat3(instanceMatrix);
       vec3 n = normalize(mat3(modelMatrix) * (im * (normal / vec3(dot(im[0], im[0]), dot(im[1], im[1]), dot(im[2], im[2]))))); // right under a stretch
-      float lit = 0.66 + 0.34 * dot(n, normalize(vec3(-0.45, -0.62, 0.64)));
+      float lit = 0.74 + 0.26 * dot(n, normalize(vec3(-0.45, -0.62, 0.64)));
       vCol = color.rgb * instanceColor * lit;
       gl_Position = projectionMatrix * viewMatrix * modelMatrix * instanceMatrix * vec4(position, 1.0);
     }`,

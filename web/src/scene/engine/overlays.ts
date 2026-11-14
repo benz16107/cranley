@@ -138,7 +138,7 @@ export class Overlays3D {
         if (shape) {
           holder.scale.set(b.size[0], b.size[1], b.size[2]); holder.updateMatrix(); holder.scale.set(1, 1, 1)
           const s = (stand[`${b.model}|${at.floor}`] ??= { geo: shape, floor: at.floor, at: [], tint: [] })
-          s.at.push(holder.matrix.clone()); s.tint.push(new THREE.Color(1, 1, 1).lerp(new THREE.Color(col[0], col[1], col[2]), 0.42))
+          s.at.push(holder.matrix.clone()); s.tint.push(new THREE.Color(...tok.paper).lerp(new THREE.Color(col[0], col[1], col[2]), 0.3))
         }
         g.add(holder); this.made.push(holder, ...holder.children)
         const dims = `${b.size[0].toFixed(2)} × ${b.size[1].toFixed(2)} × ${b.size[2].toFixed(2)} m`
