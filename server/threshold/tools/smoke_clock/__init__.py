@@ -261,7 +261,8 @@ def run_cfast(text: str, stall_s: float = STALL_S, poll_s: float = 5.0) -> dict:
     if not done.exists() and not part.exists():
         d.mkdir(parents=True, exist_ok=True)
         (d / "case.in").write_text(text)
-        p = subprocess.Popen([exe, "case.in"], cwd=d, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        log_f = (d / "case.stdout").open("w")  # a file, not a pipe: a full pipe would block CFAST and look like a stall
+        p = subprocess.Popen([exe, "case.in"], cwd=d, stdout=log_f, stderr=subprocess.STDOUT, text=True)
         start = last_move = time.monotonic()
         reached = 0.0
         while p.poll() is None:  # stiff plans crawl at tiny time steps for an hour: stop them, keep what was reached
@@ -272,10 +273,12 @@ def run_cfast(text: str, stall_s: float = STALL_S, poll_s: float = 5.0) -> dict:
             if now - last_move > stall_s or now - start > TIMEOUT_S:
                 p.kill()
                 p.wait()
+                log_f.close()
                 part.touch()
                 break
         else:
-            log = p.stdout.read() if p.stdout else ""
+            log_f.close()
+            log = (d / "case.stdout").read_text()
             if "Normal exit" not in log:
                 raise NotApplicable(f"CFAST stopped early, so no smoke timeline: {log.strip()[-300:]}")
             done.touch()
@@ -342,11 +345,12 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     fire = _pick_fire(plan, inputs.fire_room,
                       lambda r: len(reachable(plan, comp0, comp0[r["id"]]) & bed_comps) if r["id"] in comp0 else 0)
     plain = _pick_fire(plan, inputs.fire_room)
+    plain_n = len(reachable(plan, comp0, comp0[plain["id"]]) & bed_comps) if plain and plain["id"] in comp0 else 0
     multi = len({r["floor"] for r in live_rooms(plan)}) > 1
     where = lambda r: f"{name(r)} ({floor_label(plan, r['floor'])})" if multi else name(r)  # noqa: E731
     a = GROWTH[inputs.growth]
-    moved = (f" The {where(plain).lower()} has no doorway or stair path to the bedrooms in the scan, so the fire "
-             f"starts in the {where(fire).lower()} instead.") if plain is not None and fire["id"] != plain["id"] else ""
+    moved = (f" The {where(plain).lower()} has {'no doorway or stair path to the bedrooms' if not plain_n else 'a path to fewer bedrooms'}"
+             f" in the scan, so the fire starts in the {where(fire).lower()} instead.") if plain is not None and fire["id"] != plain["id"] else ""
     ctx.step(f"Fire in {where(fire)}: {inputs.growth} growth to {inputs.peak_kw:.0f} kW" + moved)
     from concurrent.futures import ThreadPoolExecutor
     cases = {closed: write_input(plan, fire, closed, a, inputs.peak_kw) for closed in (False, True)}
