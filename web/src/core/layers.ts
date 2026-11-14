@@ -11,9 +11,15 @@ export interface MapLayer {
   shape: 'point' | 'line' | 'area' | 'raster' | 'readout'
   scope: 'city' | 'grid' | 'client' | 'tiles'
   source: string; source_url: string; confidence: 'high' | 'medium' | 'low'; note: string
+  /** The licence the source names and the credit line it asks for ('' when it asks for none: credit `source`). */
+  licence: string; attribution: string
+  /** A design token for its colour ('' is the look's choice), and for an area coloured by value (each feature's
+      `level`, 0 to 5, on the look's six-step ramp) what the levels mean. */
+  hue: string; legend: { title: string; unit?: string; stops: [number, string][] } | null
   /** The date the source gives for its data, and the day our copy was fetched ('' when not fetched yet). */
   data_date: string; fetched: string
-  available: boolean; grid_z: number; minzoom: number; on: boolean; coarse: boolean; tiles: string
+  /** The map zooms between which it is drawn, and for a raster the finest zoom its own tiles exist at. */
+  available: boolean; grid_z: number; minzoom: number; maxzoom: number; tile_maxzoom: number; on: boolean; coarse: boolean; tiles: string
 }
 export interface Weather {
   time: string; timezone: string; utc_offset_s: number; sky: string

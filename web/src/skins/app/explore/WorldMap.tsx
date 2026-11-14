@@ -35,8 +35,10 @@ const palette = () => ({
   road: tokenCss('--map-road'), roadMajor: tokenCss('--map-road-major'), rail: tokenCss('--map-road'), building: tokenCss('--map-building'),
   label: tokenCss('--ink'), labelMuted: tokenCss('--ink-3'), halo: tokenCss('--paper'),
 })
-/** The token each data layer is drawn in: the hue of the tool family it belongs with. Also its swatch in the layer list. */
-export const LAYER_HUE: Record<string, string> = {
+/** The token each data layer is drawn in: the hue of the tool family it belongs with. Also its swatch in the layer list.
+    A layer that is not here (one a source module added later) brings its own in the catalogue, or is drawn neutral. */
+export const hueOf = (l: MapLayer) => LAYER_HUE[l.id] ?? (/^--[a-z0-9-]+$/.test(l.hue) ? l.hue : '--ink-2')
+const LAYER_HUE: Record<string, string> = {
   scans: '--ink', records: '--tool-5', drone: '--tool-6', mesh3d: '--accent', fema: '--tool-2', harvey: '--ramp-5', fire_stations: '--tool-3',
   hydrants: '--tool-3', hospitals: '--tool-5', schools: '--tool-6', parcels: '--ink-2', transit: '--tool-1', ev: '--tool-4', radar: '--tool-2',
 }
@@ -49,25 +51,29 @@ function styleFor(base: BaseView, city: CityId, layers: MapLayer[], on: string[]
   const paper = tokenCss('--pane')
   for (const L of layers) {
     if (!on.includes(L.id) || !L.available || L.scope === 'client') continue
-    const hue = tokenCss(LAYER_HUE[L.id] ?? '--ink-2'), id = `L-${L.id}`
+    const hue = tokenCss(hueOf(L)), id = `L-${L.id}`
+    const top = L.maxzoom < 24 ? { maxzoom: L.maxzoom } : {}
     if (L.scope === 'tiles') {
-      sources[id] = { type: 'raster', tiles: [L.tiles], tileSize: 256, maxzoom: 10, attribution: L.source }
-      drawn.push({ id, type: 'raster', source: id, paint: { 'raster-opacity': 0.72, 'raster-fade-duration': 200 } })
+      sources[id] = { type: 'raster', tiles: [L.tiles], tileSize: 256, maxzoom: L.tile_maxzoom, attribution: L.attribution || L.source }
+      drawn.push({ id, type: 'raster', source: id, minzoom: L.minzoom, ...top, paint: { 'raster-opacity': 0.72, 'raster-fade-duration': 200 } })
       continue
     }
     // a whole-city file, a grid of tiles the map fills in as it looks, or both (the city file far out, the grid close in)
     const far = L.scope === 'city' || L.coarse, near = L.scope === 'grid', split = L.grid_z + 0.5
     if (far) sources[id] = { type: 'geojson', data: layerCityUrl(L.id, city) }
     if (near) sources[`${id}-grid`] = { type: 'geojson', data: grid.get(L.id) ?? EMPTY }
-    for (const [src, zooms] of [...(far ? [[id, near ? { minzoom: L.minzoom, maxzoom: split } : { minzoom: L.minzoom }] as const] : []), ...(near ? [[`${id}-grid`, { minzoom: far ? split : L.minzoom }] as const] : [])]) {
+    for (const [src, zooms] of [...(far ? [[id, near ? { minzoom: L.minzoom, maxzoom: split } : { minzoom: L.minzoom, ...top }] as const] : []), ...(near ? [[`${id}-grid`, { minzoom: far ? split : L.minzoom, ...top }] as const] : [])]) {
       if (L.shape === 'area') {
         const dashed = L.id === 'mesh3d'
-        if (!dashed) drawn.push({ id: `${src}-fill`, type: 'fill', source: src, ...zooms, paint: { 'fill-color': hue, 'fill-opacity': ['case', ['boolean', ['get', 'floodway'], false], 0.42, 0.22] } })
+        const byLevel = ['case', ['has', 'level'], ['match', ['get', 'level'], ...[0, 1, 2, 3, 4].flatMap((n) => [n, tokenCss(`--ramp-${n + 1}`)]), tokenCss('--ramp-6')], hue]
+        if (!dashed) drawn.push({ id: `${src}-fill`, type: 'fill', source: src, ...zooms, paint: { 'fill-color': byLevel, 'fill-opacity': ['case', ['has', 'level'], 0.62, ['boolean', ['get', 'floodway'], false], 0.42, 0.22] } })
         drawn.push({ id: `${src}-line`, type: 'line', source: src, ...zooms, paint: { 'line-color': hue, 'line-width': dashed ? 1.4 : 0.8, 'line-opacity': 0.9, ...(dashed ? { 'line-dasharray': [3, 2] } : {}) } })
       } else if (L.shape === 'line') {
-        // parcels are only drawn over the photo: a light line with a dark edge reads on roofs and on lawns
-        drawn.push({ id: `${src}-case`, type: 'line', source: src, ...zooms, paint: { 'line-color': 'rgba(10,16,24,0.55)', 'line-width': 2.2 } })
-        drawn.push({ id: `${src}-line`, type: 'line', source: src, ...zooms, paint: { 'line-color': 'rgba(255,255,255,0.92)', 'line-width': 0.9 } })
+        // lines that only show over the photo (parcels) are light with a dark edge, which reads on roofs and on lawns;
+        // lines seen from further out are drawn in their hue on a paper edge
+        const photo = L.minzoom >= CLOSE_Z - 1
+        drawn.push({ id: `${src}-case`, type: 'line', source: src, ...zooms, paint: { 'line-color': photo ? 'rgba(10,16,24,0.55)' : paper, 'line-width': photo ? 2.2 : 3 } })
+        drawn.push({ id: `${src}-line`, type: 'line', source: src, ...zooms, paint: { 'line-color': photo ? 'rgba(255,255,255,0.92)' : hue, 'line-width': photo ? 0.9 : 1.6 } })
       } else {
         const big = ['case', ['any', ['boolean', ['get', 'rail'], false], ['boolean', ['get', 'fast'], false]], 1.5, 1]
         const size = L.id === 'hydrants' || L.id === 'transit' ? 2.6 : 4

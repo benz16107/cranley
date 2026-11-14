@@ -50,7 +50,14 @@ class Layer:
     on: bool = False           # shown by default
     coarse: bool = False       # grid layers that also have a generalised whole-city file for far zooms
     tiles: str = ""            # raster layers: an XYZ template the browser loads itself
-    extra: dict = field(default_factory=dict)
+    extra: dict = field(default_factory=dict)  # hue, legend, tile_maxzoom: see layers/sources/__init__.py
+    licence: str = ""          # the licence the source publishes under, when it names one
+    attribution: str = ""      # the credit line the source asks for; without it `source` is the credit
+    maxzoom: float = 24        # the map zoom up to which it is drawn
+
+
+# The sections of the layer list, in order. A layer whose group is not here is listed after them.
+GROUPS = ("Coverage", "Live", "People", "Rules", "Hazards", "Getting around", "Services", "Imagery")
 
 
 LAYERS: tuple[Layer, ...] = (
@@ -60,7 +67,7 @@ LAYERS: tuple[Layer, ...] = (
           "high", "Scanned addresses matched to a CoStar property record. Homes with a listing and no property record are left out."),
     Layer("drone", "With a drone capture", "Coverage", "point", "client", "Matterport scan index (CoStar kit)", "",
           "high", "Scanned addresses that also have an exterior drone capture."),
-    Layer("mesh3d", "3D city mesh coverage", "Coverage", "area", "city", "Vexcel 3D Cities", "https://vexceldata.com/products/3d-cities/",
+    Layer("mesh3d", "3D city mesh coverage", "Imagery", "area", "city", "Vexcel 3D Cities", "https://vexceldata.com/products/3d-cities/",
           "medium", "The outer box of each 3D collection. The mesh inside it is irregular, so the edge is approximate."),
     Layer("fema", "FEMA flood hazard areas", "Hazards", "area", "grid", "FEMA National Flood Hazard Layer, Esri's hosted copy",
           "https://www.arcgis.com/home/item.html?id=11955f1b47ec41a3af86650824e0c634", "medium",
@@ -70,20 +77,20 @@ LAYERS: tuple[Layer, ...] = (
           "https://stn.wim.usgs.gov/STNDataPortal/", "medium",
           "Surveyed marks of the peak water, August to September 2017. Height above ground is given where the surveyor recorded it.",
           data_date="2017-09", cities=("hou",)),
-    Layer("fire_stations", "Fire and EMS stations", "Emergency", "point", "city", "USGS National Structures Dataset",
+    Layer("fire_stations", "Fire and EMS stations", "Services", "point", "city", "USGS National Structures Dataset",
           "https://carto.nationalmap.gov/arcgis/rest/services/structures/MapServer", "medium",
           "Federal inventory, last loaded by USGS in the year shown on each station. A station built since then is missing."),
-    Layer("hydrants", "Fire hydrants", "Emergency", "point", "grid", "City of Houston GIS",
+    Layer("hydrants", "Fire hydrants", "Services", "point", "grid", "City of Houston GIS",
           "https://cohgis-mycity.opendata.arcgis.com/", "medium",
           "The city's own hydrant inventory, inside Houston's city limits only. Los Angeles publishes no hydrant map without a sign-in.",
           cities=("hou",), grid_z=15, minzoom=14.5),
-    Layer("hospitals", "Hospitals", "Community", "point", "city", "USGS National Structures Dataset",
+    Layer("hospitals", "Hospitals", "Services", "point", "city", "USGS National Structures Dataset",
           "https://carto.nationalmap.gov/arcgis/rest/services/structures/MapServer", "medium",
           "Hospitals and medical centres from the federal inventory. Clinics and urgent care are not included."),
-    Layer("schools", "Schools and colleges", "Community", "point", "city", "USGS National Structures Dataset",
+    Layer("schools", "Schools and colleges", "Services", "point", "city", "USGS National Structures Dataset",
           "https://carto.nationalmap.gov/arcgis/rest/services/structures/MapServer", "medium",
           "Public and private schools, colleges and universities from the federal inventory."),
-    Layer("parcels", "Property parcels", "Community", "line", "grid", "Harris Central Appraisal District; Los Angeles County Assessor",
+    Layer("parcels", "Property parcels", "Rules", "line", "grid", "Harris Central Appraisal District; Los Angeles County Assessor",
           "https://hcad.org/hcad-online-services/pdata/", "medium",
           "Parcel outlines from each county's appraisal map. Lines are the county's drawing, not a survey, and stop at the county line.",
           grid_z=16, minzoom=15.5),
@@ -94,13 +101,13 @@ LAYERS: tuple[Layer, ...] = (
     Layer("ev", "EV chargers", "Getting around", "point", "city", "US DOE Alternative Fuels Data Center",
           "https://afdc.energy.gov/stations", "medium",
           "Public charging stations that were open when fetched. Home and workplace chargers are not listed."),
-    Layer("weather", "Weather now", "Sky", "readout", "client", "Open-Meteo (NOAA HRRR and GFS models)", "https://open-meteo.com/",
+    Layer("weather", "Weather now", "Live", "readout", "client", "Open-Meteo (NOAA HRRR and GFS models)", "https://open-meteo.com/",
           "medium", "Model analysis for the city centre, refreshed every ten minutes. It is a forecast model's present, not a station reading."),
-    Layer("radar", "Rain radar", "Sky", "raster", "tiles", "NOAA NEXRAD composite, Iowa Environmental Mesonet",
+    Layer("radar", "Rain radar", "Live", "raster", "tiles", "NOAA NEXRAD composite, Iowa Environmental Mesonet",
           "https://mesonet.agron.iastate.edu/ogc/", "high",
           "Base reflectivity from the national radar network, redrawn every five minutes. Clear air shows nothing.",
-          tiles="https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png"),
-    Layer("sun", "Sun and shadows", "Sky", "readout", "client", "Computed here (NOAA solar position equations)", "https://gml.noaa.gov/grad/solcalc/",
+          tiles="https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png", extra={"tile_maxzoom": 10}),
+    Layer("sun", "Sun and shadows", "Live", "readout", "client", "Computed here (NOAA solar position equations)", "https://gml.noaa.gov/grad/solcalc/",
           "high", "Where the sun stands for the chosen day and hour. Shadows are cast by the 3D city mesh, trees included, so they stop where the mesh does."),
 )
 BY_ID = {l.id: l for l in LAYERS}
@@ -240,6 +247,8 @@ def _collection(layer: str, feats: list[dict], cut: bool) -> bytes:
 
 
 def _fetch(layer: str, box: tuple[float, float, float, float], city: str, coarse: bool = False) -> bytes:
+    if layer in FETCH:  # a source module (layers/sources/) brings its own fetcher, features already tidied
+        return _collection(layer, *FETCH[layer](box, city))
     spec = ARCGIS[layer]
     urls = spec.get("urls") or [spec["city_urls"][city]]
     feats, cut = [], False
@@ -312,12 +321,16 @@ def fetched(layer: str, city: str) -> str:
 
 
 def catalogue(city: str) -> list[dict]:
+    """Every layer as the web list reads it, in the order of GROUPS (so a new layer needs no change on the page)."""
+    order = {g: i for i, g in enumerate(GROUPS)}
     out = []
-    for L in LAYERS:
+    for L in sorted(LAYERS, key=lambda l: order.get(l.group, len(order))):  # stable: a group keeps its layers' own order
         out.append({"id": L.id, "title": L.title, "group": L.group, "shape": L.shape, "scope": L.scope, "source": L.source,
-                    "source_url": L.source_url, "confidence": L.confidence, "note": L.note, "data_date": L.data_date,
-                    "available": city in L.cities, "grid_z": L.grid_z, "minzoom": L.minzoom, "on": L.on, "coarse": L.coarse,
-                    "tiles": L.tiles, "fetched": fetched(L.id, city) if L.scope in ("city", "grid") else ""})
+                    "source_url": L.source_url, "licence": L.licence, "attribution": L.attribution, "confidence": L.confidence,
+                    "note": L.note, "data_date": L.data_date, "available": city in L.cities, "grid_z": L.grid_z,
+                    "minzoom": L.minzoom, "maxzoom": L.maxzoom, "on": L.on, "coarse": L.coarse, "tiles": L.tiles,
+                    "hue": L.extra.get("hue", ""), "legend": L.extra.get("legend"), "tile_maxzoom": L.extra.get("tile_maxzoom", 18),
+                    "fetched": fetched(L.id, city) if L.scope in ("city", "grid") else ""})
     return out
 
 
@@ -349,3 +362,12 @@ def weather(city: str) -> dict:
            "source": BY_ID["weather"].source}
     write_atomic(f, json.dumps(out).encode())
     return out
+
+
+
+# ---- more layers, one file per source ---------------------------------------------------------------------------
+# Last, so a source module can import Layer, arcgis, send and CITIES from here while this module is still loading.
+from .sources import FETCH, MORE
+
+LAYERS = (*LAYERS, *MORE)
+BY_ID = {l.id: l for l in LAYERS}

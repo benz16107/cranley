@@ -34,6 +34,9 @@
 .mapfoot > * { pointer-events: auto; }
 .mapfoot .maplegend { position: static; max-width: 100%; }
 .maplegend .muted { margin-left: 2px; }
+.maplegend .stops, .maplegend .stops > span { display: inline-flex; align-items: center; gap: 4px; }
+.maplegend .stops { gap: 8px; margin-left: 4px; }
+.maplegend .stops i { width: 9px; height: 9px; border-radius: 1px; }
 .sunbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; width: min(100%, 760px); padding: 4px 10px; background: var(--pane); border: 1px solid var(--rule); border-radius: var(--r-2); box-shadow: 0 1px 3px light-dark(rgb(24 33 43 / 0.12), rgb(0 0 0 / 0.4)); font-size: var(--text-xs); }
 .sunbar > svg { color: var(--ink-3); flex: none; }
 .sunbar .field { width: 132px; height: 24px; font-size: var(--text-xs); }

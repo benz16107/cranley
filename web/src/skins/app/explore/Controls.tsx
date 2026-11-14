@@ -1,44 +1,50 @@
-import { Fragment, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Slider } from '@base-ui/react/slider'
 import {
   BASE_VIEWS, CITIES, MAP_CREDIT, fetchWeather, sunDay, sunPosition, zonedInstant,
   type BaseView, type CityId, type MapLayer, type Weather,
 } from '../../../core/index.ts'
 import { Icon, IconBtn, Menu, MenuBtn, Seg, Tip } from '../design/ui.tsx'
-import { CLOSE_Z, LAYER_HUE, useWorld } from './WorldMap.tsx'
+import { CLOSE_Z, hueOf, useWorld } from './WorldMap.tsx'
 
 /* The controls that sit on the map: which ground it is drawn on, which data is laid over it, the camera, and the
    small readouts (weather, sun). All of them are quiet: one row in a corner, a menu, a strip. */
 
 export const ZONE: Record<CityId, string> = { hou: 'America/Chicago', la: 'America/Los_Angeles' }
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
-const swatch = (l: MapLayer) => <i className="swatch" data-shape={l.shape} style={{ ['--hue' as string]: `var(${LAYER_HUE[l.id] ?? '--ink-3'})` }} />
+const swatch = (l: MapLayer) => <i className="swatch" data-shape={l.shape} style={{ ['--hue' as string]: `var(${hueOf(l)})` }} />
 /** What a layer's copy is dated: the source's own date when it gives one, else the day we fetched it. */
 const dated = (l: MapLayer) => (l.data_date ? l.data_date : l.fetched ? `fetched ${l.fetched}` : '')
 
-/** The layer list and the base view, one row in the map's corner. */
-export function MapTools({ base, onBase, layers, on, toggle, city }: { base: BaseView; onBase: (b: BaseView) => void; layers: MapLayer[]; on: string[]; toggle: (id: string) => void; city: CityId }) {
+/** The layer list and the base view, one row in the map's corner. The list is the catalogue's: one row per group,
+    closed until asked for, so a layer added on the server appears here under its group with nothing changed. */
+export function MapTools({ base, onBase, layers, on, toggle, reset, city }: { base: BaseView; onBase: (b: BaseView) => void; layers: MapLayer[]; on: string[]; toggle: (id: string) => void; reset: () => void; city: CityId }) {
   const zoom = useWorld((s) => s.zoom)
   const groups = [...new Set(layers.map((l) => l.group))]
-  const shown = on.filter((id) => layers.some((l) => l.id === id && l.available)).length
+  const shown = layers.filter((l) => on.includes(l.id) && l.available)
   return (
     <div className="maptools">
-      <MenuBtn trigger={<button type="button" className="btn" aria-label={`Layers: ${shown} shown`}><Icon name="stack" size={14} />Layers<span className="count">{shown}</span></button>}>
+      <MenuBtn trigger={<button type="button" className="btn" aria-label={`Layers: ${shown.length} shown`}><Icon name="stack" size={14} />Layers<span className="count">{shown.length}</span></button>}>
         {!layers.length && <div className="mh">The layer list did not load. Is the data server running?</div>}
-        {groups.map((g, i) => (
-          <Fragment key={g}>
-            {i > 0 && <hr />}
-            <div className="mh">{g}</div>
-            {layers.filter((l) => l.group === g).map((l) => (
-              <Menu.CheckboxItem key={l.id} checked={on.includes(l.id) && l.available} disabled={!l.available} closeOnClick={false} onCheckedChange={() => toggle(l.id)}
-                title={`${l.source}${dated(l) ? `, ${dated(l)}` : ''}. ${l.note}`}>
-                <span className="mi-check"><Menu.CheckboxItemIndicator><Icon name="check" size={12} /></Menu.CheckboxItemIndicator></span>
-                {swatch(l)}{l.title}
-                <small>{!l.available ? `not in ${CITIES[city].name}` : on.includes(l.id) && zoom < l.minzoom ? 'zoom in to see' : ''}</small>
-              </Menu.CheckboxItem>
-            ))}
-          </Fragment>
-        ))}
+        {groups.map((g) => {
+          const list = layers.filter((l) => l.group === g), n = list.filter((l) => shown.includes(l)).length
+          return (
+            <Menu.SubmenuRoot key={g}>
+              <Menu.SubmenuTrigger>{g}<small>{n ? `${n} of ${list.length} on` : list.length}</small><Icon name="right" size={11} /></Menu.SubmenuTrigger>
+              <Menu.Portal><Menu.Positioner sideOffset={2} alignOffset={-4} style={{ zIndex: 61 }}><Menu.Popup className="menu">
+                {list.map((l) => (
+                  <Menu.CheckboxItem key={l.id} checked={shown.includes(l)} disabled={!l.available} closeOnClick={false} onCheckedChange={() => toggle(l.id)}
+                    title={`${l.attribution || l.source}${dated(l) ? `, ${dated(l)}` : ''}. ${l.note}`}>
+                    <span className="mi-check"><Menu.CheckboxItemIndicator><Icon name="check" size={12} /></Menu.CheckboxItemIndicator></span>
+                    {swatch(l)}{l.title}
+                    <small>{!l.available ? `not in ${CITIES[city].name}` : on.includes(l.id) && (zoom < l.minzoom || zoom > l.maxzoom) ? (zoom < l.minzoom ? 'zoom in to see' : 'zoom out to see') : ''}</small>
+                  </Menu.CheckboxItem>
+                ))}
+              </Menu.Popup></Menu.Positioner></Menu.Portal>
+            </Menu.SubmenuRoot>
+          )
+        })}
+        {shown.some((l) => !l.on) && <><hr /><Menu.Item onClick={reset}>Turn the added layers off</Menu.Item></>}
       </MenuBtn>
       <Seg label="Base map" value={base} onChange={onBase} options={BASE_VIEWS.map((b) => ({ id: b.id, label: b.label, title: b.hint }))} />
     </div>
@@ -67,7 +73,13 @@ export function Legend({ layers, on, base, marks, drawn }: { layers: MapLayer[];
   const shown = layers.filter((l) => on.includes(l.id) && l.available && l.shape !== 'readout')
   return (
     <p className="maplegend">
-      {shown.map((l) => <span key={l.id} title={l.note}>{swatch(l)}{l.title}<span className="muted">{l.source}{dated(l) && `, ${dated(l)}`}</span></span>)}
+      {shown.map((l) => (
+        <span key={l.id} title={l.note}>{swatch(l)}{l.title}
+          {/* an area coloured by value: what each step of the ramp stands for, as the catalogue gives it */}
+          {l.legend && <span className="stops">{l.legend.stops.map(([level, label]) => <span key={level}><i style={{ background: `var(--ramp-${Math.min(6, Math.max(1, level + 1))})` }} />{label}</span>)}{l.legend.unit && <span className="muted">{l.legend.unit}</span>}</span>}
+          <span className="muted">{l.attribution || l.source}{dated(l) && `, ${dated(l)}`}</span>
+        </span>
+      ))}
       {marks > 0 && <span><i className="ringmark" />In this investigation ({marks})</span>}
       {drawn && <span><i className="pathmark" />Drawn by a tool</span>}
       <span className="muted">{close && base !== 'aerial' ? MAP_CREDIT.close : MAP_CREDIT[base]}{close && base === 'aerial' ? ` · ${MAP_CREDIT.close}` : ''}{deep && city3d.status !== 'idle' && city3d.status !== 'none' ? ` · 3D city mesh${city3d.capture ? `, flown ${city3d.capture}` : ''}` : ''}</span>
