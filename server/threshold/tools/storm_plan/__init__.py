@@ -236,8 +236,11 @@ def changes(prev: dict | None, now: dict, why: dict[str, str]) -> list[str]:
     lab = {**prev.get("labels", {}), **now["labels"]}
     gone = [t for t in prev["kept"] if t not in now["kept"]]
     new = [t for t in now["kept"] if t not in prev["kept"]]
+    env_why = next((v for k, v in why.items() if k.startswith(("board:", "dam:"))), None)
     for t in gone[:12]:
-        out.append(f"Dropped: {lab.get(t, t)}, because {why.get(t, 'it is no longer under water')}.")
+        default = ("it is no longer under water" if t.startswith("carry:") else
+                   env_why or "no boards or dams are planned" if t == "materials" else "it is no longer needed")
+        out.append(f"Dropped: {lab.get(t, t)}, because {why.get(t, default)}.")
     for t in new[:12]:
         reason = ("it is now under water" if t.startswith("carry:") and t not in prev.get("considered", [])
                   else "there is now time for it")

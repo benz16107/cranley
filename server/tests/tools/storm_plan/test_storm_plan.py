@@ -99,7 +99,7 @@ def test_short_time_drops_the_envelope_and_says_what_changed(setup):
     ids = [c.id for c in r.checks if c.status == "pass"]
     assert not any(i.startswith(("board:", "dam:", "materials")) for i in ids)
     changed = next(f for f in r.findings if f.id == "storm_plan:house:changes").detail
-    assert "Hours left: 72.0 h to 4.0 h." in changed and "Dropped: Buy" in changed and "only 4 h left" in changed
+    assert "Hours left: 72.0 h to 4.0 h." in changed and "Dropped: Buy" in changed and "because only 4 h left" in changed
     assert any(f.id == "storm_plan:house:no_boards" for f in r.findings)
 
 
