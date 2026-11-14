@@ -1,0 +1,104 @@
+@import '@fontsource-variable/archivo/wdth.css';
+
+/* Direction C, "Maquette". Commits to one ground: the green of a cutting mat. White card for the model, the tags and
+   the labels, yellow tape for the way in. The mat's grid is real in the building view (1 square = 1 m, drawn by the scene). */
+.study-c {
+  --mq-mat: #1f5c4a;
+  --mq-print: #eaf1e2;
+  --mq-dim: rgb(234 241 226 / 0.84); /* 5:1 on the mat */
+  --mq-line: rgb(234 241 226 / 0.26);
+  --mq-card: #f6f4ec;
+  --mq-ink: #13201a;
+  --mq-ink-2: #4b5a52;
+  --mq-tape: #ffd43a;
+  --mq-pass: #1a7f50;
+  --mq-warn: #8f5600; /* 5.5:1 on card */
+  --mq-fail: #c4281c;
+  --mq-mono: 'Martian Mono Variable', monospace;
+  --mq-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --mq-cut: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px); /* a tag: a card with one corner cut */
+  color: var(--mq-print); font: 15px/1.4 'Archivo Variable', sans-serif;
+  background-color: var(--mq-mat);
+  background-image: linear-gradient(var(--mq-line) 1px, transparent 1px), linear-gradient(90deg, var(--mq-line) 1px, transparent 1px),
+    linear-gradient(rgb(234 241 226 / 0.09) 1px, transparent 1px), linear-gradient(90deg, rgb(234 241 226 / 0.09) 1px, transparent 1px);
+  background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px; background-position: 48px 60px;
+}
+.study-c [data-s='pass'] { color: var(--mq-pass); }
+.study-c [data-s='warn'] { color: var(--mq-warn); }
+.study-c [data-s='fail'] { color: var(--mq-fail); }
+.study-c [data-s='unknown'] { color: var(--mq-ink-2); }
+
+.study-c .stage .th-scene { --scene-stage: #1f5c4a; --scene-paper: #f6f4ec; --scene-ink: #13201a; --scene-ink-2: #4b5a52; --scene-accent: #ffd43a;
+  --scene-font: 'Archivo Variable', sans-serif; --scene-mono: 'Martian Mono Variable', monospace; }
+.study-c .th-cut, .study-c .th-inset, .study-c .th-scalebar, .study-c .th-floors, .study-c .th-chip-route, .study-c .th-note { display: none; }
+.study-c .stage .th-pin-label { display: none; }
+
+/* Printed on the mat. */
+.mq-print { position: absolute; left: 48px; right: 48px; top: 26px; display: flex; gap: 18px; font-size: 12px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; }
+.mq-print b { font-weight: 800; }
+.mq-print span { color: var(--mq-dim); }
+.mq-print-r { margin-left: auto; letter-spacing: 0.1em; }
+.mq-big { position: absolute; left: 48px; top: 66px; }
+.mq-big-n { display: flex; align-items: baseline; font-weight: 900; font-stretch: 62%; font-size: 248px; line-height: 0.86; letter-spacing: -0.015em; }
+.mq-big-n small { font-size: 0.34em; margin-left: 0.08em; color: var(--mq-dim); }
+.mq-big p { margin-top: 26px; font-size: 13px; font-weight: 600; line-height: 1.7; letter-spacing: 0.14em; text-transform: uppercase; }
+
+/* Tools: sheets laid over the model. The brief is a strip of label tape. */
+.mq-sheets { position: absolute; right: 48px; top: 70px; display: flex; flex-direction: column; align-items: flex-end; }
+.mq-strip { max-width: 330px; margin-bottom: 18px; padding: 8px 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: var(--mq-card); color: var(--mq-ink); font-size: 13px; font-weight: 500; rotate: -1deg; }
+.mq-sheet { display: flex; align-items: center; gap: 10px; width: 290px; height: 56px; padding: 0 18px; border: 1px solid rgb(234 241 226 / 0.5); background: rgb(246 244 236 / 0.14); font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; transition: transform 160ms var(--mq-ease-out); }
+.mq-sheet + .mq-sheet { margin-top: -6px; }
+.mq-sheet[aria-pressed='true'] { position: relative; background: var(--mq-card); color: var(--mq-ink); border-color: var(--mq-card); rotate: -1.4deg; translate: -10px 0; box-shadow: 0 7px 0 -3px rgb(0 0 0 / 0.22); }
+.mq-sheet-add { border-style: dashed; color: var(--mq-dim); font-size: 13px; font-weight: 500; }
+.mq-sheet:active { transform: scale(0.96); }
+
+/* The label that sits beside a model. */
+.mq-card { position: absolute; left: 48px; bottom: 40px; width: 460px; padding: 18px 22px 20px; background: var(--mq-card); color: var(--mq-ink); rotate: -0.6deg; box-shadow: 0 9px 0 -4px rgb(0 0 0 / 0.22); }
+.mq-card-k { font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--mq-ink-2); }
+.mq-card-v { display: flex; align-items: center; gap: 11px; margin: 8px 0 6px; font-size: 27px; font-weight: 750; font-stretch: 88%; line-height: 1.1; }
+.mq-card-t { font-size: 15px; color: var(--mq-ink-2); }
+.mq-card-s { margin-top: 14px; padding-top: 11px; border-top: 1px dashed rgb(19 32 26 / 0.3); }
+.study-c .scale { width: 376px; margin: 52px 0 30px; color: var(--mq-ink); --scale-ground: var(--mq-card); --scale-ink: var(--mq-ink); }
+
+/* Tags and strings. */
+.mq-tag { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 11px 0 13px; background: var(--mq-card); color: var(--mq-ink); clip-path: var(--mq-cut); font: 600 13px/1 var(--mq-mono); white-space: nowrap; }
+.mq-tag b { margin-left: 3px; font: 600 12px/1 'Archivo Variable', sans-serif; color: var(--mq-ink-2); }
+.mq-tag-n { font: 800 15px/1 'Archivo Variable', sans-serif; font-style: normal; }
+.mq-pin { display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+.mq-string { width: 1px; height: var(--h); background: var(--mq-print); }
+.mq-foot-dot { width: 7px; height: 7px; margin-bottom: -3.5px; border-radius: 50%; background: var(--mq-print); }
+.mq-pin[data-best] .mq-tag { height: 42px; font-size: 18px; }
+.mq-pin[data-best] .mq-tag-n { font-size: 22px; }
+.mq-pin[data-best] .mq-string { width: 2px; }
+.mq-pin[data-state='wait'] .mq-string { height: 12px; opacity: 0.6; }
+.mq-pin[data-state='wait'] .mq-foot-dot { background: none; border: 1.5px solid var(--mq-print); }
+.mq-tag-now { background: var(--mq-tape); font-family: 'Archivo Variable', sans-serif; letter-spacing: 0.12em; text-transform: uppercase; font-size: 11px; }
+.mq-tag-now b { color: var(--mq-ink); letter-spacing: 0; text-transform: none; }
+.mq-pin[data-state='now'] .mq-foot-dot { background: var(--mq-tape); box-shadow: 0 0 0 0 rgb(255 212 58 / 0.7); animation: mq-ping 1.6s var(--mq-ease-out) infinite; }
+@keyframes mq-ping { to { box-shadow: 0 0 0 20px rgb(255 212 58 / 0); } }
+
+/* Front door: the table from above. */
+.mq-ask { position: absolute; right: 48px; top: 96px; width: 600px; display: grid; grid-template-columns: 1fr auto; align-items: stretch; gap: 12px 14px; }
+.mq-ask > span:first-child { grid-column: 1 / -1; font-size: 13px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
+.mq-typed { display: flex; align-items: center; padding: 16px 18px; background: var(--mq-card); color: var(--mq-ink); font-size: 19px; font-weight: 500; line-height: 1.25; rotate: -0.5deg; box-shadow: 0 7px 0 -3px rgb(0 0 0 / 0.22); }
+.mq-caret { flex: none; width: 2px; height: 22px; margin-left: 3px; background: var(--mq-ink); animation: mq-blink 1.1s steps(1) infinite; }
+@keyframes mq-blink { 50% { opacity: 0; } }
+.mq-ask button { padding: 0 28px; background: var(--mq-tape); color: var(--mq-ink); font-size: 13px; font-weight: 750; letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; transition: transform 160ms var(--mq-ease-out); }
+.mq-ask button:active { transform: scale(0.96); }
+.mq-plans { position: absolute; left: 48px; right: 48px; bottom: 104px; display: flex; justify-content: space-between; align-items: flex-end; }
+.mq-plans li { position: relative; translate: 0 calc(var(--lift) * -1); }
+.study-c .mq-paper.th-scene { display: block; width: 252px; height: 196px; min-height: 0; padding: 12px; background: #fbfaf5; rotate: var(--tilt); box-shadow: 0 8px 0 -3px rgb(0 0 0 / 0.22); cursor: pointer; transition: transform 200ms var(--mq-ease-out); }
+@media (hover: hover) and (pointer: fine) { .study-c .mq-paper.th-scene:hover { transform: translateY(-6px); } }
+.mq-plans .mq-tag { position: absolute; left: -6px; top: -16px; font: 500 13px/1 'Archivo Variable', sans-serif; color: var(--mq-ink-2); }
+.mq-plans .mq-tag b { margin: 0; font-size: 13px; font-weight: 700; color: var(--mq-ink); }
+.mq-foot { position: absolute; left: 48px; bottom: 32px; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mq-dim); }
+
+/* Building: two prints of the doorways, lying on the mat. */
+.mq-photos { position: absolute; right: 44px; bottom: 34px; display: flex; }
+.mq-photo { width: 252px; padding: 8px 8px 0; background: #fbfaf5; rotate: var(--tilt); box-shadow: 0 8px 0 -3px rgb(0 0 0 / 0.22); }
+.mq-photo + .mq-photo { margin-left: -14px; margin-top: 18px; }
+.mq-photo > div { position: relative; height: 168px; overflow: hidden; background: #ddd; }
+.mq-photo .th-scene { position: absolute; inset: 0; width: 100%; height: 100%; }
+.mq-photo .th-pin, .mq-photo .th-room { display: none; }
+.mq-photo figcaption { display: flex; align-items: center; gap: 8px; height: 42px; font: 600 15px/1 var(--mq-mono); }
+.mq-photo figcaption span { margin-left: auto; font: 500 12px/1 'Archivo Variable', sans-serif; color: var(--mq-ink-2); }
