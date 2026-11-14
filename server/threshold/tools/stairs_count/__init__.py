@@ -50,7 +50,7 @@ def levels(plan: dict, riser: float) -> dict:
       model_description="Stairs and level changes in one scan, level by level: each floor's height above the "
                         "entrance floor, an estimated step count (height over an editable riser), bedrooms and "
                         "bathrooms per floor, staircase rooms, doorway sill steps, and stairs seen in panoramas.",
-      personas=["older_adult_family", "wheelchair_user"], requires=[{"layer": "matterport.rooms"}],
+      personas=["older_adult_family", "wheelchair_user", "aging_in_place_planner"], requires=[{"layer": "matterport.rooms"}],
       blocks=["VerdictHeader", "MetricRow", "CheckList", "EvidenceStrip", "MiniChart", "AssumptionChips", "StepLog"],
       overlays=["pins"], examples=["How many stairs are there to the bedrooms?", "Is everything on one floor?"])
 def run(ctx, inputs: Inputs) -> ToolResult:
@@ -77,7 +77,8 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         for oid, s, kind in f["door_steps"]:
             fid = f"stairs_count:{sid}:step:{oid}"
             fids.append(fid)
-            findings.append(Finding(id=fid, title="Step at a doorway" if kind == "step" else "Stairs at a doorway",
+            findings.append(Finding(id=fid, title={"step": "Step at a doorway", "possible": "Possible step at a "
+                                    "doorway"}.get(kind, "Stairs at a doorway"),
                                     status="fail" if kind == "step" else "warn", source=GEO_LOW,
                                     anchor=OpeningAnchor(sid=sid, opening=oid),
                                     detail=f"Sill {s * 100:.0f} cm off this floor's level. {STD['level']}."))
@@ -115,7 +116,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     else:
         status, text = "warn", (f"{len(L)} floors" if len(L) > 1 else "One floor") + \
             (", but a bedroom and a bathroom are on the entrance floor." if len(L) > 1 else "") + \
-            (f" {door_steps} doorway steps." if door_steps else "")
+            (f"{',' if len(L) <= 1 else ''} {door_steps} doorway steps." if door_steps else ".")
     if not quality(plan).get("walls"):
         text += " No wall graph, so doorway steps could not be read and the entrance floor is the lowest."
     worst_steps = max((f["steps"] or 0 for f in L), default=0)

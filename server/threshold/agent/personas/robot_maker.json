@@ -1,0 +1,19 @@
+{
+  "id": "robot_maker",
+  "title": "Home robot maker",
+  "who": "Designs a wheeled home robot and wants to know what share of real homes it can get around, and which change to its size helps most.",
+  "tools": [
+    "robot_fit",
+    "measure_search",
+    "turning_space"
+  ],
+  "thresholds": {
+    "robot.body_width_m": 0.5,
+    "robot.turning_diameter_m": 0.7,
+    "robot.step_height_m": 0.02
+  },
+  "layout": {
+    "view": "map",
+    "lead_tool": "robot_fit"
+  }
+}

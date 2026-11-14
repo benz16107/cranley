@@ -1,0 +1,21 @@
+{
+  "id": "aging_in_place_planner",
+  "title": "Planning for an older parent",
+  "who": "Is checking whether a home is safe for an older parent to live in: trips, stairs, the night path to the bathroom, grab bars, and whether paramedics could reach them.",
+  "tools": [
+    "aging_in_place",
+    "stairs_count",
+    "step_free_route",
+    "bathroom_clearance",
+    "stretcher_route",
+    "curb_to_door"
+  ],
+  "thresholds": {
+    "access.door_width_m": 0.815,
+    "access.riser_m": 0.178
+  },
+  "layout": {
+    "view": "plan",
+    "lead_tool": "aging_in_place"
+  }
+}

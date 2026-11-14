@@ -168,7 +168,7 @@ def _box(rect, plan, r, lab, status) -> BoxOverlay:
                         "the FHA 30 x 48 in space outside the door swing, the ADA 60 x 56 in and FHA clear floor space "
                         "at the toilet (toilet located in the panorama), free wall for side and rear grab bars, and the "
                         "tub or shower type and visible grab bars from the panorama.",
-      personas=["wheelchair_user", "older_adult_family"],
+      personas=["wheelchair_user", "older_adult_family", "wheelchair_home_search", "aging_in_place_planner"],
       requires=[{"layer": "matterport.walls"}, {"layer": "matterport.room_labels"},
                 {"layer": "matterport.panos", "need": "optional"}],
       blocks=["VerdictHeader", "MetricRow", "CheckList", "EvidenceStrip", "FloorPlanMini", "AssumptionChips", "StepLog"],

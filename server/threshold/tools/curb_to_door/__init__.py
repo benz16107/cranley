@@ -42,7 +42,7 @@ def _dist(a: tuple[float, float], b: tuple[float, float]) -> float:
                         "symbols, straight-line distance and ground rise from the nearest parking to the entrance, "
                         "and steps, stairs or ramps at the entrance. Confidence is low where the scan's geo position "
                         "is approximate.",
-      personas=["wheelchair_user", "older_adult_family"],
+      personas=["wheelchair_user", "older_adult_family", "wheelchair_home_search", "aging_in_place_planner"],
       requires=[{"layer": "vexcel.ortho"}, {"layer": "matterport.geo"}, {"layer": "matterport.panos", "need": "optional"}],
       blocks=["VerdictHeader", "MetricRow", "CheckList", "EvidenceStrip", "AssumptionChips", "StepLog"],
       overlays=["pins"], annotations={"cost": "slow"},
@@ -133,12 +133,13 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         k = step_kind(s)
         if k != "none":
             fid = f"curb_to_door:{sid}:sill"
-            findings.append(Finding(id=fid, title="Step at the entrance door", status="fail",
+            findings.append(Finding(id=fid, title="Possible step at the entrance door" if k == "possible" else
+                                    "Step at the entrance door", status="warn" if k == "possible" else "fail",
                                     anchor=OpeningAnchor(sid=sid, opening=ent["opening"]),
                                     source=Source(layer="matterport", method="geometry", confidence="low",
                                                   note="Sill height against the floor level of the storey"),
                                     detail=f"The door sill is {s * 100:.0f} cm off the floor inside. {STD['level']}."))
-            step_status = "fail"
+            step_status = "warn" if k == "possible" else "fail"
     seen = []
     if inputs.read_panoramas and ent:
         cx, cy = ent["center"]

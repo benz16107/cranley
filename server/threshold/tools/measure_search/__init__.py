@@ -43,7 +43,7 @@ SRC = Source(layer="matterport", method="geometry", confidence="medium",
                         "they pass, with each measured value and why it passed. Key measures: bath_route_door "
                         "(narrowest door from the entrance to the best bathroom), bed_route_door_min, bath_turn, "
                         "bed_wall, floors, step_free_bath, wheelchair_bath, ceiling_median, glazing_ratio.",
-      personas=["wheelchair_user", "older_adult_family", "furniture_mover", "renter_listing"],
+      personas=["wheelchair_user", "older_adult_family", "furniture_mover", "renter_listing", "wheelchair_home_search", "robot_maker"],
       requires=[{"layer": "threshold.measures"}],
       blocks=["VerdictHeader", "MetricRow", "RankedTable", "CheckList", "EvidenceStrip", "StepLog", "ActionBar"],
       overlays=[],

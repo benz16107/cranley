@@ -144,7 +144,9 @@ def pick_target(plan: dict, want: str | None, default_label: str) -> dict | None
     if want and want in rs:
         return rs[want]
     lab = want or default_label
-    cands = [r for r in plan["rooms"] if r.get("label") == lab]
+    near = {"Living Room": ["Family Room"], "Dining Room": ["Kitchen"], "Laundry": ["Utility Room", "Garage"]}
+    cands = [r for r in plan["rooms"] if r.get("label") == lab] or \
+        ([r for r in plan["rooms"] if r.get("label") in near.get(lab, [])] if not want else [])
     from ...geometry._plan import polygons
     polys = polygons(plan)
     return max(cands, key=lambda r: polys[r["id"]].area if polys.get(r["id"]) is not None else 0, default=None)

@@ -42,6 +42,7 @@ STD = {
 IN = 0.0254
 STEP_M = 0.013          # ADA 303.3: a level change over 1/2 in must be ramped
 SILL_NOISE_M = 0.04     # sill heights scatter about 4 cm on flat floors (geometry wheelchair pack)
+STEP_SURE_M = 0.08      # above this a sill step is clear of the scatter; between, it may be noise
 STAIR_M = 0.4           # a sill this far off its floor is a stair or a split level, not a threshold
 RISER_M = 0.178         # 7 in: a typical residential riser, used only to estimate a step count
 LIVING = ("Bedroom", "Bathroom", "Kitchen", "Living Room", "Dining Room", "Family Room")
@@ -94,8 +95,8 @@ def elevations(plan: dict) -> dict[str, float]:
 
 
 def entrances(plan: dict) -> list[dict]:
-    """Doorways with a room on one side only, main entrance first: on the lowest floor, into an entry-type room,
-    then the widest. A one-sided doorway may lead outside or to an unscanned room; the plan cannot tell which."""
+    """Doorways with a room on one side only, main entrance first: on the lowest floor, into an entry-type room
+    (hall, living, dining, kitchen), then the widest. A one-sided doorway may lead outside or to an unscanned room; the plan cannot tell which."""
     g = graph(plan)
     if not g["available"]:
         return []
@@ -104,8 +105,7 @@ def entrances(plan: dict) -> list[dict]:
 
     def rank(e):
         lab = rs.get(e["room"], {}).get("label")
-        return (el.get(e["floor"]) or 0.0, lab not in ENTRY_ROOMS, ENTRY_ROOMS.index(lab) if lab in ENTRY_ROOMS else 9,
-                implausible(e), -(e.get("width") or 0))
+        return (el.get(e["floor"]) or 0.0, lab not in ENTRY_ROOMS, implausible(e), -(e.get("width") or 0))
     return sorted(real, key=rank)
 
 
@@ -137,10 +137,10 @@ def sill_step(plan: dict, link: dict) -> float | None:
 
 
 def step_kind(step: float | None) -> str:
-    """'none', 'step' (a threshold or single step over the scan's noise) or 'stair' (a storey change)."""
+    """'none', 'possible' (just over the sill scatter: measure), 'step' (a threshold or single step) or 'stair'."""
     if step is None or step <= STEP_M + SILL_NOISE_M:
         return "none"
-    return "stair" if step > STAIR_M else "step"
+    return "stair" if step > STAIR_M else "step" if step > STEP_SURE_M else "possible"
 
 
 def links_of(plan: dict) -> dict[str, dict]:

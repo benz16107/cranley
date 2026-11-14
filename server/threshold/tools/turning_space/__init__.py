@@ -23,7 +23,7 @@ class Inputs(BaseModel):
       model_description="Largest turning circle that fits in each room of one scan (empty room, wall face to wall "
                         "face) against a diameter, default the ADA 60 in (1.525 m). Returns a lens of diameters, a "
                         "check per room and pins at each circle's centre.",
-      personas=["wheelchair_user"], requires=[{"layer": "matterport.rooms"}, {"layer": "matterport.walls"}],
+      personas=["wheelchair_user", "wheelchair_home_search", "robot_maker"], requires=[{"layer": "matterport.rooms"}, {"layer": "matterport.walls"}],
       blocks=["VerdictHeader", "MetricRow", "CheckList", "FloorPlanMini", "Controls", "AssumptionChips", "StepLog"],
       overlays=["lens", "pins"], examples=["Can I turn my wheelchair around in the bathroom?"])
 def run(ctx, inputs: Inputs) -> ToolResult:

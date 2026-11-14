@@ -86,7 +86,8 @@ def run_routes(ctx, plan: dict, inputs) -> dict:
         item["chokes"] = [c for c in rt["chokes"] if c["kind"] == "corridor"]
         item["route"] = rt
         results = [d["result"] for d in item["doors"]] + [c["result"] for c in item["chokes"]]
-        results += ["likely fail" for d in item["doors"] if d["step_kind"] != "none"]
+        results += ["measure on site" if d["step_kind"] == "possible" else "likely fail"
+                    for d in item["doors"] if d["step_kind"] != "none"]
         item["result"] = worst(results) if results else "likely pass"
     # panoramas on the routes: steps, thresholds, stairs and ramps the wall graph cannot show
     if inputs.read_panoramas:
@@ -113,7 +114,7 @@ def _route_source(rt) -> Source:
                         "destination room (Bathroom, Bedroom, Kitchen or named rooms), every doorway with width, the "
                         "narrowest point, level changes, and a verdict per destination. Implausible door widths are "
                         "flagged as data errors and checked against the panorama.",
-      personas=["wheelchair_user", "older_adult_family"],
+      personas=["wheelchair_user", "older_adult_family", "wheelchair_home_search", "aging_in_place_planner"],
       requires=[{"layer": "matterport.openings"}, {"layer": "matterport.rooms"},
                 {"layer": "matterport.panos", "need": "optional"}],
       blocks=["VerdictHeader", "MetricRow", "CheckList", "EvidenceStrip", "FloorPlanMini", "Controls",
@@ -188,8 +189,9 @@ def run(ctx, inputs: Inputs) -> ToolResult:
             if d["step_kind"] != "none":
                 fid = f"step_free_route:{sid}:step:{d['opening']}"
                 findings[fid] = Finding(
-                    id=fid, title="Step at a doorway" if d["step_kind"] == "step" else "Stairs or a split level",
-                    status="fail", anchor=a, source=GEO_LOW,
+                    id=fid, title={"possible": "Possible step at a doorway", "step": "Step at a doorway"}.get(
+                        d["step_kind"], "Stairs or a split level"),
+                    status="warn" if d["step_kind"] == "possible" else "fail", anchor=a, source=GEO_LOW,
                     detail=f"The doorway sill is {d['step'] * 100:.0f} cm off this storey's floor level. "
                            f"Sill heights scatter about 4 cm on flat floors, so smaller steps do not show. {STD['level']}.")
                 fids.append(fid)

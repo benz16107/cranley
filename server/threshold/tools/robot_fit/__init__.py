@@ -64,7 +64,7 @@ def variants(w: float, d: float, s: float) -> list[tuple[str, str, float, float,
                         "homes it can reach from the entrance and turn in, over one scan, a list, or every measured "
                         "scan; and the gain from each single change (5 cm narrower, 1 or 2 cm more step, 10 cm "
                         "tighter turn), best first.",
-      personas=[], requires=[{"layer": "matterport.walls"}],
+      personas=["robot_maker"], requires=[{"layer": "matterport.walls"}],
       blocks=["VerdictHeader", "MetricRow", "CheckList", "FloorPlanMini", "Controls", "AssumptionChips", "StepLog"],
       overlays=["lens"], annotations={"cost": "slow"},
       examples=["What share of homes can a 50 cm robot reach every room of?",

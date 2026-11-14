@@ -1,0 +1,21 @@
+{
+  "id": "wheelchair_home_search",
+  "title": "Wheelchair user looking for a home",
+  "who": "Uses a wheelchair and is searching many homes for ones they can get into, around and use without changes.",
+  "tools": [
+    "measure_search",
+    "step_free_route",
+    "bathroom_clearance",
+    "turning_space",
+    "curb_to_door"
+  ],
+  "thresholds": {
+    "access.door_width_m": 0.815,
+    "access.turning_diameter_m": 1.525,
+    "access.destinations": ["Bathroom", "Bedroom", "Kitchen"]
+  },
+  "layout": {
+    "view": "map",
+    "lead_tool": "measure_search"
+  }
+}

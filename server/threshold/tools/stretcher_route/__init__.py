@@ -25,7 +25,7 @@ class Inputs(BaseModel):
       model_description="Carry a flat ambulance stretcher (IBC 3002.4 size, 24 x 84 in, editable) from the main "
                         "entrance to each bedroom (or named rooms) in one scan: the route, each door and turn with "
                         "its margin, and a box at the tightest point per room.",
-      personas=["fire_captain", "older_adult_family"], requires=[{"layer": "matterport.walls"}],
+      personas=["fire_captain", "older_adult_family", "aging_in_place_planner"], requires=[{"layer": "matterport.walls"}],
       blocks=["VerdictHeader", "MetricRow", "CheckList", "FloorPlanMini", "AssumptionChips", "StepLog"],
       overlays=["route", "box"], examples=["Could paramedics get a stretcher to the bedroom?"])
 def run(ctx, inputs: Inputs) -> ToolResult:

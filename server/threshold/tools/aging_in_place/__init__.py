@@ -47,7 +47,7 @@ def _floor_of_anchor(plan, a: dict) -> str | None:
                         "widths from the entrance, the bedroom-to-bathroom route, doorway steps, stairs between "
                         "floors, bed and bath on the entrance floor (AARP HomeFit), and grab bars and tub or shower "
                         "type seen in bathroom panoramas. Lists the checklist items the scan cannot answer.",
-      personas=["older_adult_family"], requires=[{"layer": "matterport.walls"}, {"layer": "matterport.room_labels"}],
+      personas=["older_adult_family", "aging_in_place_planner"], requires=[{"layer": "matterport.walls"}, {"layer": "matterport.room_labels"}],
       blocks=["VerdictHeader", "MetricRow", "CheckList", "EvidenceStrip", "FloorPlanMini", "StepLog", "ActionBar"],
       overlays=["pins"], annotations={"cost": "slow"},
       examples=["Is this home safe for my mother to age in?", "Where could someone trip in this house?"])
@@ -108,7 +108,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         checks.append(Check(id=f"not_scan.{cid}", rule=f"{q} Not answerable: {why}.", measured=None, threshold=None,
                             unit="", status="unknown", standard=STD["steadi"]))
     hazards = [f for f in findings if f.status in ("fail", "warn")]
-    st = [c.status for c in checks if not c.id.startswith("not_scan")]
+    st = [c.status for c in checks if not c.id.startswith("not_scan")] if quality(plan).get("walls") else ["unknown"]
     status = "fail" if "fail" in st else "warn" if "warn" in st else "unknown" if all(s == "unknown" for s in st) \
         else "pass"
     text = {"fail": f"{len(hazards)} places to fix or check, at least one clear hazard.",
