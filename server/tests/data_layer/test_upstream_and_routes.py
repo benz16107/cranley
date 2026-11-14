@@ -184,7 +184,7 @@ def test_search_filters(small_index):
     assert index.search(city="los angeles")[1][0]["sid"] == "wh000000001"
     assert index.search(rooms_min=25)[0] == 1 and index.search(floors_min=2)[0] == 1
     assert index.search(defurnished=False)[0] == 2
-    total, rows = index.search(q="bellwick houston")
+    total, rows = index.search(q="sample creek houston")
     assert total == 1 and rows[0]["panos"] == 100 and rows[0]["drone_photos"] == 9 and rows[0]["lat"] == 29.6
     assert index.search(q="unit0000002")[1][0]["sid"] == "unit0000002"
     assert index.search(address="main st")[0] == 2 and index.search(q="nothing like this")[0] == 0
