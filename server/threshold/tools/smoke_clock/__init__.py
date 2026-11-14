@@ -45,7 +45,8 @@ from ..fire_preplan.common import BEDROOM, floor_label, live_rooms, name, walls_
 RUNS = CACHE / "tools" / "smoke_clock"
 STALL_S = 120                      # stop CFAST when its simulated clock has not moved for this long
 MIN_PARTIAL_S = 60                 # a stalled run that reached less than this gives no timeline
-TIMEOUT_S = 900                    # CFAST at -O0 takes 3 to 11 minutes on a house; some plans go stiff
+TIMEOUT_S = 480                    # wall-clock cap; CFAST at -O0 runs about 1 simulated s per s on a large house, and the
+                                   # timeline reached by then is kept (doors-open answers come in 2 to 3 simulated minutes)
 MIN_AREA_M2 = 2.5                  # closets and nooks under this are left out of the model
 SIM_S = 900                        # 15 minutes
 TARGET_Z = 1.5                     # tenability measured at a standing person's head
@@ -411,7 +412,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         o, c = tt[False], tt[True]
         fmt = lambda u, closed: (f"untenable at {u['time_s'] / 60:.1f} min ({u['cause']})" if u["time_s"] is not None  # noqa: E731
                                  else f"still tenable at {end[closed] / 60:.1f} min"
-                                 + (", when CFAST's solver stalled" if end[closed] < SIM_S else ""))
+                                 + (", when the model was stopped" if end[closed] < SIM_S else ""))
         st = "fail" if o["time_s"] is not None and o["time_s"] < limit_s else "warn" if o["time_s"] is not None else "pass"
         findings.append(Finding(id=f"smoke_clock:{sid}:{r['id']}", title=f"{where(r)}, survivable time", status=st,
                                 detail=f"Door open: {fmt(o, False)}. Door closed: {fmt(c, True)}.",
@@ -422,7 +423,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     closes = [v for v in lens[True].values()]
     fails = sum(c.status == "fail" for c in checks)
     ran = lambda closed: f"the full {SIM_S // 60} min" if end[closed] >= SIM_S else \
-        f"the {end[closed] / 60:.1f} min CFAST ran before its solver stalled"  # noqa: E731
+        f"the {end[closed] / 60:.1f} min the model ran before it was stopped (CFAST is slow on large plans)"  # noqa: E731
     text = (f"Fire in {where(fire)}, {inputs.growth} growth: with bedroom doors open the first bedroom becomes "
             f"untenable at {worst[1] / 60:.1f} min; " if worst else
             f"Fire in {where(fire)}: no bedroom became untenable in {ran(False)} with doors open; ") + \
