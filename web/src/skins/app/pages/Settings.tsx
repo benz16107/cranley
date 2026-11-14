@@ -2,6 +2,7 @@ import { Switch } from '@base-ui/react/switch'
 import { useCatalog, useToolCatalog, useWorkspace } from '../../../core/index.ts'
 import { Copy, Icon, Seg } from '../design/ui.tsx'
 import { useSeen } from '../lib/pending.ts'
+import { go } from '../lib/place.ts'
 import { Learned } from '../shell/RunPanel.tsx'
 import { SHORTCUTS } from '../shell/Shell.tsx'
 import { useTheme, type Theme } from '../shell/theme.ts'
@@ -31,7 +32,7 @@ export function Settings() {
   const { theme, setTheme } = useTheme()
   const follow = useWorkspace((s) => s.follow), setFollow = useWorkspace((s) => s.setFollow)
   const id = useWorkspace((s) => s.doc.id)
-  const live = useCatalog((s) => s.live), tools = useToolCatalog()
+  const live = useCatalog((s) => s.live), shared = useCatalog((s) => s.shared), tools = useToolCatalog()
   const seen = useSeen((s) => Object.keys(s.all).length)
   const { rail, setRail } = useUi()
   // layout choices share the prefix of the list of investigations: resetting the layout leaves that list alone
@@ -49,6 +50,7 @@ export function Settings() {
       <section className="card">
         <header><h2>Agent</h2></header>
         <div className="set"><div><b>Follow the agent’s view</b><p>When the agent looks at a finding, go to that building or that point on the map. Turn it off to stay where you are while it works.</p></div><Switch.Root className="switch" checked={follow} onCheckedChange={setFollow} aria-label="Follow the agent’s view"><Switch.Thumb className="knob" /></Switch.Root></div>
+        <div className="set"><div><b>Guided first run</b><p>Asks who you are, then shows the agent set up a workspace on a real building. It starts a new investigation; the open one stays under Investigations.</p></div><button className="btn" disabled={!!shared} onClick={() => { go('home'); useUi.setState({ first: 'ask' }) }}>Run it again</button></div>
         <div className="set"><div><b>Server</b><p>{live == null ? 'Checking.' : live ? `Connected. ${tools.length} tools listed.` : 'Not answering. Starting points play back a recorded composition.'}</p></div><span className="rs" data-state={live ? 'done' : 'pending'}><Icon name={live ? 'check' : 'clock'} size={12} />{live ? 'Connected' : live == null ? 'Checking' : 'Scripted'}</span></div>
       </section>
       <section className="card">

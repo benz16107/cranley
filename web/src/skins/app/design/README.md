@@ -14,6 +14,13 @@ a tool a person works in all day. Tokens are in `tokens.css`, shared classes in 
   investigation and its buildings as aerial photos; on the right the map of scanned addresses and one activity feed
   (runs, failures, questions, phone captures). What it lists is worked out in `lib/home.ts`. A building's picture is
   the 256 px aerial the server keeps on disk, one image per card, never a 3D view.
+- **The guided first run** (`shell/FirstRun.tsx`, steps worked out in `lib/firstrun.ts`): on a first visit to Home a
+  dialog asks one thing, who you are and what you need, in one line or one tap. Then it stands aside. The real
+  workspace is on the page while the agent composes it, and a small card in the corner says which step is happening:
+  tools chosen, a plan, a building opened, first results. It opens one of the agent's picks (one that is photoreal
+  and on its site when there is one) and holds the page there until that building has results, then says what was
+  found and where to look next. Shown once per browser (`threshold.firstrun`), left at any moment, started again
+  from Settings.
 - **Blocks** (`blocks/`): the twelve panel blocks. A tool's result is only ever built from these.
 - **Stand-ins** (`lib/pending.ts`, `lib/tools.ts`): what core does not give yet. Each part names the request that
   replaces it.

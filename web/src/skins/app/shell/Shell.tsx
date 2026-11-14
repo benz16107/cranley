@@ -5,6 +5,7 @@ import { Drawer } from 'vaul'
 import { currentRoute, setQuery, useWorkspace } from '../../../core/index.ts'
 import { Icon } from '../design/ui.tsx'
 import { Edge, Fill, Pane, Split } from '../design/split.tsx'
+import { FirstRun } from './FirstRun.tsx'
 import { go, usePlace } from '../lib/place.ts'
 import '../lib/pending.ts' // keeps the index of investigations seen in this browser
 import { useBuildings } from '../../../core/index.ts'
@@ -59,7 +60,8 @@ export function Shell() {
   // The run panel opens by itself when the agent starts working or needs an answer. Closing it is the person's.
   const busy = useWorkspace((s) => s.doc.plan.some((p) => p.status === 'active') || ((s.doc.plan.length > 0 || s.doc.runs.length > 0 || !s.doc.brief) && s.doc.questions.some((q) => q.answer == null)))
   const was = useRef(busy)
-  useEffect(() => { if (busy && !was.current) setRun(true); was.current = busy }, [busy, setRun])
+  // not on a phone during the guided first run: there the panel is a sheet over the page, and the page is what is being shown
+  useEffect(() => { if (busy && !was.current && !(phone && useUi.getState().first)) setRun(true); was.current = busy }, [busy, setRun, phone])
 
   useEffect(() => {
     let g = 0
@@ -93,7 +95,8 @@ export function Shell() {
         <Split className="frame" off={phone}>
           {!phone && (rail ? <Pane key="rail" id="rail" size={52} fixed><Sidebar /></Pane> : <Pane key="side" id="side" size={224} min={184} max={400}><Sidebar /></Pane>)}
           {!phone && !rail && <Edge key="side-edge" of="side" label="Resize the sidebar" />}
-          <Fill key="work" id="work" min={360}>
+          <Fill key="work" id="work" min={360} className="workpane">
+            <FirstRun />
             <Topbar />
             <main className="main" id="main" tabIndex={-1}>{page}</main>
           </Fill>

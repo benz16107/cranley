@@ -173,3 +173,36 @@
 .startform details[open] > summary > svg:first-child { rotate: 90deg; }
 .startform details.more > .stack { padding-top: var(--s-3); }
 .startform details.about pre { margin-top: 6px; padding: 8px 10px; background: var(--pane-2); border-radius: var(--r-1); font: 400 0.6875rem / 1.5 var(--font-mono); font-stretch: 80%; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink-2); max-height: 220px; overflow-y: auto; }
+
+/* ---------- the guided first run ---------- */
+/* The dialog that asks: the composer's field and needs, the needs as one column. */
+.firstrun > header { gap: 10px; }
+.firstrun .h-needs { grid-template-columns: minmax(0, 1fr); }
+.firstrun .h-needs li:nth-child(n) { grid-column: auto; }
+.firstrun .h-needs button { grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; column-gap: var(--s-3); }
+/* The guide: a card in the corner of the page that says which step is happening. It floats, so it has the lift. */
+.workpane, .frame[data-plain] { position: relative; }
+.guide { position: absolute; z-index: 6; left: var(--s-4); bottom: var(--s-4); width: 320px; max-width: calc(100% - 2 * var(--s-4)); background: var(--pane); border-radius: var(--r-2); box-shadow: var(--lift); }
+.guide > header { display: flex; align-items: center; gap: var(--s-2); min-height: 36px; padding: 0 6px 0 12px; border-bottom: 1px solid var(--rule); }
+.guide h2 { flex: 1; font-size: var(--text-sm); }
+.guide ol { display: grid; gap: 1px; padding: 8px 12px; }
+.guide li { display: flex; align-items: center; gap: 9px; min-height: 24px; color: var(--ink-3); }
+.guide li > :first-child { flex: none; width: 12px; }
+.guide li .dot { height: 12px; display: grid; place-items: center; }
+.guide li .dot::before { content: ''; width: 5px; height: 5px; border-radius: 50%; border: 1px solid var(--rule-strong); }
+.guide li .ring { height: 12px; width: 12px; }
+.guide li[data-state='done'] { color: var(--ink-2); }
+.guide li[data-state='done'] svg { color: var(--pass); }
+.guide li[data-state='active'] { color: var(--ink); font-weight: 540; }
+.guide li[data-state='ask'] { color: var(--accent); font-weight: 540; }
+.guide .say { padding: 9px 12px 11px; border-top: 1px solid var(--rule); color: var(--ink-2); font-size: var(--text-xs); line-height: 1.45; }
+.guide header + .say { border-top: 0; }
+.guide .verdict { display: grid; gap: 5px; padding: 10px 12px; }
+.guide .verdict .row { display: flex; align-items: center; gap: var(--s-2); }
+.guide .verdict .text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; line-height: 1.45; }
+.guide .where { display: grid; gap: 4px; padding: 9px 12px; border-top: 1px solid var(--rule); font-size: var(--text-xs); }
+.guide .where div { display: flex; align-items: baseline; gap: var(--s-2); }
+.guide .where dt { flex: none; width: 52px; display: flex; gap: 3px; font-weight: 560; }
+.guide .where dd { color: var(--ink-2); }
+.guide footer { display: flex; flex-wrap: wrap; gap: var(--s-2); padding: 4px 12px 12px; }
+@media (max-width: 760px) { .guide { left: var(--s-2); right: var(--s-2); bottom: 40px; width: auto; max-width: none; } }

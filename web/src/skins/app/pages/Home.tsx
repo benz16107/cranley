@@ -22,17 +22,19 @@ function Aerial({ lat, lon }: { lat: number; lon: number }) {
 }
 
 /** A new brief: one sentence, or one of five needs to start from. Keyboard: C comes here from anywhere on the page,
-    Down from an empty field walks the needs, Enter composes, Escape gives the keys back to the page. */
-function Composer({ first }: { first: boolean }) {
+    Down from an empty field walks the needs, Enter composes, Escape gives the keys back to the page. `bare` is the
+    same field and needs inside the first run's dialog, which has its own heading and decides what starting does. */
+export function Composer({ first, bare, onStart = compose }: { first: boolean; bare?: boolean; onStart?: (sentence: string, needId?: string) => unknown }) {
   const [text, setText] = useState('')
   const live = useCatalog((s) => s.live)
   const phone = useIsPhone()
   const field = useRef<HTMLTextAreaElement>(null), needs = useRef<HTMLUListElement>(null)
-  const send = () => { if (text.trim()) void compose(text.trim()) }
+  const send = () => { if (text.trim()) void onStart(text.trim()) }
   // On a first visit starting is the one thing to do, so the field has the focus. With work open it does not: the
   // single-key shortcuts (G E, the agent panel) must keep working on arrival. Not on a phone: it raises the keyboard.
   useEffect(() => { if (first && !phone && !document.querySelector('[role="dialog"]')) field.current?.focus({ preventScroll: true }) }, [first, phone])
   useEffect(() => {
+    if (bare) return
     const key = (e: KeyboardEvent | globalThis.KeyboardEvent) => {
       const t = e.target as HTMLElement
       if (e.key.toLowerCase() !== 'c' || e.metaKey || e.ctrlKey || e.altKey || /^(input|textarea|select)$/i.test(t.tagName) || t.isContentEditable || document.querySelector('[role="dialog"], [role="menu"]')) return
@@ -40,15 +42,15 @@ function Composer({ first }: { first: boolean }) {
     }
     window.addEventListener('keydown', key)
     return () => window.removeEventListener('keydown', key)
-  }, [])
+  }, [bare])
   const walk = (e: KeyboardEvent, i: number) => {
     const all = [...(needs.current?.querySelectorAll('button') ?? [])]
     if (e.key === 'ArrowDown' && all[i + 1]) { e.preventDefault(); all[i + 1].focus() }
     else if (e.key === 'ArrowUp' || e.key === 'Escape') { e.preventDefault(); (e.key === 'ArrowUp' && all[i - 1] ? all[i - 1] : field.current)?.focus() }
   }
   return (
-    <section className="h-sec h-new" aria-labelledby="new-h">
-      <header><h2 id="new-h">New investigation</h2><p className="grow">Say who you are and what you need from a building. The agent picks the tools and asks what it must.</p></header>
+    <section className="h-sec h-new" aria-labelledby={bare ? undefined : 'new-h'}>
+      {!bare && <header><h2 id="new-h">New investigation</h2><p className="grow">Say who you are and what you need from a building. The agent picks the tools and asks what it must.</p></header>}
       <form className="h-field" onSubmit={(e) => { e.preventDefault(); send() }}>
         <textarea ref={field} className="field" rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder="I use a wheelchair and I am choosing a one-bedroom apartment in Houston" aria-label="Who you are and what you need" aria-keyshortcuts="C"
           onKeyDown={(e) => {
@@ -57,16 +59,16 @@ function Composer({ first }: { first: boolean }) {
             else if (e.key === 'Escape') e.currentTarget.blur()
           }} />
         <div>
-          <span className="hint" aria-hidden="true"><span className="kbd">C</span> to write here, <span className="kbd">↓</span> for a need below</span>
+          <span className="hint" aria-hidden="true">{!bare && <><span className="kbd">C</span> to write here, </>}<span className="kbd">↓</span> for a need below</span>
           <span className="grow" />
-          <button className="btn solid" disabled={!text.trim()}>Compose<span className="kbd">Enter</span></button>
+          <button className="btn solid" disabled={!text.trim()}>{bare ? 'Start' : 'Compose'}<span className="kbd">Enter</span></button>
         </div>
       </form>
       {live === false && <p className="note"><Icon name="info" size={13} /><span>The agent server is not answering. A need below plays back a recorded composition; only the step-free access investigation runs.</span></p>}
       <ul className="h-needs" ref={needs} aria-label="Or start from a need">
         {NEEDS.map((n, i) => (
           <li key={n.id}>
-            <button type="button" onClick={() => void compose(n.sentence, n.id)} onKeyDown={(e) => walk(e, i)} title={n.sentence}>
+            <button type="button" onClick={() => void onStart(n.sentence, n.id)} onKeyDown={(e) => walk(e, i)} title={n.sentence}>
               <span className="t"><b>{n.who}</b> {n.need}</span>
               <span className="s">{n.runsOn}</span>
             </button>
