@@ -96,7 +96,7 @@ def run(ctx: ToolContext, scan: str, goal: str = "wheelchair_ready", edits: list
 
 def _summary(results: dict[str, dict]) -> dict:
     cs = compare.checks(results)
-    return {"failing": sum(c["status"] == "fail" for c in cs.values()),
+    return {"checks": len(cs), "failing": sum(c["status"] == "fail" for c in cs.values()),
             "warn": sum(c["status"] in ("warn", "unknown") for c in cs.values()),
             "passing": sum(c["status"] == "pass" for c in cs.values()),
             "verdicts": {t: r["verdict"] for t, r in results.items()}}

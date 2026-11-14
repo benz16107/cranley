@@ -27,6 +27,7 @@ MIN_ROOM_M2 = 0.8       # no edit may shrink a room below this
 RAMP_SLOPE = 1 / 12     # ADA 405.2: running slope at most 1:12
 BAR_RUN_M = 0.915       # 36 in: the shortest free wall that takes a grab bar (ADA 609.4 side bar is 42 in long)
 SNAP = 1e-6
+KEEP = ["Bathroom", "Kitchen", "Bedroom", "Living Room", "Dining Room", "Family Room", "Office", "Hallway"]
 
 
 class Edit(BaseModel):
@@ -297,7 +298,10 @@ def _remove_wall(plan: dict, e: RemoveWall) -> dict:
     wall = _by(plan, "walls", e.wall, "wall")
     if wall["type"] != "wall" or len(wall["rooms"]) != 2:
         raise EditError("only a wall between two scanned rooms can come out")
-    keep_id, gone_id = sorted(wall["rooms"], key=lambda rid: -(next(r for r in plan["rooms"] if r["id"] == rid).get("area") or 0))
+    def rank(rid):  # the merged room is still a bathroom (or kitchen...) if either side was one; else the larger
+        r = next(r for r in plan["rooms"] if r["id"] == rid)
+        return (KEEP.index(r.get("label")) if r.get("label") in KEEP else len(KEEP), -(r.get("area") or 0))
+    keep_id, gone_id = sorted(wall["rooms"], key=rank)
     keep = next(r for r in plan["rooms"] if r["id"] == keep_id)
     gone = next(r for r in plan["rooms"] if r["id"] == gone_id)
     if keep["floor"] != gone["floor"]:

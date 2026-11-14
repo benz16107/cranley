@@ -80,12 +80,14 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                  "No edit found that fixes a failing check; the problems may need a tape measure or are not walls."))
     fixed = [f for f in r["flips"] if f["change"] == "fixed"]
     broke = [f for f in r["flips"] if f["change"] in ("broke", "worse")]
+    gone = [f for f in r["flips"] if f["change"] == "gone" and (f["before"] or {}).get("status") == "fail"]
     status = "pass" if a["failing"] == 0 else "warn" if len(fixed) else "fail"
     still = [c.split(":", 1)[0] for c in r["still_failing"]]
     text = (f"{len(r['package'])} edits fix {len(fixed)} of {b['failing']} failing checks"
             + (f"; still failing: {', '.join(still[:3])}" + (f" and {len(still) - 3} more" if len(still) > 3 else "")
                if still else "; nothing the tools check still fails")
-            + (f", and {len(broke)} get worse" if broke else "") + ".")
+            + (f", and {len(broke)} get worse" if broke else "")
+            + (f"; {len(gone)} checks no longer apply (a room was merged into another)" if gone else "") + ".")
     sid = r["sid"]
     src_sid = Source(**{**PRICE.model_dump(), "note": f"{PRICE.note}. Renovated plan: {sid}"})
     metrics = [Metric(id="total_cost", label="Estimated cost", value=r["total_cost"], unit="$", source=src_sid),

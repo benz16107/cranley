@@ -104,3 +104,8 @@ def test_no_wall_graph_is_said_plainly(ctx, flat):
     flat["quality"]["walls"] = False
     with pytest.raises(EditError, match="no wall graph"):
         apply(flat, [{"op": "remove_wall", "wall": "tc"}])
+
+
+def test_a_bathroom_merged_with_a_bigger_room_stays_a_bathroom(flat):
+    after, diff = apply(flat, [{"op": "remove_wall", "wall": "tk"}])  # bathroom (3.5 m2) and kitchen (5.1 m2)
+    assert diff[0]["merged_into"] == "T" and _room(after, "K") is None and _room(after, "T")["label"] == "Bathroom"
