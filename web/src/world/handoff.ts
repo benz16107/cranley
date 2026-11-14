@@ -38,7 +38,9 @@ export interface Stand {
 export function stand(plan: ScanPlan, site: Site, view: { w: number; h: number }): Stand {
   const m = buildModel(plan), b = m.bounds
   const cx = (b.minX + b.maxX) / 2, cy = (b.minY + b.maxY) / 2
-  const radius = Math.max(4, Math.hypot(b.maxX - b.minX, b.maxY - b.minY) / 2), tall = m.floorZ[m.floorZ.length - 1] + m.maxH
+  // floors stand at their own scan z, and the ground outside is just under the lowest floor that is not a basement
+  const base = m.floorZ[0], tall = m.floorZ[m.floorZ.length - 1] + m.maxH - base, ground = m.floorZ[m.groundFloor] - site.floor_above_ground_m
+  const radius = Math.max(4, Math.hypot(b.maxX - b.minX, b.maxY - b.minY) / 2)
   const { rot_deg, t } = site.scan_to_enu, c = Math.cos(rot_deg * RAD), s = Math.sin(rot_deg * RAD)
   const enu = (x: number, y: number): Vec2 => [c * x - s * y + t[0], s * x + c * y + t[1]]
   const [e, n] = enu(cx, cy), r = radius + 3
@@ -47,7 +49,7 @@ export function stand(plan: ScanPlan, site: Site, view: { w: number; h: number }
   // the scene opens the building inside 2.1 fits (with 12% of slack): the hand-off stays outside that
   const enter = Math.min(500, Math.max(110, fit * 2.1 * 1.25))
   return {
-    anchor: site.anchor, target: { e, n, up: tall * 0.3 + site.floor_above_ground_m },
+    anchor: site.anchor, target: { e, n, up: base + tall * 0.3 - ground },
     ring: Array.from({ length: 16 }, (_, i) => enu(cx + Math.cos((i / 16) * 2 * Math.PI) * r, cy + Math.sin((i / 16) * 2 * Math.PI) * r)),
     fit, enter, leave: Math.min(545, Math.max(enter * 1.3, 400)), verified: site.scan_to_enu.verified,
   }

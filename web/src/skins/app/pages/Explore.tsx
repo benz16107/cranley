@@ -7,7 +7,7 @@ import {
 import { DataTable, Empty, Icon, IconBtn, Menu, MenuBtn, Seg, SourceChip, useColumns, type Col } from '../design/ui.tsx'
 import { int, num, plural } from '../lib/format.ts'
 import { goScan } from '../lib/place.ts'
-import { CityMap, useMap } from '../map/CityMap.tsx'
+import { WorldMap, useWorld } from '../explore/WorldMap.tsx'
 import { useScheme } from '../shell/theme.ts'
 import { useIsPhone } from '../shell/store.ts'
 import { Edge, Fill, Pane, Split } from '../design/split.tsx'
@@ -127,8 +127,8 @@ function BuildingDetail({ b, onClose }: { b: Building; onClose: () => void }) {
 }
 
 function HoverTip() {
-  const map = useMap((s) => s.map), hover = useMap((s) => s.hover)
-  useMap((s) => s.tick)
+  const map = useWorld((s) => s.map), hover = useWorld((s) => s.hover)
+  useWorld((s) => s.tick)
   if (!map || !hover) return null
   const p = map.project([hover.lon, hover.lat])
   return <div className="tip hovertip" style={{ translate: `${p.x}px ${p.y}px` }}>{hover.address.split(',')[0]} · {plural(hover.count, 'scan')}</div>
@@ -140,7 +140,7 @@ export function Explore() {
   const scheme = useScheme()
   const phone = useIsPhone()
   const doc = useWorkspace((s) => s.doc)
-  const map = useMap((s) => s.map)
+  const map = useWorld((s) => s.map)
   const f = m.filters, city = f.city
   const view = (phone ? (q.get('app_view') === 'table' ? 'table' : 'map') : (q.get('app_view') as View) || 'split') as View
   const [text, setText] = useState('')
@@ -240,7 +240,7 @@ export function Explore() {
       <Split className="ex-body" off={phone}>
         {(phone || view !== 'table') && <Fill key="map" id="map" min={320}>
         <div className="ex-map">
-          <CityMap buildings={measured ? hitBuildings : m.shown} selected={m.selected} marks={m.marks} geo={m.geo} look={m.look} city={city} scheme={scheme} onSelect={select} />
+          <WorldMap buildings={measured ? hitBuildings : m.shown} selected={m.selected} marks={m.marks} geo={m.geo} look={m.look} city={city} scheme={scheme} base="streets" layers={[]} on={['scans']} sun={null} onSelect={select} />
           <HoverTip />
           {view === 'map' && m.selected && <div className="ex-float"><BuildingDetail b={m.selected} onClose={() => select(null)} /></div>}
           <div className="mapctl">
