@@ -35,6 +35,11 @@ DATA = pathlib.Path(os.environ.get("THRESHOLD_DATA_DIR", "~/Code/hackathons/hack
 DIR = DATA / "demo" / "llm"
 ID = re.compile(r"\b(?:ws|run|turn|lane|toolu|msg|srvtoolu|call)_[A-Za-z0-9]{6,}\b")
 NUM = re.compile(r"\b\d+(?:\.\d+)? ?(?:ms|s)\b")  # timings in tool summaries change from run to run
+NONCE = re.compile(r"\b([a-z]+)-[0-9a-f]{16}\b")  # the rubric grader's delimiters: <transcript-<random hex>>
+
+
+def plain(text: str) -> str:
+    return NUM.sub("N", NONCE.sub(r"\1-NONCE", text))
 KEEP = ("x-api-key", "authorization", "anthropic-version", "anthropic-beta", "content-type", "accept")
 lock = threading.Lock()
 _probe = {"at": 0.0, "ok": False}
@@ -65,14 +70,14 @@ def canon(body: dict) -> tuple[str, str, list[str]]:
         if m.group(0) not in ids:
             ids.append(m.group(0))
     n = {v: f"ID{i}" for i, v in enumerate(ids)}
-    norm = NUM.sub("N", ID.sub(lambda m: n[m.group(0)], text))
+    norm = plain(ID.sub(lambda m: n[m.group(0)], text))
     msgs = body.get("messages") or []
     calls = [c.get("name") for m in msgs if isinstance(m.get("content"), list) for c in m["content"]
              if isinstance(c, dict) and c.get("type") == "tool_use"]
-    system = NUM.sub("N", ID.sub("ID", json.dumps(body.get("system"), sort_keys=True)))
+    system = plain(ID.sub("ID", json.dumps(body.get("system"), sort_keys=True)))
     tools = sorted(t.get("name", "") for t in body.get("tools") or [])
     fuzzy = json.dumps([body.get("model"), system, tools, len(msgs), calls])
-    first = NUM.sub("N", ID.sub("ID", json.dumps(msgs[0].get("content") if msgs else None, sort_keys=True)))
+    first = plain(ID.sub("ID", json.dumps(msgs[0].get("content") if msgs else None, sort_keys=True)))
     loose = json.dumps([len(msgs), calls, first])  # the same conversation step after a prompt or tool list changed
     h = lambda s: hashlib.sha256(s.encode()).hexdigest()[:24]
     return h(norm), h(fuzzy) + ":" + h(loose), ids
