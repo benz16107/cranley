@@ -45,10 +45,23 @@ def test_the_error_follows_how_large_the_reference_is_in_the_frame():
     card = pm.measure(pm.Points(corners=card_at(0.40, 0.50), **span), (W, H), 0.0856, 0.05398, 0.003)
     sheet = pm.measure(pm.Points(corners=card_at(0.30, 0.40, 0.2794, 0.2159), **span), (W, H), 0.2794, 0.2159, 0.003)
     door = pm.measure(pm.Points(corners=card_at(0.02, 0.0, 2.032, 0.762), **span), (W, H), 2.032, 0.762, 0.003)
-    assert card["err_m"] > 1.0                      # a card 70 px wide cannot measure a doorway: the result says so
-    assert 0.02 < sheet["err_m"] < 0.06 and door["err_m"] < sheet["err_m"] < card["err_m"]
+    assert door["err_m"] < sheet["err_m"] < card["err_m"] and 0.02 < sheet["err_m"] < 0.06 and card["err_m"] > 0.1
+    # a card is too small in the frame to fix the perspective: it is read as scale only, and says so
+    assert (card["model"], sheet["model"], door["model"]) == ("square_on", "perspective", "perspective")
+    assert card["length_m"] == pytest.approx(0.81, abs=0.01)       # centred on the span, the scale-only reading holds
     by_vision = pm.measure(pm.Points(corners=card_at(0.30, 0.40, 0.2794, 0.2159), **span), (W, H), 0.2794, 0.2159, 0.006)
     assert by_vision["err_m"] > sheet["err_m"]      # the vision reader places points less well than a person does
+
+
+def test_scale_only_is_exact_square_on_and_biased_off_centre():
+    flat = np.array([[800.0, 0.0, 200.0], [0.0, 800.0, 100.0], [0.0, 0.0, 1.0]])       # a camera facing the wall square on
+    f = lambda x, y: tuple(pm.to_plane(flat, (x, y)))  # noqa: E731
+    sheet = [f(0.3, 0.4), f(0.5794, 0.4), f(0.5794, 0.6159), f(0.3, 0.6159)]
+    assert pm.length_square_on(sheet, f(0.0, 0.5), f(0.9, 0.5), 0.2794, 0.2159) == pytest.approx(0.9, abs=1e-9)
+    tilted = [tuple(v * s for v, s in zip(p, (W, H))) for p in card_at(0.02, 0.50, 0.2794, 0.2159)]   # the sheet at one end of the span
+    a, b = (tuple(v * s for v, s in zip(px(x, 0.52), (W, H))) for x in (0.05, 0.86))
+    off = pm.length_square_on(tilted, a, b, 0.2794, 0.2159)
+    assert abs(off - 0.81) > 0.01 and pm.length(tilted, a, b, 0.2794, 0.2159) == pytest.approx(0.81, abs=1e-6)
 
 
 def test_the_tool_judges_with_the_error(photo):
@@ -65,7 +78,10 @@ def test_the_tool_judges_with_the_error(photo):
     assert close.verdict.status == "warn" and "use a tape" in close.verdict.text       # 0.81 +/- err straddles 0.815
     card = {"corners": card_at(0.40, 0.50), "a": px(0.05, 0.52), "b": px(0.86, 0.52)}
     far = run_tool("photo_measure", {"capture": photo, "reference": "card", "points": card, "points_from": "manual"}, ToolContext())
-    assert far.verdict.status == "unknown" and "too small in this photo" in far.verdict.text and far.metrics == []   # no number given
+    assert far.findings[0].source.confidence == "low" and "small next to what was measured" in far.verdict.text
+    assert next(x for x in far.assumptions if x.id == "square_on").label.startswith("Camera taken as facing the plane square on")
+    seen = run_tool("photo_measure", {"capture": photo, "reference": "card", "points": card, "points_from": "vision"}, ToolContext())
+    assert seen.verdict.status == "unknown" and "too small in this photo" in seen.verdict.text and seen.metrics == []   # no number given
 
 
 def test_the_vision_reader_gives_pixels_only_and_can_say_it_does_not_see(photo, monkeypatch):
@@ -73,7 +89,8 @@ def test_the_vision_reader_gives_pixels_only_and_can_say_it_does_not_see(photo, 
         assert "1600 x 1200" in prompt and key == f"photo_measure/{photo}/letter"
         c = [(round(x * W), round(y * H)) for x, y in card_at(0.30, 0.40, 0.2794, 0.2159)]
         a, b = px(0.05, 0.52), px(0.86, 0.52)
-        return {"reference_found": True, "corners": [{"x": x, "y": y} for x, y in c], "ends_found": True,
+        assert all(v.get("minItems", 0) <= 1 for v in schema["properties"].values())   # the model API refuses longer fixed arrays
+        return {"reference_found": True, **{k: {"x": x, "y": y} for k, (x, y) in zip(pm.CORNERS, c)}, "ends_found": True,
                 "a": {"x": round(a[0] * W), "y": round(a[1] * H)}, "b": {"x": round(b[0] * W), "y": round(b[1] * H)},
                 "same_plane": "yes", "confidence": "high", "seen": "The two door stops."}
     found = pm.find_points(photo, "letter", "the clear width of the doorway", ask=seen)

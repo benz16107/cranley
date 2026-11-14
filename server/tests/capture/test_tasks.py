@@ -35,7 +35,9 @@ def test_door_tools_become_width_and_step_tasks(session):
     rb = t["width:home:RB"]                                        # the 0.70 m bedroom door, flagged by both tools: one task
     assert rb["tools"] == ["door_widths", "step_free_route"] and len(rb["findings"]) == 2
     assert rb["scan_value"] == pytest.approx(0.65) and rb["threshold"] == 0.815 and "ADA 2010 404.2.3" in rb["standard"]
-    assert rb["title"] == "Measure the doorway, hallway to bedroom" and rb["opening"] == "RB" and rb["status"] == "open"
+    assert rb["title"] == "Measure the doorway, hallway to bedroom 1" and rb["opening"] == "RB" and rb["status"] == "open"
+    widths = [x["id"] for x in tasks(session.doc, plans) if x["kind"] == "width"]
+    assert widths[:2] == ["width:home:HL", "width:home:RB"]         # both on the route; the data error first
     assert t["width:home:HL"]["scan_value"] is None                # a 3 cm "door" is a data error: no scan value to compare
     assert t["step:home:LK"]["threshold"] == LEVEL_VERTICAL_M and "303.2" in t["step:home:LK"]["standard"]
     assert not any(k.startswith("width:home:HT") for k in t)       # the 0.95 m door passed: nothing to do there
@@ -58,6 +60,7 @@ def test_alarm_flood_and_daylight_tasks(session):
     assert t["floor_height:home:door"]["scan_value"] == 0.3
     assert set(k for k in t if k.startswith("heading")) == {"heading:home:L", "heading:home:K"}   # only rooms with sun hours
     assert "not verified" in t["heading:home:L"]["why"]
+    assert (t["heading:home:L"]["unit"], t["alarm:home:R"]["unit"], t["floor_height:home:door"]["unit"]) == ("h", "", "m")
     assert [x["kind"] for x in tasks(session.doc, plans)][0] == "floor_height"                    # the weakest number first
 
 

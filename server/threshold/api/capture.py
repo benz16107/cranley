@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Body, HTTPException, Query, Request
@@ -114,7 +115,7 @@ def pair_phone(id: str, hours: float = Body(pair.HOURS, gt=0, le=72), origin: st
         base = ""
     url = f"{base}/m?t={out['token']}"
     svg = io.BytesIO()
-    segno.make(url, error="m").save(svg, kind="svg", scale=4, border=2, xmldecl=False, svgns=True, nl=False)
+    segno.make(url, error="m").save(svg, kind="svg", border=2, xmldecl=False, svgns=True, nl=False, omitsize=True)
     return {**out, "path": f"/m?t={out['token']}", "url": url, "secure": base.startswith("https://"), "qr": svg.getvalue().decode()}
 
 
@@ -165,8 +166,10 @@ async def phone_capture(token: str, request: Request, meta: str = Query(..., max
         raise HTTPException(415, str(e)) from None
     try:
         did = await asyncio.to_thread(apply.handle, s, cap)
-    except Exception as e:  # noqa: BLE001 - the capture is saved; say what failed after it
-        did = {"problem": f"The capture is saved, but what it feeds did not run: {type(e).__name__}: {str(e)[:200]}"}
+    except Exception as e:  # noqa: BLE001 - the capture is saved; say that, and keep the cause for the server's log
+        logging.getLogger("threshold.capture").exception("capture %s: what it feeds failed", cap["id"])
+        did = {"problem": f"The capture is saved, but the step after it failed on the server ({type(e).__name__}). Try again; "
+                          "if it keeps failing, type the value instead."}
     return {"capture": store.public(store.get(cap["id"])), **did, "view": phone_view(s)}
 
 

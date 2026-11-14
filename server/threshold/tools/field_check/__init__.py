@@ -117,7 +117,8 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     text = (f"{len(done)} of {len(tasks)} on-site checks done" + (": " + ", ".join(parts) if parts else "") + "."
             + (f" {left} still to do." if left else ""))
     return ToolResult(
-        scope=sc, verdict=Verdict(status=worst if done else "unknown", text=text),
+        # with checks still to do, "pass" would overstate the visit: only a problem found so far is reported early
+        scope=sc, verdict=Verdict(status="unknown" if not done or (left and worst == "pass") else worst, text=text),
         metrics=[Metric(id="todo", label="To do on site", value=left, unit="", source=src),
                  Metric(id="confirmed", label="Confirm the scan", value=tally["confirmed"], unit="", source=src),
                  Metric(id="contradicted", label="Contradict the scan", value=tally["contradicted"], unit="", source=src),

@@ -49,20 +49,24 @@ def latest_runs(doc) -> dict[tuple[str, str], Any]:
     return out
 
 
-def _where(plan: dict, opening: dict | None) -> str:
-    if not opening:
-        return "doorway"
-    labels = {r["id"]: (r.get("label") or "unlabelled room").lower() for r in plan.get("rooms") or []}
-    names = [labels.get(r, "unlabelled room") for r in opening.get("rooms") or []]
-    return " to ".join(names) if len(names) > 1 else f"{names[0] if names else 'room'} to outside"
-
-
 def _room_name(plan: dict, rid: str) -> str:
     rooms = plan.get("rooms") or []
     r = next((x for x in rooms if x["id"] == rid), None)
     label = (r or {}).get("label") or "Unlabelled room"
     same = [x["id"] for x in rooms if (x.get("label") or "Unlabelled room") == label]
     return f"{label} {same.index(rid) + 1}" if r and len(same) > 1 else label
+
+
+def _where(plan: dict, opening: dict | None) -> str:
+    """Where a doorway is, in room names a person can tell apart ("bedroom 2 to bathroom 1")."""
+    if not opening:
+        return "doorway"
+    have = {r["id"] for r in plan.get("rooms") or []}
+    names = [_room_name(plan, r).lower() if r in have else "unlabelled room" for r in opening.get("rooms") or []]
+    if len(names) > 1:
+        return " to ".join(names)
+    # a doorway with one room leads outside or into space the scan did not cover; the plan says which when it knows
+    return f"{names[0] if names else 'room'} to " + ("outside" if opening.get("exterior") is not False else "an unscanned space")
 
 
 def tasks(doc, plans: Callable[[str], dict], captures: list[dict] | None = None) -> list[dict]:
@@ -73,12 +77,13 @@ def tasks(doc, plans: Callable[[str], dict], captures: list[dict] | None = None)
         tid = f"{kind}:{sid}:{key}"
         t = out.setdefault(tid, {"id": tid, "kind": kind, "sid": sid, "title": title, "why": why, "how": HOW[kind],
                                  "tools": [], "findings": [], "room": None, "opening": None, "scan_value": None,
-                                 "threshold": None, "unit": "m", "standard": None, "status": "open", "outcome": None,
+                                 "threshold": None, "unit": more.pop("unit", "m"), "standard": None, "status": "open", "outcome": None,
                                  "capture": None})
         if tool not in t["tools"]:
             t["tools"].append(tool)
         if finding and finding not in t["findings"]:
             t["findings"].append(finding)
+        more.pop("unit", None)
         for k, v in more.items():
             if v is not None and (t.get(k) is None or (k == "threshold" and v > t[k])):  # the stricter need wins
                 t[k] = v
@@ -147,7 +152,13 @@ def tasks(doc, plans: Callable[[str], dict], captures: list[dict] | None = None)
         if t and c.get("result"):
             t.update(status="done", outcome=c["result"], capture=c["id"])
     order = {"floor_height": 0, "width": 1, "step": 2, "slope": 3, "alarm": 4, "heading": 5}
-    return sorted(out.values(), key=lambda t: (t["status"] == "done", order[t["kind"]], t["title"]))
+
+    def worth(t: dict) -> tuple:
+        """Within a kind: what more tools flagged first, then where a measurement is likeliest to change the answer
+        (the scan's value closest to the limit; a data error, which has no scan value, before those)."""
+        gap = abs(t["scan_value"] - t["threshold"]) if t["scan_value"] is not None and t["threshold"] is not None else -1.0
+        return (-len(t["tools"]), gap if t["kind"] == "width" else 0.0, t["title"])
+    return sorted(out.values(), key=lambda t: (t["status"] == "done", order[t["kind"]], *worth(t)))
 
 
 def judge(task: dict, value: float | None, err: float = TAPE_ERR_M, answer: str | None = None) -> dict:

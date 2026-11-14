@@ -64,6 +64,27 @@ def alarm_in_photo(cid: str, ask=None) -> dict:
                "a wall) visible?", ALARM_SCHEMA, key=f"phone_alarm/{cid}")
 
 
+def measure_photo(s: Session, cap: dict, what: str, **more) -> tuple[dict, ToolResult | None, dict | None, str]:
+    """Run photo_measure on a capture's photo. The points come from the phone when the person placed them (then
+    `values.photo` names the photo they were placed on), else from the vision reader. (summary, result, points, who)"""
+    from ..tools.photo_measure import find_points
+    v = cap.get("values") or {}
+    photo = v.get("photo") or (cap["id"] if cap["kind"] == "photo" else None)
+    if not photo or store.get(photo)["workspace"] != s.base.id:
+        return {"error": "Type the measurement, or take a photo with a sheet of paper or a card in it."}, None, None, "manual"
+    pts, who = v.get("points"), "manual"
+    if not pts:
+        found = find_points(photo, v.get("reference", "letter"), what)
+        if found["points"] is None:
+            return {"error": "The photo does not show the reference and both ends clearly. Retake it square on, or place "
+                             "the points by hand."}, None, None, "vision"
+        pts, who = found["points"].model_dump(), "vision"
+    out, res = run(s, "photo_measure", {"capture": photo, "reference": v.get("reference", "letter"), "what": what,
+                                        "door_width_m": v.get("door_width_m"), "points": pts, "points_from": who,
+                                        **{k: x for k, x in more.items() if x is not None}})
+    return out, res, pts, who
+
+
 def settle(s: Session, task: dict, cap: dict) -> dict:
     """The outcome of one task from one capture, or {"problem": ...} when the capture did not settle it."""
     v: dict[str, Any] = cap.get("values") or {}
@@ -73,21 +94,9 @@ def settle(s: Session, task: dict, cap: dict) -> dict:
         if v.get("value_m") is not None:
             o = judge(task, float(v["value_m"]), TAPE_ERR_M)
             return {**o, "method": "manual", "confidence": "high"}
-        if cap["kind"] != "photo":
-            return {"problem": "Type the measurement, or take a photo with a card or a sheet of paper in it."}
-        from ..tools.photo_measure import find_points
-        pts, who = v.get("points"), "manual"
         what = "the clear width of the doorway" if kind == "width" else "the height of the step, floor to its top edge"
-        if not pts:
-            found = find_points(cap["id"], v.get("reference", "card"), what)
-            if found["points"] is None:
-                return {"problem": "The photo does not show the reference and both ends clearly. Retake it square on, "
-                                   "or place the points by hand.", "points": None}
-            pts, who = found["points"].model_dump(), "vision"
-        out, res = run(s, "photo_measure", {
-            "capture": cap["id"], "reference": v.get("reference", "card"), "door_width_m": v.get("door_width_m"), "what": what,
-            "points": pts, "points_from": who, "threshold_m": task["threshold"] if kind == "width" else None,
-            "standard": task.get("standard"), "scan": sid, "opening": task.get("opening"), "room": task.get("room")})
+        out, res, pts, who = measure_photo(s, cap, what, threshold_m=task["threshold"] if kind == "width" else None,
+                                           standard=task.get("standard"), scan=sid, opening=task.get("opening"), room=task.get("room"))
         if res is None or metric(res, "length") is None:
             return {"problem": out.get("error") or (res.verdict.text if res else "The photo could not be measured."), "points": pts}
         o = judge(task, metric(res, "length"), metric(res, "error") or TAPE_ERR_M)
@@ -213,11 +222,19 @@ def handle(s: Session, cap: dict) -> dict:
         refresh_field_check(s, task["sid"])
         return {"outcome": outcome, "updated_findings": changed}
     if cap.get("tool") in PHONE_TOOLS and cap["tool"] != "field_check":
-        out, res = run(s, cap["tool"], tool_inputs(s, cap))
+        pts = None
+        if cap["tool"] == "photo_measure":
+            v = cap.get("values") or {}
+            out, res, pts, _ = measure_photo(s, cap, v.get("what") or "the width between the two marked ends",
+                                             scan=cap.get("scan"), room=cap.get("room"), opening=cap.get("opening"))
+        else:
+            out, res = run(s, cap["tool"], tool_inputs(s, cap))
         if res is None:
             note(s, cap)
-            return {"problem": out.get("error") or "The tool did not run."}
-        store.update(cap["id"], result={"run": out.get("run"), "status": res.verdict.status, "text": res.verdict.text})
-        return {"run": out.get("run"), "status": res.verdict.status, "text": res.verdict.text}
+            return {"problem": out.get("error") or "The tool did not run.", "points": pts}
+        did = {"run": out.get("run"), "status": res.verdict.status, "text": res.verdict.text,
+               "metrics": [m.model_dump(mode="json") for m in res.metrics[:4]]}
+        store.update(cap["id"], result=did)
+        return {**did, "points": pts}
     note(s, cap)
     return {}

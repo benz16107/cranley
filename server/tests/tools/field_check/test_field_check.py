@@ -33,6 +33,8 @@ def test_outcomes_become_findings_with_the_capture_as_evidence():
     r = run([DONE, ALARM, {**OPEN, "id": "width:home:HL", "opening": "HL"}])
     assert r.verdict.text == "2 of 3 on-site checks done: 1 confirms the scan, 1 contradicts the scan. 1 still to do."
     assert r.verdict.status == "fail"                                 # the worst thing found on site
+    assert run([DONE, {**OPEN, "id": "width:home:HL"}]).verdict.status == "unknown"    # one pass and one to do is not a pass
+    assert run([DONE]).verdict.status == "pass"
     door = next(f for f in r.findings if f.id == "field_check:home:width:home:RB")
     assert door.title.endswith("contradicts the scan") and door.status == "pass" and door.media[0].ref == "cap_1"
     assert door.source.layer == "phone" and door.source.method == "manual"

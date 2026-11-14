@@ -25,6 +25,7 @@ REFERENCES = {"card": (0.08560, 0.05398, "a bank card (ISO/IEC 7810 ID-1, 85.60 
 DOOR_HEIGHT_M = 80 * IN   # a stock US door leaf is 6 ft 8 in tall; its width is the person's to give
 PX = 1600                 # the photo is read at this many pixels on its long side
 POINT_ERR = {"vision": 0.006, "manual": 0.003}   # how well a corner is placed, as a fraction of the long side
+SQUARE_ON_ERR = 0.03      # reading scale only: standing within about 10 degrees of square on, a span is off by up to this
 USELESS = 0.25            # an error this large against the length is not a measurement; no number is given
 FAR_RATIO = 8.0           # the target this many times the reference's long side: the result is an extrapolation
 TRIALS = 300
@@ -68,44 +69,74 @@ def to_plane(h: np.ndarray, p) -> np.ndarray:
     return np.array([x / w, y / w])
 
 
-def length(corners, a, b, long_m: float, short_m: float) -> float:
-    """Distance from a to b in the reference's plane, metres. Points in pixels; corners clockwise from the top left
-    as seen. The reference's longer side in the picture is taken as its long side."""
+def _plane(corners, long_m: float, short_m: float) -> tuple[np.ndarray, np.ndarray]:
+    """The corners as an array, and where they sit in the reference's own plane in metres. The reference's longer
+    side in the picture is taken as its long side."""
     c = np.array(corners, float)
     top, side = np.linalg.norm(c[1] - c[0]) + np.linalg.norm(c[2] - c[3]), np.linalg.norm(c[2] - c[1]) + np.linalg.norm(c[3] - c[0])
     w, h = (long_m, short_m) if top >= side else (short_m, long_m)
-    hm = homography(c, np.array([[0, 0], [w, 0], [w, h], [0, h]], float))
+    return c, np.array([[0, 0], [w, 0], [w, h], [0, h]], float)
+
+
+def length(corners, a, b, long_m: float, short_m: float) -> float:
+    """Distance from a to b in the reference's plane, metres, with the full perspective taken from the four corners.
+    Points in pixels; corners clockwise from the top left as seen."""
+    c, plane = _plane(corners, long_m, short_m)
+    hm = homography(c, plane)
     return float(np.linalg.norm(to_plane(hm, a) - to_plane(hm, b)))
 
 
-def measure(points: Points, size: tuple[int, int], long_m: float, short_m: float, point_err: float) -> dict:
-    """{length_m, err_m, ratio}. The error is half the width of the middle 95% of lengths when every point is moved
-    by the placement error, so it grows as the reference gets small in the frame or far from what is measured.
+def length_square_on(corners, a, b, long_m: float, short_m: float) -> float:
+    """The same distance taking only scale and skew from the reference (a least-squares affine fit) and no
+    perspective. Right when the camera faced the plane square on; far steadier when the reference is small."""
+    c, plane = _plane(corners, long_m, short_m)
+    fit, *_ = np.linalg.lstsq(np.c_[c, np.ones(4)], plane, rcond=None)
+    return float(np.linalg.norm((np.asarray(a, float) - np.asarray(b, float)) @ fit[:2]))
+
+
+def _spread(fn, corners, a, b, long_m, short_m, sigma) -> float:
+    """Half the width of the middle 95% of `fn`'s lengths when every point is moved by the placement error.
     (Percentiles, not a standard deviation: a few trials where the jittered corners nearly fold give huge lengths.)"""
-    wpx, hpx = size
-    px = lambda p: (p[0] * wpx, p[1] * hpx)  # noqa: E731
-    corners, a, b = [px(p) for p in points.corners], px(points.a), px(points.b)
-    value = length(corners, a, b, long_m, short_m)
     rng = np.random.default_rng(0)
-    sigma = point_err * max(wpx, hpx)
     trials = []
     for _ in range(TRIALS):
         j = rng.normal(0, sigma, (6, 2))
         try:
-            trials.append(length([np.add(c, j[i]) for i, c in enumerate(corners)], np.add(a, j[4]), np.add(b, j[5]),
-                                 long_m, short_m))
+            trials.append(fn([np.add(c, j[i]) for i, c in enumerate(corners)], np.add(a, j[4]), np.add(b, j[5]), long_m, short_m))
         except np.linalg.LinAlgError:
             continue
-    lo, hi = np.percentile(trials, [2.5, 97.5]) if trials else (0.0, float("inf"))
-    return {"length_m": value, "err_m": float(hi - lo) / 2, "ratio": value / long_m}
+    if not trials:
+        return float("inf")
+    lo, hi = np.percentile(trials, [2.5, 97.5])
+    return float(hi - lo) / 2
+
+
+def measure(points: Points, size: tuple[int, int], long_m: float, short_m: float, point_err: float) -> dict:
+    """{length_m, err_m, ratio, model}. Two ways to read the photo, and the one with the smaller error is used:
+
+    perspective  the reference's four corners fix the camera's full perspective. Exact in principle, but a small
+                 reference cannot pin the perspective down, and the error grows very fast as it shrinks.
+    square_on    scale and skew only. Steady with a small reference, and wrong by a few percent when the camera
+                 did not face the plane; SQUARE_ON_ERR is added for that, and the result says it was assumed."""
+    wpx, hpx = size
+    px = lambda p: (p[0] * wpx, p[1] * hpx)  # noqa: E731
+    corners, a, b = [px(p) for p in points.corners], px(points.a), px(points.b)
+    sigma = point_err * max(wpx, hpx)
+    full = length(corners, a, b, long_m, short_m)
+    full_err = _spread(length, corners, a, b, long_m, short_m, sigma) if sigma else 0.0
+    flat = length_square_on(corners, a, b, long_m, short_m)
+    flat_err = float(np.hypot(_spread(length_square_on, corners, a, b, long_m, short_m, sigma) if sigma else 0.0, SQUARE_ON_ERR * flat))
+    value, err, model = (full, full_err, "perspective") if full_err <= flat_err else (flat, flat_err, "square_on")
+    return {"length_m": value, "err_m": err, "ratio": value / long_m, "model": model}
 
 
 POINT = {"type": "object", "additionalProperties": False, "required": ["x", "y"],
          "properties": {"x": {"type": "integer"}, "y": {"type": "integer"}}}
+CORNERS = ("top_left", "top_right", "bottom_right", "bottom_left")   # clockwise, as the reference appears in the photo
+# each corner is its own field: the model API takes no array length other than 0 or 1 in a schema
 SCHEMA = {"type": "object", "additionalProperties": False,
-          "required": ["reference_found", "corners", "ends_found", "a", "b", "same_plane", "confidence", "seen"],
-          "properties": {"reference_found": {"type": "boolean"},
-                         "corners": {"type": "array", "items": POINT, "minItems": 4, "maxItems": 4},
+          "required": ["reference_found", *CORNERS, "ends_found", "a", "b", "same_plane", "confidence", "seen"],
+          "properties": {"reference_found": {"type": "boolean"}, **{c: POINT for c in CORNERS},
                          "ends_found": {"type": "boolean"}, "a": POINT, "b": POINT,
                          "same_plane": {"type": "string", "enum": ["yes", "no", "unsure"]},
                          "confidence": {"type": "string", "enum": ["high", "medium", "low"]},
@@ -125,8 +156,8 @@ def find_points(capture: str, reference: str, what: str, ask=None, image=None) -
     thing = REFERENCES[reference][2] if reference in REFERENCES else "a door leaf (the moving panel, not the frame)"
     out = ask([data], (
         f"This photo is {w} x {h} pixels. It should show {thing}, used as a size reference, and {what}.\n"
-        "1. Give the four corners of the reference in pixels, going round it clockwise starting from its top left "
-        "corner as it appears in the photo.\n"
+        "1. Give the four corners of the reference in pixels, named as they appear in the photo: top_left, top_right, "
+        "bottom_right, bottom_left.\n"
         f"2. Give the two end points, a and b, of {what}, in pixels, at the height of the reference where that is "
         "possible. For a doorway's clear width these are the two inner faces a person passes between.\n"
         "3. same_plane: is the reference lying in the same flat plane as the line from a to b (for example held "
@@ -135,7 +166,7 @@ def find_points(capture: str, reference: str, what: str, ask=None, image=None) -
         SCHEMA, key=f"photo_measure/{capture}/{reference}")
     ok = out["reference_found"] and out["ends_found"]
     frac = lambda p: (min(max(p["x"] / w, 0.0), 1.0), min(max(p["y"] / h, 0.0), 1.0))  # noqa: E731
-    return {"points": Points(corners=[frac(p) for p in out["corners"]], a=frac(out["a"]), b=frac(out["b"])) if ok else None,
+    return {"points": Points(corners=[frac(out[c]) for c in CORNERS], a=frac(out["a"]), b=frac(out["b"])) if ok else None,
             "same_plane": out["same_plane"], "confidence": out["confidence"], "seen": out["seen"], "size": (w, h),
             "reference_found": out["reference_found"], "ends_found": out["ends_found"]}
 
@@ -192,8 +223,10 @@ def run(ctx, inputs: Inputs) -> ToolResult:
             "sheet of paper or the door itself for a doorway, a card only for a step or a threshold close up.")),
             assumptions=[Assumption(id="reference_px", label="Times the reference", value=round(m["ratio"], 1), unit="x")])
     conf = "low" if rel > 0.06 or m["ratio"] > FAR_RATIO or plane == "no" else "high" if rel <= 0.02 and plane != "unsure" else "medium"
-    ctx.step(f"Perspective corrected onto the plane of {ref_name}; points placed by "
-             f"{'the vision reader' if who == 'vision' else 'hand'}")
+    flat = m["model"] == "square_on"
+    ctx.step((f"Scaled from {ref_name}, taking the camera as square on to it (the reference is too small in the frame "
+              "to fix the perspective)" if flat else f"Perspective corrected onto the plane of {ref_name}")
+             + f"; points placed by {'the vision reader' if who == 'vision' else 'hand'}")
     src = source("vision" if who == "vision" else "manual", conf,
                  f"One photo, scaled from {ref_name}; ends placed by {'the vision reader' if who == 'vision' else 'the person'}"
                  + (f" ({seen})" if seen else ""))
@@ -224,5 +257,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         assumptions=[Assumption(id="same_plane", label="The reference lies in the same plane as what is measured",
                                 value={"yes": "looks so", "no": "does not look so", "unsure": "not checked"}[plane]),
                      Assumption(id="points_from", label="Points placed by", value="vision reader" if who == "vision" else "you"),
+                     Assumption(id="square_on", label="Camera taken as facing the plane square on (the reference is too "
+                                "small to tell)" if flat else "Perspective read from the reference's four corners", value=True),
                      Assumption(id="lens", label="Lens distortion is not corrected; keep the subject near the middle",
                                 value=True)])
