@@ -4,6 +4,7 @@ from __future__ import annotations
 from pydantic import BaseModel
 
 from ...geometry import turning_spaces
+from ...geometry._plan import floor_z
 from .. import (Assumption, Check, Finding, Legend, LensOverlay, Metric, Pin, PinsOverlay, PointAnchor, RoomAnchor,
                 ScanScope, ToolResult, Verdict, field, tool)
 from .._access import GEO, STD, fmt, quality, rooms
@@ -59,7 +60,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         checks.append(Check(id=f"turn.{t['room']}", rule=f"Turning circle, {t['label']}", measured=round(t["diameter"], 3),
                             threshold=need, unit="m", status=t["status"], standard=STD["turn"],
                             findings=[fid] if bad else []))
-        z = next((f.get("elevation") or 0.0 for f in plan["floors"] if f["id"] == rs[t["room"]]["floor"]), 0.0)
+        z = floor_z(plan).get(rs[t["room"]]["floor"], 0.0)  # scan z of the room's floor, not its height above the lowest
         pins.append(Pin(id=f"turn.{t['room']}", anchor=PointAnchor(sid=sid, point=(*t["center"], z)),
                         label=f"{t['diameter']:.2f} m circle", status=t["status"]))
     lens = ts["lens"]
