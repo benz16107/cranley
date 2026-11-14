@@ -27,6 +27,13 @@ export function Mobile() {
     addEventListener('popstate', pop); document.addEventListener('visibilitychange', seen)
     return () => { removeEventListener('popstate', pop); document.removeEventListener('visibilitychange', seen) }
   }, [])
+  useEffect(() => { // mobile Safari and Chrome put the keyboard over fixed bars: lift the action bar above it, hide the tabs
+    const vv = visualViewport, root = document.documentElement
+    if (!vv) return
+    const fit = () => { const kb = Math.max(0, innerHeight - vv.height - vv.offsetTop); root.style.setProperty('--kb', `${kb}px`); root.toggleAttribute('data-kb', kb > 80) }
+    vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit)
+    return () => { vv.removeEventListener('resize', fit); vv.removeEventListener('scroll', fit) }
+  }, [])
   const busy = view?.busy
   useEffect(() => { // while the agent or a slow tool works, read often; otherwise now and then, for what the desktop adds
     const t = setInterval(() => { if (document.visibilityState === 'visible') void refresh() }, busy ? 2500 : 8000)

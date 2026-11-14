@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
-import { answer, brief, building, captureFile, choose, forget, usePhone, type Capture, type Question, type Task, type View } from './api.ts'
+import { answer, brief, building, captureFile, choose, forget, usePhone, type Building, type Capture, type Question, type Task, type View } from './api.ts'
 import { Field, ResultCard, Row, num, toolTitle } from './parts.tsx'
 import { useDictation } from './sensors.ts'
 
@@ -20,8 +20,8 @@ export const TOOLS: { id: ToolId; title: string; sub: string; uses: string; need
 ]
 const KIND_WORD: Record<Task['kind'], string> = { width: 'Tape', step: 'Tape', slope: 'Level', alarm: 'Look', floor_height: 'Count, GPS', heading: 'Compass' }
 /* Tasks are listed under what is being settled, so a row only has to say where. */
-const GROUPS: [Task['kind'], string, RegExp | null][] = [['floor_height', 'Flood: floor height', null], ['width', 'Doorways: clear width', /^Measure the doorway, /], ['step', 'Steps and thresholds', /^Measure the step (at the doorway, )?/],
-  ['slope', 'Ramps', null], ['alarm', 'Smoke alarms: ceilings to check', /^Photograph the ceiling in /], ['heading', 'Windows: which way they face', /^Point the phone out of the window in /]]
+const GROUPS: [Task['kind'], string, RegExp | null][] = [['floor_height', 'Flood: floor height', null], ['width', 'Doorways: clear width', /^Measure the doorway, /], ['step', 'Steps and thresholds', /^Measure the step:? (at the doorway, )?/],
+  ['slope', 'Ramps', /^Check the slope:? (of the ramp )?/], ['alarm', 'Smoke alarms: ceilings to check', /^Photograph the ceiling in /], ['heading', 'Windows: which way they face', /^Point the phone out of the window in /]]
 const short = (t: Task) => { const cut = GROUPS.find(([k]) => k === t.kind)?.[2]; const s = cut ? t.title.replace(cut, '') : t.title; return s.charAt(0).toUpperCase() + s.slice(1) }
 const SAID = { confirmed: 'confirms', contradicted: 'contradicts', measured: 'measured' } as const
 
@@ -80,7 +80,7 @@ function TaskRow({ t, open }: { t: Task; open: (t: Task) => void }) {
   const o = t.outcome
   return <Row status={o ? o.status : 'unknown'} done={t.status === 'done'} title={short(t)} onClick={() => open(t)}
     sub={o ? `${SAID[o.verdict]}${o.value != null ? `, ${num(o.value, t.unit)}` : ''}`
-      : t.kind === 'width' && t.threshold != null ? `${t.scan_value != null ? `Scan says ${num(t.scan_value, 'm')}` : 'The scan has no usable width'}, you need ${num(t.threshold, 'm')}` : t.why}
+      : t.kind === 'width' && t.threshold != null ? `${t.scan_value != null ? `About ${num(t.scan_value, 'm')} clear by the scan` : 'The scan has no usable width'}, you need ${num(t.threshold, 'm')}` : t.why}
     right={o ? 'Redo' : KIND_WORD[t.kind]} />
 }
 
@@ -149,6 +149,9 @@ export function Results({ view }: { view: View }) {
   )
 }
 
+/** The address without the part the name already says (names are often the address plus the unit). */
+const rest = (b: Building) => (b.address?.startsWith(b.name) ? b.address.slice(b.name.length).replace(/^,\s*/, '') : b.address ?? '')
+
 export function Header({ onPrivacy }: { onPrivacy: () => void }) {
   const view = usePhone((s) => s.view), sid = usePhone((s) => s.sid), paired = usePhone((s) => s.paired), b = usePhone(building)
   return (
@@ -160,9 +163,9 @@ export function Header({ onPrivacy }: { onPrivacy: () => void }) {
       </div>
       {view && view.buildings.length > 1 ? (
         <select className="m-input m-building" aria-label="Building" value={sid ?? ''} onChange={(e) => choose(e.target.value)}>
-          {view.buildings.map((x) => <option key={x.sid} value={x.sid}>{x.name}{x.address ? `, ${x.address}` : ''}</option>)}
+          {view.buildings.map((x) => <option key={x.sid} value={x.sid}>{x.name}{rest(x) && `, ${rest(x)}`}</option>)}
         </select>
-      ) : b ? <p className="m-building"><b>{b.name}</b>{b.address && <span> {b.address.startsWith(b.name) ? b.address.slice(b.name.length).replace(/^,\s*/, '') : b.address}</span>}{!b.walls && <span className="m-flag"> no wall graph</span>}</p> : null}
+      ) : b ? <p className="m-building"><b>{b.name}</b>{rest(b) && <span> {rest(b)}</span>}{!b.walls && <span className="m-flag"> no wall graph</span>}</p> : null}
     </header>
   )
 }

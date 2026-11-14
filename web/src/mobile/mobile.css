@@ -36,6 +36,9 @@ select.m-building { height: 40px; }
 /* ---------- bottom: tabs on the home screen, actions on a capture screen ---------- */
 .m-tabs, .m-actions { position: fixed; inset: auto 0 0 0; z-index: 4; max-width: 560px; margin-inline: auto; background: var(--pane); border-top: 1px solid var(--rule-strong); padding-bottom: env(safe-area-inset-bottom); }
 .m-tabs { display: grid; grid-template-columns: repeat(3, 1fr); }
+.m-actions { bottom: var(--kb, 0px); }
+[data-kb] .m-tabs { display: none; }
+[data-kb] .m-actions { padding-bottom: var(--s-3); }
 .m-tabs button { height: 56px; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 550; color: var(--ink-3); border-top: 2px solid transparent; margin-top: -1px; transition: color var(--dur-1) ease; }
 .m-tabs button[aria-current] { color: var(--ink); border-top-color: var(--ink); }
 .m-tabs .num { font-size: var(--text-xs); background: var(--ink); color: var(--pane); padding: 1px 5px; border-radius: var(--r-1); }

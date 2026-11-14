@@ -91,3 +91,13 @@ def test_judge_step_and_alarm():
     assert judge(a, None, answer="present") == {"verdict": "contradicted", "status": "pass", "value": None, "err": None,
                                                 "text": "A smoke alarm is there. The scan's photos did not show it."}
     assert judge(a, None, answer="absent")["status"] == "fail" and judge(a, None, answer="unclear")["status"] == "unknown"
+
+
+def test_a_step_seen_in_a_panorama_says_where_it_is(session):
+    fake(session, "step_free_route", findings=[
+        Finding(id="step_free_route:home:seen:step_or_threshold_1", title="Panorama shows step or threshold", status="warn",
+                detail="Wood-to-carpet transition at bedroom door. Seen by the vision model in the panorama, not measured.", anchor=None, source=SRC),
+        Finding(id="step_free_route:home:seen:step_or_threshold_2", title="Panorama shows step or threshold", status="warn", detail="", anchor=None, source=SRC)])
+    t = by_id(tasks(session.doc, plans))
+    assert t["step:home:step_or_threshold_1"]["title"] == "Measure the step: wood-to-carpet transition at bedroom door"
+    assert t["step:home:step_or_threshold_2"]["title"] == "Measure the step seen on your route"   # no description: the old words

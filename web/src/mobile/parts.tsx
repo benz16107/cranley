@@ -71,9 +71,9 @@ export function RoomPick({ rooms, value, onChange }: { rooms: Room[]; value: str
 /** The camera, through the system's own picker: the most reliable way to a full photo or video on both platforms. */
 export function Camera({ label, video, onFile, quiet }: { label: string; video?: boolean; onFile: (f: File) => void; quiet?: boolean }) {
   const ref = useRef<HTMLInputElement>(null)
-  return (
+  return ( // no `capture`: the phone then offers camera or library, so a photo taken earlier works too (and in a simulator)
     <>
-      <input ref={ref} className="sr" type="file" accept={video ? 'video/*' : 'image/*'} capture="environment" tabIndex={-1} aria-hidden="true"
+      <input ref={ref} className="sr" type="file" accept={video ? 'video/*' : 'image/*'} tabIndex={-1} aria-hidden="true"
         onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) onFile(f) }} />
       <button className={`btn m-btn${quiet ? '' : ' solid'}`} onClick={() => ref.current?.click()}>{label}</button>
     </>

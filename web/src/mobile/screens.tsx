@@ -38,7 +38,7 @@ function TaskHead({ task }: { task: Task }) {
     <section className="m-brief">
       <p>{task.how}</p>
       <dl className="m-kv">
-        {task.scan_value != null && <div><dt>{task.kind === 'heading' ? 'Direct sun by the scan' : task.kind === 'floor_height' ? 'Flood result uses' : 'Scan says'}</dt><dd className="num">{num(task.scan_value, task.unit)}</dd></div>}
+        {task.scan_value != null && <div><dt>{task.kind === 'heading' ? 'Direct sun by the scan' : task.kind === 'floor_height' ? 'Flood result uses' : task.kind === 'width' ? 'Clear, by the scan' : 'Scan says'}</dt><dd className="num">{num(task.scan_value, task.unit)}</dd></div>}
         {task.threshold != null && task.unit === 'm' && <div><dt>{task.kind === 'step' ? 'Flat up to' : 'You need'}</dt><dd className="num">{num(task.threshold, task.unit)}</dd></div>}
       </dl>
       <p className="m-why">{task.why}{task.standard ? ` ${task.standard}.` : ''}</p>
