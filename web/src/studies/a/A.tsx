@@ -8,7 +8,7 @@ import type { MapPalette } from '../../map/style.ts'
 import type { View } from '../../scene/types.ts'
 import { Scale } from '../Scale.tsx'
 import { StudyMap, type Pin } from '../StudyMap.tsx'
-import { BRIEF, FOCUS, NONE, PREFS, STARTERS, STEPS, doorOf, lookAtDoor, m2, rank, sceneOverlays, scenePlan, useAudit, useAudits, useCity, type Place } from '../data.ts'
+import { BRIEF, NONE, PREFS, STARTERS, STEPS, doorOf, lookAtDoor, m2, rank, sceneOverlays, scenePlan, useAudit, useAudits, useCity, type Place } from '../data.ts'
 import type { Moment } from '../index.tsx'
 import './a.css'
 
@@ -54,7 +54,7 @@ function Dock({ step, view, children }: { step?: number; view?: string; children
 
 /* (a) The front door: a drone capture of a real house, the agent's first line, one field. */
 function Door() {
-  const city = useCity(), audit = useAudit(FOCUS)
+  const city = useCity(), audit = useAudit(city?.focus.sid)
   return (
     <>
       <div className="stage">{audit && <BuildingScene plan={scenePlan(audit.plan)} view={SPLAT} />}</div>
@@ -125,7 +125,7 @@ function CityShot() {
 
 /* (c) The result: stand at the doorway that fails, with its width drawn across it. */
 function Doorway() {
-  const city = useCity(), audit = useAudit(FOCUS)
+  const city = useCity(), audit = useAudit(city?.focus.sid)
   const hit = audit && doorOf(audit.result, audit.worst)
   const view = useMemo(() => (audit && hit ? lookAtDoor(audit.plan, hit.opening) : null), [audit, hit?.opening]) // eslint-disable-line react-hooks/exhaustive-deps
   const overlays = useMemo(() => (audit ? sceneOverlays(audit.result) : []), [audit])

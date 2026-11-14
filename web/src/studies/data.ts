@@ -7,14 +7,21 @@ import { buildModel, sightBlocked } from '../scene/model.ts'
 import type { Overlay as SceneOverlay, ScanPlan as ScenePlan, View } from '../scene/types.ts'
 import type { Check, ScanPlan, ToolResult } from '../workspace/types.ts'
 
-export const FOCUS = '<scan-id>' // a single-storey Houston house with a drone capture
+/** The house the studies are about. Which scan is sponsor data, so no id is written here: `?sid=<scan>` picks it and
+    is remembered in this browser; with none, it is the first Houston house with a drone capture in the feed. */
+const asked = typeof location === 'undefined' ? null : new URLSearchParams(location.search).get('sid')
+if (asked) try { localStorage.setItem('threshold.study.sid', asked) } catch { /* private window */ }
+const FOCUS = asked ?? (typeof localStorage === 'undefined' ? null : localStorage.getItem('threshold.study.sid'))
 export const PREFS: AccessPrefs = { door: 0.815, turning: 1.525, turningNeeded: true, routeTo: 'Bedroom' }
 export const BRIEF = 'I use a power wheelchair and I want a single-storey house near Clear Lake.'
 export const STEPS = ['Find houses with a drone capture nearby', 'Read each floor plan', 'Trace the way in and measure every doorway', 'Rank the houses', 'Show what decides it']
-export const STARTERS: [who: string, need: string, sid: string][] = [
-  ['A wheelchair user', 'choosing a house', '<scan-id>'], ['A fire captain', 'pre-planning a block', '<scan-id>'],
-  ['A homeowner', 'before a hurricane', FOCUS], ['An office tenant', 'fitting a team', '<scan-id>'], ['A property manager', 'scoping a unit turn', '<scan-id>'],
+/** Starting points, each with the kind of scan it opens (the server's kind; the first such scan in the feed). */
+export const STARTERS: [who: string, need: string, kind: string][] = [
+  ['A wheelchair user', 'choosing a house', 'apartment_unit'], ['A fire captain', 'pre-planning a block', 'apartment_unit'],
+  ['A homeowner', 'before a hurricane', 'house'], ['An office tenant', 'fitting a team', 'office'], ['A property manager', 'scoping a unit turn', 'apartment_unit'],
 ]
+/** One scan per starting point, taken from the feed: the focus house for houses, else the nth scan of that kind. */
+export const starterSids = (c: City) => STARTERS.map(([, , kind], i) => (kind === 'house' ? c.focus.sid : c.houston.filter((p) => p.kind === kind && p.scans === 1)[i]?.sid ?? c.focus.sid))
 
 export type Place = { sid: string; lon: number; lat: number; street: string; city: string; scans: number; splat: boolean; kind: string; rooms: number }
 type Feature = { geometry: { coordinates: [number, number] }; properties: { address: string; city: string; count: number; splat: boolean; scans: (unknown[] | { sid: string; name: string; rooms: number })[] } }
@@ -29,7 +36,7 @@ const loadCity = () => (city ??= fetch('/api/buildings').then((r) => r.json()).t
     const s = p.scans[0], first = Array.isArray(s) ? { sid: String(s[0]), kind: String(s[2] ?? ''), rooms: Number(s[3] ?? 0) } : { sid: s?.sid ?? '', kind: '', rooms: s?.rooms ?? 0 }
     return { ...first, lon, lat, street: (p.address || 'Address not recorded').split(',')[0], city: p.city, scans: p.count, splat: p.splat }
   })
-  const houston = all.filter(inHouston), focus = houston.find((p) => p.sid === FOCUS)!
+  const houston = all.filter(inHouston), focus = houston.find((p) => p.sid === FOCUS) ?? houston.find((p) => p.splat && p.scans === 1 && p.kind === 'house') ?? houston[0]
   // the agent's shortlist: single houses with a drone capture, nearest first
   const candidates = houston.filter((p) => p.splat && p.scans === 1).sort((a, b) => km(a, focus) - km(b, focus)).slice(0, 10)
   return { all, houston, scans: all.reduce((n, p) => n + p.scans, 0), focus, candidates }

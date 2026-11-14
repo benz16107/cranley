@@ -10,7 +10,7 @@ import { fetchPlan } from '../../lib/api.ts'
 import type { ScanPlan } from '../../workspace/types.ts'
 import { Scale } from '../Scale.tsx'
 import { StudyMap, type Pin } from '../StudyMap.tsx'
-import { BRIEF, FOCUS, NONE, PREFS, STARTERS, STEPS, doorOf, lookAtDoor, m2, rank, sceneOverlays, scenePlan, useAudit, useAudits, useCity, type Audit, type Place } from '../data.ts'
+import { BRIEF, NONE, PREFS, STARTERS, STEPS, starterSids, doorOf, lookAtDoor, m2, rank, sceneOverlays, scenePlan, useAudit, useAudits, useCity, type Audit, type Place } from '../data.ts'
 import type { Moment } from '../index.tsx'
 import './c.css'
 
@@ -41,7 +41,7 @@ const Sheets = ({ on }: { on?: boolean }) => (
 function Table() {
   const city = useCity()
   const [plans, setPlans] = useState<(ScanPlan | null)[]>([])
-  useEffect(() => { void Promise.all(STARTERS.map(([, , sid]) => fetchPlan(sid).catch(() => null))).then(setPlans) }, [])
+  useEffect(() => { if (city) void Promise.all(starterSids(city).map((sid) => fetchPlan(sid).catch(() => null))).then(setPlans) }, [city])
   return (
     <>
       <Print place="Houston and Los Angeles" />
@@ -103,7 +103,7 @@ function CityTable() {
 
 /* (c) The building: a card model cut open on the mat, the way in laid through it in tape, the doorways tagged. */
 function Model() {
-  const city = useCity(), audit = useAudit(FOCUS)
+  const city = useCity(), audit = useAudit(city?.focus.sid)
   const overlays = useMemo(() => (audit ? sceneOverlays(audit.result) : []), [audit])
   if (!audit) return null
   const r = audit.result, w = audit.worst!, hit = doorOf(r, w), under = r.metrics.find((m) => m.id === 'under')

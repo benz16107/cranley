@@ -6,7 +6,7 @@ import { BuildingScene } from '../../scene/BuildingScene.tsx'
 import type { MapPalette } from '../../map/style.ts'
 import type { View } from '../../scene/types.ts'
 import { StudyMap, type Pin } from '../StudyMap.tsx'
-import { BRIEF, FOCUS, NONE, PREFS, STARTERS, doorOf, lookAtDoor, m2, rank, sceneOverlays, scenePlan, useAudit, useAudits, useCity, type Audit, type Place } from '../data.ts'
+import { BRIEF, NONE, PREFS, STARTERS, doorOf, lookAtDoor, m2, rank, sceneOverlays, scenePlan, useAudit, useAudits, useCity, type Audit, type Place } from '../data.ts'
 import type { Moment } from '../index.tsx'
 import './b.css'
 
@@ -37,7 +37,7 @@ const Fig = ({ n, children, className }: { n: number; children: ReactNode; class
 
 /* (a) The front door: one fact, one line to write on, and a real house cut open on the page. */
 function Door() {
-  const city = useCity(), audit = useAudit(FOCUS)
+  const city = useCity(), audit = useAudit(city?.focus.sid)
   return (
     <>
       <div className="stage bs-plate-right">{audit && <BuildingScene plan={scenePlan(audit.plan)} view={CUT} />}</div>
@@ -97,7 +97,7 @@ function CityPage() {
 
 /* (c) The building: the verdict as a headline, the model as figure 1, the two doorways as photographs. */
 function BuildingPage() {
-  const city = useCity(), audit = useAudit(FOCUS)
+  const city = useCity(), audit = useAudit(city?.focus.sid)
   const overlays = useMemo(() => (audit ? sceneOverlays(audit.result) : []), [audit])
   if (!audit) return null
   const r = audit.result, w = audit.worst!, hit = doorOf(r, w), under = r.metrics.find((m) => m.id === 'under'), route = r.metrics.find((m) => m.id === 'route')
