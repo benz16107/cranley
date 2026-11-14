@@ -6,6 +6,7 @@ import json
 import logging
 import queue
 import threading
+import time
 from typing import Any
 
 from fastapi import APIRouter, Body, HTTPException, Query
@@ -16,7 +17,7 @@ from ..agent import prefs
 from ..agent.budget import Budget
 from ..agent.catalog import catalog
 from ..agent.investigator import Investigation, attach, turn
-from ..agent.workspace import Rejected, Session
+from ..agent.workspace import Rejected, RunFinish, Session
 from ..tools import Place, ToolError, run_tool
 
 router = APIRouter(prefix="/api")
@@ -26,6 +27,7 @@ _background = concurrent.futures.ThreadPoolExecutor(max_workers=4, thread_name_p
 # workspace id -> run id -> its background job. A run reads "done" before its findings, panel and camera are written
 # (each op is stored as it is emitted), so the view names the runs still writing in `busy`.
 _jobs: dict[str, dict[str, concurrent.futures.Future]] = {}
+ORPHAN_S = 3600  # no tool runs this long (a smoke simulation takes minutes), so a run still open is one a restart cut off
 
 
 def session(id: str) -> Session:
@@ -37,6 +39,11 @@ def session(id: str) -> Session:
                 raise HTTPException(404, str(e)) from None
         s = _sessions[id]
     s.sync()  # another server process may have appended (MongoDB store); a no-op for files
+    for r in [r for r in s.doc.runs if r.status == "running" and (r.started or 0) < time.time() - ORPHAN_S]:
+        try:
+            s.submit(RunFinish(id=r.id, status="error", error="The server stopped while this ran. Run it again."), by="system")
+        except Rejected:
+            pass
     return s
 
 

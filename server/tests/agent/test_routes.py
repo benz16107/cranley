@@ -123,3 +123,17 @@ def test_live_resumes_after_the_last_event_id(tmp_path, monkeypatch):
             if line.startswith("data:") and '"seq"' in line:
                 break
     assert "id: 2" in lines and json.loads(lines[-1][5:])["seq"] == 2   # op 1 is not sent again
+
+
+def test_a_run_a_restart_cut_off_ends_as_an_error(tmp_path, monkeypatch):
+    from threshold.agent.workspace import Run, RunStart
+    from threshold.api import agent as api
+    monkeypatch.setattr(workspace, "STORE", tmp_path)
+    c = TestClient(app)
+    wid = c.post("/api/workspace").json()["doc"]["id"]
+    s = api.session(wid)
+    s.submit(RunStart(record=Run(id="run_old", tool="door_widths", started=1.0), run="run_old"), by="system")
+    s.submit(RunStart(record=Run(id="run_new", tool="door_widths", started=__import__("time").time()), run="run_new"), by="system")
+    runs = {r["id"]: r for r in c.get(f"/api/workspace/{wid}").json()["doc"]["runs"]}
+    assert runs["run_old"]["status"] == "error" and "stopped" in runs["run_old"]["error"]
+    assert runs["run_new"]["status"] == "running"
