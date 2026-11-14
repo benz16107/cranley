@@ -16,6 +16,12 @@ Collections
               offers it, else the store embeds locally into `vector` (embed.py).
   shortlist   shortlisted scans with a GeoJSON `location` and a 2dsphere index.
   shares      read-only share links; a TTL index on `expires` deletes them when they lapse.
+  sensors     a time series collection of the phone's on-site readings (GPS fix, altitude, compass, tilt, the reading's
+              own values), one measurement per capture with its workspace, scan, room and tool as the meta field;
+              expires after 30 days. Filled from the capture records each time the workspace is saved.
+  agent_*     LangGraph checkpoints and the agents' long-term memory (agent/durable.py).
+
+The log has a $jsonSchema validator: an entry names its workspace, a positive seq, a time, and an op or an undo.
 
 Writes: the store inserts new log entries (several in one transaction), then replaces the snapshot if its seq is
 higher, then upserts the derived items that changed (content hash `h`). A duplicate (workspace, seq) raises
@@ -48,6 +54,14 @@ HISTORY_INDEX = {"mappings": {"dynamic": False, "fields": {
     "at": {"type": "number"}}}}
 FILTERS = [{"type": "filter", "path": p} for p in ("persona", "profile", "workspace")]
 HISTORY_FILTERS = [{"type": "filter", "path": p} for p in ("profile", "workspace", "kind", "tool", "status", "city", "feedback")]
+SENSOR_TTL_S = 30 * 24 * 3600
+OPS_SCHEMA = {"$jsonSchema": {
+    "bsonType": "object", "required": ["workspace", "seq", "at"],
+    "properties": {"workspace": {"bsonType": "string", "minLength": 1}, "seq": {"bsonType": ["int", "long"], "minimum": 1},
+                   "at": {"bsonType": ["double", "int", "long"]}, "op": {"bsonType": ["object", "null"]},
+                   "undo": {"bsonType": ["int", "long", "null"]}, "cause": {"bsonType": ["int", "long", "null"]}},
+    "anyOf": [{"required": ["op"], "properties": {"op": {"bsonType": "object"}}},
+              {"required": ["undo"], "properties": {"undo": {"bsonType": ["int", "long"]}}}]}}
 RECALL_TTL = 60  # the free tier allowed about three query embeddings a minute (measured 2026-11-14)
 
 
@@ -65,7 +79,7 @@ class MongoStore:
         self.client = MongoClient(uri, appname="threshold", tz_aware=True, serverSelectionTimeoutMS=5000)
         self.db = self.client[db]
         self.target = f"{'local' if is_local(uri) else 'atlas'}:{db}"  # names the deployment without its address
-        for name in ("ops", "workspaces", "prefs", "history", "memories", "shortlist", "shares"):
+        for name in ("ops", "workspaces", "prefs", "history", "memories", "shortlist", "shares", "sensors"):
             setattr(self, name, self.db[name])
         self.where = where
         self._seen: dict[tuple[str, str], dict[str, str]] = {}  # (collection, workspace) -> {_id: content hash}
@@ -86,10 +100,18 @@ class MongoStore:
         self.prefs.create_index("profile", name="profile")
         for c in (self.history, self.memories, self.shortlist):
             c.create_index("workspace", name="workspace")
+        # (sensors: the time series collection buckets by its meta field; no secondary index needed at this size)
         self.shortlist.create_index([("location", "2dsphere")], name="location")
         self.shortlist.create_index("profile", name="profile")
         self.shares.create_index("expires", expireAfterSeconds=0, name="expires")
         self.shares.create_index("workspace", name="workspace")
+        if "sensors" not in have:
+            self.db.create_collection("sensors", timeseries={"timeField": "at", "metaField": "meta", "granularity": "seconds"},
+                                      expireAfterSeconds=SENSOR_TTL_S)
+        try:
+            self.db.command("collMod", "ops", validator=OPS_SCHEMA, validationLevel="strict", validationAction="error")
+        except OperationFailure:  # a database user without collMod: the store works, unguarded
+            logging.getLogger("threshold.store").warning("could not set the ops validator")
         if not self._index("history", self.history):
             self.history.create_search_index(SearchIndexModel(HISTORY_INDEX, name="history"))
         self.vector_mode = self._memory_index()
@@ -205,6 +227,44 @@ class MongoStore:
         self._sync(self.shortlist, ws, derive.shortlist(d, self.where))
         m = derive.memory(d)
         self._sync(self.memories, ws, [m] if m else [], vectors=self.vector_mode == "local", field="text")
+        self.record_sensors(ws)
+
+    # ---- phone sensors (time series) ----
+
+    def record_sensors(self, ws: str, captures: list[dict] | None = None) -> int:
+        """Insert the workspace's phone readings not stored yet. Time series collections take no unique index, so
+        the capture ids already stored are read once per workspace and remembered."""
+        if captures is None:
+            from ..capture import store as cap
+            if not (cap.ROOT / ws).is_dir():
+                return 0
+            captures = cap.listing(ws)
+        with self._lock:
+            key = ("sensors", ws)
+            if key not in self._seen:
+                self._seen[key] = {c: "" for c in self.sensors.distinct("meta.capture", {"meta.workspace": ws})}
+            seen = self._seen[key]
+            rows = [derive.sensor(ws, c) for c in captures if c.get("id") and c["id"] not in seen]
+            rows = [r for r in rows if r]
+            if rows:
+                self.sensors.insert_many(rows, ordered=False)
+                seen.update({r["meta"]["capture"]: "" for r in rows})
+            return len(rows)
+
+    def sensor_series(self, ws: str, scan: str | None = None, every: str = "minute") -> list[dict]:
+        """The visit as a timeline: readings per `every` (second, minute, hour) and tool, with the mean GPS accuracy
+        and altitude, and the altitude change since the visit's first reading (a barometer-free floor height cue)."""
+        match = {"meta.workspace": ws, **({"meta.scan": scan} if scan else {})}
+        return list(self.sensors.aggregate([
+            {"$match": match},
+            {"$group": {"_id": {"t": {"$dateTrunc": {"date": "$at", "unit": every}}, "tool": "$meta.tool", "kind": "$meta.kind"},
+                        "readings": {"$sum": 1}, "accuracy_m": {"$avg": "$accuracy_m"},
+                        "altitude_m": {"$avg": "$altitude_m"}, "heading_deg": {"$avg": "$heading_deg"}}},
+            {"$sort": {"_id.t": 1}},
+            {"$setWindowFields": {"sortBy": {"_id.t": 1}, "output": {"first_altitude": {"$first": "$altitude_m", "window": {"documents": ["unbounded", "current"]}}}}},
+            {"$project": {"_id": 0, "at": "$_id.t", "tool": "$_id.tool", "kind": "$_id.kind", "readings": 1, "accuracy_m": 1,
+                          "altitude_m": 1, "heading_deg": 1,
+                          "altitude_change_m": {"$subtract": ["$altitude_m", "$first_altitude"]}}}]))
 
     def _sync(self, coll, ws: str, docs: list[dict], vectors: bool = False, field: str = "text") -> None:
         """Write the items whose content changed and delete the ones that went away."""

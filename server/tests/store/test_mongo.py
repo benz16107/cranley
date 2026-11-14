@@ -209,3 +209,21 @@ def test_hybrid_search_merges_words_and_meaning(ms):
     both = until(lambda: (h := ms.hybrid("bathroom door", profile="pat")) and h[0]["finding"] == "f1" and h)
     assert both[0]["matched_by"] == ["meaning", "words"] and all(h.get("workspace") for h in both)
     assert all(h.get("finding") != "g1" for h in both)  # another profile's work never shows
+
+
+def test_phone_readings_land_in_a_time_series_once(ms):
+    import pytest
+    from pymongo.errors import WriteError
+    t0 = 1_794_000_000.0
+    caps = [{"id": f"cap_{i}", "kind": "reading", "tool": "floor_height", "scan": "t1", "taken": t0 + 20 * i,
+             "fix": {"lat": 29.76, "lon": -95.37, "accuracy_m": 5.0, "altitude_m": 12.0 + i}, "heading_deg": 90.0,
+             "values": {"steps": 3, "note": "front"}} for i in range(4)]
+    assert ms.record_sensors("ws_x", caps) == 4
+    assert ms.record_sensors("ws_x", caps + [{**caps[0], "id": "cap_9", "taken": t0 + 200}]) == 1  # only the new one
+    opts = ms.db.command("listCollections", filter={"name": "sensors"})["cursor"]["firstBatch"][0]["options"]
+    assert opts["timeseries"]["metaField"] == "meta"
+    series = ms.sensor_series("ws_x")
+    assert [r["readings"] for r in series] == [3, 1, 1] and series[0]["altitude_change_m"] == 0
+    assert series[1]["altitude_change_m"] == 2.0 and series[0]["tool"] == "floor_height"
+    with pytest.raises(WriteError):  # the log's validator: an entry needs a workspace, a seq and an op or an undo
+        ms.ops.insert_one({"workspace": "ws_x", "seq": 0, "at": t0})

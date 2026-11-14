@@ -1091,6 +1091,20 @@ wheels = [
 ]
 
 [[package]]
+name = "langgraph-store-mongodb"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "langchain-mongodb" },
+    { name = "langgraph-checkpoint" },
+    { name = "pymongo-search-utils" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8e/44/15fdd94f3ba4f7df776a086be031cefdb0ba84ec77643ef17ae74df607e6/langgraph_store_mongodb-0.4.0.tar.gz", hash = "sha256:da319dcd0bb2c8d7de75c521a65539cdd352144509a21f70d71eb6a2b6e8b42b", size = 187299, upload-time = "2026-09-04T15:33:39.707Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e3/f4/60bf266c35e418e60d443694f922f63d829c9f97c376a099bc5488ae6737/langgraph_store_mongodb-0.4.0-py3-none-any.whl", hash = "sha256:c2b6e276d248b9cf0531d90cd6cf520c4cf5ff987c7a424b1be319de677ed92c", size = 12194, upload-time = "2026-09-04T15:33:38.722Z" },
+]
+
+[[package]]
 name = "langsmith"
 version = "0.14.17"
 source = { registry = "https://pypi.org/simple" }
@@ -2129,6 +2143,7 @@ dependencies = [
     { name = "langchain-anthropic" },
     { name = "langchain-mcp-adapters" },
     { name = "langgraph-checkpoint-mongodb" },
+    { name = "langgraph-store-mongodb" },
     { name = "numpy" },
     { name = "pg8000" },
     { name = "pgai" },
@@ -2159,6 +2174,7 @@ requires-dist = [
     { name = "langchain-anthropic", specifier = ">=1.7.10" },
     { name = "langchain-mcp-adapters", specifier = ">=0.3.2" },
     { name = "langgraph-checkpoint-mongodb", specifier = ">=0.5.1" },
+    { name = "langgraph-store-mongodb", specifier = ">=0.4.0" },
     { name = "numpy", specifier = ">=2.0" },
     { name = "pg8000", specifier = ">=1.31" },
     { name = "pgai", specifier = ">=0.12.1" },

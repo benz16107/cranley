@@ -37,7 +37,7 @@ def mongo_store():
 
 @pytest.fixture
 def ms(mongo_store):
-    for c in ("ops", "workspaces", "prefs", "history", "memories", "shortlist", "shares"):
+    for c in ("ops", "workspaces", "prefs", "history", "memories", "shortlist", "shares", "sensors"):
         mongo_store.db[c].delete_many({})
     mongo_store._seen.clear()
     return mongo_store

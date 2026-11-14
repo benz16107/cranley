@@ -22,6 +22,7 @@ dependencies = [
   "langgraph-checkpoint-mongodb>=0.5.1",
   "langchain-mcp-adapters>=0.3.2",
   "pgai>=0.12.1",
+  "langgraph-store-mongodb>=0.4.0",
 ]
 
 [dependency-groups]
