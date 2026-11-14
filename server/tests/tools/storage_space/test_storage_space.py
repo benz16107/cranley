@@ -13,3 +13,10 @@ def test_closets_share_and_bedroom_without_closet():
     assert m["storage_share"] == round(100 * 3 / 75, 1)
     bad = [f for f in res.findings if f.title == "Bedroom without a closet room"]
     assert [f.anchor.room for f in bad] == ["b2"]
+
+
+def test_walk_in_closet_through_the_bathroom_counts():
+    p = make_plan("tunit2", [("b1", 0, 0, 4, 4, "Bedroom"), ("ba", 4, 0, 6, 3, "Bathroom"), ("c1", 6, 0, 8, 2, "Closet")],
+                  doors=[("b1", "ba", 0.8), ("ba", "c1", 0.8)])
+    res = run_tool("storage_space", {"scan": "tunit2", "label_with_vision": False}, ToolContext(plans=lambda sid: p))
+    assert not [f for f in res.findings if f.title == "Bedroom without a closet room"]

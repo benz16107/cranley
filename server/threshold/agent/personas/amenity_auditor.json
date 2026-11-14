@@ -1,0 +1,16 @@
+{
+  "id": "amenity_auditor",
+  "title": "Amenity auditor",
+  "who": "Checks what an apartment community really offers against its listing, unit by unit and amenity by amenity.",
+  "tools": [
+    "amenity_census",
+    "unit_compare",
+    "storage_space",
+    "room_labeller"
+  ],
+  "thresholds": {},
+  "layout": {
+    "view": "map",
+    "lead_tool": "amenity_census"
+  }
+}

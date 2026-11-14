@@ -1,0 +1,18 @@
+{
+  "id": "cleaning_bidder",
+  "title": "Commercial cleaning bidder",
+  "who": "Prices janitorial work from a scan: cleanable area by floor finish, restroom fixtures, glass, hours per visit.",
+  "tools": [
+    "takeoff_bid",
+    "room_labeller",
+    "room_census"
+  ],
+  "thresholds": {
+    "bid.trade": "cleaning",
+    "bid.clean.visits": 3
+  },
+  "layout": {
+    "view": "plan",
+    "lead_tool": "takeoff_bid"
+  }
+}

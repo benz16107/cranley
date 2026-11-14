@@ -48,7 +48,13 @@ def storage(plan: dict) -> dict:
             linked.setdefault(rs[0], set()).add(rs[1])
             linked.setdefault(rs[1], set()).add(rs[0])
     beds = [r for r in rooms if r.get("label") in BEDROOM]
-    bare = [r for r in beds if not (linked.get(r["id"], set()) & ids)] if plan.get("openings") else []
+    baths = {r["id"] for r in rooms if r.get("label") == "Bathroom"}
+
+    def reach(rid: str) -> set[str]:  # next door, or through an en-suite bathroom (walk-in closets often open off it)
+        near = linked.get(rid, set())
+        return near | {x for b in near & baths for x in linked.get(b, set())}
+
+    bare = [r for r in beds if not (reach(r["id"]) & ids)] if plan.get("openings") else []
     return {"rooms": store, "area": s, "floor": total, "share": s / total if total else None, "bedrooms": beds,
             "bedrooms_without": bare, "unlabelled": [r for r in rooms if not r.get("label")]}
 
@@ -79,11 +85,11 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     checks, findings = [], []
     if st["bedrooms"] and plan.get("openings"):
         bad = st["bedrooms_without"]
-        checks.append(Check(id="bedroom_closets", rule="Bedrooms with a closet room through a door",
+        checks.append(Check(id="bedroom_closets", rule="Bedrooms with a mapped door to a closet room (directly or through an en-suite bathroom)",
                             measured=len(st["bedrooms"]) - len(bad), threshold=len(st["bedrooms"]), unit="bedrooms",
                             status="pass" if not bad else "warn", findings=[f"storage_space:{sid}:{r['id']}" for r in bad]))
         findings += [Finding(id=f"storage_space:{sid}:{r['id']}", title="Bedroom without a closet room", status="warn",
-                             detail=f"No closet room opens off this {r['area'] * FT2:,.0f} ft² bedroom. It may have a reach-in "
+                             detail=f"No closet room opens off this {r['area'] * FT2:,.0f} ft² bedroom or its bathroom. It may have a reach-in "
                                     "closet the scan did not cut out as a room; check the panorama.",
                              anchor=RoomAnchor(sid=sid, room=r["id"]), source=LABEL) for r in bad]
     overlays = []
@@ -92,13 +98,15 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         overlays += [LensOverlay(values=vals, ramp="sequential", legend=Legend(title="Storage room area", unit="ft²", min=0,
                                                                              max=max(vals.values()))),
                      RuleOverlay(select=SelectRooms(rooms=list(vals)), style="highlight")]
-    text = (f"{st['area'] * FT2:,.0f} ft² of closets and storage in {len(st['rooms'])} rooms, "
+    n = len(st["rooms"])
+    text = (f"{st['area'] * FT2:,.0f} ft² of closets and storage in {n} room{'' if n == 1 else 's'}, "
             f"{100 * st['share']:.1f}% of {st['floor'] * FT2:,.0f} ft².")
     if st["bedrooms_without"]:
-        text += f" {len(st['bedrooms_without'])} of {len(st['bedrooms'])} bedrooms have no closet room."
+        text += (f" {len(st['bedrooms_without'])} of {len(st['bedrooms'])} bedrooms have no mapped door to a closet room "
+                 "(the wall graph can miss a door, so check the panorama).")
     text += " Reach-in closets that the scan does not cut out as rooms are not counted."
     if st["unlabelled"]:
-        text += f" {len(st['unlabelled'])} rooms have no label."
+        text += f" {len(st['unlabelled'])} room{'s have' if len(st['unlabelled']) > 1 else ' has'} no label."
     if not q["walls"]:
         text += " No wall graph: closets are found by label only, and which bedroom a closet serves is unknown."
     status = "warn" if st["bedrooms_without"] or st["unlabelled"] else "pass"
