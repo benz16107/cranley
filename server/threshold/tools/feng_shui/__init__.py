@@ -178,11 +178,14 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         grids[fl["id"]] = gr
         sector_of.update(gr["room_sector"])
         fname = floor_name(plan, fl["id"])
+        main = fl["id"] == main_floor
         for d, cell in gr["cells"].items():
             listed = ", ".join(names[r] for r in cell["rooms"]) or "no room"
             checks.append(Check(id=f"sector:{fl['id']}:{d}", rule=f"{fname.capitalize()}: {_sector_name(d, convention)}. Rooms: {listed}",
-                                measured=round(100 * cell["share"]), threshold=round(100 * MISSING_SHARE), unit="% inside",
-                                status="pass" if cell["share"] >= MISSING_SHARE else "warn"))
+                                measured=round(100 * cell["share"]), threshold=round(100 * MISSING_SHARE) if main else None,
+                                unit="% inside", status="warn" if main and cell["share"] < MISSING_SHARE else "pass",
+                                standard=None if main else "Upper floor: read for which rooms sit where; missing areas "
+                                                           "are judged on the entrance floor's outline"))
             if fl["id"] == main_floor:
                 z = fz.get(fl["id"], 0.0)
                 overlays.append(BoxOverlay(center=(*cell["center"], z + 0.01), size=(*cell["size"], 0.02),
@@ -191,7 +194,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                                            status="warn" if cell["share"] < MISSING_SHARE else "unknown"))
                 pins.append(Pin(id=f"bagua:{d}", anchor=PointAnchor(sid=sid, point=(*cell["center"], z)),
                                 label=_sector_name(d, convention), status="warn" if cell["share"] < MISSING_SHARE else "unknown"))
-            if d != "C" and cell["share"] < MISSING_SHARE:
+            if main and d != "C" and cell["share"] < MISSING_SHARE:
                 corner = d in CORNERS
                 findings.append(Finding(
                     id=f"feng_shui:{sid}:missing:{fl['id']}:{d}", title="Missing corner" if corner else "Missing area",
@@ -315,7 +318,8 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         h = 0.55 if piece == "bed" else 0.75
         overlays.append(BoxOverlay(center=(*p["center"], rz.get(r["id"], 0.0) + h / 2), size=(p["size"][0], p["size"][1], h),
                                    yaw_deg=p["yaw_deg"], label=f"Suggested {piece}, {names[r['id']]}", status=status))
-        how = ("head against the wall" if piece == "bed" else "sit between the desk and the wall, facing into the room")
+        how = ("bed with its head against the wall" if piece == "bed"
+               else "desk out from the wall, so you sit between it and the wall facing into the room")
         dtxt = ""
         if p["head_az"] is not None:
             d = K.compass8(p["head_az"] if piece == "bed" else p["face_az"])
@@ -324,7 +328,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         findings.append(Finding(
             id=f"feng_shui:{sid}:place:{r['id']}", title=f"Suggested {piece} spot", status=status,
             anchor=RoomAnchor(sid=sid, room=r["id"]), source=GEO,
-            detail=(f"Place the {piece} with its {how}: the door is {p['door_distance_m']:.1f} m away, "
+            detail=(f"Place the {how}: the door is {p['door_distance_m']:.1f} m away, "
                     f"{p['door_angle_deg']:.0f}° off straight ahead"
                     + (", in view, not in line with it, and a wall with no door or window behind." if not broken
                        else f". This is the best spot the room allows, but {' and '.join(broken)}.") + dtxt)))
