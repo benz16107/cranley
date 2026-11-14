@@ -19,6 +19,8 @@ from .. import (
     Assumption,
     Check,
     Finding,
+    Pin,
+    PinsOverlay,
     RoomAnchor,
     Source,
     ToolError,
@@ -249,6 +251,10 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                                     source=GEOM.model_copy(update={"confidence": x["confidence"]})))
         res.checks.append(Check(id=x["key"], rule=x["title"], measured=None, threshold=None, unit="", status=x["status"],
                                 findings=[fid]))
+    pins = [Pin(id=f"unsaid:{r}", anchor=RoomAnchor(sid=inputs.scan, room=r), label=x["title"], status=x["status"])
+            for x in extra for r in x.get("rooms") or [x["room"]]]
+    if pins:
+        res.overlays.append(PinsOverlay(pins=pins))
     if n_extra:
         res.verdict.text += f" The listing does not mention {n_extra} thing{'s' if n_extra != 1 else ''} the scan shows."
         if res.verdict.status in ("pass", "unknown"):

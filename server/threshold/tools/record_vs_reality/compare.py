@@ -103,6 +103,8 @@ def area(plan: dict, claim: dict, scan: dict, p: dict, ev: dict | None = None) -
     else:
         stairs = sum(r["m2"] for r in fa["counted"] if r["label"] == "Staircase")
         big = [r for r in fa["counted"] if r["label"] == "unlabelled room" and r["m2"] >= 15]
+        if left:
+            why.append(f"Not counted: {left}.")
         if len(fa["floors"]) > 1 and stairs:
             why.append(f"Stair rooms on {len(fa['floors'])} levels add {stairs * ms.M2_FT2:,.0f} ft², and a listing "
                        "counts each flight once.")

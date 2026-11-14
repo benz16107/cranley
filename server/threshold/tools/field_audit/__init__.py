@@ -254,7 +254,7 @@ def deep_check(picked: list[dict], plans, step=lambda s: None) -> None:
         row["deep_verdict"] = c["verdict"] if c else None
         row["deep"] = c
         row["judgement"], row["judgement_reason"] = judge(row, plan, d, labels)
-        step(f"Full check {i + 1} of {len(picked)}: {row['sid']} {row['field']}: {row['judgement']} looks wrong")
+        step(f"Full check {i + 1} of {len(picked)}: {row['sid']} {row['field']}: {row['judgement'] + ' looks wrong' if row['judgement'] != 'unclear' else 'unclear which side'}")
 
 
 def run_audit(sids: list[tuple[str, str]], plans, deep_top: int = 15, step=lambda s: None) -> dict:
