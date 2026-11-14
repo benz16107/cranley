@@ -44,3 +44,12 @@ def test_cpsc_door_rules():
     assert door_barrier({"alarm": "yes", "pet_door": "yes"}, False)[0] == "fail"
     assert door_barrier(None, False)[0] == "unknown"
     assert door_barrier(None, True)[0] == "pass"  # a power safety cover protects every door
+
+
+def test_doors_reach_the_pool_around_the_house_when_none_faces_it():
+    from threshold.tools.path_to_water import toward_pool
+    side, front = {"id": "s", "direct": False, "yard_m": 7.2}, {"id": "f", "direct": False, "yard_m": 12.0}
+    assert [d["id"] for d in toward_pool([front, side])] == ["s", "f"] and side["around"]
+    back = {"id": "b", "direct": True, "yard_m": 3.0}
+    assert toward_pool([front, back]) == [back] and "around" not in back
+    assert toward_pool([{"id": "x", "direct": None}]) == []   # not placed on the map: the caller's fallback decides

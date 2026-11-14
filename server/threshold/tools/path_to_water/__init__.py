@@ -83,6 +83,18 @@ def exterior_doors(plan: dict) -> list[dict]:
     return out
 
 
+def toward_pool(doors: list[dict]) -> list[dict]:
+    """Doors facing the pool (the line to it crosses no part of the house), nearest first. When none faces it, a
+    child still walks around the corner: every placed way out reaches the pool, marked `around`."""
+    direct = sorted((d for d in doors if d.get("direct")), key=lambda d: d["yard_m"])
+    if direct:
+        return direct
+    around = sorted((d for d in doors if d.get("yard_m") is not None), key=lambda d: d["yard_m"])
+    for d in around:
+        d["around"] = True
+    return around
+
+
 def bedrooms(plan: dict) -> list[dict]:
     return [r for r in plan["rooms"] if (r.get("label") or "").lower().startswith("bedroom") or (r.get("label") or "") == "Nursery"]
 
@@ -262,7 +274,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
             d["direct"] = house_m is None or line.intersection(house_m.buffer(-0.3)).length < 0.5
         else:
             d["direct"] = None
-    pool_doors = sorted([d for d in doors if d["direct"]], key=lambda d: d["yard_m"])
+    pool_doors = toward_pool(doors)
     if pool is None or not a["available"]:
         pool_doors = doors  # cannot tell which side the pool is on: every exterior door counts, low confidence
         conf = "low"
@@ -333,7 +345,9 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                                 status=st, anchor=anchor, media=media,
                                 source=Source(layer="model", method="vision", confidence=(i or {}).get("confidence", "low"),
                                               note="Vision model on the nearest panorama face") if i else geo_src,
-                                detail=(f"{n} routes pass through it; the pool is {d['yard_m']:.0f} m from the door. " if d.get("yard_m") else "")
+                                detail=(f"{n} routes pass through it; the pool is {d['yard_m']:.0f} m from the door"
+                                        + (" in a straight line, reached around the house. " if d.get("around") else ". ")
+                                        if d.get("yard_m") else "")
                                 + f"Seen: {seen}." + (f" Missing: {missing}." if missing else "")
                                 + (f" ({i['note']})" if i else "")))
         if d.get("ll"):
