@@ -46,7 +46,11 @@ function Gauge({ measured, threshold, status }: { measured: number; threshold: n
 
 function CheckList({ b, ctx }: { b: Extract<Block, { type: 'CheckList' }>; ctx: Ctx }) {
   const current = ctx.doc.camera?.finding
+  const onSite = b.checks.filter((c) => c.site).length
   return (
+    <>
+    {/* the verdict above is the tool's sentence from the scan; a check the phone has since settled says so itself */}
+    {onSite > 0 && <p className="b-sitenote"><Icon name="camera" size={13} /><span>{onSite === 1 ? 'One check was' : `${onSite} checks were`} settled on site with the phone after this ran. The summary above is still the scan’s.</span></p>}
     <ul className="b-checks">
       {b.checks.map((c) => {
         const finding = ctx.doc.findings.find((f) => c.findings.includes(f.id))
@@ -60,6 +64,7 @@ function CheckList({ b, ctx }: { b: Extract<Block, { type: 'CheckList' }>; ctx: 
               <span className="m">
                 {c.measured == null ? <span className="none">not measured</span> : <span className="num">{fmt(c.measured)} {c.unit}</span>}
                 {c.threshold != null && <small>{c.kind === 'claim' ? 'record says' : 'limit'} <span className="num">{!c.unit && Number.isInteger(c.threshold) && c.threshold > 1500 && c.threshold < 2200 ? c.threshold /* a year */ : fmt(c.threshold, 3)}</span></small>}
+                {c.site && <small className="site">{c.site.measured ? <>measured on site{c.site.scan != null && <>, scan <span className="num">{fmt(c.site.scan)}</span></>}</> : 'settled on site, figure from the scan'}</small>}
               </span>
               {c.kind !== 'claim' && c.measured != null && c.threshold != null && <Gauge measured={c.measured} threshold={c.threshold} status={c.status} />}
             </button>
@@ -67,6 +72,7 @@ function CheckList({ b, ctx }: { b: Extract<Block, { type: 'CheckList' }>; ctx: 
         )
       })}
     </ul>
+    </>
   )
 }
 
@@ -102,7 +108,7 @@ function EvidenceStrip({ b, ctx }: { b: Extract<Block, { type: 'EvidenceStrip' }
   )
 }
 
-function RankedTable({ b }: { b: Extract<Block, { type: 'RankedTable' }> }) {
+function RankedTable({ b, panel }: { b: Extract<Block, { type: 'RankedTable' }>; panel: Panel }) {
   // The rows arrive in rank order (the agent's, or the tool's). They keep it until the person sorts by a column.
   const [sort, setSort] = useState<{ col: string | null; dir: 1 | -1 }>({ col: null, dir: -1 })
   const rows = sort.col == null ? b.rows : [...b.rows].sort((x, y) => ((x.values[sort.col!] ?? -Infinity) - (y.values[sort.col!] ?? -Infinity)) * sort.dir)
@@ -112,10 +118,12 @@ function RankedTable({ b }: { b: Extract<Block, { type: 'RankedTable' }> }) {
   }))
   return (
     <div className="b-table">
+      {/* the table's own title names the grouping ("City census by zip code"); the panel's title, repeated, says nothing */}
+      {b.title && b.title !== panel.title && <p className="cap">{b.title}</p>}
       <table className="tbl">
         <thead><tr>
-          {/* rows that open a building are candidates; rows of a rollup (by zip, by property type) are its groups */}
-          <th scope="col">{b.rows.some((r) => r.anchor) ? 'Candidate' : 'Group'}</th>
+          {/* rows that open a building are candidates; a run's own rows (a rollup's groups, a search's homes) are named, and the table's title says of what */}
+          <th scope="col">{b.rows.some((r) => r.anchor) ? 'Candidate' : 'Name'}</th>
           {b.columns.map((c) => (
             <th key={c.id} scope="col" className="r" aria-sort={sort.col === c.id ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}>
               <button onClick={() => setSort({ col: c.id, dir: sort.col === c.id ? (sort.dir === 1 ? -1 : 1) : c.better === 'lower' ? 1 : -1 })}>
@@ -256,7 +264,7 @@ function BlockView({ block: b, ctx }: { block: Block; ctx: Ctx }): ReactNode {
     case 'MetricRow': return <MetricRow b={b} />
     case 'CheckList': return <CheckList b={b} ctx={ctx} />
     case 'EvidenceStrip': return <EvidenceStrip b={b} ctx={ctx} />
-    case 'RankedTable': return <RankedTable b={b} />
+    case 'RankedTable': return <RankedTable b={b} panel={ctx.panel} />
     case 'MiniChart': return <MiniChart b={b} />
     case 'FloorPlanMini': return <FloorPlanMini b={b} ctx={ctx} />
     case 'Controls': return <Controls b={b} />
