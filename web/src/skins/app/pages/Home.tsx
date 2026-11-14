@@ -99,7 +99,7 @@ function Setup() {
         <div>
           <h3>Tools for this <span className="count">{doc.tools.length || ''}</span></h3>
           <ul className="picked" aria-live="polite">
-            {doc.tools.map((t) => <li key={t.id} className="arrive"><ToolKey id={t.id} title={t.title} /><span className="grow"><b>{t.title}</b><span className="why">{t.reason}</span></span><span className="muted">{t.by === 'agent' ? 'agent' : 'you'}</span></li>)}
+            {doc.tools.map((t, i) => <li key={t.id} className="arrive" style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}><ToolKey id={t.id} title={t.title} /><span className="grow"><b>{t.title}</b><span className="why">{t.reason}</span></span><span className="muted">{t.by === 'agent' ? 'agent' : 'you'}</span></li>)}
             {!settled && <li><RunState state="running">Reading the brief and choosing tools</RunState></li>}
             {!settled && [72, 54, 63].map((w) => <li key={w}><span className="sk" style={{ width: `${w}%` }} /></li>)}
           </ul>

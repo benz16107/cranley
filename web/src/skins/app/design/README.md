@@ -47,8 +47,10 @@ a tool a person works in all day. Tokens are in `tokens.css`, shared classes in 
    a table whose cells carry their own bar (`td.barcell`).
 9. **Loading is `.sk`** (flat bars in the shape of what is coming) or a `<RunState state="running">` line that says
    what is happening. No spinner stands alone. Hatching is never used for loading.
-10. **Motion.** Menus and popovers scale from their trigger in 140 ms; drawers slide in 200 ms; a thing the agent
-    adds arrives once (`.arrive`). Nothing moves on hover, and nothing opened from the keyboard animates. The flight
+10. **Motion.** Menus and popovers scale from their trigger in 140 ms; drawers slide in 200 ms; each closes in about
+    80% of its opening time. A thing the agent adds arrives once (`.arrive`); several at once arrive 30 ms apart. An
+    icon that swaps to confirm (copy to check) scales in from a blur (`data-swapped`); a switch's knob stretches 12%
+    toward its travel while pressed. Nothing moves on hover, and nothing opened from the keyboard animates. The flight
     between the two cities is the one long move. Reduced motion stops all travel.
 11. **Words.** Sentence case. Plain sentences, the person's words ("doorway", not "opening"), no exclamation marks.
     A message about a failure says what to do next. When something is not connected, the page says so.
