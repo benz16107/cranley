@@ -1,0 +1,145 @@
+<!doctype html>
+<!-- Direction B, "Instrument": the product as the display of a measuring instrument (a total station,
+     a cockpit panel). Dark first, one amber readout colour, a reticle on the stage.
+     A static study of the main view over the real map. Panel numbers here are invented examples. -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Direction B · Instrument</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap" />
+<style>
+  :root {
+    --bg: #0a0e13; --panel: #10161d; --line: rgba(190, 210, 230, 0.16); --line-2: rgba(190, 210, 230, 0.34);
+    --text: #dfe7ee; --text-2: #93a1b0; --amber: #ffb224; --pass: #58d39b; --warn: #ffb224; --fail: #ff6b5e;
+    --sans: 'B612', sans-serif; --mono: 'B612 Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { font: 13px/1.45 var(--sans); color: var(--text); background: var(--bg); height: 100vh; overflow: hidden; }
+  #map { position: absolute; inset: 0; }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .lbl { font: 400 10px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-2); }
+  .hud { position: absolute; z-index: 2; }
+
+  .strip { inset: 0 auto 0 0; width: 64px; background: var(--panel); border-right: 1px solid var(--line-2); display: flex; flex-direction: column; align-items: center; padding: 14px 0; gap: 8px; }
+  .logo { width: 30px; height: 30px; border: 1.5px solid var(--amber); border-radius: 50%; display: grid; place-items: center; color: var(--amber); font: 700 13px var(--mono); margin-bottom: 14px; }
+  .key { width: 44px; height: 44px; border: 1px solid var(--line-2); border-radius: 6px; display: grid; place-items: center; font: 700 12px var(--mono); color: var(--text-2); }
+  .key.on { color: var(--bg); background: var(--amber); border-color: var(--amber); }
+  .key.add { border-style: dashed; font-weight: 400; font-size: 18px; margin-top: auto; }
+
+  .read { display: grid; gap: 6px; }
+  .read b { font: 400 22px/1 var(--mono); color: var(--amber); letter-spacing: -0.02em; }
+  .tl { left: 88px; top: 20px; display: flex; gap: 28px; }
+  .tr { right: 420px; top: 20px; display: flex; gap: 10px; }
+  .seg { display: flex; border: 1px solid var(--line-2); border-radius: 6px; overflow: hidden; background: var(--panel); }
+  .seg span { padding: 9px 14px; font: 700 11px var(--mono); letter-spacing: 0.08em; color: var(--text-2); }
+  .seg span.on { background: var(--text); color: var(--bg); }
+  .find { width: 240px; height: 36px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--panel); display: flex; align-items: center; padding: 0 12px; color: var(--text-2); font-size: 12px; }
+
+  .reticle { left: calc(64px + (100vw - 64px - 400px) / 2); top: 50%; width: 220px; height: 220px; transform: translate(-50%, -50%); pointer-events: none; }
+  .reticle::before { content: ''; position: absolute; inset: 0; border: 1px solid rgba(255, 178, 36, 0.55); border-radius: 50%; }
+  .reticle::after { content: ''; position: absolute; inset: 30px; border: 1px dashed rgba(255, 178, 36, 0.3); border-radius: 50%; }
+  .reticle i { position: absolute; background: rgba(255, 178, 36, 0.7); }
+  .reticle i:nth-child(1) { left: 50%; top: -14px; width: 1px; height: 60px; } .reticle i:nth-child(2) { left: 50%; bottom: -14px; width: 1px; height: 60px; }
+  .reticle i:nth-child(3) { top: 50%; left: -14px; height: 1px; width: 60px; } .reticle i:nth-child(4) { top: 50%; right: -14px; height: 1px; width: 60px; }
+  .tag { left: calc(64px + (100vw - 64px - 400px) / 2 + 124px); top: calc(50% - 70px); background: var(--panel); border: 1px solid var(--amber); border-radius: 6px; padding: 10px 12px; width: 230px; }
+  .tag h3 { font: 700 13px/1.3 var(--sans); } .tag p { color: var(--text-2); font-size: 11.5px; margin: 2px 0 8px; }
+  .tag div { display: flex; justify-content: space-between; padding: 5px 0; border-top: 1px solid var(--line); font-size: 12px; }
+
+  .mfd { inset: 12px 12px 12px auto; width: 388px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 10px; overflow: hidden; }
+  .mfd header { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--line-2); }
+  .mfd header b { font: 700 12px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
+  .verdict { margin: 14px; padding: 12px; border: 1px solid var(--warn); border-radius: 6px; background: rgba(255, 178, 36, 0.08); }
+  .verdict .lbl { color: var(--warn); } .verdict p { font-size: 15px; line-height: 1.35; margin-top: 8px; }
+  .dials { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 14px 14px; }
+  .dial { border: 1px solid var(--line); border-radius: 6px; padding: 10px; display: grid; gap: 8px; }
+  .dial b { font: 400 22px/1 var(--mono); } .dial b small { font-size: 10px; color: var(--text-2); margin-left: 3px; }
+  .dial u { text-decoration: none; font: 400 9px var(--mono); color: var(--text-2); }
+  .row { display: grid; grid-template-columns: 10px 1fr auto; gap: 10px; align-items: center; padding: 11px 14px; border-top: 1px solid var(--line); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .row .mono { font-size: 12px; } .row small { color: var(--text-2); font: 400 10px var(--mono); margin-left: 6px; }
+  .row.sel { background: rgba(255, 178, 36, 0.08); }
+  .gauge { grid-column: 2 / 4; height: 4px; background: var(--line); border-radius: 2px; position: relative; }
+  .gauge i { position: absolute; inset: 0 auto 0 0; border-radius: 2px; } .gauge u { position: absolute; top: -3px; height: 10px; width: 1px; background: var(--text); }
+
+  .plan { left: 88px; right: 420px; bottom: 16px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 10px; padding: 12px 16px; display: grid; grid-template-columns: repeat(5, 1fr) 220px; gap: 14px; align-items: start; }
+  .st { display: grid; gap: 7px; font-size: 11.5px; color: var(--text-2); }
+  .st::before { content: ''; height: 3px; background: var(--line-2); border-radius: 2px; }
+  .st.done::before { background: var(--text-2); } .st.now::before { background: var(--amber); } .st.now { color: var(--text); }
+  .ask { height: 100%; border-left: 1px solid var(--line); padding-left: 14px; color: var(--text-2); display: flex; align-items: center; font-size: 12px; }
+  .who { left: 88px; bottom: 112px; max-width: 320px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 10px; padding: 12px 14px; }
+  .who p { margin-top: 8px; font-size: 13px; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<nav class="hud strip">
+  <div class="logo">T</div>
+  <div class="key on">AC</div><div class="key">RR</div><div class="key">MV</div>
+  <div class="key add">+</div>
+</nav>
+
+<div class="hud tl">
+  <div class="read"><span class="lbl">Lat</span><b>29.7450</b></div>
+  <div class="read"><span class="lbl">Lon</span><b>-95.5200</b></div>
+  <div class="read"><span class="lbl">In view</span><b>1,284</b></div>
+</div>
+<div class="hud tr">
+  <div class="seg"><span class="on">HOU</span><span>LA</span></div>
+  <div class="find">Find an address</div>
+</div>
+
+<div class="hud reticle"><i></i><i></i><i></i><i></i></div>
+<div class="hud tag">
+  <h3><address></h3><p>Apartment building · 4 scans</p>
+  <div><span>Studio, 1BA</span><span class="mono">3 RM</span></div>
+  <div><span>1BR, 1BA · A2</span><span class="mono">6 RM</span></div>
+  <div><span>2BR, 2BA · B1</span><span class="mono">9 RM</span></div>
+</div>
+
+<div class="hud who"><span class="lbl">Brief</span><p>I use a power wheelchair and I am choosing a one-bedroom near the Medical Center.</p></div>
+
+<div class="hud plan">
+  <div class="st done">Find one-bedroom scans</div>
+  <div class="st done">Trace route to the bedroom</div>
+  <div class="st now">Measure every doorway</div>
+  <div class="st">Check turning space</div>
+  <div class="st">Rank candidates</div>
+  <div class="ask">Ask for a change</div>
+</div>
+
+<aside class="hud mfd">
+  <header><b>Step-free access</b><span class="lbl">AC 01 · Run 3</span></header>
+  <div class="verdict"><span class="lbl">Caution</span><p>Reachable from the entrance, but the bathroom door is too narrow for your chair.</p></div>
+  <div class="dials">
+    <div class="dial"><span class="lbl">Min door</span><b>0.71<small>m</small></b><u>SCAN / GEOM / HI</u></div>
+    <div class="dial"><span class="lbl">Route</span><b>14.2<small>m</small></b><u>SCAN / GEOM / MED</u></div>
+    <div class="dial"><span class="lbl">Reached</span><b>5<small>/ 6</small></b><u>SCAN / GEOM / HI</u></div>
+  </div>
+  <div class="row"><span class="dot" style="background:var(--pass)"></span><span>Entrance door clear width</span><span class="mono">0.91<small>MIN 0.86</small></span>
+    <div class="gauge"><i style="width:74%;background:var(--pass)"></i><u style="left:62%"></u></div></div>
+  <div class="row sel"><span class="dot" style="background:var(--fail)"></span><span>Bathroom door clear width</span><span class="mono">0.71<small>MIN 0.86</small></span>
+    <div class="gauge"><i style="width:38%;background:var(--fail)"></i><u style="left:62%"></u></div></div>
+  <div class="row"><span class="dot" style="background:var(--warn)"></span><span>Turning circle in the bathroom</span><span class="mono">1.48<small>MIN 1.52</small></span>
+    <div class="gauge"><i style="width:58%;background:var(--warn)"></i><u style="left:62%"></u></div></div>
+</aside>
+
+<script type="module">
+  import 'maplibre-gl/dist/maplibre-gl.css'
+  import { Map } from '../src/map/maplibre.ts'
+  import { mapStyle } from '../src/map/style.ts'
+  const map = new Map({ container: 'map', center: [-95.52, 29.745], zoom: 11.2, attributionControl: false,
+    style: mapStyle({ ground: '#0a0e13', water: '#0e1a25', waterLine: '#3a5a74', green: '#0d1512', road: 'rgba(170,195,220,0.18)',
+      roadMajor: 'rgba(170,195,220,0.4)', rail: 'rgba(170,195,220,0.25)', building: '#121a22', label: '#c9d4de', labelMuted: '#7c8b9a', halo: '#0a0e13' }) })
+  map.on('load', async () => {
+    map.addSource('b', { type: 'geojson', data: await (await fetch('/api/buildings')).json() })
+    map.addLayer({ id: 'glow', type: 'circle', source: 'b', paint: {
+      'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 7, 12, 20], 'circle-color': '#ffb224', 'circle-blur': 1, 'circle-opacity': 0.35 } })
+    map.addLayer({ id: 'b', type: 'circle', source: 'b', paint: {
+      'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 2, 12, 7], 'circle-color': '#ffb224' } })
+  })
+</script>
+</body>
+</html>

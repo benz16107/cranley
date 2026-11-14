@@ -1,0 +1,220 @@
+<!doctype html>
+<!-- Direction A, "Sheet": the product drawn as a survey sheet and an architect's drawing set.
+     A static study of the main view over the real map. Panel numbers here are invented examples. -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Direction A · Sheet</title>
+<style>
+  :root {
+    --paper: #f4f1ea; --pane: #fbfaf6; --ink: #18212b; --ink-2: #4a5563; --ink-3: #66717f;
+    --rule: rgba(24, 33, 43, 0.16); --rule-strong: rgba(24, 33, 43, 0.45);
+    --accent: #2545b8; --pass: #1f7a4d; --warn: #a65f00; --fail: #b3261e;
+    --sans: 'Archivo Variable', sans-serif; --mono: 'Martian Mono Variable', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { font: 13px/1.45 var(--sans); color: var(--ink); background: var(--paper); height: 100vh; overflow: hidden;
+    -webkit-font-smoothing: antialiased; }
+  #map { position: absolute; inset: 0; }
+  .label { font: 600 10px/1 var(--sans); font-stretch: 78%; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+  .num { font-family: var(--mono); font-stretch: 80%; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .pane { position: absolute; background: var(--pane); border: 1px solid var(--rule-strong); border-radius: 2px; }
+
+  header { position: absolute; inset: 0 0 auto 0; height: 48px; background: var(--pane); border-bottom: 1px solid var(--rule-strong);
+    display: flex; align-items: center; gap: 20px; padding: 0 16px; z-index: 3; }
+  .mark { display: flex; align-items: center; gap: 9px; font: 700 14px/1 var(--sans); font-stretch: 122%; letter-spacing: 0.02em; }
+  .cities { display: flex; align-self: stretch; margin-left: 12px; }
+  .city { display: grid; align-content: center; gap: 4px; padding: 0 16px; border-left: 1px solid var(--rule); position: relative; }
+  .city:last-child { border-right: 1px solid var(--rule); }
+  .city b { font: 650 13px/1 var(--sans); }
+  .city span { font-size: 9.5px; color: var(--ink-3); }
+  .city.on::after { content: ''; position: absolute; inset: auto 0 -1px 0; height: 3px; background: var(--ink); }
+  .city:not(.on) b { color: var(--ink-3); font-weight: 500; }
+  .search { margin-left: auto; width: 300px; height: 30px; border: 1px solid var(--rule-strong); border-radius: 2px; background: var(--paper);
+    display: flex; align-items: center; padding: 0 10px; color: var(--ink-3); justify-content: space-between; }
+  kbd { font: 500 10px/1 var(--mono); font-stretch: 80%; border: 1px solid var(--rule-strong); border-radius: 2px; padding: 3px 5px; color: var(--ink-2); }
+
+  /* the neatline: a frame around the stage with coordinate ticks, as on a printed map sheet */
+  .neat { position: absolute; inset: 60px 396px 76px 320px; border: 1px solid var(--ink); pointer-events: none; z-index: 1; }
+  .neat::before { content: ''; position: absolute; inset: -5px; border: 1px solid var(--rule-strong); }
+  .tick { position: absolute; font-size: 9px; color: var(--ink-2); background: var(--paper); padding: 1px 4px; }
+  .tick.t { top: -7px; transform: translateX(-50%); } .tick.l { left: -7px; transform: translateY(-50%) rotate(-90deg); transform-origin: center; }
+
+  .case { inset: 60px auto 12px 12px; width: 296px; display: flex; flex-direction: column; z-index: 2; }
+  .sec { padding: 14px 14px 16px; border-bottom: 1px solid var(--rule); }
+  .sec > .head { display: flex; justify-content: space-between; margin-bottom: 10px; }
+  .brief p { font-size: 15px; line-height: 1.35; font-weight: 500; text-wrap: pretty; }
+  .facts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chip { border: 1px solid var(--rule-strong); border-radius: 2px; padding: 3px 7px; font-size: 11.5px; display: inline-flex; gap: 6px; align-items: baseline; }
+  .chip .num { font-size: 10.5px; }
+  .step { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; padding: 6px 0; align-items: baseline; }
+  .step .n { font-size: 10px; color: var(--ink-3); }
+  .step.done { color: var(--ink-3); }
+  .step.now { font-weight: 600; }
+  .step.now .n { color: var(--accent); }
+  .step .t { font-size: 10px; color: var(--ink-3); }
+  .bar { height: 3px; background: var(--rule); margin-top: 10px; } .bar i { display: block; height: 100%; width: 60%; background: var(--ink); }
+  .learn li { list-style: none; display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 7px 0; border-top: 1px solid var(--rule); font-size: 12.5px; }
+  .learn small { display: block; color: var(--ink-3); font-size: 11px; }
+  .learn button { all: unset; font-size: 11px; text-decoration: underline; text-underline-offset: 3px; color: var(--ink-2); }
+
+  .rail { inset: 60px 12px 12px auto; width: 372px; z-index: 2; overflow: hidden; }
+  .phead { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--rule-strong); }
+  .sw { width: 10px; height: 10px; background: #7a4fd0; }
+  .phead b { font: 650 13px/1 var(--sans); } .phead .code { margin-left: auto; font-size: 10px; color: var(--ink-3); }
+  .verdict { padding: 16px 14px; display: grid; grid-template-columns: 18px 1fr; gap: 10px; border-bottom: 1px solid var(--rule); }
+  .verdict p { font-size: 17px; line-height: 1.3; font-weight: 560; text-wrap: balance; }
+  .glyph { width: 12px; height: 12px; margin-top: 5px; }
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--rule); }
+  .metric { padding: 12px 14px; border-left: 1px solid var(--rule); } .metric:first-child { border-left: 0; }
+  .metric .v { font-size: 22px; font-weight: 500; line-height: 1.1; margin: 6px 0 8px; } .metric .v small { font-size: 11px; color: var(--ink-3); margin-left: 3px; }
+  .src { display: inline-flex; align-items: center; gap: 5px; font-size: 9.5px; color: var(--ink-2); border: 1px solid var(--rule); border-radius: 2px; padding: 2px 5px; }
+  .src i { display: inline-block; width: 3px; height: 8px; background: var(--ink-2); margin-right: 1px; } .src i.off { background: var(--rule); }
+  .check { display: grid; grid-template-columns: 14px 1fr auto; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--rule); align-items: center; }
+  .check .g { width: 9px; height: 9px; }
+  .check .m { font-size: 11.5px; text-align: right; } .check .m small { color: var(--ink-3); display: block; font-size: 9.5px; }
+  .dim { grid-column: 2 / 4; height: 10px; position: relative; border-left: 1px solid var(--ink-2); border-right: 1px solid var(--ink-2); }
+  .dim::before { content: ''; position: absolute; inset: 4.5px 0 auto; border-top: 1px solid var(--ink-2); }
+  .dim i { position: absolute; top: 0; height: 10px; width: 2px; }
+  .dim u { position: absolute; top: -2px; height: 14px; border-left: 1px dashed var(--ink-3); }
+  .sel { background: color-mix(in srgb, var(--accent) 7%, transparent); box-shadow: inset 2px 0 0 var(--accent); }
+  .strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px 14px; }
+  .thumb { aspect-ratio: 4/3; border: 1px solid var(--rule-strong); background: repeating-linear-gradient(135deg, transparent 0 5px, var(--rule) 5px 6px); position: relative; }
+  .thumb span { position: absolute; left: 4px; bottom: 4px; background: var(--pane); padding: 1px 4px; font-size: 9.5px; }
+
+  .dock { inset: auto 396px 12px 320px; height: 52px; display: flex; align-items: center; gap: 8px; padding: 0 10px; z-index: 2; }
+  .tool { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px 0 8px; border: 1px solid var(--rule-strong); border-radius: 2px; font-weight: 550; font-size: 12.5px; }
+  .tool .c { font-size: 9.5px; color: var(--pane); padding: 3px 4px; }
+  .tool.add { border-style: dashed; color: var(--ink-2); font-weight: 450; }
+  .ask { margin-left: auto; flex: 1; max-width: 300px; height: 32px; border: 0; border-left: 1px solid var(--rule); padding-left: 14px; display: flex; align-items: center; color: var(--ink-3); }
+
+  .title { right: 408px; bottom: 88px; display: grid; grid-template-columns: auto auto auto; z-index: 2; }
+  .title div { padding: 7px 12px 8px; border-left: 1px solid var(--rule); display: grid; gap: 5px; } .title div:first-child { border: 0; }
+  .title .num { font-size: 12px; }
+  .scale { display: flex; align-items: end; gap: 6px; } .scale i { display: flex; height: 5px; border: 1px solid var(--ink); width: 96px; }
+  .scale i::before, .scale i::after { content: ''; flex: 1; } .scale i::before { background: var(--ink); }
+
+  .card { left: 640px; top: 318px; width: 268px; z-index: 2; box-shadow: 0 1px 0 var(--rule-strong), 0 12px 28px -12px rgba(24, 33, 43, 0.35); }
+  .card h3 { font: 650 14px/1.25 var(--sans); padding: 12px 12px 2px; } .card .sub { padding: 0 12px 10px; color: var(--ink-3); font-size: 11.5px; }
+  .scan { display: grid; grid-template-columns: 1fr auto; padding: 8px 12px; border-top: 1px solid var(--rule); font-size: 12.5px; }
+  .scan .num { font-size: 10.5px; color: var(--ink-2); }
+  .scan:nth-child(4) { background: var(--ink); color: var(--pane); } .scan:nth-child(4) .num { color: inherit; }
+  .lead { position: absolute; left: 600px; top: 358px; width: 40px; border-top: 1px solid var(--ink); z-index: 2; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<header>
+  <div class="mark">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 17V3M3 17h14" /><path d="M3 3a14 14 0 0 1 14 14" stroke-dasharray="2 2.4" stroke-width="1.2" /></svg>
+    THRESHOLD
+  </div>
+  <div class="cities">
+    <div class="city on"><b>Houston</b><span class="num">29.76 N · 95.37 W</span></div>
+    <div class="city"><b>Los Angeles</b><span class="num">34.05 N · 118.24 W</span></div>
+  </div>
+  <div class="search"><span>Find an address</span><kbd>/</kbd></div>
+  <kbd>Ctrl K</kbd>
+</header>
+
+<div class="neat">
+  <span class="tick t num" style="left:20%">95°30′ W</span><span class="tick t num" style="left:50%">95°24′ W</span><span class="tick t num" style="left:80%">95°18′ W</span>
+  <span class="tick l num" style="top:28%">29°48′ N</span><span class="tick l num" style="top:70%">29°42′ N</span>
+</div>
+
+<aside class="pane case">
+  <div class="sec brief">
+    <div class="head"><span class="label">Brief</span><span class="label">Edit</span></div>
+    <p>I use a power wheelchair and I am choosing a one-bedroom near the Medical Center.</p>
+    <div class="facts"><span class="chip">Chair width <span class="num">0.68 m</span></span><span class="chip">Step-free entry</span><span class="chip">Roll-in shower</span></div>
+  </div>
+  <div class="sec">
+    <div class="head"><span class="label">Plan</span><span class="label num">3 / 5</span></div>
+    <div class="step done"><span class="n num">01</span><span>Find one-bedroom scans near the Medical Center</span><span class="t num">0.4 s</span></div>
+    <div class="step done"><span class="n num">02</span><span>Trace the route from each entrance to the bedroom</span><span class="t num">2.1 s</span></div>
+    <div class="step now"><span class="n num">03</span><span>Measure every doorway on the route</span><span class="t num">now</span></div>
+    <div class="step"><span class="n num">04</span><span>Check turning space in the bathroom</span><span></span></div>
+    <div class="step"><span class="n num">05</span><span>Rank the candidates</span><span></span></div>
+    <div class="bar"><i></i></div>
+  </div>
+  <div class="sec learn" style="border:0">
+    <div class="head"><span class="label">What I have learned</span><span class="label num">2</span></div>
+    <ul>
+      <li><span>Minimum clear door is 0.86 m<small>You edited the threshold on Step-free access</small></span><button>Undo</button></li>
+      <li><span>Skip buildings without an empty-room view<small>You removed two from the shortlist</small></span><button>Undo</button></li>
+    </ul>
+  </div>
+</aside>
+
+<div class="lead"></div>
+<div class="pane card">
+  <h3><address></h3>
+  <div class="sub">Houston · apartment building · 4 scans</div>
+  <div class="scan"><span>Studio, 1BA</span><span class="num">3 rooms</span></div>
+  <div class="scan"><span>1BR, 1BA · A2</span><span class="num">6 rooms</span></div>
+  <div class="scan"><span>2BR, 2BA · B1</span><span class="num">9 rooms</span></div>
+  <div class="scan"><span>Fitness center</span><span class="num">2 rooms</span></div>
+</div>
+
+<div class="pane title">
+  <div><span class="label">In view</span><span class="num">1,284 buildings</span></div>
+  <div><span class="label">Scale</span><span class="scale"><i></i><span class="num">2 km</span></span></div>
+  <div><span class="label">Sheet</span><span class="num">HOU · 12</span></div>
+</div>
+
+<aside class="pane rail">
+  <div class="phead"><span class="sw"></span><b>Step-free access</b><span class="code num">AC · 01</span></div>
+  <div class="verdict">
+    <svg class="glyph" viewBox="0 0 12 12"><path d="M6 0.8 11.6 11H0.4Z" fill="var(--warn)" /></svg>
+    <p>Reachable from the entrance, but the bathroom door is too narrow for your chair.</p>
+  </div>
+  <div class="metrics">
+    <div class="metric"><span class="label">Narrowest door</span><div class="v num">0.71<small>m</small></div><span class="src num">SCAN · GEOM <span><i></i><i></i><i></i></span></span></div>
+    <div class="metric"><span class="label">Route length</span><div class="v num">14.2<small>m</small></div><span class="src num">SCAN · GEOM <span><i></i><i></i><i class="off"></i></span></span></div>
+    <div class="metric"><span class="label">Rooms reached</span><div class="v num">5<small>of 6</small></div><span class="src num">SCAN · GEOM <span><i></i><i></i><i></i></span></span></div>
+  </div>
+  <div class="check">
+    <svg class="g" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5" fill="var(--pass)" /></svg><span>Entrance door clear width</span><span class="m num">0.91 m<small>min 0.86</small></span>
+    <div class="dim"><u style="left:62%"></u><i style="left:74%;background:var(--pass)"></i></div>
+  </div>
+  <div class="check sel">
+    <svg class="g" viewBox="0 0 10 10"><rect width="10" height="10" fill="var(--fail)" /></svg><span>Bathroom door clear width</span><span class="m num">0.71 m<small>min 0.86</small></span>
+    <div class="dim"><u style="left:62%"></u><i style="left:38%;background:var(--fail)"></i></div>
+  </div>
+  <div class="check">
+    <svg class="g" viewBox="0 0 10 10"><path d="M5 0.5 9.8 9.5H0.2Z" fill="var(--warn)" /></svg><span>Turning circle in the bathroom</span><span class="m num">1.48 m<small>min 1.52</small></span>
+    <div class="dim"><u style="left:62%"></u><i style="left:58%;background:var(--warn)"></i></div>
+  </div>
+  <div class="strip">
+    <div class="thumb"><span class="num">P 07</span></div><div class="thumb"><span class="num">P 11</span></div><div class="thumb"><span class="num">P 12</span></div>
+  </div>
+</aside>
+
+<div class="pane dock">
+  <span class="tool"><span class="c num" style="background:#7a4fd0">AC</span>Step-free access</span>
+  <span class="tool"><span class="c num" style="background:#0f7c8a">RR</span>Listed versus measured</span>
+  <span class="tool"><span class="c num" style="background:#a2467e">MV</span>Will it fit</span>
+  <span class="tool add">Add a tool</span>
+  <span class="ask">Ask for a change</span>
+</div>
+
+<script type="module">
+  import '@fontsource-variable/archivo/wdth.css'
+  import '@fontsource-variable/martian-mono/wdth.css'
+  import 'maplibre-gl/dist/maplibre-gl.css'
+  import { Map } from '../src/map/maplibre.ts'
+  import { mapStyle } from '../src/map/style.ts'
+  const map = new Map({ container: 'map', center: [-95.52, 29.745], zoom: 11.2, attributionControl: false,
+    style: mapStyle({ ground: '#f4f1ea', water: '#dbe5ea', waterLine: '#6a8ba3', green: '#e7e9da', road: 'rgba(24,33,43,0.32)',
+      roadMajor: 'rgba(24,33,43,0.6)', rail: 'rgba(24,33,43,0.4)', building: '#e9e4d8', label: '#18212b', labelMuted: '#5a6472', halo: '#f4f1ea' }) })
+  map.on('load', async () => {
+    map.addSource('b', { type: 'geojson', data: await (await fetch('/api/buildings')).json() })
+    map.addLayer({ id: 'b', type: 'circle', source: 'b', paint: {
+      'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 2.6, 12, 9], 'circle-color': '#18212b',
+      'circle-stroke-color': '#f4f1ea', 'circle-stroke-width': 1 } })
+    map.addLayer({ id: 'sel', type: 'circle', source: 'b', filter: ['==', ['get', 'address'], '__none__'], paint: {} })
+  })
+</script>
+</body>
+</html>
