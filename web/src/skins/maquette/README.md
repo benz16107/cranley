@@ -91,7 +91,8 @@ Curves and durations are in `tokens.css` and `maquette.css`. Keyboard actions an
 
 Only `--scene-*` variables and `th-` classes. Pins become hang tags; chips become pieces of card; the scene's cut
 and floor controls are hidden and driven from this look's own (`Model.tsx`); its legend, scale bar, note and inset
-plan are moved clear of the stack.
+plan are moved clear of the stack. The scene's `frame` keeps the model clear of the figure and the open sheet, and
+`onCamera` ends the thread on a finding that has no tag.
 
 ## Design tells, walked
 

@@ -1,10 +1,10 @@
 import { Suspense, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { Slider } from '@base-ui/react/slider'
 import { Switch } from '@base-ui/react/switch'
-import { Scene, SceneBoundary, droneImage, fetchDrone, navigate, panoFace, useBuildingView, useRoute, useWorkspace, userOp, type Doc, type ScanPlan, type SceneMode, type SceneProps } from '../../core/index.ts'
+import { Scene, SceneBoundary, droneImage, fetchDrone, navigate, panoFace, useBuildingView, useRoute, useWorkspace, userOp, type Doc, type ScanPlan, type SceneCamera, type SceneMode, type SceneProps } from '../../core/index.ts'
 import { Photo } from './blocks.tsx'
 import { anchorPoint, findingPhoto, street } from './lib.ts'
-import { headline, lensOverlays, type useSheet } from './state.ts'
+import { headline, lensOverlays, usePhone, type useSheet } from './state.ts'
 import { Big, Glyph, Icon, Print, Src } from './ui.tsx'
 import './scene.css'
 
@@ -16,29 +16,31 @@ import './scene.css'
 const WHOLE = 3.2 // the cut slider's top: walls left whole
 type Found = Doc['findings'][number]
 
-/** Ties the print on the table to its place in the model: a thread from the print to the scene's own tag for the
-    same finding, which is also marked as the current one. The scene does not say where an anchor is on screen yet
-    (core-requests.md, Maquette 2), so the tag is found by its label; with no tag in view there is no thread. */
-function useThread(host: RefObject<HTMLElement | null>, from: RefObject<HTMLElement | null>, label: string | null) {
+/** Ties the print on the table to its place in the model: a thread from the print to the foot of the scene's own
+    tag for the same finding, which is also marked as the current one. The scene has no way to mark a pin yet
+    (core-requests.md, Maquette 2), so the tag is found by its label. A finding with no tag ends the thread where the
+    scene says the focused anchor is (`onCamera`); with neither in view there is no thread. */
+function useThread(host: RefObject<HTMLElement | null>, from: RefObject<HTMLElement | null>, label: string | null, at: RefObject<SceneCamera['focus']>) {
   const line = useRef<SVGLineElement>(null)
   useEffect(() => {
-    if (!label) return
+    if (label == null) return
     const l = line.current
     let raf = 0, pin: HTMLElement | null = null
     const tick = () => {
       raf = requestAnimationFrame(tick)
       const root = host.current, a = from.current
       if (!root || !l) return
-      if (!pin?.isConnected) {
+      if (label && !pin?.isConnected) {
         pin = [...root.querySelectorAll<HTMLElement>('.th-pin')].find((p) => p.getAttribute('aria-label')?.includes(`. ${label} (`)) ?? null
         pin?.setAttribute('data-mq-current', '')
       }
-      const on = !!pin && !pin.hidden && !!a
-      l.style.opacity = on ? '1' : '0'
-      if (!on) return
-      const p = pin!.getBoundingClientRect(), r = a!.getBoundingClientRect(), o = root.getBoundingClientRect()
+      const o = root.getBoundingClientRect(), p = pin && !pin.hidden ? pin.getBoundingClientRect() : null
+      const end = p ? [p.left + 9 - o.left, p.bottom - o.top] : at.current?.visible ? [at.current.x, at.current.y] : null // the tag's foot (scene.css), else the anchor
+      l.style.opacity = end && a ? '1' : '0'
+      if (!end || !a) return
+      const r = a.getBoundingClientRect()
       l.setAttribute('x1', String(r.left + r.width / 2 - o.left)); l.setAttribute('y1', String(r.top + 6 - o.top))
-      l.setAttribute('x2', String(p.left + 9 - o.left)); l.setAttribute('y2', String(p.bottom - o.top)) // the tag's foot (scene.css)
+      l.setAttribute('x2', String(end[0])); l.setAttribute('y2', String(end[1]))
     }
     raf = requestAnimationFrame(tick)
     return () => { cancelAnimationFrame(raf); pin?.removeAttribute('data-mq-current'); if (l) l.style.opacity = '0' }
@@ -79,7 +81,18 @@ export function Model({ sid, sheet }: { sid: string; sheet: ReturnType<typeof us
     const same = (a: unknown) => JSON.stringify({ ...(a as object), sid }) === JSON.stringify({ ...found.anchor, sid })
     return v.overlays.flatMap((o) => (o.kind === 'pins' ? o.pins : [])).find((p) => same(p.anchor))?.label ?? null
   }, [found, v.overlays, sid])
-  const thread = useThread(root, print, mode === 'plan' || mode === 'splat' ? null : tagLabel) // the plan and the drone capture draw no tags
+  // the plan and the drone capture draw no tags; a panorama anchor's "focus" is a point along the view, not the place
+  const focusAt = useRef<SceneCamera['focus']>(null), onPano = !!doc.camera && 'pano' in doc.camera.anchor
+  const thread = useThread(root, print, !found || mode === 'plan' || mode === 'splat' ? null : tagLabel ?? '', focusAt)
+  const onCamera = (c: SceneCamera) => { focusAt.current = onPano ? null : c.focus }
+
+  // The free part of the picture: clear of the figure at the left and of the open sheet at the right. The scene fits
+  // the model and lands every focus inside it, and the ground photograph still runs to the edges of the table.
+  const phone = usePhone(), open = !!panel && !sheet.folded
+  useEffect(() => {
+    const w = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sheet-w')) || 404
+    v.setView((s) => ({ ...s, frame: inside || phone ? null : { left: 300, right: open ? w + 40 : 0, top: 56 } }))
+  }, [inside, phone, open, sid]) // eslint-disable-line react-hooks/exhaustive-deps
   const stand = plan && found ? standpoint(plan, found) : null
   const h = headline(doc, panel)
 
@@ -121,7 +134,7 @@ export function Model({ sid, sheet }: { sid: string; sheet: ReturnType<typeof us
         {!plan && !v.error && <div className="mq-unroll" role="status" aria-label="Loading the plan"><i /><span className="mq-caps">Unrolling the plan</span></div>}
         {sceneProps && (
           <Suspense fallback={<div className="mq-unroll" role="status" aria-label="Loading the model"><i /><span className="mq-caps">Raising the model</span></div>}>
-            <SceneBoundary key={v.sceneKey} fallback={fault}><Scene {...sceneProps} className="mq-scene" /></SceneBoundary>
+            <SceneBoundary key={v.sceneKey} fallback={fault}><Scene {...sceneProps} className="mq-scene" onCamera={onCamera} /></SceneBoundary>
           </Suspense>
         )}
       </div>

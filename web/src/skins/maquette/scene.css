@@ -64,11 +64,11 @@
 .mq-scene.th-scene .th-cut, .mq-scene.th-scene .th-floors { display: none; }
 .mq-scene.th-scene .th-inset { display: none; }
 .mq-scene.th-scene[data-mode='pano'] .th-inset { display: block; left: auto; right: 24px; bottom: 28px; width: 232px; border-radius: 0; box-shadow: var(--lie); } /* where you stand, on a plan card */
-.mq-scene.th-scene .th-legend { right: 64px; top: 250px; bottom: auto; width: 190px; padding: 10px 12px; border-radius: 0; box-shadow: var(--lie); }
+.mq-scene.th-scene .th-legend { right: calc(var(--sheet-w) + 52px); top: 250px; bottom: auto; width: 190px; padding: 10px 12px; border-radius: 0; box-shadow: var(--lie); }
 .mq-scene.th-scene .th-legend-title { font-size: 10.5px; letter-spacing: 0.14em; }
 .mq-scene.th-scene .th-legend-bar { height: 10px; box-shadow: none; }
 .mq-scene.th-scene .th-note { bottom: 44px; padding: 8px 12px; border-radius: 0; box-shadow: var(--lie); font-size: 13px; }
-.mq-scene.th-scene .th-scalebar { left: auto; right: 64px; bottom: 30px; color: var(--print); font-size: 11.5px; }
+.mq-scene.th-scene .th-scalebar { left: auto; right: calc(var(--sheet-w) + 52px); bottom: 30px; color: var(--print); font-size: 11.5px; }
 .mq-scene.th-scene .th-scalebar > div { border-color: var(--print); }
 .mq-scene.th-scene .th-loading { height: 3px; }
 .mq-scene.th-scene .th-wipe-tag { padding: 5px 10px; border-radius: 0; font-size: 11px; letter-spacing: 0.14em; }

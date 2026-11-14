@@ -157,10 +157,8 @@
 .mq-photo[data-state='wait'], .mq-photo[data-state='none'] { background-image: repeating-linear-gradient(-45deg, var(--rule) 0 1px, transparent 1px 8px); }
 
 /* ================= one building ================= */
-/* The model is never under the figure or the open sheet. The scene centres itself in its box and has no frame offset
-   (core-requests.md), so the box is moved instead, and its left edge is feathered into the table. */
-.mq-model:not([data-inside]) .mq-stage { left: 230px; -webkit-mask-image: linear-gradient(90deg, transparent, #000 150px); mask-image: linear-gradient(90deg, transparent, #000 150px); }
-.mq-app[data-sheet='open'] .mq-model:not([data-inside]) .mq-stage { right: calc(var(--sheet-w) - 16px); }
+/* The stage is the whole table. The model is kept clear of the figure and the open sheet by the scene's `frame`
+   (Model.tsx), so the ground photograph runs under the paper to every edge. */
 .mq-unroll { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px; color: var(--print-2); }
 .mq-unroll i { width: 220px; height: 2px; background: var(--tape); transform-origin: left; animation: mq-unroll 1.2s var(--ease-in-out) infinite alternate; }
 @keyframes mq-unroll { from { transform: scaleX(0.08); } to { transform: scaleX(1); } }
@@ -410,7 +408,6 @@ p.b-plan { aspect-ratio: auto; }
   .mq-door.is-composing { grid-template-columns: minmax(0, 1fr); gap: 24px; padding-top: 64px; }
   .mq-ticket { grid-column: 1; grid-row: auto; rotate: none; } .mq-laid li { width: 100%; rotate: none; }
 
-  .mq-app[data-sheet='open'] .mq-model:not([data-inside]) .mq-stage, .mq-model:not([data-inside]) .mq-stage { left: 0; right: 0; -webkit-mask-image: none; mask-image: none; }
   .mq-model .mq-big { top: 196px; } .mq-model .mq-big-n { font-size: 48px; } .mq-model .mq-big-c { margin-top: 8px; padding: 6px 10px; }
   .mq-model .mq-print .where { order: 3; flex-basis: 100%; }
   .mq-look { top: 78px; left: 16px; right: 16px; justify-items: start; gap: 6px; }

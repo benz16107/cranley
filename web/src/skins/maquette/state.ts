@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { setQuery, useRoute, useWorkspace, type Block, type Doc, type Overlay, type Panel, type Status } from '../../core/index.ts'
+import { setQuery, useRoute, useWorkspace, type Block, type Doc, type Panel, type Status } from '../../core/index.ts'
 import { fmt } from './lib.ts'
+export { lensOverlays } from './lens.ts'
 
 /* View state of this look that is not the product's: which sheet is on top (?c_p), whether the stack is folded
    (?c_fold), and what the sheet on top puts on the model. Everything is read from the workspace document. */
@@ -28,23 +29,6 @@ export function useSheet(sid: string | null) {
   const count = useRef(here.length)
   useEffect(() => { if (here.length > count.current && q.get('c_p')) setQuery({ c_p: null }); count.current = here.length }, [here.length]) // eslint-disable-line react-hooks/exhaustive-deps
   return { here, active, pick: (id: string) => setQuery({ c_p: id, c_fold: null }), folded: q.get('c_fold') === '1', fold: (on: boolean) => setQuery({ c_fold: on ? '1' : null }) }
-}
-
-/** The sheet on top is a lens: only its tool's marks are laid on the model. Core hands the scene every tool's
-    overlays for a scan at once, without their tool (core-requests.md, Maquette 1), so the same objects are picked by
-    walking the document in core's order. If the two lists ever disagree, everything is shown, as core would. */
-export function lensOverlays<T>(doc: Doc, sid: string, tool: string | undefined, all: T[]): T[] {
-  if (!tool) return all
-  const out: T[] = []
-  let i = 0
-  for (const o of doc.overlays) {
-    if (o.sid && o.sid !== sid) continue
-    const v: Overlay = o.overlay
-    if ((v.kind === 'route' && v.floor === 'geo') || (v.kind === 'pins' && v.pins.every((p) => 'geo' in p.anchor))) continue
-    if (o.tool === tool && all[i]) out.push(all[i])
-    i++
-  }
-  return i === all.length ? out : all
 }
 
 /** The one figure printed large on the mat: the measurement the focused finding is about, else the sheet's first
