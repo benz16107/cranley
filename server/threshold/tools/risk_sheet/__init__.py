@@ -159,8 +159,21 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     pool = fact(s, "pool")
     if pool is not None:
         enc = sum(fact(s, f"pool_{t}_enclosed", 0) or 0 for t in ("in_ground", "above_ground", "hot_tub"))
-        st = "pass" if not pool else "pass" if enc else "warn"
-        txt = "No pool." if not pool else f"Pool on the parcel, {'enclosed' if enc else 'not enclosed'} per Vexcel."
+        seen = None
+        if pool and inputs.use_vision:  # the same yard check path_to_water makes (cached)
+            from .._site import parcel
+            from ..path_to_water import find_pool, yard_vision
+            try:
+                pl = find_pool(s, fp, parcel(s))
+                seen = (yard_vision(s, pl["polygon"]) or {}).get("pool_fence") if pl else None
+            except Exception as e:  # noqa: BLE001  the Vexcel flag stands alone
+                ctx.step(f"Yard photo not read: {str(e)[:100]}")
+        fenced = (enc and seen != "no") or seen == "yes"
+        st = "pass" if not pool or fenced else "warn"
+        txt = "No pool." if not pool else (
+            f"Pool on the parcel, {'enclosed' if enc else 'not enclosed'} per Vexcel"
+            + ({"no": "; the photo shows no fence between house and pool", "yes": "; a pool fence shows on the photo",
+                "unclear": "; the photo is unclear"}.get(seen, "") + "."))
         findings.append(Finding(id=f"risk_sheet:{k}:pool", title="Pool", status=st, anchor=at, source=src(s, "pool"), media=[photo],
                                 detail=txt + (" Run path_to_water for the routes from the bedrooms." if pool and s.sid else "")))
         rows.append(("Pool", txt, "Vexcel pool facts, medium", st))
@@ -186,7 +199,9 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                 metrics.append(Metric(id=f"inside.{h.replace(' ', '_')}", label=h.capitalize(), value=v, unit="",
                                       source=Source(layer="model", method="vision", confidence="low",
                                                     note=f"Vision model on {inputs.max_panos} panoramas; absence is not proof")))
-            rows.append(("Inside", ", ".join(f"{v} {h}{'s' if v != 1 else ''}" for h, v in counts.items() if v) or "Nothing on the list seen",
+            plural = {"outlet near the floor": "outlets near the floor", "sprinkler head": "sprinkler heads"}
+            rows.append(("Inside", ", ".join(f"{v} {h if v == 1 else plural.get(h, h + 's')}" for h, v in counts.items() if v)
+                         or "Nothing on the list seen",
                          f"Vision model, {inputs.max_panos} panoramas, low", st))
         except Exception as e:  # noqa: BLE001
             rows.append(("Inside", f"Not read: {str(e)[:80]}", "panoramas", "unknown"))
