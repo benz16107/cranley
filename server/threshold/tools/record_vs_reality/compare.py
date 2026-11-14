@@ -184,6 +184,8 @@ def baths(plan: dict, claim: dict, scan: dict, p: dict, ev: dict) -> dict:
 
 
 def stories_home(plan: dict, claim: dict, scan: dict, p: dict) -> dict:
+    if not _scope_ok(claim, scan):
+        return _wrong_scope(claim, scan)
     f = ms.floors(plan)
     if not f["available"]:
         return _c(claim, UNVERIFIABLE, "high", f["reason"])

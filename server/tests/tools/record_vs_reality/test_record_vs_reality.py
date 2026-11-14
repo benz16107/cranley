@@ -139,3 +139,11 @@ def test_unlabelled_room_named_from_panorama_leaves_living_area():
     fa = ms.floor_area(plan, {"B2": "Patio"})
     assert "B2" in {x["room"] for x in fa["excluded"]} and round(fa["m2"], 1) == 51.8
     assert "named from its panorama" in next(x["why"] for x in fa["excluded"] if x["room"] == "B2")
+
+
+def test_condo_stories_are_the_buildings():
+    rec = copy.deepcopy(HOME_RECORD)
+    rec["residential_listing"]["property"]["address"]["unitNumber"] = "108"
+    rec["claims"]["stories"]["value"] = 4
+    c = by_key(audit(make_home(), rec)["comparisons"])["stories"]
+    assert c["verdict"] == "cannot verify" and "building" in c["reason"]
