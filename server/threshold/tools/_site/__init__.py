@@ -169,7 +169,12 @@ def record_source(path: str, pid: int | None) -> Source:
 def facts(s: Site) -> dict:
     """site_facts once per run, with the facts keyed by id."""
     if s._facts is None:
-        f = aerial.site_facts(s.lat, s.lon)
+        try:
+            f = aerial.site_facts(s.lat, s.lon)
+        except LookupError as e:  # VexcelError 404: no property at this point
+            if getattr(e, "status", None) != 404:
+                raise
+            f = {"lat": s.lat, "lon": s.lon, "facts": [], "footprint": None, "parcel": None, "capture": None}
         s._facts = {**f, "by_id": {x["id"]: x for x in f.get("facts") or []}}
     return s._facts
 

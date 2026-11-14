@@ -160,14 +160,24 @@ def survey(ctx, s, use_vision: bool = True, inside: bool = True) -> dict:
              f"the obliques; {sum(map(len, by.values()))} sit on this building's walls, seen face-on")
     out.update(faces=faces, doors=[d for ds in by.values() for d in ds], by_side=by, size_m=size, center=(c.x, c.y),
                images=det.get("images"))
-    if use_vision and by:
-        side = max(by, key=lambda k: len(by[k]))
-        direction = next(d for d, f in SHOWS.items() if f == side)
-        try:
-            out["vision"] = vision_count(s, direction, size)
-            ctx.step(f"Vision model on the {side} wall: " + ", ".join(f"{v} {k}" for k, v in out["vision"]["counts"].items()))
-        except Exception as e:  # noqa: BLE001  the count stands without the cross-check
-            out["vision_error"] = str(e)[:200]
+    vis: dict[str, dict] = {}
+    if use_vision:
+        # the busiest wall when Vexcel found doors; every wall when it found none (its recall varies by view)
+        dirs = [next(d for d, f in SHOWS.items() if f == max(by, key=lambda k: len(by[k])))] if by else list(SHOWS)
+        for direction in dirs:
+            try:
+                v = vision_count(s, direction, size)
+            except Exception as e:  # noqa: BLE001  the Vexcel count stands without the cross-check
+                out["vision_error"] = str(e)[:200]
+                continue
+            if v:
+                vis[direction] = v
+                ctx.step(f"Vision model on the {SHOWS[direction]} wall: " + ", ".join(f"{n} {t}" for t, n in v["counts"].items()))
+    per_side = {side: len(ds) for side, ds in by.items()}
+    for direction, v in vis.items():  # where the model read a wall, its count of truck doors stands for that wall
+        per_side[SHOWS[direction]] = v["counts"]["dock-high door"] + v["counts"]["drive-in door"]
+    out["vision"] = vis
+    out["per_side"] = {k: n for k, n in per_side.items() if n}
     if inside and s.sid:
         try:
             out["inside"] = inside_count(ctx, s.sid)
@@ -202,25 +212,28 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     if sv["footprint"] is None:
         return ToolResult(scope=s.scope, verdict=Verdict(status="unknown",
                           text="Vexcel has no building footprint here, so the walls cannot be read."))
-    by = sv["by_side"]
+    by, per_side, vis = sv["by_side"], sv["per_side"], sv["vision"]
     aerial_n = sum(map(len, by.values()))
-    vis = sv.get("vision")
+    best = sum(per_side.values())
     rec_docks = (rec.get("dock_doors") or {}).get("value")
     rec_drive = (rec.get("drive_in_bays") or {}).get("value")
-    metrics = [Metric(id="aerial_docks", label="Dock doors seen from the air", value=aerial_n, unit="", source=SAM)]
     vsrc = Source(layer="model", method="vision", confidence="low",
-                  note=f"Vision model on the {vis['direction']} oblique (one wall only)" if vis else "Vision model")
+                  note="Vision model on the oblique view of " + (", ".join(f"the {SHOWS[d]} wall" for d in vis) or "no wall"))
+    metrics = [Metric(id="truck_doors", label="Truck doors seen from the air", value=best, unit="", source=vsrc if vis else SAM),
+               Metric(id="aerial_docks", label="Dock doors found by Vexcel detection", value=aerial_n, unit="", source=SAM)]
     if vis:
-        metrics += [Metric(id="vision_dock_high", label="Dock-high doors (vision, one wall)", value=vis["counts"]["dock-high door"], unit="", source=vsrc),
-                    Metric(id="vision_drive_in", label="Drive-in doors (vision, one wall)", value=vis["counts"]["drive-in door"], unit="", source=vsrc)]
+        metrics += [Metric(id="vision_dock_high", label="Dock-high doors (vision)", unit="", source=vsrc,
+                           value=sum(v["counts"]["dock-high door"] for v in vis.values())),
+                    Metric(id="vision_drive_in", label="Drive-in doors (vision)", unit="", source=vsrc,
+                           value=sum(v["counts"]["drive-in door"] for v in vis.values()))]
     if rec_docks is not None:
         metrics.append(Metric(id="record_docks", label="Dock doors in the record", value=rec_docks, unit="",
                               source=record_source(rec["dock_doors"]["path"], s.property_id)))
     if rec_drive is not None:
         metrics.append(Metric(id="record_drive_in", label="Drive-in bays in the record", value=rec_drive, unit="",
                               source=record_source(rec["drive_in_bays"]["path"], s.property_id)))
-    for side, ds in by.items():
-        metrics.append(Metric(id=f"side.{side}", label=f"{side.capitalize()} wall", value=len(ds), unit="doors", source=SAM))
+    for side, n in per_side.items():
+        metrics.append(Metric(id=f"side.{side}", label=f"{side.capitalize()} wall", value=n, unit="doors", source=SAM))
 
     checks, findings, ps = [], [], []
     for side, ds in sorted(by.items(), key=lambda kv: -len(kv[1])):
@@ -228,27 +241,25 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         fid = f"loading_docks:{k}:{side}"
         findings.append(Finding(id=fid, title=f"Dock doors on the {side} wall", status="pass", anchor=geo(*ds[0]["anchor"]["geo"]),
                                 source=SAM, media=[oblique_media(s, direction, sv["size_m"])],
-                                detail=f"{len(ds)} doors seen face-on in the {direction} view, capture {capture(s)}."))
+                                detail=f"Vexcel detection: {len(ds)} doors seen face-on in the {direction} view, capture {capture(s)}."))
         for i, d in enumerate(ds):
             ps.append(pin(f"dock_{side}_{i + 1}", *d["anchor"]["geo"], f"dock {side} {i + 1}", "pass"))
-    if vis:
-        side = SHOWS[vis["direction"]]
+    for direction, v in vis.items():
+        side = SHOWS[direction]
         n_sam = len(by.get(side, []))
-        n_vis = vis["counts"]["dock-high door"] + vis["counts"]["drive-in door"]
+        n_vis = v["counts"]["dock-high door"] + v["counts"]["drive-in door"]
         fid = f"loading_docks:{k}:vision:{side}"
-        st = agree(n_sam, n_vis)
-        checks.append(Check(id="vision_agrees", rule=f"Two detectors agree on the {side} wall", measured=n_sam,
-                            threshold=n_vis, unit="doors", status=st, findings=[fid]))
-        findings.append(Finding(id=fid, title=f"Vision model's door list, {side} wall", status=st, source=vsrc,
-                                anchor=geo(*sv["center"]),
-                                detail=f"{vis['counts']['dock-high door']} dock-high, {vis['counts']['drive-in door']} drive-in, "
-                                       f"{vis['counts']['other door']} other doors; Vexcel detection counted {n_sam} on this wall.",
-                                media=[oblique_media(s, vis["direction"], sv["size_m"], tuple(round(v, 4) for v in d["frac"]))
-                                       for d in vis["doors"] if d["type"] != "other door"][:12]))
-    best = aerial_n
-    if vis:  # the vision count covers one wall; the others keep Vexcel's count
-        side = SHOWS[vis["direction"]]
-        best = aerial_n - len(by.get(side, [])) + vis["counts"]["dock-high door"] + vis["counts"]["drive-in door"]
+        st = agree(n_sam, n_vis) if n_sam else "unknown"
+        if n_sam:
+            checks.append(Check(id=f"vision_agrees.{side}", rule=f"Two detectors agree on the {side} wall", measured=n_sam,
+                                threshold=n_vis, unit="doors", status=st, findings=[fid]))
+        if n_vis or n_sam:
+            findings.append(Finding(id=fid, title=f"Vision model's door list, {side} wall", status=st if n_sam else "pass",
+                                    source=vsrc, anchor=geo(*sv["center"]),
+                                    detail=f"{v['counts']['dock-high door']} dock-high, {v['counts']['drive-in door']} drive-in, "
+                                           f"{v['counts']['other door']} other doors; Vexcel detection counted {n_sam} on this wall.",
+                                    media=[oblique_media(s, direction, sv["size_m"], tuple(round(x, 4) for x in d["frac"]))
+                                           for d in v["doors"] if d["type"] != "other door"][:12]))
     if rec_docks is not None or rec_drive is not None:
         want = (rec_docks or 0) + (rec_drive or 0)
         st = agree(best, want)
@@ -268,8 +279,8 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         metrics.append(Metric(id="inside_doors", label="Truck doors seen inside", value=ins["dock"] + ins["rollup"], unit="",
                               source=Source(layer="model", method="vision", confidence="low",
                                             note="Vision model on up to 4 panoramas of the scan")))
-    sides = ", ".join(f"{len(v)} {s_}" for s_, v in sorted(by.items(), key=lambda kv: -len(kv[1])))
-    if not aerial_n:
+    sides = ", ".join(f"{n} {s_}" for s_, n in sorted(per_side.items(), key=lambda kv: -kv[1]))
+    if not best:
         status, text = "unknown", "No dock doors were seen on this building's walls from the air."
     else:
         status = "warn" if any(c.status == "warn" for c in checks) else "pass"

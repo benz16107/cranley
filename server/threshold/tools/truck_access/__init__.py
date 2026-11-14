@@ -65,7 +65,8 @@ class Inputs(Where):
                                description="Truck court depth a 53 ft trailer needs to back in (130 ft)")
     entrance_min_m: float = field(round(TURN_SWEEP_M, 1), pref="truck.entrance_min_m", unit="m", ge=3, le=30,
                                   description="Entrance width for a WB-67 to turn in without curb returns")
-    use_vision: bool = field(True, description="Ask the vision model whether a gate closes the entrance (cached)")
+    use_vision: bool = field(True, description="Ask the vision model about the gate and, where Vexcel finds no dock doors, "
+                                                         "the walls (cached)")
 
 
 # ---- measuring on the orthophoto --------------------------------------------------------------------
@@ -270,22 +271,22 @@ def directions(e: dict, gate: str, dock_side: str, dock_bearing: float, n_doors:
       examples=["Can a 53 foot trailer get into this warehouse?", "Which entrance do trucks use here?"])
 def run(ctx, inputs: Inputs) -> ToolResult:
     s = locate(ctx, inputs)
-    sv = survey(ctx, s, use_vision=False, inside=False)
+    sv = survey(ctx, s, use_vision=inputs.use_vision, inside=False)
     if sv["footprint"] is None:
         return ToolResult(scope=s.scope, verdict=Verdict(status="unknown",
                           text="Vexcel has no building footprint here, so there is no dock wall to measure from."))
     k, lat0 = s.key, s.lat
     fwd, back = to_m(lat0)
-    by = sv["by_side"]
+    by, per_side = sv["by_side"], sv["per_side"]
     ref_z = fact(s, "ground_elevation")
     size = min(400, sv["size_m"] + 120)
     c = sv["footprint"].centroid
     photo = Photo(c.y, c.x, size)
     faces = sv["faces"]
-    if by:
-        side = max(by, key=lambda x: len(by[x]))
+    if per_side:
+        side = max(per_side, key=per_side.get)
         face = next(f for f in faces if f["side"] == side)
-        face_note = f"{len(by[side])} dock doors seen on the {side} wall"
+        face_note = f"{per_side[side]} truck doors seen on the {side} wall"
     else:  # no doors seen: take the wall with the deepest clear apron and say so
         depths = {f["side"]: court_depth(photo, f, lat0, ref_z, 3)["median_m"] for f in faces}
         side = max(depths, key=depths.get)
@@ -456,7 +457,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     except Exception as err:  # noqa: BLE001  trailer count is extra; the verdict stands without it
         ctx.step(f"Trailer count skipped: {str(err)[:120]}")
 
-    n_doors = len(by.get(side, []))
+    n_doors = per_side.get(side, 0)
     text_dir = directions(e, gate_txt, side, face["bearing"], n_doors, court["median_m"], drive_m, lows) if e else \
         "Street data is missing, so no arrival directions."
     findings.insert(0, Finding(id=f"truck_access:{k}:directions", title="Arrival directions", status="unknown" if not e else "pass",

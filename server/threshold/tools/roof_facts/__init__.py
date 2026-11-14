@@ -122,7 +122,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     text = (f"{material or 'Unclassified'} {shape or ''} roof with {name(serious)}: needs an inspection." if serious else
             f"{material or 'Unclassified'} {shape or ''} roof with wear: {name(d for d, _ in ds)}." if ds else
             f"{material or 'Unclassified'} {shape or ''} roof, no defects detected.").replace("  ", " ")
-    text += f" Imagery from {capture(s)}."
+    text = text[0].upper() + text[1:] + f" Imagery from {capture(s)}."
     ctx.step(f"{len(ds)} defects, tree cover {tree if tree is not None else 'unknown'}%")
     return ToolResult(scope=s.scope, verdict=Verdict(status=status, text=text), metrics=roof_metrics(s), checks=checks,
                       findings=findings, overlays=pins(ps),
