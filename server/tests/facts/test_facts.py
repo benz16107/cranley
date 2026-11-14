@@ -32,6 +32,8 @@ def test_database(monkeypatch):
 def schema():
     if not TEST_URL:
         pytest.skip("TIGER_TEST_DATABASE_URL is not set")
+    if not db.is_local(TEST_URL):  # the module drops and rebuilds the schema: only ever on this machine
+        pytest.fail("TIGER_TEST_DATABASE_URL must name a local database, not the cloud service")
     mp = pytest.MonkeyPatch()
     mp.setenv("TIGER_DATABASE_URL", TEST_URL)
     try:
@@ -198,3 +200,15 @@ def test_drop_all_leaves_nothing(schema):
     assert db.rows("SELECT to_regclass('threshold.fact') IS NULL AS gone")[0]["gone"]
     assert not db.rows("SELECT 1 FROM pg_roles WHERE rolname = 'threshold_reader' AND rolcanlogin")
     db.migrate()  # the module fixture drops again at the end
+
+
+def test_guards_keep_destructive_commands_off_the_cloud(monkeypatch, capsys):
+    from threshold.facts import __main__ as cli
+    assert db.is_local("postgres://u:p@127.0.0.1:5544/x") and db.is_local("postgres://u@localhost/x")
+    assert not db.is_local("postgres://u:p@abc.tsdb.cloud.example.com:5432/tsdb?sslmode=require") and not db.is_local(None)
+    monkeypatch.setenv("TIGER_DATABASE_URL", "postgres://u:p@abc.tsdb.cloud.example.com:5432/tsdb")
+    called = []
+    monkeypatch.setattr(db, "migrate", lambda: called.append("migrate"))
+    monkeypatch.setattr(db, "drop_all", lambda **k: called.append("drop"))
+    assert cli.main(["load"]) == 1 and cli.main(["drop_all"]) == 1 and cli.main(["drop_all", "--target", "cloud"]) == 1
+    assert cli.main(["drop_all", "--yes"]) == 1 and not called  # nothing ran without both the name and the yes

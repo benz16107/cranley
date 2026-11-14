@@ -20,6 +20,7 @@ export { onNotice, type Notice } from './notices.ts'
 // ---- places: the URL is the state of the view
 export { navigate, setQuery, useRoute, currentRoute, type Route } from './router.ts'
 export { LOOKS, type LookId } from './looks.ts'
+export type { SwitcherPlace } from './switcher.ts'
 
 // ---- buildings and the city map
 export {
@@ -37,5 +38,5 @@ export {
 } from './api.ts'
 export {
   Scene, SceneBoundary, useBuildingView, focusFinding, focusAnchor, anchorFloor,
-  type SceneMode, type SceneView, type SceneProps,
+  type SceneMode, type SceneView, type SceneProps, type SceneCamera, type SceneState,
 } from './scene.tsx'

@@ -4,7 +4,7 @@ import { Engine, type FrameInfo, type SceneState } from './engine/Engine.ts'
 import { FloorPlan, type FloorPlanHandle } from './FloorPlan.tsx'
 import { isKnownOverlay, type Model } from './model.ts'
 import { useSceneLink } from './store.ts'
-import type { Overlay, Pick, ScanPlan, View } from './types.ts'
+import type { CameraInfo, Overlay, Pick, ScanPlan, View } from './types.ts'
 import './scene.css'
 
 export interface BuildingSceneProps {
@@ -14,6 +14,11 @@ export interface BuildingSceneProps {
   onPick?: (p: Pick) => void
   /** Called when the person changes the view from inside the scene: walking to a scan position, dragging the cut. */
   onViewChange?: (v: View) => void
+  /** The camera whenever it changes, and once when a designed flight ends: bearing, pitch, range and fov in the
+      units of `view.pose` and `view.fov`, and where `view.focus` is on screen. For a leader line or a timed arrival. */
+  onCamera?: (c: CameraInfo) => void
+  /** What the scene is doing: its mode, whether it is loading, and the drone capture's progress. */
+  onState?: (s: SceneState) => void
   /** Where /api lives. Empty means same origin. */
   api?: string
   className?: string
@@ -23,7 +28,7 @@ const NO_OVERLAYS: Overlay[] = []
 const DEFAULT_VIEW: View = { mode: 'dollhouse' }
 const niceLength = (m: number) => [0.5, 1, 2, 5, 10, 20, 50].find((v) => v >= m) ?? 100
 
-export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = DEFAULT_VIEW, onPick, onViewChange, api = '', className }: BuildingSceneProps) {
+export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = DEFAULT_VIEW, onPick, onViewChange, onCamera, onState, api = '', className }: BuildingSceneProps) {
   const host = useRef<HTMLDivElement>(null), engine = useRef<Engine | null>(null)
   const planLayer = useRef<HTMLDivElement>(null), planHandle = useRef<FloorPlanHandle>(null), insetHandle = useRef<FloorPlanHandle>(null)
   const scaleBar = useRef<HTMLDivElement>(null), scaleText = useRef<HTMLSpanElement>(null)
@@ -32,8 +37,8 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
   const [view, setView] = useState(viewProp)
   const [seen, setSeen] = useState(viewProp)
   if (seen !== viewProp) { setSeen(viewProp); setView(viewProp) } // the outside can always say "look here"
-  const cb = useRef({ onPick, onViewChange })
-  useEffect(() => { cb.current = { onPick, onViewChange } })
+  const cb = useRef({ onPick, onViewChange, onCamera, onState })
+  useEffect(() => { cb.current = { onPick, onViewChange, onCamera, onState } })
   const change = useCallback((v: View) => { setView(v); cb.current.onViewChange?.(v) }, [])
 
   useEffect(() => {
@@ -48,7 +53,7 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
       }
       insetHandle.current?.cone(f.look)
     }
-    const e = new Engine(host.current!, plan, { api, onPick: (p) => cb.current.onPick?.(p), onViewChange: change, onState: setState, onFrame })
+    const e = new Engine(host.current!, plan, { api, onPick: (p) => cb.current.onPick?.(p), onViewChange: change, onState: (st) => { setState(st); cb.current.onState?.(st) }, onFrame, onCamera: (c) => cb.current.onCamera?.(c) })
     engine.current = e; setModel(e.model)
     useSceneLink.setState({ hover: null, selected: null })
     return () => { e.dispose(); engine.current = null }

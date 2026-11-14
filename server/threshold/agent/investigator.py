@@ -530,6 +530,11 @@ class Investigation:
                as_tool(self.rank, "rank", "Show the ranked comparison: candidates (scan ids or p<property id>) best "
                        "first, and one plain reason each, without numbers."),
                as_tool(self.compose_panel, "compose_panel", PANEL_HELP)]
+        if hasattr(self.s.store, "search"):
+            out.append(as_tool(self.history, "search_history", "Search this person's past workspaces (briefs, findings, "
+                               "notes, tools they removed, buildings they shortlisted). feedback \"rejected\" finds what "
+                               "they turned down and why: skip those buildings, or check that reason first. kind: brief, "
+                               "finding, note, tool_removed, shortlist. Never quote numbers from it."))
         route = search.measures_route()
         if route:
             out.append(StructuredTool.from_function(
@@ -566,7 +571,24 @@ class Investigation:
             *([f"What the composer said it cannot do: {'; '.join(d.brief.limits)}"] if d.brief.limits else []),
             f"Budget this turn: {self.budget.model_calls} model calls in all agents, {self.budget.tool_runs} tool runs. "
             "Investigate at most five candidates.",
-            "What the person has taught you:", prefs.as_text(d)])
+            "What the person has taught you:", prefs.as_text(d), *self.lessons()])
+
+    def lessons(self) -> list[str]:
+        """What earlier people with the same persona and a similar need taught (the store's memory)."""
+        from ..store import recall_lines
+        d = self.s.doc
+        got = recall_lines(self.s.store, d.brief.text, persona=d.brief.persona or "none", exclude=d.id)
+        return ["Earlier people with this persona and a similar need (search_history finds their findings):", *got] if got else []
+
+    def history(self, text: str | None = None, kind: str | None = None, tool: str | None = None,
+                status: str | None = None, feedback: str | None = None, city: str | None = None) -> dict:
+        """The person's past work across their workspaces."""
+        res = self.s.store.search(text, 12, profile=self.s.base.profile, kind=kind, tool=tool, status=status,
+                                  feedback=feedback, city=city)
+        keep = ("workspace", "kind", "sid", "address", "city", "tool", "status", "title", "feedback", "reason", "finding")
+        return {"total": res["total"], "facets": res["facets"],
+                "hits": [{**{k: h.get(k) for k in keep if h.get(k) is not None}, "here": h["workspace"] == self.s.base.id}
+                         for h in res["hits"]]}
 
     def build(self, model=None):
         from deepagents import create_deep_agent
@@ -671,7 +693,9 @@ def turn(session: Session, text: str | None = None, sids: list[str] | None = Non
         session.submit(BriefSet(by="user", run=t, scope=Scope(sids=sids or sc.sids, address=sc.address,
                                                              places=[Place.model_validate(p) for p in places] if places else sc.places)))
     if text and not (session.doc.brief.persona or session.doc.brief.summary):  # not composed yet
-        for op in compose(text, session.doc, composer or Claude(), run=t):
+        from ..store import recall_lines
+        for op in compose(text, session.doc, composer or Claude(), run=t,
+                          recalled=recall_lines(session.store, text, exclude=session.base.id)):
             try:
                 session.submit(op)
             except Rejected:

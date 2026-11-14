@@ -40,8 +40,14 @@ imports your CSS. `main.tsx` reads the first path segment, loads that one skin a
 | `/b` | `skins/broadsheet/` | B, Broadsheet |
 | `/c` | `skins/maquette/` | C, Maquette |
 
-A small tab at the bottom edge (in a shadow root, so your CSS cannot touch it) opens the same place in another look.
-Alt+L steps to the next one. Leave the bottom centre 80 px of the screen clear of anything a person must click.
+A small tab at the edge of the screen (in a shadow root, so your CSS cannot touch it) opens the same place in another
+look. Alt+L steps to the next one. It sits at the bottom centre unless your `index.tsx` says otherwise:
+
+```ts
+export const switcher: SwitcherPlace = 'top-right'   // 'bottom' | 'top' | 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
+```
+
+Leave 80 px of that edge clear of anything a person must click.
 
 ## Places: the URL is the state of the view
 
@@ -136,7 +142,7 @@ The store applies the op at once and core tells the server. You do not call the 
 compose(sentence, needId?)   // the front door: a new brief. Tools and questions arrive in doc as the server composes
 investigate()                // every question answered (or "use the defaults"): start the work
 ask(text)                    // the one-line command bar, anywhere
-runToolHere(toolId, sid)     // run one tool on the scan in view, from the dock
+runToolHere(toolId, sid)     // run one tool on the scan in view, from the dock. A slow tool does not block: see below
 runAction(action, panel)     // a panel's follow-up, or { id: 'rerun' }
 startOver()                  // forget the workspace; then navigate('/')
 answerPref(q, answer)        // only for a question answered after the work began: userOp(answerPref(q, a))
@@ -149,6 +155,11 @@ useCatalog((s) => s.live)    // true: the agent server answers. false: scripted 
 changes; you re-render from `doc`. To animate an arrival, compare with the previous render (a tool that was not in
 `doc.tools`, a run that turned `done`, a `camera` that changed). While a turn runs, `doc.plan` has an `active` step
 and `doc.runs` has `running` entries whose `summary` changes as the tool reports progress.
+
+**Slow tools.** Most tools answer in a second or two. A few take minutes (`smoke_clock` runs a fire simulation for 3
+to 11 minutes the first time on a house). You do nothing different: the run is in `doc.runs` with `status: 'running'`
+from the start, its `summary` is its latest progress line, and its panel, findings and overlays arrive when it ends,
+also after a reload. Design the running state so that minutes of it look intended.
 
 **The view follows the agent.** When the agent focuses a finding and `follow` is on, core navigates to its scan (or
 to the map for a map anchor) and sets `?f`. You see a new route and a new `doc.camera`. How the move looks is yours.
@@ -217,8 +228,37 @@ furnished and empty wipe where `plan.has.defurnished`), `splat` (only where `pla
 **The scene view** (`SceneView`), through `v.setView((x) => ({ ...x, … }))`: `floor` (show this floor; null is all),
 `pano` (position id), `cut` (metres above the floor; null is whole walls), `explode` (0 to 1), `wipe` (0 to 1 or null),
 `measures` (opening widths on). The scene draws its own controls for cut, floors and wipe (marked `data-scene-ui`);
-restyle them or hide them with CSS and drive the view yourself. There is no field of view, camera pose or frame
-offset yet: if your direction needs one, ask (rule 2).
+restyle them or hide them with CSS and drive the view yourself.
+
+**Where the camera puts its subject.** All optional; leave them out and the scene behaves as it always has.
+
+| Field | Modes | Meaning |
+|---|---|---|
+| `frame: { top?, right?, bottom?, left? }` | all | The free part of the picture, in CSS px in from each edge of the scene element. Outside it is your interface. Every fit and every focus lands in this rectangle, by shifting the projection: nothing tilts, and labels, pins and clicks follow. A change eases over 400 ms. Like MapLibre's `setPadding`. |
+| `fov: number` | `pano` | Vertical field of view in degrees, 34 to 96; null is 76. Applied when it changes and when a panorama is entered; the person's zoom then stays until it changes again. |
+| `look: { yaw_deg, pitch_deg }` | `pano` | Which way to look, in the scan frame as Contract 3 defines it (yaw counter-clockwise from +x, pitch up). Applied when it changes and on entering; a focused panorama anchor at that position wins. |
+| `pose: { bearing?, pitch?, range? }` | `dollhouse`, `splat` | Where the outside camera stands, in the map's terms: `bearing` is the compass direction it looks toward (0 north, clockwise), `pitch` degrees from straight down (0 plan view, 90 horizon), `range` metres from the target or `'fit'` (the default). Pass `map.getBearing()` and `map.getPitch()` straight through. A change flies there in 1 s; the person's drag then stays. |
+| `orbit: number` | `dollhouse`, `splat` | Degrees per second of slow turn about the target (positive is counter-clockwise seen from above). 0 stops it; leaving it out keeps the splat's own drift. A drag stops it until the value changes. |
+
+Two callbacks, passed beside `sceneProps`:
+
+```tsx
+<Scene {...v.sceneProps}
+  onCamera={(c: SceneCamera) => …}   // { mode, moving, bearing, pitch, range, fov, focus: { x, y, visible } | null }
+  onState={(s: SceneState) => …} />  // { mode, loading, pano, hasEmpty, noWalls, splat: { status, progress, splats, total } }
+```
+
+`onCamera` is called whenever the camera changes by more than half a pixel or a tenth of a degree, and once when a
+designed flight ends (`moving: false`). `focus` is where the focused finding is, in CSS px inside the scene element:
+end a leader line there and it follows as the person looks around. `onState` is the scene's own loading state, for a
+caption in your voice or a crossfade that starts when the first of the drone capture is in. Apply both straight to
+the DOM (a ref), not to React state: they can fire every frame.
+
+`bearing` needs the scan's compass rotation. It uses `plan.geo.yaw_deg` and, when the scan's footprint check passed,
+that fit as well. `plan.quality.georef` tells you whether the check passed; when it is false (always, for a unit
+inside a larger building) the bearing is the scan's own guess, good to a few degrees on houses. Without `plan.geo`,
+0 is the scan's +y. The drone capture is not registered to the scan frame yet, so nothing in map coordinates is drawn
+in `splat` mode.
 
 **The scene's look is yours through CSS variables**, set on `.th-scene`, on a class you pass as `className`, or on
 any ancestor rule for it. The defaults are in `src/scene/tokens.css` under `:where()`, so your rule wins.
