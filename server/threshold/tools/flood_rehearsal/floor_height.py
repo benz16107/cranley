@@ -202,8 +202,20 @@ def _jpeg(im: Image.Image, px: int) -> bytes:
 
 
 # Drones without calibrated intrinsics in their metadata: focal length in px of the full-size image, from the
-# camera's published 35 mm equivalent over the sensor diagonal (Mavic 3: Hasselblad L2D-20c, 24 mm, 5280 x 3956).
-FOCAL_BY_PRODUCT = {"DJIMavic3": (24 * math.hypot(5280, 3956) / 43.27, 5280, 3956)}
+# 35 mm equivalent in the photos' EXIF over the image diagonal (Mavic 3: Hasselblad L2D-20c, 24 mm, 5280 x 3956;
+# Mavic 4 Pro: L3D-100c, 28 mm, 6144 x 4096; read from the files on 2026-11-14).
+FOCAL_BY_PRODUCT = {"DJIMavic3": (24 * math.hypot(5280, 3956) / 43.27, 5280, 3956),
+                    "Mavic4 Pro L3A": (28 * math.hypot(6144, 4096) / 43.27, 6144, 4096)}
+
+
+def heading(p: dict) -> float:
+    """Compass direction of the camera. The Matrice 4E's gimbal yaw is a compass heading; on the Mavic 3 and 4
+    flights it is not (100 to 215 degrees off the bearing to the house), while the flight yaw points at the house
+    within a few degrees, so with the gimbal centred the flight yaw is used."""
+    g, f = p.get("gimbal_yaw_deg"), p.get("flight_yaw_deg")
+    if f is None or g is None or abs((g - f + 180) % 360 - 180) < 20:
+        return g if g is not None else f
+    return f
 
 
 def intrinsics(p: dict) -> dict | None:
@@ -219,7 +231,7 @@ def wall_distance(p: dict, fp_xy: Polygon, to_xy) -> tuple[float, str] | None:
     if p.get("lrf_lat") is not None and p.get("lrf_m"):
         hit = to_xy(p["lrf_lon"], p["lrf_lat"])
         return (math.dist(cam, hit), "laser") if fp_xy.buffer(1.5).contains(Point(hit)) else None
-    b = math.radians(p["gimbal_yaw_deg"])
+    b = math.radians(heading(p))
     ray = LineString([cam, (cam[0] + 60 * math.sin(b), cam[1] + 60 * math.cos(b))])
     x = ray.intersection(fp_xy.exterior)
     pts = [Point(c) for g in getattr(x, "geoms", [x]) for c in getattr(g, "coords", [])]
@@ -241,9 +253,9 @@ def drone_candidates(photos: list[dict], fp_xy: Polygon, to_xy) -> list[dict]:
     ok.sort(key=lambda p: (p["wall_source"] != "laser", p["alt"], abs(p["gimbal_pitch_deg"])))
     out, yaws = [], []
     for p in ok:
-        if all(abs((p["gimbal_yaw_deg"] - y + 180) % 360 - 180) > 25 for y in yaws):
+        if all(abs((heading(p) - y + 180) % 360 - 180) > 25 for y in yaws):
             out.append(p)
-            yaws.append(p["gimbal_yaw_deg"])
+            yaws.append(heading(p))
     return out
 
 
@@ -258,7 +270,7 @@ def drone_heights(photo: dict, img_w: int, u: float, v_thr: float, v_gnd: float,
 
     def alt(v):
         return photo["alt_abs"] + d * math.tan(math.radians(photo["gimbal_pitch_deg"]) + math.atan2(cy - v, f))
-    bearing = math.radians(photo["gimbal_yaw_deg"]) + phi
+    bearing = math.radians(heading(photo)) + phi
     door_xy = (cam[0] + d * math.sin(bearing), cam[1] + d * math.cos(bearing))
     lrf_pred = photo["alt_abs"] + d_h * math.tan(math.radians(photo["gimbal_pitch_deg"]))
     check = photo["lrf_alt_abs"] - lrf_pred if photo.get("lrf_alt_abs") is not None else None
@@ -267,7 +279,7 @@ def drone_heights(photo: dict, img_w: int, u: float, v_thr: float, v_gnd: float,
 
 
 def drone_threshold(sid: str, footprint_wkt: str | None, lat0: float, lon0: float, *, photos: list[dict],
-                    image: Callable[[str, int], bytes], ask: Callable, max_photos: int = 4) -> tuple[list[dict], dict]:
+                    image: Callable[[str, int], bytes], ask: Callable, max_photos: int = 5) -> tuple[list[dict], dict]:
     """Drone estimates (pixel ground and laser ground) and a trace of what was tried."""
     trace: dict = {"photos_listed": len(photos), "tried": []}
     if not footprint_wkt:
@@ -286,8 +298,8 @@ def drone_threshold(sid: str, footprint_wkt: str | None, lat0: float, lon0: floa
                 DOOR_SCHEMA, key=f"flood_door/{sid}/{p['name']}")
         t = {"photo": p["name"], "door_visible": a["door_visible"], "kind": a["kind"], "confidence": a["confidence"]}
         trace["tried"].append(t)
-        if not a["door_visible"] or a["kind"] == "none":
-            continue
+        if not a["door_visible"] or a["kind"] == "none" or a["confidence"] == "low":
+            continue  # a low-confidence "door" was a raised patio under windows on <address>
         k = full.width / DRONE_PX
         b = a["door"]
         dh = (b["y1"] - b["y0"]) * k
