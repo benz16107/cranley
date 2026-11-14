@@ -33,6 +33,15 @@ def test_search_ranks_and_explains(tmp_path, monkeypatch):
     picked = run_tool("measure_search", {"need": "step_free_bath"})            # a need is a fixed list of criteria
     assert picked.verdict.status != "unknown" and "Step-free way to a bathroom" in picked.checks[0].rule
     assert run_tool("measure_search", {}).verdict.status == "unknown"           # nothing asked: says what to give
+    from types import SimpleNamespace
+
+    from threshold.agent.investigator import own_table
+    from threshold.tools.registry import load
+    t = own_table(load()["measure_search"].manifest, SimpleNamespace(id="run_9", result=r))
+    assert t.run == "run_9" and t.rows == ["m0"] and t.labels["m0"] == "A"         # the one match, by name
+    assert [(c.metric, c.label) for c in t.columns] == [("score", "Margin over the criteria"),
+                                                        ("bath_route_door", "Doors to the bathroom")]
+    assert {m.id: m.value for m in r.metrics}["m0/bath_route_door"] == 0.9
 
 
 def test_parse_rejects_unknown_measures():

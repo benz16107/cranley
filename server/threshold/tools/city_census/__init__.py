@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from .. import Metric, Source, ToolError, ToolResult, Verdict, field, tool
+from .. import Assumption, Metric, Source, ToolError, ToolResult, Verdict, field, tool
 from ..types import ScansScope
 
 SRC = Source(layer="matterport", method="geometry", confidence="medium",
@@ -25,6 +25,21 @@ class Inputs(BaseModel):
     city: str | None = field(None, description="Houston or Los Angeles")
     kind: Literal["house", "apartment_unit", "office", "amenity", "warehouse", "retail", "other"] | None = None
     min_scans: int = field(3, ge=1, le=100, description="Leave out groups with fewer scans")
+
+
+BY_WORD = {"zip": "zip code", "city": "city", "property_type": "property type", "kind": "kind of space",
+           "building": "building"}
+PLURAL = {"home": "Homes", "house": "Houses", "apartment community": "Apartment communities",
+          "apartment_unit": "Apartment units", "office": "Offices", "amenity": "Amenity spaces", "warehouse": "Warehouses",
+          "retail": "Shops", "industrial": "Industrial buildings", "other": "Other"}
+
+
+def group_name(by: str, grp) -> str:
+    """A row's label as a person reads it: "Homes", "77094", "Houston"; the grouping itself is named once."""
+    if grp in (None, ""):
+        return "Unknown"
+    g = str(grp)
+    return PLURAL.get(g, g.replace("_", " ").capitalize()) if by in ("property_type", "kind") else g
 
 
 @tool(id="city_census", title="City census", icon="chart",
@@ -65,7 +80,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     unit = res.get("unit") or ""
     cells = []  # one table row per group, in rank order: metrics g<i>/<column>, labelled with the group's name
     for i, r in enumerate(rows):
-        name = f"{res['by']} {r['grp'] or 'unknown'}"
+        name = group_name(res["by"], r["grp"])
         for col, v, u in (("share", r["share"], "%"),
                           ("median", r["median"], unit), ("mean", r["mean"], unit), ("scans", r["scans"], "")):
             if v is not None:
@@ -76,9 +91,11 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                 f"{res['scans_with_field']} scans have this field recorded.")
     else:
         top = rows[0]
-        text = (f"{label}: {len(rows)} groups by {res['by']}, {counted} scans. Highest {stat}: "
-                f"{top['grp'] or 'unknown'} at {top[stat]:.2f} over {top['scans']} scans.")
+        best = f"{100 * top[stat]:.0f}%" if stat == "share" else f"{top[stat]:.2f}"
+        text = (f"{label}: {len(rows)} groups by {BY_WORD.get(res['by'], res['by'])}, {counted} scans. Highest {stat}: "
+                f"{group_name(res['by'], top['grp'])} at {best} over {top['scans']} scans.")
     return ToolResult(scope=ScansScope(sids=[]), verdict=Verdict(status="pass" if rows else "unknown", text=text),
                       metrics=[Metric(id="groups", label="Groups", value=len(rows), unit="", source=SRC),
                                Metric(id="scans", label="Scans counted", value=counted, unit="", source=SRC),
-                               Metric(id="ms", label="Query time", value=res["ms"], unit="ms", source=SRC), *cells])
+                               Metric(id="ms", label="Query time", value=res["ms"], unit="ms", source=SRC), *cells],
+                      assumptions=[Assumption(id="group_by", label="Grouped by", value=BY_WORD.get(res["by"], res["by"]))])

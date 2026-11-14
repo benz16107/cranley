@@ -31,6 +31,7 @@ class Inputs(BaseModel):
     lon: float | None = None
     date: str | None = field(None, pref="daylight.date", pattern=r"^\d{4}-\d{2}-\d{2}$")
     capture: str | None = None
+    by_hand: bool = field(False, description="The direction was picked by hand (one of eight), not read from the compass")
 
 
 def declination(lat: float | None, lon: float | None) -> tuple[float, str | None]:
@@ -55,6 +56,15 @@ def sun_hours(azimuth: float, lat: float, lon: float, day: dt.date, step_min: in
     return n * step_min / 60
 
 
+def _picked(capture: str | None) -> bool:
+    """The phone app marks a direction picked by hand with values.magnetic = false (no compass on that phone)."""
+    from ...capture import store
+    try:
+        return capture is not None and (store.get(capture).get("values") or {}).get("magnetic") is False
+    except LookupError:
+        return False
+
+
 @tool(id="window_check", title="Window check", icon="compass",
       summary="Point the phone out of a window: its compass confirms or corrects which way the room faces and its "
               "hours of sun.",
@@ -66,6 +76,8 @@ def sun_hours(azimuth: float, lat: float, lon: float, day: dt.date, step_min: in
       blocks=["VerdictHeader", "MetricRow", "CheckList", "AssumptionChips", "StepLog"],
       examples=["Does the bedroom really face east?"])
 def run(ctx, inputs: Inputs) -> ToolResult:
+    if not inputs.by_hand and _picked(inputs.capture):
+        inputs = inputs.model_copy(update={"by_hand": True, "magnetic": False})  # a picked N or E is true north
     plan = ctx.plan(inputs.scan)
     room = next((r for r in plan.get("rooms") or [] if r["id"] == inputs.room), None)
     name = (room or {}).get("label") or "Unlabelled room"
@@ -76,8 +88,9 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     err = max(INDOOR_ERR_DEG, inputs.heading_accuracy_deg or 0)
     ctx.step(f"Heading {inputs.heading_deg:.0f} degrees" + (f", {dec:+.1f} for magnetic declination at {city}" if city
              else ", no declination applied" if inputs.magnetic else " from true north"))
-    src = source("sensor", "low" if err > 20 or (inputs.magnetic and city is None) else "medium",
-                 f"Phone compass at the window, give or take {err:.0f} degrees indoors")
+    src = source("manual", "low", f"Direction picked by hand at the window, give or take {err:.0f} degrees") if inputs.by_hand \
+        else source("sensor", "low" if err > 20 or (inputs.magnetic and city is None) else "medium",
+                    f"Phone compass at the window, give or take {err:.0f} degrees indoors")
     day = dt.date.fromisoformat(inputs.date) if inputs.date else dt.date.today()
     hours = round(sun_hours(heading, lat, lon, day), 1) if lat is not None and lon is not None else None
     facing = geometry.facing(plan)
@@ -111,8 +124,8 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                 Metric(id="difference_deg", label="Apart", value=round(diff), unit="deg", source=src),
                 Metric(id="sun_scan_h", label="Direct sun by the scan's facing", value=scan_hours, unit="h", source=src)]
     text = {"pass": f"{said}, which agrees with the scan ({w['compass']}).",
-            "warn": f"{said}; the scan says {w['compass']}. Too far apart to agree, too close to call wrong: read it again "
-                    "away from metal.",
+            "warn": f"{said}; the scan says {w['compass']}. Too far apart to agree, too close to call wrong: "
+                    + ("a direction picked from eight cannot settle it." if inputs.by_hand else "read it again away from metal."),
             "fail": f"{said}; the scan says {w['compass']}. They cannot both be right, and the sun hours change with it."}[status]
     return ToolResult(
         scope=scope(inputs.scan), verdict=Verdict(status=status, text=text), metrics=metrics, assumptions=assumptions,

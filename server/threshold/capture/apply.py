@@ -133,7 +133,7 @@ def settle(s: Session, task: dict, cap: dict) -> dict:
             return {"problem": out.get("error") or "The heading could not be used."}
         st = res.verdict.status
         return {"verdict": {"pass": "confirmed", "fail": "contradicted"}.get(st, "measured"), "status": st,
-                "value": metric(res, "sun_phone_h"), "err": None, "text": res.verdict.text, "method": "sensor",
+                "value": metric(res, "sun_phone_h"), "err": None, "text": res.verdict.text, "method": res.findings[0].source.method,
                 "confidence": res.findings[0].source.confidence, "run": out.get("run")}
     if kind == "floor_height":
         last = next((r for r in reversed(s.doc.runs) if r.tool == "flood_rehearsal" and r.sid == sid and r.status == "done"), None)

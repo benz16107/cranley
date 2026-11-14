@@ -50,3 +50,13 @@ def test_true_heading_and_a_room_or_scan_with_nothing_to_compare():
                      ToolContext(plans=bare_plans))
     assert nogeo.verdict.status == "unknown" and "no compass rotation" in nogeo.verdict.text
     assert next(m for m in nogeo.metrics if m.id == "sun_phone_h").value is not None   # the phone's own fix gives the sun hours
+
+
+def test_a_direction_picked_by_hand_is_manual_and_true_north(tmp_path, monkeypatch):
+    from threshold.capture import store
+    monkeypatch.setattr(store, "ROOT", tmp_path)
+    cap = store.save("ws_t", store.Meta(kind="reading", scan="home1", values={"magnetic": False}), None)["id"]
+    r = run(180.0, capture=cap)                                       # "S" picked: no declination added
+    assert next(m for m in r.metrics if m.id == "heading_deg").value == 180
+    assert {f.source.method for f in r.findings} == {"manual"} and "picked by hand" in r.findings[0].source.note
+    assert run(170.0).findings[0].source.method == "sensor"

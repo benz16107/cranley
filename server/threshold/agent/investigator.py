@@ -125,15 +125,26 @@ def sibling_scans(sid: str) -> list[str]:
 
 
 def own_table(m, run: Run) -> RankedTable | None:
-    """The run's own ranked table from the manifest's `table` columns and its `<row>/<column>` metrics, in their order."""
+    """The run's own ranked table from its `<row>/<column>` metrics, rows in their order. Columns: the manifest's
+    `table`, then any other cell column, labelled by the result's `column.<metric>` assumption (measure_search's
+    columns are the criteria of that run)."""
     labels: dict[str, str] = {}
+    extra: list[str] = []
+    fixed = {c.metric for c in m.table}
     for x in run.result.metrics:
         if "/" in x.id:
-            labels.setdefault(x.id.split("/", 1)[0], x.label)
-    if not m.table or not labels:
+            row, col = x.id.split("/", 1)
+            labels.setdefault(row, x.label)
+            if col not in fixed and col not in extra:
+                extra.append(col)
+    named = {a.id.removeprefix("column."): str(a.value) for a in run.result.assumptions if a.id.startswith("column.")}
+    cols = [RankedColumn(metric=c.metric, label=c.label, better=c.better) for c in m.table] + \
+        [RankedColumn(metric=c, label=named.get(c, c), better="higher") for c in extra]
+    if not cols or not labels:
         return None
-    return RankedTable(title=m.title, run=run.id, rows=list(labels), labels=labels,
-                       columns=[RankedColumn(metric=c.metric, label=c.label, better=c.better) for c in m.table])
+    by = next((a.value for a in run.result.assumptions if a.id == "group_by"), None)  # name the grouping once
+    return RankedTable(title=f"{m.title} by {by}" if by else m.title, run=run.id, rows=list(labels), labels=labels,
+                       columns=cols[:6])
 
 
 def panel_for(m, run: Run, overlay_ids: list[str]) -> Panel:
@@ -212,6 +223,12 @@ class Investigation:
             need = ", ".join(n for n, _ in missing)
             self.emit(RunFinish(id=rec.id, status="error", error=f"needs {need}", run=rec.id))
             return {"run": rec.id, "error": f"missing inputs the person has not given: {need}"}
+        if tool_id == "field_check" and inputs.get("tasks") is None:
+            # the workspace's real on-site tasks, so a turn never tells someone already on the phone to open it there;
+            # the "open it on a phone" offer only while no phone has sent anything to this workspace
+            from ..capture import apply, store
+            inputs = {**inputs, "tasks": [t for t in apply.phone_tasks(self.s) if t["sid"] == inputs.get("scan")],
+                      "offer_phone": not store.listing(self.s.base.id)}
         ctx = ToolContext(plans=prefs.with_labels(self.s.plans, doc),
                           on_step=lambda text: self.emit(RunProgress(id=rec.id, step=short(text, 200), run=rec.id)))
         if self.s.sites:

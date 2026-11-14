@@ -7,7 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from .. import Action, Check, Finding, Metric, NotApplicable, ScanScope, Source, ToolError, ToolResult, Verdict, field, tool
+from .. import Action, Assumption, Check, Finding, Metric, NotApplicable, ScanScope, Source, ToolError, ToolResult, Verdict, field, tool
 from ..types import GeoAnchor, ScansScope, Strict
 from . import table
 
@@ -75,7 +75,8 @@ SRC = Source(layer="matterport", method="geometry", confidence="medium",
                         "bed_wall, floors, step_free_bath, wheelchair_bath, ceiling_median, glazing_ratio.",
       personas=["wheelchair_user", "older_adult_family", "furniture_mover", "renter_listing", "wheelchair_home_search", "robot_maker"],
       requires=[{"layer": "threshold.measures"}],
-      blocks=["VerdictHeader", "MetricRow", "RankedTable", "CheckList", "EvidenceStrip", "StepLog", "ActionBar"],
+      blocks=["VerdictHeader", "MetricRow", "RankedTable", "EvidenceStrip", "StepLog", "ActionBar"],
+      table=[{"metric": "score", "label": "Margin over the criteria"}],
       overlays=[],
       examples=["Homes where a wheelchair can reach a bathroom through 0.81 m doors, on one floor",
                 "Apartments with a bedroom wall of at least 2.2 m and a 1.5 m turning circle in the bathroom"])
@@ -107,6 +108,11 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         findings.append(Finding(id=fid, title=f"Match {i}: {r['name']}", status="pass", detail="; ".join(r["why"]),
                                 anchor=GeoAnchor(geo=(r["lon"], r["lat"])) if r["lat"] is not None else None,
                                 source=SRC))
+    # the matches as the run's own ranked table: one row per home, its margin and each criterion's measured value
+    measures = list(dict.fromkeys(c["measure"] for c in crit))[:5]
+    cells = [Metric(id=f"m{i}/{k}", label=r["name"] or r["sid"], unit=table.FIELDS[k][1] if k in table.FIELDS else "",
+                    value=v if isinstance(v, (int, float)) else None, source=SRC)
+             for i, r in enumerate(rows) for k, v in [("score", r["score"]), *((k, r["values"].get(k)) for k in measures)]]
     share = res["answerable"] / res["pool"] if res["pool"] else 0
     built = res["built"]
     text = (f"{res['matches']} of {res['answerable']} homes that can be measured meet every criterion."
@@ -119,6 +125,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         metrics=[Metric(id="matches", label="Homes that match", value=res["matches"], unit="", source=SRC),
                  Metric(id="answerable", label="Homes that can answer", value=res["answerable"], unit="", source=SRC),
                  Metric(id="searched", label="Homes searched", value=res["pool"], unit="", source=SRC),
-                 Metric(id="table_scans", label="Scans in the table", value=built.get("scans"), unit="", source=SRC)],
+                 Metric(id="table_scans", label="Scans in the table", value=built.get("scans"), unit="", source=SRC), *cells],
+        assumptions=[Assumption(id=f"column.{k}", label="Table column", value=table.FIELDS[k][0]) for k in measures],
         actions=[Action(id=f"route.{s}", label=f"Check the route in {r['name']}", tool="step_free_route",
                         inputs={"scan": s}) for s, r in list(zip(sids, rows))[:3]])
