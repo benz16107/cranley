@@ -1,0 +1,16 @@
+{
+  "id": "houston_homeowner_storm",
+  "title": "Houston homeowner before a storm",
+  "who": "Has a hurricane or flood coming and wants to know what water would reach and what to move.",
+  "tools": [
+    "flood_rehearsal",
+    "valuables_height",
+    "roof_facts",
+    "room_census"
+  ],
+  "thresholds": {},
+  "layout": {
+    "view": "scene",
+    "lead_tool": "flood_rehearsal"
+  }
+}

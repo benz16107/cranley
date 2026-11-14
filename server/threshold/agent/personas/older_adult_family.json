@@ -1,0 +1,19 @@
+{
+  "id": "older_adult_family",
+  "title": "Older adult or family",
+  "who": "Is choosing a home for an older relative or young children and cares about safe movement.",
+  "tools": [
+    "door_widths",
+    "step_free_route",
+    "bathroom_clearance",
+    "stairs_count",
+    "room_census"
+  ],
+  "thresholds": {
+    "access.door_width_m": 0.813
+  },
+  "layout": {
+    "view": "plan",
+    "lead_tool": "door_widths"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "renter_listing",
+  "title": "Renter checking a listing",
+  "who": "Is about to rent and wants to know whether the listing matches the place.",
+  "tools": [
+    "room_census",
+    "record_vs_reality",
+    "daylight",
+    "storage_space"
+  ],
+  "thresholds": {},
+  "layout": {
+    "view": "scene",
+    "lead_tool": "room_census"
+  }
+}

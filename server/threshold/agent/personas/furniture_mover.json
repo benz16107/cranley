@@ -1,0 +1,15 @@
+{
+  "id": "furniture_mover",
+  "title": "Moving large furniture",
+  "who": "Is moving a sofa, bed, piano or appliance and needs to know it fits through.",
+  "tools": [
+    "door_widths",
+    "furniture_fit",
+    "room_census"
+  ],
+  "thresholds": {},
+  "layout": {
+    "view": "plan",
+    "lead_tool": "door_widths"
+  }
+}
