@@ -24,3 +24,22 @@ def test_tools_workspace_ops_and_undo(tmp_path, monkeypatch):
     assert after["learned"] == [] and after["doc"]["tools"][0]["enabled"]
     assert c.get(f"/api/workspace/{wid}?log=true").json()["log"][-1]["undo"] == 2
     assert c.get("/api/workspace/ws_missing").status_code == 404
+
+
+def test_turn_takes_places_and_a_budget_and_streams_done(tmp_path, monkeypatch):
+    from threshold.api import agent as api
+    monkeypatch.setattr(workspace, "STORE", tmp_path)
+    seen = {}
+
+    def fake_turn(s, text, sids, places=None, budget=None):
+        seen.update(places=places, budget=budget)
+        return {"status": "done", "summary": "ok", "budget": budget.report()}
+    monkeypatch.setattr(api, "turn", fake_turn)
+    c = TestClient(app)
+    body = {"text": "Check this community", "places": [{"property_id": 7}, {"geo": [-95.3, 29.7]}],
+            "budget": {"model_calls": 12, "parallel": 2}}
+    events = c.post("/api/agent/turn", json=body).text
+    assert "event: done" in events and '"model_calls": 12' in events
+    assert seen["places"] == [{"property_id": 7}, {"geo": (-95.3, 29.7)}] and seen["budget"].parallel == 2
+    assert c.post("/api/agent/turn", json={"places": [{}]}).status_code == 422
+    assert c.post("/api/agent/turn", json={"budget": {"parallel": 99}}).status_code == 422
