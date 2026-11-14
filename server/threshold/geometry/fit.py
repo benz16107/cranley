@@ -64,14 +64,17 @@ def turning_spaces(plan: dict, diameter: float = WHEELCHAIR_TURN_M) -> dict:
                                 "max": max(t["diameter"] for t in out)}}}
 
 
-def corner_max_length(a: float, b: float, w: float) -> float:
-    """Longest box of width `w` that turns a right-angle corner from a corridor `a` wide into one `b` wide:
-    min over theta of a/sin + b/cos - w/(sin cos). The ladder-around-the-corner result, with width."""
+def corner_max_length(a: float, b: float, w: float, angle_deg: float = 90.0) -> float:
+    """Longest box of width `w` that turns from a corridor `a` wide into one `b` wide, the route bending by
+    `angle_deg` (90 is a right-angle corner): min over theta in (0, phi) of
+    a/sin(theta) + b/sin(phi - theta) - w (cot(theta) + cot(phi - theta)). At 90 degrees this is the ladder result
+    a/sin + b/cos - w/(sin cos)."""
     if w >= min(a, b):
         return 0.0
-    th = np.linspace(1e-3, math.pi / 2 - 1e-3, 4000)
-    s, c = np.sin(th), np.cos(th)
-    return float(np.min(a / s + b / c - w / (s * c)))
+    phi = math.radians(min(max(angle_deg, 1.0), 179.0))
+    th = np.linspace(1e-3, phi - 1e-3, 4000)
+    s1, s2 = np.sin(th), np.sin(phi - th)
+    return float(np.min(a / s1 + b / s2 - w * (np.cos(th) / s1 + np.cos(phi - th) / s2)))
 
 
 def _door_fit(box, clear: float, height: float, flat: bool = False):
@@ -88,7 +91,7 @@ def _door_fit(box, clear: float, height: float, flat: bool = False):
     return best
 
 
-def _corner_fit(box, a: float, b: float, headroom: float, flat: bool = False):
+def _corner_fit(box, a: float, b: float, headroom: float, flat: bool = False, angle_deg: float = 90.0):
     """Best slack (max length minus box length) over which dimension is carried vertical."""
     best = None
     for i, up in enumerate(box):
@@ -96,7 +99,7 @@ def _corner_fit(box, a: float, b: float, headroom: float, flat: bool = False):
             continue
         rest = sorted(box[:i] + box[i + 1:])
         w, length = rest
-        slack = corner_max_length(a, b, w) - length
+        slack = corner_max_length(a, b, w, angle_deg) - length
         if best is None or slack > best[0]:
             best = (slack, w, length, up)
     return best
@@ -107,7 +110,7 @@ def carry(plan: dict, start, end, box: tuple[float, float, float], floor: str | 
     """Can a box (w, d, h in metres) be carried along the route from `start` to `end`?
 
     Doors: the box goes through end-first, so two of its dimensions must fit the clear width and the opening
-    height. Corners: every bend of more than 30 degrees is checked as a right-angle corner between the leg
+    height. Corners: every bend of more than 30 degrees is checked as a corner of that angle between the leg
     widths (a door gap counts as a corridor as wide as the door), with the box upright or on its side as the
     ceiling allows (`flat=True` keeps the third dimension vertical, as for a stretcher). Corners are an
     estimate (`medium`): real moves also tilt and pivot."""
@@ -139,7 +142,7 @@ def carry(plan: dict, start, end, box: tuple[float, float, float], floor: str | 
         door = l1["door_at_end"] if l1["door_at_end"] in door_w else None  # a data-error width is no corner
         pairs = [(a, door_w[door]), (door_w[door], b)] if door else [(a, b)]
         headroom = min(ceiling, door_h[door]) if door else ceiling
-        fits = [(_corner_fit(box, x, y, headroom, flat), x, y) for x, y in pairs]
+        fits = [(_corner_fit(box, x, y, headroom, flat, angle), x, y) for x, y in pairs]
         worst = min(fits, key=lambda f: f[0][0] if f[0] else -math.inf)
         fit, x, y = worst
         res = judge(fit[0], 0.0) if fit else "likely fail"
