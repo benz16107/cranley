@@ -98,6 +98,8 @@ def test_short_keeps_whole_sentences():
     text = "First sentence here. " * 20
     assert len(short(text)) <= 280 and short(text).endswith(".")
     assert short("x" * 300).endswith("…") and len(short("x" * 300)) == 280
+    long = "I found two spaces. **Neither** fits well, and here is why in detail. " * 3 + "\n\n1. **The lobby** first."
+    assert short(long) == ("I found two spaces. Neither fits well, and here is why in detail. " * 3).strip()
 
 
 def test_two_buildings_get_a_ranked_table(session):

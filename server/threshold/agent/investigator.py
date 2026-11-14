@@ -65,12 +65,16 @@ from .workspace import (
 RANK = {"fail": 0, "warn": 1, "unknown": 2, "pass": 3}
 
 
+SENTENCE_END = re.compile(r"(?<![0-9])[.!?](?=\s|$)")  # "1." of a list is not a sentence end
+
+
 def short(text: str, n: int = 280) -> str:
-    """Fit a Note: whole sentences up to n characters, else a hard cut."""
+    """Fit a Note: plain text, the first paragraph, whole sentences up to n characters, else a hard cut."""
+    text = text.replace("**", "").strip().split("\n\n")[0].strip()
     if len(text) <= n:
         return text
-    cut = text[:n].rfind(". ")
-    return text[:cut + 1] if cut > 0 else text[:n - 1] + "…"
+    ends = [m.end() for m in SENTENCE_END.finditer(text[:n])]
+    return text[:ends[-1]] if ends else text[:n - 1] + "…"
 
 
 def as_tool(fn: Callable, name: str, description: str, skip: tuple = ()):
@@ -632,7 +636,8 @@ findings and camera in their workspace, not your words.
 5. With two or more candidates, call rank once with all of them, best first, and one plain reason each. Shortlist the
    ones that meet the need, each with a short note. Call focus on the one finding that matters most.
 6. Use compose_panel only when no tool's panel answers a question the person asked.
-7. Finish with one short sentence, without numbers, telling the person where to look first. Stay inside the budget."""
+7. Finish with at most three short sentences, plain text, no lists and no measurements: what you found and where the
+   person should look first. Stay inside the budget."""
 
 BUILDING = """You investigate one building (one scan id) for a person. Run each ready tool that serves their need on
 this scan, once each. Leave out inputs you were not told; the person's preferences fill them. If a tool reports
