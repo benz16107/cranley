@@ -73,7 +73,8 @@ if online; then net="online: the agent asks the real model and saves its answers
 fi
 
 nohup python3 "$ROOT/scripts/demo-llm" --port "$LLM" --mode "$MODE" >"$RUN/llm.log" 2>&1 </dev/null & echo $! >"$RUN/llm.pid"
-(cd "$ROOT/server" && nohup "$PY" "$ROOT/scripts/demo-serve" --port "$PORT" --dist "$ROOT/web/dist" >"$RUN/serve.log" 2>&1 </dev/null & echo $! >"$RUN/serve.pid")
+cd "$ROOT/server"
+nohup "$PY" "$ROOT/scripts/demo-serve" --port "$PORT" --dist "$ROOT/web/dist" >"$RUN/serve.log" 2>&1 </dev/null & echo $! >"$RUN/serve.pid"
 
 printf "starting"
 for _ in $(seq 1 90); do
