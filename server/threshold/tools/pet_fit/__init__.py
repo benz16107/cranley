@@ -99,6 +99,10 @@ def gather(ctx, inputs: Inputs) -> dict:
     E["apt"] = policy.apartment(b)
     E["listing"] = policy.listing(b)
     E["apartment"] = kind == "apartment_unit" or (kind is None and E["apt"] is not None)
+    if E["apartment"] and sid:
+        E["unit_floor"], E["unit_hint"] = unit_floor((index.rows().get(sid) or {}).get("address") or "")
+        if E["unit_floor"] and E["unit_floor"] > 4 and (E["apt"] or {}).get("walkup"):
+            E["unit_floor"], E["unit_hint"] = None, None  # a walk-up is low-rise: "3516" is building 35, door 16
     ctx.step(f"{'Apartment' if E['apartment'] else 'Home'}; records: "
              + ("community pet policy" if E["apt"] and E["apt"]["policies"] else "no pet policy in the record" if E["apt"] else
                 "home listing" if E["listing"]["has"] else "none in the kit"))
@@ -246,7 +250,12 @@ def rules(p: Pet, E: dict, k: str) -> list[tuple]:
     if p.kind == "cat" and (fall or E.get("apartment")):
         n = len((fall or {}).get("windows") or []) + len((fall or {}).get("balconies") or [])
         if E.get("apartment"):
-            add("fall", "Windows and balcony safe from a fall", n or None, 0, "openings", "warn", STD["fall"], f"pet_fit:{k}:fall",
+            fl = E.get("unit_floor")
+            add("fall", "Windows and balcony safe from a fall", fl, 2, "floor", "warn" if fl is None or fl >= 2 else "pass",
+                STD["fall"], f"pet_fit:{k}:fall",
+                "" if fl is not None and fl < 2 else
+                f"the unit looks to be on floor {fl} ({E['unit_hint']}); screen every window and the balcony" if fl else
+                f"a {E['unit_hint']}, the top floor; screen every window and the balcony" if E.get("unit_hint") == "penthouse" else
                 "the scan does not say which floor the unit is on; from the second floor up, screen every window and the balcony")
         else:
             add("fall", "Upper-floor windows and balconies screened", n, 0, "openings", "warn" if n else "pass", STD["fall"],
@@ -277,6 +286,9 @@ def rules(p: Pet, E: dict, k: str) -> list[tuple]:
             s = "pass" if pool["enclosed"] else ("fail" if p.age in ("young", "senior") or p.kind == "cat" else "warn")
             add("pool", "The pool is fenced off", 1 if pool["enclosed"] else 0, 1, "", s, STD["pool"], f"pet_fit:{k}:pool",
                 "" if s == "pass" else "a pool with no fence of its own (a dog that falls in needs steps to climb out)")
+    if E.get("site") is None and not E.get("apartment") and (p.kind == "dog" or p.outdoor):
+        add("outdoor", "Yard, fence, pool and roads", None, None, "", "unknown", None, f"pet_fit:{k}:outdoor",
+            "the scan has no location, so the yard, fence, pool and roads were not checked")
     # roads and places
     road = E.get("road")
     if road and (p.kind == "dog" or (p.kind == "cat" and p.outdoor)):
@@ -295,6 +307,22 @@ def rules(p: Pet, E: dict, k: str) -> list[tuple]:
             add("dog_park", "A dog park within a 15-minute walk", h["minutes"] if h else None, 15, "min", s, None,
                 f"pet_fit:{k}:near:dog_park", "" if s == "pass" else "no dog park within a 15-minute walk")
     return R
+
+
+def unit_floor(address: str) -> tuple[int | None, str | None]:
+    """A guess at the unit's floor from its number in the address: "PH7" is a penthouse (top floor, number unknown);
+    a 3 or 4 digit unit is usually floor then door ("3516" is floor 35). shortcut: numbering schemes vary by building;
+    use the CoStar unit's floor when the kit carries one."""
+    import re
+    m = re.search(r",\s*(?:apt|unit|#|suite)?\s*([A-Za-z]*)\s*(\d+)?\s*,", address, re.I)
+    if not m:
+        return None, None
+    pre, num = (m.group(1) or "").lower(), m.group(2)
+    if pre in ("ph", "penthouse"):
+        return None, "penthouse"
+    if num and len(num) in (3, 4) and not pre:
+        return int(num[:-2]), "guessed from the unit number"
+    return None, None
 
 
 def fence_state(E: dict) -> str | None:
@@ -532,7 +560,8 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         st = max((r[5] for r in judged), key=RANK.get, default="unknown")
         reasons = [r[8] for r in R if r[5] in ("fail", "warn") and r[8]]
         unknown = [r[8] for r in R if r[5] == "unknown" and r[8]]
-        lines.append(f"{describe(p).capitalize()}: {WORD[st]}" + (f" ({'; '.join(reasons[:3])})" if reasons else "") + ".")
+        lines.append(f"{describe(p).capitalize()}: {WORD[st]}" + (f" ({'; '.join(reasons[:3])})" if reasons else "")
+                     + (f"; not checked: {unknown[0]}" if unknown else "") + ".")
         findings.append(Finding(id=f"pet_fit:{k}:{pid}", title=f"Verdict: {describe(p)}", status=st, anchor=None,
                                 source=Source(layer="model", method="geometry", confidence="medium",
                                               note="Rules over the measured checks; see each check's source"),
@@ -541,7 +570,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                                         + ("Not known: " + "; ".join(unknown) + "." if unknown else "")).strip()))
         worst = max(worst, st, key=RANK.get)
     text = " ".join(lines)
-    if E["notes"]:
+    if E["notes"] and E.get("site") is not None:
         text += " " + " ".join(n.rstrip(".") + "." for n in E["notes"][:2])
     assumptions = [
         Assumption(id="pets.yard_m2", label="Yard behind the house wanted, by dog size",

@@ -52,6 +52,7 @@ _last = [0.0]
 # id: (label, profiles, test(tags) -> bool). A place can match several categories (a park with a playground tag).
 _T = lambda k, *vs: (lambda t: t.get(k) in vs)  # noqa: E731
 _SPORT = lambda *vs: (lambda t: bool(set(re.split(r"[;,]\s*", t.get("sport", ""))) & set(vs)))  # noqa: E731
+_STREETY = re.compile(r"\b(drive|dr|street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|plaza|court|ct|place|pl)\.?$", re.I)
 _NAMED = lambda t: bool(t.get("name"))  # noqa: E731
 _PUBLIC = lambda t: t.get("access") not in ("private", "no", "customers") or t.get("leisure") == "sports_centre"  # noqa: E731
 _LEVELS = {"elementary": r"elementary|primary|\bel\b|\bes\b", "middle": r"middle|intermediate|junior high|\bms\b",
@@ -73,7 +74,7 @@ CATEGORIES: dict[str, tuple[str, tuple[str, ...], object]] = {
         t.get("emergency") == "yes" or bool(re.search(r"emergenc|24|urgent|er\b", (t.get("name") or "").lower())))),
     "pet_store": ("Pet store", ("pets",), _T("shop", "pet")),
     "trail": ("Trail or greenway", ("pets", "sports"), lambda t: t.get("highway") in ("path", "track", "bridleway", "cycleway")
-              and _NAMED(t)),
+              and _NAMED(t) and not _STREETY.search(t["name"])),
     "park": ("Park", ("pets", "kids"), lambda t: t.get("leisure") in ("park", "nature_reserve") and _NAMED(t)),
     "playground": ("Playground", ("kids",), _T("leisure", "playground")),
     "school_elementary": ("Elementary school", ("kids",), lambda t: t.get("amenity") == "school" and school_level(t) == "elementary"),
