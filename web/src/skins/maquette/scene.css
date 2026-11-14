@@ -1,0 +1,86 @@
+/* The shared scene in this look's materials. Only the scene's --scene-* variables and its own th- classes are
+   touched. Selectors start with .mq-scene.th-scene so they win over the scene's stylesheet, which loads later.
+
+   The stage is the table. The model is white card with ink on its cut faces; ink stays dark because the scene also
+   uses it under dimension lines drawn inside a photograph, where pale ink would vanish on white walls. The cost is
+   that the scene's ground grid (drawn in ink) does not show on the slate: core-requests.md, Maquette 5. */
+.mq-scene {
+  --scene-stage: #2c3532; --scene-paper: #f6f4ec; --scene-ink: #151b19; --scene-ink-2: #4a544f; --scene-hairline: rgb(21 27 25 / 0.18);
+  --scene-accent: #ffd43a;   /* tape: the route, what is selected, where you stand */
+  --scene-glass: #c3d2d6; --scene-water: #2a86c4; --scene-ramp-lo: #e9e6da; --scene-ramp-hi: #2b3a8c;
+  --scene-pass: #1a7f50; --scene-warn: #d08a0c; --scene-fail: #c4281c; --scene-unknown: #7b837e; --scene-on-status: #ffffff; --scene-on-warn: #151b19;
+  --scene-font: var(--sans); --scene-mono: var(--mono); --scene-text-xs: 11.5px; --scene-text-sm: 13px; --scene-text-md: 15px; --scene-radius: 0px;
+  --scene-ease-out: var(--ease-out); --scene-ease-in-out: var(--ease-in-out);
+}
+.mq-scene.th-scene:focus-visible { box-shadow: inset 0 0 0 2px var(--tape); }
+
+/* ---- a finding is a tag on a string. The scene puts each pin at its anchor; here the pin becomes a hang tag whose
+   string comes down to a foot on that exact spot: bottom of the element, 9px from its left. ---- */
+.mq-scene.th-scene .th-pin {
+  translate: -9px -100%; align-items: stretch; gap: 0; padding-bottom: var(--string, 44px); transform-origin: 9px 100%;
+  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.42)); transition: opacity 200ms var(--ease-out), translate 260ms var(--ease-out), scale 140ms var(--ease-out);
+}
+@starting-style { .mq-scene.th-scene .th-pin { opacity: 0; translate: -9px calc(-100% - 12px); } } /* it drops onto its string */
+.mq-scene.th-scene .th-pin::before { content: ''; position: absolute; left: 8.5px; bottom: 0; width: 1px; height: var(--string, 44px); background: var(--scene-paper); }
+.mq-scene.th-scene .th-pin::after { content: ''; position: absolute; left: 5px; bottom: -4px; width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 1.5px var(--scene-paper); }
+.mq-scene.th-scene .th-pin:nth-child(3n) { --string: 66px; }
+.mq-scene.th-scene .th-pin:nth-child(3n + 1) { --string: 28px; }
+.mq-scene.th-scene .th-pin .th-pin-mark {
+  display: flex; align-items: center; gap: 5px; width: auto; min-width: 34px; height: 26px; padding: 0 6px 0 10px; border-radius: 0; rotate: none; scale: none;
+  background: var(--scene-paper); color: var(--scene-ink); box-shadow: none; clip-path: polygon(8px 0, 100% 0, 100% 100%, 0 100%, 0 8px); font: 600 12px/1 var(--scene-mono);
+}
+.mq-scene.th-scene .th-pin .th-pin-mark > span { rotate: none; }
+/* the status mark inside the tag: shape and colour together */
+.mq-scene.th-scene .th-pin .th-pin-mark::before { content: ''; width: 8px; height: 8px; flex: none; background: var(--c); border-radius: 50%; }
+.mq-scene.th-scene .th-pin[data-status='warn'] .th-pin-mark::before { border-radius: 0; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.mq-scene.th-scene .th-pin[data-status='fail'] .th-pin-mark::before { border-radius: 0; }
+.mq-scene.th-scene .th-pin[data-status='unknown'] .th-pin-mark::before { background: none; box-shadow: inset 0 0 0 2px var(--c); }
+.mq-scene.th-scene .th-pin .th-pin-label { height: 26px; padding: 0 10px 0 2px; border-radius: 0; background: var(--scene-paper); color: var(--scene-ink); box-shadow: none; font: 600 12.5px/26px var(--scene-font); max-width: 200px; }
+/* many tags: number and mark only, the words on hover or focus. Fewer than five, or the current one: words too. */
+.mq-scene.th-scene .th-pin .th-pin-label { display: none; }
+.mq-scene.th-scene .th-labels:not(:has(button.th-pin:nth-of-type(5))) .th-pin .th-pin-label, .mq-scene.th-scene .th-pin:focus-visible .th-pin-label { display: block; }
+@media (hover: hover) and (pointer: fine) { .mq-scene.th-scene .th-pin:hover .th-pin-label { display: block; } .mq-scene.th-scene .th-pin:hover { z-index: 3; } }
+.mq-scene.th-scene .th-pin:active { scale: 0.97; }
+.mq-scene.th-scene .th-pin:focus-visible { outline: 2px solid var(--tape); outline-offset: 3px; }
+/* the finding being looked at: its tag is taped, its string is longer, and it always shows its words */
+.mq-scene.th-scene .th-pin[data-mq-current] { --string: 86px; z-index: 2; }
+.mq-scene.th-scene .th-pin[data-mq-current] .th-pin-mark, .mq-scene.th-scene .th-pin[data-mq-current] .th-pin-label { background: var(--tape); }
+.mq-scene.th-scene .th-pin[data-mq-current] .th-pin-label { display: block; max-width: 280px; }
+.mq-scene.th-scene .th-pin[data-mq-current]::before { background: var(--tape); width: 1.5px; }
+
+/* ---- smaller labels: pieces of card ---- */
+.mq-scene.th-scene .th-chip { padding: 4px 8px; border-radius: 0; box-shadow: 0 2px 3px rgb(0 0 0 / 0.38); font-size: 12px; }
+.mq-scene.th-scene .th-chip .th-num { font-size: 12px; font-weight: 600; }
+/* a clearance measured on the route: a tag on a short string over the bar the scene draws across the path */
+.mq-scene.th-scene .th-chip-measure[data-status] { translate: -9px calc(-100% - 20px); overflow: visible; box-shadow: none; filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.42)); clip-path: none; }
+.mq-scene.th-scene .th-chip-measure[data-status]::after { content: ''; position: absolute; left: 8.5px; top: 100%; width: 1px; height: 20px; background: var(--scene-paper); }
+.mq-scene.th-scene .th-chip-route { background: var(--tape); color: var(--tape-ink); }
+.mq-scene.th-scene .th-chip-route .th-chip-text { color: inherit; font-weight: 700; }
+.mq-scene.th-scene .th-chip-water { background: var(--scene-water); color: #fff; }
+.mq-scene.th-scene .th-chip-water .th-chip-text { color: inherit; opacity: 0.86; }
+.mq-scene.th-scene .th-room { font-size: 11.5px; }
+
+/* ---- the scene's own instruments. Cut and floors are driven from this look's controls (Model.tsx). ---- */
+.mq-scene.th-scene .th-cut, .mq-scene.th-scene .th-floors { display: none; }
+.mq-scene.th-scene .th-inset { display: none; }
+.mq-scene.th-scene[data-mode='pano'] .th-inset { display: block; left: auto; right: 24px; bottom: 28px; width: 232px; border-radius: 0; box-shadow: var(--lie); } /* where you stand, on a plan card */
+.mq-scene.th-scene .th-legend { right: 64px; top: 250px; bottom: auto; width: 190px; padding: 10px 12px; border-radius: 0; box-shadow: var(--lie); }
+.mq-scene.th-scene .th-legend-title { font-size: 10.5px; letter-spacing: 0.14em; }
+.mq-scene.th-scene .th-legend-bar { height: 10px; box-shadow: none; }
+.mq-scene.th-scene .th-note { bottom: 44px; padding: 8px 12px; border-radius: 0; box-shadow: var(--lie); font-size: 13px; }
+.mq-scene.th-scene .th-scalebar { left: auto; right: 64px; bottom: 30px; color: var(--print); font-size: 11.5px; }
+.mq-scene.th-scene .th-scalebar > div { border-color: var(--print); }
+.mq-scene.th-scene .th-loading { height: 3px; }
+.mq-scene.th-scene .th-wipe-tag { padding: 5px 10px; border-radius: 0; font-size: 11px; letter-spacing: 0.14em; }
+.mq-scene.th-scene .th-wipe-grip { border-radius: 0; background: var(--tape); }
+.mq-scene.th-scene .fp-tag > rect { rx: 0; }
+
+@media (max-width: 760px) {
+  .mq-scene.th-scene[data-mode='pano'] .th-inset { right: 16px; bottom: 124px; width: 132px; }
+  .mq-scene.th-scene .th-legend { right: 16px; top: 150px; width: 150px; }
+  .mq-scene.th-scene .th-scalebar, .mq-scene.th-scene .th-note { bottom: 124px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mq-scene.th-scene .th-pin { transition: opacity 200ms ease; }
+  @starting-style { .mq-scene.th-scene .th-pin { translate: -9px -100%; } }
+}
