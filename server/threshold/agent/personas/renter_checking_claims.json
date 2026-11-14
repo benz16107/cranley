@@ -1,0 +1,16 @@
+{
+  "id": "renter_checking_claims",
+  "title": "Renter checking a listing's claims",
+  "who": "Has a listing open and wants each claim checked, plus what the listing leaves out.",
+  "tools": [
+    "listing_claims",
+    "daylight",
+    "record_vs_reality",
+    "room_census"
+  ],
+  "thresholds": {},
+  "layout": {
+    "view": "scene",
+    "lead_tool": "listing_claims"
+  }
+}
