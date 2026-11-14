@@ -66,6 +66,7 @@ async def in_thread(ctx: Context, work: Callable[[Callable[[str], None]], Any]) 
 
 class Threshold(FastMCP):
     def __init__(self, write: bool = False, **kw):
+        kw.setdefault("log_level", "WARNING")  # not a line per request on the client's stderr
         super().__init__("threshold", instructions=INSTRUCTIONS, **kw)
         self.write = write
 
