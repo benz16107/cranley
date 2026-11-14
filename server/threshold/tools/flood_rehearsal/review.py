@@ -84,7 +84,7 @@ def render_flood(plan, r, path):
 
 
 def wrap(t, n):
-    words, lines, cur = t.split(), [], ""
+    words, lines, cur = t.replace("$", r"\$").split(), [], ""
     for w in words:
         if len(cur) + len(w) > n:
             lines.append(cur)
