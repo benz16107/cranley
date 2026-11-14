@@ -80,3 +80,14 @@ def test_a_live_layer_is_fetched_again_when_its_file_is_old_and_keeps_its_last_a
         raise OSError("the source is down")
 
     assert catalog._cached(f, down, 600) == b"answer 2"  # old, and the source fails: the last answer stands
+
+
+def test_importing_a_source_first_still_gives_the_whole_catalogue():
+    """`threshold.layers.sources` imported before the catalogue must not leave the catalogue without its layers."""
+    import subprocess
+    import sys
+    code = ("import threshold.layers.sources as s; from threshold.layers import catalog; "
+            "ids = {l.id for l in catalog.LAYERS}; assert all(l.id in ids for l in s.MORE), 'layers missing'; "
+            "assert set(s.FETCH) <= set(catalog.FETCH); print(len(catalog.LAYERS), len(s.MORE))")
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=120)
+    assert out.returncode == 0, out.stderr[-400:]
