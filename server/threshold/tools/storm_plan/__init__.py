@@ -338,7 +338,7 @@ def build(sid: str, plan: dict, inputs: Inputs, flood: dict, inv: dict, steps, m
     if n_dams:
         parts.append(f"sandbag {n_dams} door{'' if n_dams == 1 else 's'}")
     if saved:
-        parts.append(f"carry {len(saved)} things {dest['text']}")
+        parts.append(f"carry {len(saved)} thing{'' if len(saved) == 1 else 's'} {dest['text']}")
     if last:
         parts.append("turn the power" + (" and gas" if any(t["id"] == "gas_off" for t in last) else "") + " off last")
     head = f"With {inputs.adults} adult{'s' if inputs.adults > 1 else ''} and {inputs.hours_left:g} h: " + ", ".join(parts) + "."
