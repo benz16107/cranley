@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Command } from 'cmdk'
-import { search, useBuildings, useToolCatalog, useWorkspace, userOp } from '../../../core/index.ts'
+import { currentRoute, search, useBuildings, useToolCatalog, useWorkspace, userOp } from '../../../core/index.ts'
 import { Icon, ToolKey, type IconName } from '../design/ui.tsx'
 import { go, goInvestigation } from '../lib/place.ts'
 import { openSeen, useSeen } from '../lib/pending.ts'
+import { useTools } from '../lib/tools.ts'
 import { newInvestigation } from './Sidebar.tsx'
+import { startTool } from './StartTool.tsx'
 import { useTheme } from './theme.ts'
 import { useUi } from './store.ts'
 
@@ -20,7 +22,7 @@ export function CommandMenu() {
   const [q, setQ] = useState('')
   const all = useBuildings((s) => s.all)
   const doc = useWorkspace((s) => s.doc), undo = useWorkspace((s) => s.undo)
-  const catalog = useToolCatalog()
+  const catalog = useToolCatalog(), runnable = useTools()
   const seen = useSeen((s) => s.all)
   const setTheme = useTheme((s) => s.setTheme)
   useEffect(() => { if (open) setQ('') }, [open])
@@ -61,6 +63,15 @@ export function CommandMenu() {
           <Command.Group heading="Investigations">
             {Object.values(seen).sort((a, b) => b.last - a.last).slice(0, 6).map((s) => (
               <Command.Item key={s.id} value={`investigation ${s.brief} ${s.id}`} onSelect={run(() => (s.id === doc.id ? goInvestigation(s.id) : openSeen(s.id)))}><Icon name="runs" /><span className="grow trunc">{s.brief || 'Untitled investigation'}</span><small>{s.id === doc.id ? 'open' : ''}</small></Command.Item>
+            ))}
+          </Command.Group>
+        )}
+        {!tools && (
+          <Command.Group heading="Run a tool">
+            {runnable.filter((t) => !t.planned).map((t) => (
+              <Command.Item key={t.id} value={`run ${t.title} ${t.summary}`} onSelect={run(() => startTool(t, currentRoute().sid, true))}>
+                <ToolKey id={t.id} title={t.title} /><span className="grow"><span>{t.title}</span><small className="trunc">{t.summary}</small></span><span className="muted">Run</span>
+              </Command.Item>
             ))}
           </Command.Group>
         )}

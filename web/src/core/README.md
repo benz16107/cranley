@@ -145,6 +145,7 @@ compose(sentence, needId?)   // the front door: a new brief. Tools and questions
 investigate()                // every question answered (or "use the defaults"): start the work
 ask(text)                    // the one-line command bar, anywhere
 runToolHere(toolId, sid)     // run one tool on the scan in view, from the dock. A slow tool does not block: see below
+runTool(toolId, inputs?, sid?) // run a tool with inputs a person gave; no sid for a tool that takes none (a city rollup)
 runAction(action, panel)     // a panel's follow-up, or { id: 'rerun' }
 startOver()                  // forget the workspace; then navigate('/')
 answerPref(q, answer)        // only for a question answered after the work began: userOp(answerPref(q, a))
@@ -291,7 +292,8 @@ may use: the pin of the focused finding is `.th-pin[aria-current="true"]`.
 **Pictures and records of a building**: `fetchPlan(sid)`, `panoFace(sid, pano, face)` (cube face 1 to 4 are the
 sides), `panoEquirect(sid, pano)`, `floorplanImage(sid, floor)`, `orthoImage(lat, lon, size_m)`, `fetchRecord(sid)`
 (the CoStar or listing record), `fetchDrone(sid)` and `droneImage(sid, name, width?)`, `fetchScans(filter)`. `anchorFloor(plan,
-anchor)` tells you which floor an anchor is on.
+anchor)` tells you which floor an anchor is on. From the facts database: `fetchFactHistory(sid)` (every value recorded for
+a scan) and `fetchFloodWet()`. `fetchCaptures(workspaceId)` lists what a paired phone sent.
 
 ## Minimum to be a complete skin
 

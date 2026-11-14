@@ -53,3 +53,14 @@ export const fetchMeasureFields = () => getJson<Record<string, MeasureField>>('/
 /** Homes by what is measured inside them. Each criterion is `<measure><op><value>`, for example `floors==1`. */
 export const searchMeasures = (where: string[], filter: { city?: string; kind?: string; sort?: string; limit?: number } = {}) =>
   getJson<{ pool: number; answerable: number; matches: number; rows: MeasureHit[] }>(`/api/search/measures?${[...where.map((w) => `where=${encodeURIComponent(w)}`), qs(filter)].filter(Boolean).join('&')}`)
+
+/* ---------- the facts database and what a phone sent ---------- */
+export type FloodLevel = { level_m: number; houses: number; rooms: number | string; rooms_wet: number | string; houses_wet: number; wet_area_m2: number | string }
+/** Rooms and houses wet at each water depth, across the houses in the flood series. Counts may arrive as strings. */
+export const fetchFloodWet = () => getJson<FloodLevel[]>('/api/facts/flood/wet')
+export type FactRow = { at: string; room: string | null; field: string; value_num: number | null; value_text: string | null; unit: string | null; method: string; confidence: string; tool: string | null }
+/** Every value a tool has recorded for a scan, newest first. */
+export const fetchFactHistory = (sid: string) => getJson<FactRow[]>(`/api/facts/history/${encodeURIComponent(sid)}`)
+export type Capture = { id: string; at: number; kind: 'photo' | 'video' | 'audio' | 'reading'; tool?: string; task?: string; note?: string; file: string | null }
+/** What a paired phone has sent to a workspace, newest first. */
+export const fetchCaptures = (workspace: string) => getJson<Capture[]>(`/api/workspace/${encodeURIComponent(workspace)}/captures`)

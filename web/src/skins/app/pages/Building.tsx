@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Tabs } from '@base-ui/react/tabs'
 import {
-  Scene, SceneBoundary, fetchRecord, focusFinding, panoFace, runToolHere, useBuildingView, useBuildings, useWorkspace,
+  Scene, SceneBoundary, fetchRecord, focusFinding, panoFace, useBuildingView, useBuildings, useWorkspace,
   type Doc, type SceneMode, type ScanPlan, type Status,
 } from '../../../core/index.ts'
 import { PanelView } from '../blocks/blocks.tsx'
@@ -11,6 +11,7 @@ import { facts } from '../lib/pending.ts'
 import { go, goScan } from '../lib/place.ts'
 import { FAMILIES, useTools, type ToolInfo } from '../lib/tools.ts'
 import { useScheme } from '../shell/theme.ts'
+import { startTool } from '../shell/StartTool.tsx'
 import { useUi } from '../shell/store.ts'
 
 const MODES: { id: SceneMode; label: string; icon: IconName; none: string }[] = [
@@ -20,11 +21,12 @@ const MODES: { id: SceneMode; label: string; icon: IconName; none: string }[] = 
 const WORST: Record<Status, number> = { fail: 0, warn: 1, unknown: 2, pass: 3 }
 type F = Doc['findings'][number]
 
-/** A menu of every tool that runs on one scan: the investigation's own first, then by family. */
+/** A menu of every tool: the investigation's own first, then by family. One that needs more than this scan opens
+    its form (marked with an ellipsis), the rest run at once. */
 export function RunToolMenu({ sid, trigger }: { sid: string; trigger: React.ReactElement }) {
-  const tools = useTools().filter((t) => t.onScan && !t.planned)
+  const tools = useTools().filter((t) => !t.planned)
   const mine = useWorkspace((s) => s.doc.tools)
-  const item = (t: ToolInfo) => <Menu.Item key={t.id} onClick={() => runToolHere(t.id, sid)}><ToolKey id={t.id} title={t.title} />{t.title}{t.slow && <small>slow</small>}</Menu.Item>
+  const item = (t: ToolInfo) => <Menu.Item key={t.id} onClick={() => startTool(t, sid)}><ToolKey id={t.id} title={t.title} />{t.title}{t.form && '…'}{t.slow && <small>slow</small>}</Menu.Item>
   const own = tools.filter((t) => mine.some((m) => m.id === t.id))
   return (
     <MenuBtn align="end" trigger={trigger}>
@@ -41,7 +43,7 @@ export function RunToolMenu({ sid, trigger }: { sid: string; trigger: React.Reac
         )
       })}
       <hr />
-      <Menu.Item onClick={() => go('tools')}><Icon name="tool" />Browse the tool catalogue</Menu.Item>
+      <Menu.Item onClick={() => go('tools', { app_sid: sid })}><Icon name="tool" />Browse the tool catalogue</Menu.Item>
     </MenuBtn>
   )
 }

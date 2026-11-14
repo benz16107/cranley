@@ -111,6 +111,7 @@ export function mountPhoneLink(place: SwitcherPlace = 'bottom') {
     pop.hidden = false; tab.setAttribute('aria-expanded', 'true'); badge.hidden = true; badge.textContent = ''
     if (!ws || (serverDoc() as { id?: string } | null)?.id !== ws) void pair(); else void captures()
   })
+  window.addEventListener('threshold:phone', () => { if (pop.hidden) tab.click() }) // a look asks for the pairing code
   root.addEventListener('keydown', (e) => { if ((e as KeyboardEvent).key === 'Escape') { close(); tab.focus() } })
   document.addEventListener('pointerdown', (e) => { if (!pop.hidden && !e.composedPath().includes(host)) close() })
   document.body.append(host)

@@ -11,7 +11,7 @@ export type {
 } from './types.ts'
 
 // ---- the agent: compose, investigate, ask, run a tool. The server when it answers, scripted playback when not.
-export { compose, investigate, ask, runToolHere, runAction, startOver, answerPref } from './agent.ts'
+export { compose, investigate, ask, runToolHere, runTool, runAction, startOver, answerPref } from './agent.ts'
 export { useCatalog, isLive } from './server.ts'
 export { useToolCatalog, type CatalogTool } from './tools.ts'
 export { NEEDS, TOOLS, type Need } from './fixtures/catalog.ts'
@@ -35,6 +35,7 @@ export { mapStyle, type MapPalette } from './basemap.ts'
 export {
   fetchPlan, panoFace, panoEquirect, captureImage, floorplanImage, orthoImage, fetchScans, fetchRecord, fetchDrone, droneImage,
   fetchMeasureFields, searchMeasures, type ScanRow, type MeasureField, type MeasureHit,
+  fetchFloodWet, fetchFactHistory, fetchCaptures, type FloodLevel, type FactRow, type Capture,
 } from './api.ts'
 export {
   Scene, SceneBoundary, useBuildingView, focusFinding, focusAnchor, anchorFloor,
