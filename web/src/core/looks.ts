@@ -2,6 +2,7 @@
    The rest of the URL is the place, and it means the same thing in every look. Pure, so it runs under `node --test`. */
 export const LOOKS = [
   { id: 'sheet', name: 'Sheet' }, { id: 'a', name: 'Overflight' }, { id: 'b', name: 'Broadsheet' }, { id: 'c', name: 'Maquette' },
+  { id: 'app', name: 'App' },
 ] as const
 export type LookId = (typeof LOOKS)[number]['id']
 export const DEFAULT_LOOK: LookId = 'sheet'

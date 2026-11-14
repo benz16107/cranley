@@ -92,8 +92,9 @@ def settle(s: Session, task: dict, cap: dict) -> dict:
     extra: dict[str, Any] = {}
     if kind in ("width", "step"):
         if v.get("value_m") is not None:
-            o = judge(task, float(v["value_m"]), TAPE_ERR_M)
-            return {**o, "method": "manual", "confidence": "high"}
+            sensor = bool(v.get("sensor"))  # the iPhone app's LiDAR two-point measure: not a tape, and it sends its own error
+            o = judge(task, float(v["value_m"]), float(v.get("err_m") or TAPE_ERR_M))
+            return {**o, "method": "sensor" if sensor else "manual", "confidence": "medium" if sensor else "high"}
         what = "the clear width of the doorway" if kind == "width" else "the height of the step, floor to its top edge"
         out, res, pts, who = measure_photo(s, cap, what, threshold_m=task["threshold"] if kind == "width" else None,
                                            standard=task.get("standard"), scan=sid, opening=task.get("opening"), room=task.get("room"))

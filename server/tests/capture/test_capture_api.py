@@ -69,6 +69,9 @@ def test_pair_measure_and_the_finding_changes(desk):
     assert again["outcome"]["verdict"] == "confirmed" and again["outcome"]["status"] == "fail"
     after = next(f for f in c.get(f"/api/workspace/{wid}").json()["doc"]["findings"] if f["id"] == "door_widths:home:RB")
     assert after["status"] == "fail" and after["feedback"]["verdict"] == "confirmed" and after["detail"].count("On site:") == 1
+    lidar = send(c, p["token"], {"kind": "reading", "task": "width:home:RB",   # the iPhone app: a sensor with its own error
+                                 "values": {"value_m": 0.82, "sensor": "arkit_lidar", "err_m": 0.01}}).json()["outcome"]
+    assert (lidar["method"], lidar["confidence"], lidar["err"], lidar["status"]) == ("sensor", "medium", 0.01, "warn")
 
 
 def test_a_phone_tool_runs_into_the_workspace_and_a_plain_photo_is_evidence(desk):
