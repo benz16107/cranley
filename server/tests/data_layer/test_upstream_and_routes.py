@@ -138,6 +138,17 @@ def test_splat_bytes_waits_for_a_download_in_progress(cache, monkeypatch):
     assert got == b"a" * 500 + b"b" * 500 and real_sleep                    # it had to wait for bytes 1000 to 1499
 
 
+def test_first_splat_request_can_open_the_file_before_the_download_writes(cache, monkeypatch):
+    sid = "DDDDDDDDDDD"
+    monkeypatch.setattr(hackathon, "_downloads", {})
+    monkeypatch.setattr(hackathon, "splat_size", lambda s: 10)
+    monkeypatch.setattr(hackathon, "_fetch_splat", lambda *a: None)  # a download that has not started writing yet
+    dl = hackathon._ensure_splat(sid)
+    assert (cache / "splat" / f"{sid}.ply.part").exists()
+    dl.error = "stopped"  # the reader opens the empty part file and ends instead of raising
+    assert b"".join(hackathon.splat_bytes(sid, 0, 9)) == b""
+
+
 def test_splat_bytes_stops_when_the_download_failed(cache, monkeypatch):
     sid = "CCCCCCCCCCC"
     (cache / "splat").mkdir(parents=True)

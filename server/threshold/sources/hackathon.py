@@ -176,6 +176,7 @@ def _ensure_splat(sid: str) -> _Download:
             dl.done.set()
         elif dl is None or (dl.done.is_set() and dl.error):
             part.parent.mkdir(parents=True, exist_ok=True)
+            part.touch()  # the first reader opens it before the download thread has written a byte
             dl = _downloads[sid] = _Download(total)
             threading.Thread(target=_fetch_splat, args=(sid, dl, part, final), daemon=True, name=f"splat-{sid}").start()
         return dl

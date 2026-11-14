@@ -87,9 +87,12 @@ function Thumb({ f, n }: { f: Finding; n: number }) {
   const [state, setState] = useState<'loading' | 'ok' | 'none'>('loading')
   const m = f.media?.find((x) => x.kind === 'pano')
   const sid = f.anchor && 'sid' in f.anchor ? f.anchor.sid : null
+  // Contract 3: a panorama ref is "<sid>/<pano>/<face>". The fixtures give the position alone, on the finding's scan.
+  const [a, b, c] = m?.ref.split('/') ?? []
+  const src = m && b ? panoFace(a, b, c ? Number(c) : 1) : m && sid ? panoFace(sid, m.ref) : null
   return (
-    <span className={`thumb ${state === 'loading' && m ? 'skeleton' : state !== 'ok' ? 'hatch' : ''}`}>
-      {m && sid && state !== 'none' && <img src={panoFace(sid, m.ref)} alt="" loading="lazy" width={640} height={640} data-ok={state === 'ok'} onLoad={() => setState('ok')} onError={() => setState('none')} />}
+    <span className={`thumb ${state === 'loading' && src ? 'skeleton' : state !== 'ok' ? 'hatch' : ''}`}>
+      {src && state !== 'none' && <img src={src} alt="" loading="lazy" width={640} height={640} data-ok={state === 'ok'} onLoad={() => setState('ok')} onError={() => setState('none')} />}
       <span className="cap num"><StatusGlyph status={f.status} size={8} /> {n}</span>
     </span>
   )
@@ -113,8 +116,9 @@ function EvidenceStrip({ b, ctx }: { b: Extract<Block, { type: 'EvidenceStrip' }
 }
 
 function RankedTable({ b }: { b: Extract<Block, { type: 'RankedTable' }> }) {
-  const [sort, setSort] = useState<{ col: string; dir: 1 | -1 }>(() => ({ col: b.columns[0]?.id, dir: b.columns[0]?.better === 'lower' ? 1 : -1 }))
-  const rows = [...b.rows].sort((x, y) => ((x.values[sort.col] ?? -Infinity) - (y.values[sort.col] ?? -Infinity)) * sort.dir)
+  // The rows arrive in rank order (the agent's, or the tool's). They keep it until the person sorts by a column.
+  const [sort, setSort] = useState<{ col: string | null; dir: 1 | -1 }>({ col: null, dir: -1 })
+  const rows = sort.col == null ? b.rows : [...b.rows].sort((x, y) => ((x.values[sort.col!] ?? -Infinity) - (y.values[sort.col!] ?? -Infinity)) * sort.dir)
   const best = Object.fromEntries(b.columns.map((c) => {
     const vals = b.rows.map((r) => r.values[c.id]).filter((v): v is number => v != null)
     return [c.id, vals.length ? (c.better === 'lower' ? Math.min(...vals) : Math.max(...vals)) : null]

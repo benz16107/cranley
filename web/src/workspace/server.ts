@@ -52,16 +52,20 @@ export async function sync(resumed = false): Promise<boolean> {
   return true
 }
 let timer: ReturnType<typeof setTimeout> | undefined
+let streaming = false // a turn's event stream is open in this tab
 const soon = () => { timer ??= setTimeout(() => { timer = undefined; void sync() }, 250) }
 
 /** A new brief starts a new workspace. */
 export function forget() { id = null; ws = null; ask = null; seenCamera = undefined; store.set(KEY, null) }
 /** After a reload: the server kept the workspace, so show it again. */
 export async function resume() {
-  if (!id || !(await connect())) return
+  if (!(await connect()) || !id) return // the probe runs either way: the tool menu lists what the server has
   const b = useBuildings.getState()
   if (b.state === 'loading') await new Promise<void>((res) => { const off = useBuildings.subscribe((x) => { if (x.state !== 'loading') { off(); res() } }) })
   await sync(true)
+  // A turn that was running when the page went away is still running on the server: keep reading until it settles.
+  const busy = () => (ws?.runs as J[] | undefined)?.some((r) => r.status === 'running') || (ws?.plan as J[] | undefined)?.some((s) => s.status === 'in_progress')
+  for (let i = 0; i < 300 && busy() && !streaming; i++) { await new Promise((r) => setTimeout(r, 2000)); if (!streaming) await sync() }
 }
 async function ensure(): Promise<boolean> {
   if (id && ws) return true
@@ -87,9 +91,10 @@ export async function turn(body: { text?: string; sids?: string[] }): Promise<J 
   if (!r.ok || !r.body) throw new Error(`turn ${r.status}`)
   const reader = r.body.pipeThrough(new TextDecoderStream()).getReader()
   let buf = '', done: J | null = null
+  streaming = true
   for (;;) {
-    const { value, done: end } = await reader.read()
-    if (end) break
+    const { value, done: end } = await reader.read().catch(() => ({ value: undefined, done: true }))
+    if (end || value == null) break
     buf += value
     const events = buf.split('\n\n')
     buf = events.pop()!
@@ -106,6 +111,7 @@ export async function turn(body: { text?: string; sids?: string[] }): Promise<J 
       else if (kind === 'error') toast.error('The agent stopped.', { description: data.message })
     }
   }
+  streaming = false
   await sync()
   return done
 }

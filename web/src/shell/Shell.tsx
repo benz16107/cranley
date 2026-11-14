@@ -1,6 +1,6 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { Component, lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Drawer } from 'vaul'
-import { CityMap, useMap } from '../map/CityMap.tsx'
+import { CityMap, useMap, type GeoMarks } from '../map/CityMap.tsx'
 import { AddressSearch, BuildingCard, Callout, FilterBar, HoverTip, Neatline, TitleBlock } from '../map/MapFurniture.tsx'
 import { CITIES, matches, readFilters, useBuildings, type CityId } from '../map/buildings.ts'
 import { Icon, Mark } from '../design/ui.tsx'
@@ -20,6 +20,16 @@ import { useScheme, useTheme } from './theme.ts'
 /* The scene workstream's <BuildingScene plan overlays view onPick />. The shell never reaches into three.js. */
 const BuildingScene = lazy(() => import('../scene/BuildingScene.tsx').then((m) => ({ default: m.BuildingScene })))
 const MODES: [Mode, string][] = [['dollhouse', '3D'], ['plan', 'Plan'], ['pano', 'Inside'], ['splat', 'Drone']]
+
+/** A fault inside the 3D view stays inside it: the panels, the map and the dock keep working. */
+class SceneGuard extends Component<{ children: ReactNode; onRetry: () => void }, { failed: boolean }> {
+  state = { failed: false }
+  static getDerivedStateFromError() { return { failed: true } }
+  componentDidCatch(e: unknown) { console.error('[scene]', e) }
+  render() {
+    return this.state.failed ? <div className="state"><p>The building view stopped on this scan.</p><button className="btn" onClick={this.props.onRetry}>Try again</button></div> : this.props.children
+  }
+}
 
 const SNAPS = ['112px', 0.55, 0.94]
 
@@ -57,7 +67,10 @@ function ScanStage({ sid, frame }: { sid: string; frame: React.RefObject<HTMLDiv
   }, [sid, tries])
   useEffect(() => { if (q.get('demo') === 'access') replayDemo(sid) }, [sid, q])
 
-  const overlays = useMemo(() => doc.overlays.filter((o) => !o.sid || o.sid === sid).map((o) => o.overlay), [doc.overlays, sid])
+  // what is given in map coordinates (an outdoor path, a pin on the roof) is the map's to draw, not the building's
+  const overlays = useMemo(() => doc.overlays.filter((o) => !o.sid || o.sid === sid).map((o) => o.overlay)
+    .map((o) => (o.kind === 'pins' ? { ...o, pins: o.pins.filter((p) => !('geo' in p.anchor)) } : o))
+    .filter((o) => !(o.kind === 'route' && o.floor === 'geo') && !(o.kind === 'pins' && !o.pins.length)), [doc.overlays, sid])
   const cam = doc.camera && 'sid' in doc.camera.anchor && doc.camera.anchor.sid === sid ? doc.camera.anchor : null
   const kept = doc.shortlist.some((s) => s.sid === sid)
   // Where the camera is told to look: its floor comes up, and a panorama anchor means "stand there and look that way".
@@ -106,7 +119,8 @@ function ScanStage({ sid, frame }: { sid: string; frame: React.RefObject<HTMLDiv
         {!plan && !error && <div className="state skeleton" aria-label="Loading the plan" />}
         {plan && (
           <Suspense fallback={<div className="state skeleton" />}>
-            <BuildingScene plan={scenePlan} overlays={overlays as SceneOverlay[]} view={view} onPick={onPick} onViewChange={({ focus: _f, ...v }) => setLook(v)} />
+            {/* keyed by scan: the scene builds its model for one plan, so a new scan gets a new scene */}
+            <SceneGuard key={`${plan.sid}:${tries}`} onRetry={() => setTries(tries + 1)}><BuildingScene plan={scenePlan} overlays={overlays as SceneOverlay[]} view={view} onPick={onPick} onViewChange={({ focus: _f, ...v }) => setLook(v)} /></SceneGuard>
           </Suspense>
         )}
       </div>
@@ -133,6 +147,10 @@ export function Shell() {
     const sids = new Set([...doc.panels.map((p) => p.sid), ...doc.shortlist.map((s) => s.sid)])
     return all.filter((b) => b.scans.some((s) => sids.has(s.sid)))
   }, [all, doc.panels, doc.shortlist])
+  const geo = useMemo<GeoMarks>(() => ({
+    paths: doc.overlays.flatMap(({ overlay: o }) => (o.kind === 'route' && o.floor === 'geo' ? [o.points.map(([x, y]): [number, number] => [x, y])] : [])),
+    pins: doc.overlays.flatMap(({ overlay: o }) => (o.kind === 'pins' ? o.pins.flatMap((p) => ('geo' in p.anchor ? [{ lon: p.anchor.geo[0], lat: p.anchor.geo[1], status: p.status }] : [])) : [])),
+  }), [doc.overlays])
   const view = route.path === '/scan' ? 'scan' : route.path === '/map' ? 'map' : 'door'
   const hasRail = view !== 'door' && (doc.panels.length > 0 || doc.runs.some((r) => r.status === 'running'))
 
@@ -142,7 +160,9 @@ export function Shell() {
     if (!cam || (cam.by === 'agent' && !follow)) return
     const a = cam.anchor
     if ('geo' in a) {
-      const near = all.find((b) => Math.abs(b.lon - a.geo[0]) < 1e-5 && Math.abs(b.lat - a.geo[1]) < 1e-5)
+      // the building it belongs to: the nearest within about 200 m (a pool or a dock is not at the address point)
+      const d = (b: { lon: number; lat: number }) => Math.hypot((b.lon - a.geo[0]) * Math.cos((a.geo[1] * Math.PI) / 180), b.lat - a.geo[1])
+      const near = all.reduce<(typeof all)[number] | undefined>((best, b) => (d(b) < 0.002 && (!best || d(b) < d(best)) ? b : best), undefined)
       navigate('/map', { b: near?.id, city: near?.metro ?? undefined }, { keep: true })
     } else if (route.sid !== a.sid) navigate(`/scan/${a.sid}`, { f: cam.finding }, { keep: true })
     else setQuery({ f: cam.finding })
@@ -182,7 +202,7 @@ export function Shell() {
 
       <main className="stage" id="stage" tabIndex={-1}>
         <div className="mapwrap" data-inset={view === 'scan'}>
-          <CityMap buildings={shown} selected={selected} marks={marks} city={filters.city} scheme={scheme} inset={view === 'scan'} frame={frame} onSelect={(b) => setQuery({ b: b?.id }, false)} />
+          <CityMap buildings={shown} selected={selected} marks={marks} geo={geo} look={cam && 'geo' in cam.anchor ? cam.anchor.geo : null} city={filters.city} scheme={scheme} inset={view === 'scan'} frame={frame} onSelect={(b) => setQuery({ b: b?.id }, false)} />
           {view === 'scan' && <button className="keyplan" onClick={() => navigate('/map', { b: route.q.get('b'), city: route.q.get('city') })}><span className="label">Key plan</span><span className="sr">Back to the map</span></button>}
         </div>
         {state === 'error' && <div className="pane mapstate" role="alert"><p>The building list did not load. Is the data server running?</p><button className="btn" onClick={load}>Try again</button></div>}

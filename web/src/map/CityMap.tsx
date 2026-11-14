@@ -1,7 +1,7 @@
 import { useEffect, useRef, type RefObject } from 'react'
 import { create } from 'zustand'
 import { MapLibreOverlay } from '@deck.gl/maplibre'
-import { ContourLayer, ScatterplotLayer, TextLayer } from 'deck.gl'
+import { ContourLayer, PathLayer, ScatterplotLayer, TextLayer } from 'deck.gl'
 import { Map as MapLibre } from './maplibre.ts'
 import { mapStyle } from './style.ts'
 import { CITIES, type Building, type CityId } from './buildings.ts'
@@ -17,10 +17,17 @@ const palette = () => ({
 })
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
+export type GeoMarks = { paths: [number, number][][]; pins: { lon: number; lat: number; status: 'pass' | 'warn' | 'fail' | 'unknown' }[] }
+const NO_GEO: GeoMarks = { paths: [], pins: [] }
+
 type Props = {
   buildings: Building[]
   selected: Building | null
   marks: { lon: number; lat: number }[] // places the agent has put on the map
+  /** Overlays given in map coordinates (a path outside a building, pins on a roof or a pool), drawn where they are. */
+  geo?: GeoMarks
+  /** A point the camera was told to look at: the map goes there, close enough to read the marks. */
+  look?: [number, number] | null
   city: CityId
   scheme: 'light' | 'dark'
   inset: boolean
@@ -28,16 +35,16 @@ type Props = {
   onSelect: (b: Building | null) => void
 }
 
-export function CityMap({ buildings, selected, marks, city, scheme, inset, frame, onSelect }: Props) {
+export function CityMap({ buildings, selected, marks, geo = NO_GEO, look = null, city, scheme, inset, frame, onSelect }: Props) {
   const el = useRef<HTMLDivElement>(null)
   const overlay = useRef<MapLibreOverlay | null>(null)
-  const live = useRef({ buildings, selected, marks, onSelect, fonts: false })
-  live.current = { ...live.current, buildings, selected, marks, onSelect }
+  const live = useRef({ buildings, selected, marks, geo, onSelect, fonts: false })
+  live.current = { ...live.current, buildings, selected, marks, geo, onSelect }
 
   const draw = () => {
     const map = useMap.getState().map
     if (!map || !overlay.current) return
-    const { buildings: data, selected: sel, marks: agentMarks, fonts } = live.current
+    const { buildings: data, selected: sel, marks: agentMarks, geo: marksGeo, fonts } = live.current
     const hover = useMap.getState().hover
     const z = map.getZoom()
     const ink = tokenRgba('--ink'), paper = tokenRgba('--paper'), accent = tokenRgba('--accent')
@@ -74,6 +81,13 @@ export function CityMap({ buildings, selected, marks, city, scheme, inset, frame
           id: 'marks', data: agentMarks, getPosition: (m) => [m.lon, m.lat], radiusUnits: 'pixels', getRadius: 11, filled: false,
           stroked: true, getLineColor: accent, lineWidthUnits: 'pixels', getLineWidth: 1.5,
         }),
+        new PathLayer<[number, number][]>({
+          id: 'geo-paths', data: marksGeo.paths, getPath: (d) => d, widthUnits: 'pixels', getWidth: 3, getColor: accent, capRounded: true, jointRounded: true,
+        }),
+        new ScatterplotLayer<GeoMarks['pins'][number]>({
+          id: 'geo-pins', data: marksGeo.pins, getPosition: (d) => [d.lon, d.lat], radiusUnits: 'pixels', getRadius: 6,
+          getFillColor: (d) => tokenRgba(`--${d.status}`), stroked: true, getLineColor: paper, lineWidthUnits: 'pixels', getLineWidth: 1.5,
+        }),
         new ScatterplotLayer<Building>({
           id: 'ring', data: [hover, sel].filter((b): b is Building => !!b), getPosition: (b) => [b.lon, b.lat],
           radiusUnits: 'pixels', getRadius: (b) => px(b) * grow + (b === sel ? 5 : 3.5), filled: false, stroked: true,
@@ -106,7 +120,7 @@ export function CityMap({ buildings, selected, marks, city, scheme, inset, frame
   }, [])
 
   const map = useMap((s) => s.map)
-  useEffect(draw, [buildings, selected, marks, map]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(draw, [buildings, selected, marks, geo, map]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // The basemap is redrawn from the tokens when the scheme changes.
   const firstScheme = useRef(scheme)
@@ -143,14 +157,23 @@ export function CityMap({ buildings, selected, marks, city, scheme, inset, frame
     else map.flyTo({ center, zoom, duration: 2400, curve: 1.25, essential: true })
   }, [city, map])
 
+  // A point the camera was told to look at wins over the selected building: go there, close enough to read the marks.
+  const lookKey = look?.join(',')
   useEffect(() => {
-    if (!map || !selected) return
+    if (!map || !look || inset) return
+    const go = () => { map.resize(); const to = { center: look, zoom: 18.5 }; if (reduced()) map.jumpTo(to); else map.flyTo({ ...to, duration: 1400, essential: true }) }
+    const t = setTimeout(go, 120) // after the key plan has grown back into the full map
+    return () => clearTimeout(t)
+  }, [lookKey, map, inset]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!map || !selected || (look && !inset)) return
     const z = map.getZoom()
     const inView = map.getBounds().contains([selected.lon, selected.lat])
     const to = { center: [selected.lon, selected.lat] as [number, number], zoom: inset ? 15.5 : Math.max(z, 14.5) }
     if (inset || reduced()) map.jumpTo(to)
     else if (z < 12.5 || !inView) map.flyTo({ ...to, duration: 1400, essential: true })
-  }, [selected, map, inset])
+  }, [selected, map, inset, lookKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return <div ref={el} className="citymap" role="application" aria-label={`Map of scanned buildings in ${CITIES[city].name}. Use the search field or the list of buildings in view to choose one from the keyboard.`} />
 }
