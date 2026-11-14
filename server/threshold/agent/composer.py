@@ -48,7 +48,7 @@ def schema(tool_ids: list[str], persona_ids: list[str], keys: list[str] | None =
                         **extra)
 
 
-def prompt(text: str, doc: Workspace) -> tuple[str, list[str]]:
+def prompt(text: str, doc: Workspace, recalled: list[str] | None = None) -> tuple[str, list[str]]:
     off = prefs.tools_off(doc)
     tools = {k: m for k, m in catalog().items() if k not in off}
     lines = ["Person said: " + text, "", "Persona presets (id: who; tools):"]
@@ -60,6 +60,9 @@ def prompt(text: str, doc: Workspace) -> tuple[str, list[str]]:
         lines += ["", "Questions the tools may ask (key: question):"] + [f"- {k}: {q}" for k, (q, _) in asks.items()]
     if off:
         lines += ["", "The person removed these before; do not choose them: " + ", ".join(sorted(off))]
+    if recalled:  # from the store's memory: earlier people with a similar need
+        lines += ["", "Similar needs from earlier sessions (how they were set up and what those people changed; "
+                      "start from what fits this person, leave out what they removed):", *recalled]
     return "\n".join(lines), list(tools)
 
 
@@ -111,9 +114,9 @@ def questions(doc: Workspace, tool_ids: list[str]) -> list[Question]:
     return list(out.values())[:MAX_QUESTIONS]
 
 
-def compose(text: str, doc: Workspace, model: Model, run: str | None = None) -> list:
+def compose(text: str, doc: Workspace, model: Model, run: str | None = None, recalled: list[str] | None = None) -> list:
     """Ops that set the brief, enable tools and ask what the tools need. Nothing is applied here."""
-    user, tool_ids = prompt(text, doc)
+    user, tool_ids = prompt(text, doc, recalled)
     asks = askable({k: catalog()[k] for k in tool_ids})
     c = model.structured(SYSTEM, user, schema(tool_ids, list(personas()), list(asks)))
     said = {}

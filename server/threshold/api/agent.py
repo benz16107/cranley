@@ -29,7 +29,9 @@ def session(id: str) -> Session:
                 _sessions[id] = attach(Session.load(id))
             except LookupError as e:
                 raise HTTPException(404, str(e)) from None
-        return _sessions[id]
+        s = _sessions[id]
+    s.sync()  # another server process may have appended (MongoDB store); a no-op for files
+    return s
 
 
 def view(s: Session, log: bool = False) -> dict:
