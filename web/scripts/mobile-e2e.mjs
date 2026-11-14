@@ -261,7 +261,7 @@ if (on('media')) {
   await p.page.locator('.m-card, .m-note.warn').last().scrollIntoViewIfNeeded()
   await p.shot('46-walkthrough-result')
   const walk = (await p.page.locator('.m-body').innerText()).replace(/\s+/g, ' ')
-  check('pixel: a recorded video was sent, its frames read, and a census came back', /rooms seen|No frame/.test(walk), walk.slice(-200))
+  check('pixel: a recorded video was sent, its frames read, and a census came back', /rooms? seen|No frame/.test(walk), walk.slice(-200))
   await p.ctx.close()
 }
 

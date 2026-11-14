@@ -12,14 +12,20 @@ export const TOOL_TITLE: Record<string, string> = { field_check: 'Field check', 
 export const toolTitle = (id: string) => TOOL_TITLE[id] ?? id.replaceAll('_', ' ')
 const SAID = { confirmed: 'Confirms the scan', contradicted: 'Contradicts the scan', measured: 'First measurement' } as const
 
+/** A tool's own number in the tool's own unit: results are not converted, because a metre there may be a door or a GPS fix. */
+export function val(v: number | null | undefined, unit: string): string {
+  if (v == null) return 'not measured'
+  const text = Number.isInteger(v) ? String(v) : Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2)
+  return unit ? `${text} ${unit}` : text
+}
+/** A task's length (a door, a step, a floor height) in the person's unit; anything else as it is. */
 export function num(v: number | null | undefined, unit: string): string {
   if (v == null) return 'not measured'
   if (unit === 'm') { // a length: in the person's unit
     if (usePhone.getState().unit === 'in') { const i = v / 0.0254; return `${i.toFixed(i < 2 ? 2 : 1)} in` }
     return v < 3 ? `${(v * 100).toFixed(1)} cm` : `${v.toFixed(2)} m`
   }
-  const text = Number.isInteger(v) ? String(v) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2)
-  return unit ? `${text} ${unit}` : text
+  return val(v, unit)
 }
 
 /** A capture screen: title and back at the top, content, then the actions in reach of the thumb. */
@@ -109,7 +115,7 @@ export function Problem({ text }: { text: string }) { return <p className="m-not
 
 function CheckRow({ c }: { c: Check }) {
   const claim = c.kind === 'claim'
-  return <li><StatusGlyph status={c.status} size={9} /><span>{c.rule}</span><span className="num">{num(c.measured, c.unit)}{c.threshold != null && <i> {claim ? 'was' : 'of'} {num(c.threshold, c.unit)}</i>}</span></li>
+  return <li><StatusGlyph status={c.status} size={9} /><span>{c.rule}</span><span className="num">{val(c.measured, c.unit)}{c.threshold != null && <i> {claim ? 'was' : 'of'} {val(c.threshold, c.unit)}</i>}</span></li>
 }
 function Evidence({ f }: { f: Finding }) {
   const shots = f.media.filter((m) => m.kind === 'phone').slice(0, 3)
@@ -117,7 +123,7 @@ function Evidence({ f }: { f: Finding }) {
     <li>
       <StatusGlyph status={f.status} size={9} />
       <div><b>{f.title}</b><p>{f.detail}</p>
-        {shots.length > 0 && <div className="m-shots">{shots.map((m) => <img key={m.ref} src={m.ref.includes('#') ? captureFrame(m.ref) : captureFile(m.ref)} alt="" loading="lazy" width={96} height={72} onError={(e) => { e.currentTarget.hidden = true }} />)}</div>}
+        {shots.length > 0 && <div className="m-shots">{shots.map((m) => <img key={m.ref} src={m.ref.includes('#') ? captureFrame(m.ref) : captureFile(m.ref)} alt="" loading="lazy" width={96} height={72} onError={(e) => { e.currentTarget.style.display = 'none' /* a reading has no picture */ }} />)}</div>}
         <span className="src">{f.source.layer} · {f.source.method} · {f.source.confidence}</span>
       </div>
     </li>
@@ -132,8 +138,8 @@ export function ResultCard({ r, open, actions }: { r: Result; open?: boolean; ac
     <section className="m-card" data-status={r.verdict.status}>
       <header><StatusGlyph status={r.verdict.status} size={11} /><b>{toolTitle(r.tool)}</b>{r.at && <time className="num">{new Date(r.at * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</time>}</header>
       <p>{r.verdict.text}</p>
-      {r.metrics.length > 0 && <dl className="m-kv">{r.metrics.map((m) => <div key={m.id}><dt>{m.label}</dt><dd className="num">{num(m.value, m.unit)}</dd></div>)}</dl>}
-      {(r.checks.length > 0 || r.findings.length > 0) && <button className="link" aria-expanded={more} onClick={() => setMore(!more)}>{more ? 'Hide the detail' : `${r.checks.length} checks, ${r.findings.length} findings`}</button>}
+      {r.metrics.length > 0 && <dl className="m-kv">{r.metrics.map((m) => <div key={m.id}><dt>{m.label}</dt><dd className="num">{val(m.value, m.unit)}</dd></div>)}</dl>}
+      {(r.checks.length > 0 || r.findings.length > 0) && <button className="link" aria-expanded={more} onClick={() => setMore(!more)}>{more ? 'Hide the detail' : [r.checks.length && `${r.checks.length} check${r.checks.length > 1 ? 's' : ''}`, r.findings.length && `${r.findings.length} finding${r.findings.length > 1 ? 's' : ''}`].filter(Boolean).join(', ')}</button>}
       {more && r.checks.length > 0 && <ul className="m-checks">{r.checks.map((c) => <CheckRow key={c.id} c={c} />)}</ul>}
       {more && r.findings.length > 0 && <ul className="m-evidence">{r.findings.map((f) => <Evidence key={f.id} f={f} />)}</ul>}
       {actions}

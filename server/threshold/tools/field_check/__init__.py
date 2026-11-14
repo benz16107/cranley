@@ -56,7 +56,7 @@ class Inputs(BaseModel):
 
 
 def fmt(v: float | None, unit: str) -> str:
-    return "" if v is None else f"{v:.0f} {unit}".strip() if unit in ("%", "h", "") else f"{v:.3f}".rstrip("0").rstrip(".") + f" {unit}"
+    return "" if v is None else f"{v:.1f} {unit}".strip() if unit in ("%", "h", "") else f"{v:.3f}".rstrip("0").rstrip(".") + f" {unit}"
 
 
 def describe(t: Task) -> str:

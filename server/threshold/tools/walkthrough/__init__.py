@@ -84,10 +84,9 @@ def census(frames: list[dict]) -> list[dict]:
 @tool(id="walkthrough", title="Walk-through", icon="video",
       summary="A quick safety census of a home with no scan, from a short video you record walking through it: rooms, "
               "smoke alarms, hazards and belongings.",
-      model_description="Read frames of a walk-through video of an unscanned home: room types, smoke alarms seen or not "
+      model_description="Phone only: a person runs this from the phone app, an agent cannot. Read frames of a walk-through video of an unscanned home: room types, smoke alarms seen or not "
                         "seen per bedroom and hallway (IRC R314.3), trip and fire hazards, belongings. A first look; "
-                        "rooms the camera missed are not in it. Needs a video capture from the phone app.",
-      personas=["older_adult_family", "houston_homeowner_storm", "renter_listing"], requires=[{"layer": "phone.video"}],
+                        "rooms the camera missed are not in it. Needs a video capture from the phone app.", requires=[{"layer": "phone.video"}],
       blocks=["VerdictHeader", "MetricRow", "CheckList", "EvidenceStrip", "AssumptionChips", "StepLog"],
       annotations={"cost": "slow"}, examples=["Check my own home for smoke alarms", "My home was never scanned"])
 def run(ctx, inputs: Inputs, shots=None, ask=None) -> ToolResult:
@@ -133,7 +132,7 @@ def run(ctx, inputs: Inputs, shots=None, ask=None) -> ToolResult:
     things = [b for r in rooms for b in r["belongings"]]
     src_all = source("vision", "medium", "Vision reader on video frames; rooms the camera missed are not counted")
     n_alarm = sum(tally.values())
-    text = (f"{len(rooms)} rooms seen in the video. "
+    text = (f"{len(rooms)} room{'s' if len(rooms) != 1 else ''} seen in the video. "
             + (f"Of {n_alarm} bedrooms and hallways, a smoke alarm was seen in {tally['seen']}, not seen in "
                f"{tally['not seen']}, and {tally['could not see']} could not be checked. " if n_alarm else
                "No bedroom or hallway was recognised, so smoke alarms could not be checked. ")

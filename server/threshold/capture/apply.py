@@ -10,7 +10,7 @@ from typing import Any
 
 from ..agent import prefs
 from ..agent.investigator import Investigation, attach
-from ..agent.workspace import BriefSet, Feedback, FindingAdd, Scope, Session, ToolEnable, WsFinding, known_sids
+from ..agent.workspace import BriefSet, Feedback, FindingAdd, PrefSet, Scope, Session, ToolEnable, WsFinding, known_sids
 from ..tools import ToolResult
 from ..tools._phone import anchor, media, source
 from ..tools.field_check import Outcome, Task, describe
@@ -171,6 +171,15 @@ def update_findings(s: Session, task: dict, outcome: dict, cap: dict) -> int:
     return n
 
 
+def tell_agent(s: Session, task: dict, outcome: dict, cap: dict) -> None:
+    """Put the on-site result where every later agent turn reads it: the workspace's learned list, which goes into
+    the agent's prompt and shows on the desktop under "What I have learned" with an undo."""
+    t = Task.model_validate({**task, "status": "done", "outcome": outcome, "capture": cap["id"]})
+    s.submit(PrefSet(key=f"site.{task['id']}", value={"verdict": outcome["verdict"], "status": outcome["status"],
+                                                     "value": outcome.get("value"), "unit": task.get("unit")},
+                     reason=f"Checked on site with the phone. {task['title']}: {describe(t)}"), by="user")
+
+
 def refresh_field_check(s: Session, sid: str) -> dict:
     mine = [t for t in phone_tasks(s) if t["sid"] == sid]
     out, _ = run(s, "field_check", {"scan": sid, "tasks": mine})
@@ -214,11 +223,13 @@ def handle(s: Session, cap: dict) -> dict:
             return {"problem": "That task is no longer in this workspace; the capture was kept as evidence."}
         outcome = settle(s, task, cap)
         if "problem" in outcome:
-            note(s, cap)
+            if cap["file"]:  # the photo is still evidence; a reading that settled nothing is not
+                note(s, cap)
             return outcome
         Outcome.model_validate(outcome)
         store.update(cap["id"], result=outcome)
         changed = update_findings(s, task, outcome, cap)
+        tell_agent(s, task, outcome, cap)
         refresh_field_check(s, task["sid"])
         return {"outcome": outcome, "updated_findings": changed}
     if cap.get("tool") in PHONE_TOOLS and cap["tool"] != "field_check":
@@ -230,7 +241,8 @@ def handle(s: Session, cap: dict) -> dict:
         else:
             out, res = run(s, cap["tool"], tool_inputs(s, cap))
         if res is None:
-            note(s, cap)
+            if cap["file"]:
+                note(s, cap)
             return {"problem": out.get("error") or "The tool did not run.", "points": pts}
         did = {"run": out.get("run"), "status": res.verdict.status, "text": res.verdict.text,
                "metrics": [m.model_dump(mode="json") for m in res.metrics[:4]]}

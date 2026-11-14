@@ -58,10 +58,9 @@ def sun_hours(azimuth: float, lat: float, lon: float, day: dt.date, step_min: in
 @tool(id="window_check", title="Window check", icon="compass",
       summary="Point the phone out of a window: its compass confirms or corrects which way the room faces and its "
               "hours of sun.",
-      model_description="Compare a phone compass heading taken at a window with the scan's facing for that room's "
+      model_description="Phone only: a person runs this from the phone app, an agent cannot. Compare a phone compass heading taken at a window with the scan's facing for that room's "
                         "windows (the daylight tool's source), and recompute direct sun hours for the heading. Needs "
                         "a heading from the phone app.",
-      personas=["renter_listing", "renter_checking_claims"],
       requires=[{"layer": "phone.compass"}, {"layer": "matterport.geo", "need": "optional",
                                              "fallback": "the phone's facing only, nothing to compare with"}],
       blocks=["VerdictHeader", "MetricRow", "CheckList", "AssumptionChips", "StepLog"],

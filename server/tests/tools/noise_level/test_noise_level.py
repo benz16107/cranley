@@ -29,6 +29,6 @@ def test_rooms_are_compared_and_drawn_as_a_lens():
 def test_no_real_difference_one_room_and_no_scan():
     assert "no real difference" in run([{"room": "R", "leq_dba": 40, "seconds": 15}, {"room": "L", "leq_dba": 42, "seconds": 15}]).verdict.text
     one = run([{"room": "R", "leq_dba": 40, "seconds": 5}])
-    assert one.verdict.status == "unknown" and "shorter than 10 s" in one.verdict.text
+    assert one.verdict.status == "unknown" and "shorter than 10 s" in one.verdict.text and [m.id for m in one.metrics] == ["level.Bedroom"]
     bare = run_tool("noise_level", {"readings": [{"label": "Front room", "leq_dba": 45, "seconds": 20}]}, ToolContext())
     assert bare.overlays == [] and bare.scope.sids == [] and bare.findings[0].anchor is None

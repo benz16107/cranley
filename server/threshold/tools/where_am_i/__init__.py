@@ -53,7 +53,7 @@ def nearest(lon: float, lat: float, rows: dict[str, dict] | None = None, limit: 
 
 @tool(id="where_am_i", title="Where am I", icon="locate-fixed",
       summary="Finds the scanned building you are standing in from the phone's GPS, or says there is none here.",
-      model_description="From a phone GPS fix [lon, lat]: the scanned buildings within 2 km, nearest first, and "
+      model_description="Phone only: a person runs this from the phone app, an agent cannot. From a phone GPS fix [lon, lat]: the scanned buildings within 2 km, nearest first, and "
                         "whether the person is at one. Where there is no scan it offers the aerial-only tools "
                         "(roof_facts, truck_access, parking_count, risk_sheet) at that point.",
       requires=[{"layer": "phone.gps"}], blocks=["VerdictHeader", "MetricRow", "EvidenceStrip", "StepLog", "ActionBar"],

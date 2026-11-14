@@ -61,6 +61,8 @@ def test_pair_measure_and_the_finding_changes(desk):
     assert fc["result"]["verdict"]["text"].startswith("1 of 2 on-site checks done: 1 contradicts the scan")
     assert any(pn["tool"] == "field_check" for pn in doc["doc"]["panels"]) and any(t["id"] == "field_check" for t in doc["doc"]["tools"])
     assert c.get(f"/api/workspace/{wid}/captures").json()[0]["id"] == r["capture"]["id"]
+    told = next(x for x in doc["learned"] if x["key"] == "site.width:home:RB")   # what every later agent turn reads
+    assert told["text"].startswith("Checked on site with the phone. Measure the doorway, hallway to bedroom 1: On site: 0.84 m")
     assert c.get(f"/api/capture/{r['capture']['id']}/file").content == JPEG
 
     again = send(c, p["token"], {"kind": "reading", "task": "width:home:RB", "values": {"value_m": 0.66}}).json()
@@ -118,7 +120,8 @@ def test_a_phone_alone_starts_its_own_workspace_and_picks_a_building(desk, monke
             break
         import time
         time.sleep(0.02)
-    assert seen["text"] == "I use a wheelchair" and seen["sids"] == ["home"] and seen["budget"].tool_runs == 10
+    assert seen["text"] == "I use a wheelchair" and seen["sids"] is None and seen["budget"].tool_runs == 10
+    assert api.session(pair.check(t)).doc.brief.scope.sids == ["home"]      # the building joins the scope; none is dropped
 
 
 def test_an_alarm_task_takes_the_persons_word_or_a_confident_photo(desk, monkeypatch):

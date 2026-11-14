@@ -102,11 +102,13 @@ export function useSoundMeter() {
   const run = useRef<{ stop: () => { leq_dba: number; lmax_dba: number; seconds: number } } | null>(null)
   const start = useCallback(async () => {
     if (!navigator.mediaDevices?.getUserMedia) throw new Error('This browser gives a page no microphone.')
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).catch((e: Error) => {
-      throw new Error(e.name === 'NotAllowedError' ? 'The microphone is switched off for this page. Allow it in the browser settings.' : 'No microphone answered.')
-    })
+    // made before the first await, while this is still the tap: Safari only lets a tap start an audio context
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
     const ctx = new Ctx()
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).catch((e: Error) => {
+      void ctx.close()
+      throw new Error(e.name === 'NotAllowedError' ? 'The microphone is switched off for this page. Allow it in the browser settings.' : 'No microphone answered.')
+    })
     await ctx.resume()
     let node: AudioNode = ctx.createMediaStreamSource(stream)
     for (const s of A_STAGES) { const f = ctx.createBiquadFilter(); f.type = s.type; f.frequency.value = Math.min(s.frequency, ctx.sampleRate / 2 - 100); f.Q.value = s.qDb; node.connect(f); node = f }

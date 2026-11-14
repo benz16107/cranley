@@ -181,10 +181,9 @@ def _size(capture: str) -> tuple[int, int]:
 @tool(id="photo_measure", title="Photo measure", icon="ruler",
       summary="Measures a width or a height from one photo that has a bank card, a sheet of paper or a door of known "
               "size in it.",
-      model_description="Measure a length from a phone photo with a reference of known size in frame (card, letter, "
+      model_description="Phone only: a person runs this from the phone app, an agent cannot. Measure a length from a phone photo with a reference of known size in frame (card, letter, "
                         "a4, or a door leaf), by perspective correction onto the reference's plane. Returns the "
-                        "length with an error that grows as the reference gets small or far. Needs a photo capture.",
-      personas=["wheelchair_user", "furniture_mover"], requires=[{"layer": "phone.photo"}],
+                        "length with an error that grows as the reference gets small or far. Needs a photo capture.", requires=[{"layer": "phone.photo"}],
       blocks=["VerdictHeader", "MetricRow", "CheckList", "EvidenceStrip", "AssumptionChips", "StepLog"],
       examples=["Measure this doorway from my photo"])
 def run(ctx, inputs: Inputs) -> ToolResult:

@@ -66,11 +66,10 @@ def ratio(g: float) -> str:
 @tool(id="slope_check", title="Slope check", icon="triangle-right",
       summary="Uses the phone as a level: a ramp's slope and cross slope against the ADA limits, a threshold's "
               "bevel, or how far a door frame is out of plumb.",
-      model_description="Judge a slope read by a phone's tilt sensor. mode ramp: running slope against ADA 405.2 "
+      model_description="Phone only: a person runs this from the phone app, an agent cannot. Judge a slope read by a phone's tilt sensor. mode ramp: running slope against ADA 405.2 "
                         "(1:12) and cross slope against 405.3 (1:48). mode threshold: a bevel against ADA 303.3 "
                         "(1:2). mode plumb: a door frame's lean. Needs readings from the phone app; it cannot run "
-                        "from a scan alone.",
-      personas=["wheelchair_user", "older_adult_family"], requires=[{"layer": "phone.tilt"}],
+                        "from a scan alone.", requires=[{"layer": "phone.tilt"}],
       blocks=["VerdictHeader", "MetricRow", "CheckList", "AssumptionChips", "StepLog"],
       examples=["Is this ramp too steep for a wheelchair?", "Is the door frame straight?"])
 def run(ctx, inputs: Inputs) -> ToolResult:

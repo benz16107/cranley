@@ -177,7 +177,7 @@ export function Privacy({ back }: { back: () => void }) {
           <li><b>Photos, videos and voice notes</b> you take here. Photos are shrunk on the phone first. Photos and video frames you send for measuring or for the walk-through are read by an AI vision model (Anthropic's Claude).</li>
           <li><b>One location fix</b> when you tap a button that says it uses GPS. The page never tracks you in the background.</li>
           <li><b>Sensor readings</b> you record: tilt, compass heading, and a sound level. The sound level is worked out on the phone; no audio leaves it unless you record a voice note.</li>
-          <li><b>What you type or dictate</b> as a brief or a note. Dictation is done by your browser, which on most phones sends the audio to Apple or Google.</li>
+          <li><b>What you type or dictate</b> as a brief or a note, and the name of your browser with each capture. Dictation is done by your browser, which on most phones sends the audio to Apple or Google.</li>
         </ul>
         <p>Captures are stored on the project's own server with the workspace they belong to, and are deleted with the rest of the event's data when the event ends. There are no accounts and no advertising. Anyone holding the phone link can add captures to that workspace for eight hours; it cannot read or change anything else.</p>
         <p>To remove this phone's link now: <button className="link" onClick={() => { forget(); back() }}>forget this workspace</button>.</p>

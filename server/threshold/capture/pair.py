@@ -41,7 +41,7 @@ def check(token: str, now: float | None = None) -> str:
         body = base64.urlsafe_b64decode(b64 + "=" * (-len(b64) % 4))
         workspace, expires = body.decode().rsplit(".", 1)
         ok = hmac.compare_digest(sig, _sign(body)) and int(expires) > (now or time.time())
-    except (ValueError, UnicodeDecodeError):
+    except (ValueError, TypeError):  # damaged base64, a missing part, or characters no signature has
         ok = False
     if not ok:
         raise LookupError("This phone link has expired. Open a new one from the desktop.")

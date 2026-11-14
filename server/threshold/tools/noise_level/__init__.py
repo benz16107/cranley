@@ -44,10 +44,9 @@ def judge(leq: float, limit: float) -> str:
 @tool(id="noise_level", title="Noise level", icon="audio-lines",
       summary="How loud each room is, from the phone's microphone: an uncalibrated A-weighted level per room, best "
               "read as which rooms are quieter.",
-      model_description="A-weighted sound level (LAeq) per room from a phone microphone, as a per-room lens, against "
+      model_description="Phone only: a person runs this from the phone app, an agent cannot. A-weighted sound level (LAeq) per room from a phone microphone, as a per-room lens, against "
                         "the WHO indoor guideline levels. Uncalibrated: absolute levels are good to about 10 dB, "
-                        "differences between rooms to about 3 dB. Needs readings from the phone app.",
-      personas=["renter_listing", "renter_checking_claims"], requires=[{"layer": "phone.microphone"}],
+                        "differences between rooms to about 3 dB. Needs readings from the phone app.", requires=[{"layer": "phone.microphone"}],
       blocks=["VerdictHeader", "MetricRow", "MiniChart", "CheckList", "FloorPlanMini", "AssumptionChips", "StepLog"],
       overlays=["lens"], examples=["Which bedroom is quietest?", "How loud is the street side?"])
 def run(ctx, inputs: Inputs) -> ToolResult:
@@ -77,9 +76,10 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     by = sorted(latest.items(), key=lambda kv: kv[1].leq_dba)
     quiet, loud = by[0], by[-1]
     gap = loud[1].leq_dba - quiet[1].leq_dba
-    metrics = [Metric(id="quietest", label=f"Quietest: {name(*quiet)}", value=round(quiet[1].leq_dba, 1), unit="dBA", source=SRC),
-               Metric(id="loudest", label=f"Loudest: {name(*loud)}", value=round(loud[1].leq_dba, 1), unit="dBA", source=SRC),
-               Metric(id="gap", label="Difference", value=round(gap, 1), unit="dB", source=SRC), *metrics]
+    if len(by) > 1:  # with one place measured there is nothing to compare: its level is the only number
+        metrics = [Metric(id="quietest", label=f"Quietest: {name(*quiet)}", value=round(quiet[1].leq_dba, 1), unit="dBA", source=SRC),
+                   Metric(id="loudest", label=f"Loudest: {name(*loud)}", value=round(loud[1].leq_dba, 1), unit="dBA", source=SRC),
+                   Metric(id="gap", label="Difference", value=round(gap, 1), unit="dB", source=SRC), *metrics]
     if len(by) > 1 and gap > REL_ERR_DB:
         text = f"The {name(*quiet).lower()} is the quietest and the {name(*loud).lower()} the loudest of {len(by)} places measured."
     elif len(by) > 1:

@@ -199,7 +199,8 @@ def phone_brief(token: str, text: str | None = Body(None, max_length=2000), sid:
     s = paired(token)
     if busy(s.base.id):
         raise HTTPException(409, "The agent is still working on the last thing you asked.")
-    background(s.base.id, turn, s, text, [sid] if sid else None, None, None, None, Budget(**PHONE_TURN))
+    apply.in_scope(s, sid)  # added to the workspace's buildings; handing it to the turn would replace them
+    background(s.base.id, turn, s, text, None, None, None, None, Budget(**PHONE_TURN))
     return {"status": "running"}
 
 

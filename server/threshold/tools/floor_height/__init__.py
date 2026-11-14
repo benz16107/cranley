@@ -102,11 +102,10 @@ def _entry(flood: dict, k: str) -> float:
 @tool(id="floor_height", title="Floor height", icon="move-vertical",
       summary="Narrows the floor's height above the ground, the flood result's widest uncertainty, from steps counted "
               "and fixes taken at your own front door.",
-      model_description="Combine on-site phone inputs (steps counted at the door and a measured riser, GPS fixes at "
+      model_description="Phone only: a person runs this from the phone app, an agent cannot. Combine on-site phone inputs (steps counted at the door and a measured riser, GPS fixes at "
                         "the door and the street with Vexcel ground elevation, a barometer rise) with the flood "
                         "rehearsal's own floor-height methods, and report how much the range of water inside and of "
                         "rooms taking water shrank. Needs inputs from the phone app.",
-      personas=["houston_homeowner_storm", "insurance_underwriter"],
       requires=[{"layer": "phone.gps", "need": "optional"}, {"layer": "matterport.rooms"},
                 {"layer": "vexcel.elevation", "need": "optional"}],
       blocks=["VerdictHeader", "MetricRow", "CheckList", "EvidenceStrip", "AssumptionChips", "StepLog", "ActionBar"],
