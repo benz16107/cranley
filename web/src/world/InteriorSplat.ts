@@ -1,8 +1,10 @@
 // The interior Gaussian splat of a scan, trained offline from its panoramas (the splat workstream), drawn by Spark in
 // the scan's own frame. It is the most lifelike interior where it exists; where it does not, the scene falls back to
 // the scanned mesh. The file is at /api/scan/<sid>/interior-splat (.spz or .ply) and its placing at
-// /api/scan/<sid>/interior-splat.json: { to_scanplan: a 4 x 4, row by row, splat space to scan frame } (the splat
-// workstream's files are already in the scan frame, so it is the identity today).
+// /api/scan/<sid>/interior-splat.json: { transform: 16 numbers, row by row, splat space to scan frame } (the splat
+// workstream's files are already in the scan frame, so it is the identity today; `to_scanplan` is its older name).
+// Whether a scan has one is asked of /api/world/<sid>/interior first, which always answers: most scans have none,
+// and asking for a file that is not there would print an error in the console on every building.
 import * as THREE from 'three'
 import { SplatMesh } from '@sparkjsdev/spark'
 import { SplatCut, sparkFor } from '../scene/engine/splat.ts'
@@ -18,18 +20,19 @@ export class InteriorSplat {
   private show_ = { cur: 0, goal: 0 }
   private gone = false
 
-  private renderer: THREE.WebGLRenderer; private scene: THREE.Scene; private url: string
+  private renderer: THREE.WebGLRenderer; private scene: THREE.Scene; private url: string; private ask: string
   constructor(renderer: THREE.WebGLRenderer, scene: THREE.Scene, api: string, sid: string) {
-    this.renderer = renderer; this.scene = scene; this.url = `${api}/api/scan/${sid}/interior-splat`
+    this.renderer = renderer; this.scene = scene; this.url = `${api}/api/scan/${sid}/interior-splat`; this.ask = `${api}/api/world/${sid}/interior`
     this.group.visible = false
     void this.probe()
   }
 
-  /** Ask once whether there is one, by reading its placing. */
+  /** Ask once whether there is one, and if so read its placing. */
   private async probe() {
-    const meta = await fetch(`${this.url}.json`).then((r) => (r.ok ? r.json() : null), () => null) as { to_scanplan?: number[] | number[][] } | null
+    const has = await fetch(this.ask).then((r) => (r.ok ? r.json() : null), () => null) as { splat?: boolean } | null
+    const meta = has?.splat ? await fetch(`${this.url}.json`).then((r) => (r.ok ? r.json() : null), () => null) as { transform?: number[] | number[][]; to_scanplan?: number[] | number[][] } | null : null
     if (this.gone) return
-    const t = meta?.to_scanplan?.flat()
+    const t = (meta?.transform ?? meta?.to_scanplan)?.flat()
     if (t?.length === 16) this.place.set(...(t as Parameters<THREE.Matrix4['set']>))
     this.status = meta ? 'there' : 'none'
     if (meta && this.show_.goal) void this.load()

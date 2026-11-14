@@ -7,7 +7,6 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from ..aerial.vexcel import VexcelError
 from ..sources import matterport as mp
-from ..sources.upstream import cache_path
 from ..world import mesh, site, splatfit, terrain, tiles3d
 
 router = APIRouter(prefix="/api/world")
@@ -59,10 +58,21 @@ def scan_terrain(sid: str, size_m: float = 360, n: int = 256) -> dict:
     return out
 
 
+def _file(request: Request, path, media: str) -> Response:
+    """A cached file the browser must check on before reusing: the mesh and its atlas only fit each other, so a
+    stale copy of one beside a fresh copy of the other draws nonsense. Unchanged files cost a 304."""
+    st = path.stat()
+    heads = {"ETag": f'"{st.st_mtime_ns:x}-{st.st_size:x}"', "Cache-Control": "no-cache"}
+    if request.headers.get("if-none-match") == heads["ETag"]:
+        return Response(status_code=304, headers=heads)
+    return Response(path.read_bytes(), media_type=media, headers=heads)
+
+
 @router.get("/{sid}/mesh")
-def scan_mesh(sid: str) -> Response:
-    """Matterport's scanned mesh as one binary block (see world/mesh.py `pack`)."""
-    return Response(_call(mesh.geometry, sid), media_type="application/octet-stream", headers=DAY)
+def scan_mesh(sid: str, request: Request) -> Response:
+    """The scanned mesh as one binary block (see world/mesh.py `pack`)."""
+    _call(mesh.geometry, sid)
+    return _file(request, mesh.path(sid, "mesh.bin"), "application/octet-stream")
 
 
 @router.get("/{sid}/mesh/status")
@@ -72,10 +82,19 @@ def scan_mesh_status(sid: str, start: bool = True) -> dict:
 
 
 @router.get("/{sid}/mesh/atlas.jpg")
-def scan_mesh_atlas(sid: str) -> Response:
+def scan_mesh_atlas(sid: str, request: Request) -> Response:
     if _call(mesh.status, sid, False)["state"] != "ready":
         raise HTTPException(404, "the atlas is not baked yet")
-    return Response(cache_path("mesh", sid, "atlas.jpg").read_bytes(), media_type="image/jpeg", headers=DAY)
+    return _file(request, mesh.path(sid, "atlas.jpg"), "image/jpeg")
+
+
+@router.get("/{sid}/interior")
+def scan_interior(sid: str, request: Request) -> dict:
+    """{splat: bool}: whether this scan has an interior splat that this server can serve. Always a 200, so a page
+    can ask about every scan without a 404 in its console. The splat and its placing are the splat workstream's
+    routes; where they are not mounted the answer is no, whatever is on disk."""
+    served = any("interior-splat" in getattr(r, "path", "") for r in request.app.routes)
+    return {"splat": served and _call(site.has_interior_splat, sid)}
 
 
 @router.get("/{sid}/splat-fit")

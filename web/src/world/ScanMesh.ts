@@ -30,7 +30,12 @@ const FRAG = /* glsl */ `
     vec3 n = normalize(vN);
     float lit = 0.74 + 0.26 * dot(n, normalize(vec3(-0.45, -0.62, 0.64)));
     vec3 clay = uPaper * lit;
-    vec3 col = mix(texture2D(map, vUv).rgb, clay, max(uClay, 1.0 - uHasMap));
+    // four samples spread over the pixel: the atlas has no smaller copies of itself (see below), and this keeps a
+    // carpet from sparkling when the building is small on screen
+    vec2 dx = dFdx(vUv), dy = dFdy(vUv);
+    vec3 photo = 0.25 * (texture2D(map, vUv + 0.125 * dx + 0.375 * dy).rgb + texture2D(map, vUv - 0.125 * dx - 0.375 * dy).rgb
+      + texture2D(map, vUv + 0.375 * dx - 0.125 * dy).rgb + texture2D(map, vUv - 0.375 * dx + 0.125 * dy).rgb);
+    vec3 col = mix(photo, clay, max(uClay, 1.0 - uHasMap));
     if (uWater > -900.0) {                                   // flood: the same tint and water line as the drawn walls
       float d = uWater - vW.z;
       col = mix(col, uWaterCol, step(0.0, d) * 0.5);
@@ -43,8 +48,9 @@ const FRAG = /* glsl */ `
 export class ScanMesh {
   group = new THREE.Group()
   status: 'idle' | 'loading' | 'ready' | 'missing' = 'idle'
-  /** The colour atlas: 'baking' with a progress, 'ready', or 'none' when it could not be made. */
-  colour: 'none' | 'baking' | 'ready' = 'none'
+  /** The colour atlas on the server: 'unknown' until it has been asked, 'baking' with a progress, 'ready', or
+      'none' when there is none to be had (no mesh, or the bake failed). */
+  colour: 'unknown' | 'none' | 'baking' | 'ready' = 'unknown'
   progress = 0
   triangles = 0
   onChange: () => void = () => {}
@@ -53,6 +59,9 @@ export class ScanMesh {
   private mesh: THREE.Mesh | null = null
   private timer = 0
   private gone = false
+  private asked = false
+  private atlas: string | null = null // where the baked atlas is, once the server says it is ready
+  private painted = false
 
   private api: string; private sid: string
   /** `floors`: the dollhouse's own uniforms for the cut height, which floors show and where each floor stands, and
@@ -70,6 +79,9 @@ export class ScanMesh {
   }
 
   show(on: boolean) { this.show_.goal = on ? 1 : 0; if (on && this.status === 'idle') void this.load() }
+  /** Ask the server to colour this scan now, in the background, whether or not the mesh is on show. Only the
+      question is sent: the mesh and its atlas are fetched when the mesh is first shown. */
+  prepare() { if (!this.asked) { this.asked = true; void this.poll() } }
   setWater(z: number) { this.uniforms.uWater.value = z }
   /** 1 draws the bare form with no photo colour. */
   setClay(k: number) { this.uniforms.uClay.value = k }
@@ -77,8 +89,8 @@ export class ScanMesh {
   private async load() {
     this.status = 'loading'; this.onChange()
     try {
-      // v is the file layout's number: the answer is cached for a day, so a new layout needs a new address
-      const buf = await fetch(`${this.api}/api/world/${this.sid}/mesh?v=5`).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`mesh ${r.status}`))))
+      // v is the file layout's number. The server makes the browser check on its copy before reusing it.
+      const buf = await fetch(`${this.api}/api/world/${this.sid}/mesh?v=7`).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`mesh ${r.status}`))))
       if (this.gone) return
       const head = new DataView(buf)
       if (new TextDecoder().decode(buf.slice(0, 4)) !== 'THM2') throw new Error('not a mesh')
@@ -91,7 +103,7 @@ export class ScanMesh {
       this.mesh.frustumCulled = false
       this.group.add(this.mesh)
       this.triangles = n / 3; this.status = 'ready'
-      void this.poll()
+      this.prepare(); this.paint()
     } catch (e) {
       console.warn('[scene] scanned mesh unavailable:', (e as Error).message)
       this.status = 'missing'
@@ -99,23 +111,31 @@ export class ScanMesh {
     this.onChange()
   }
 
-  /** Ask for the colour atlas until it is baked. The first request for a scan starts the bake. */
+  /** Ask about the colour atlas until it is baked. The first request for a scan starts the bake. */
   private async poll() {
     if (this.gone) return
-    const st = await fetch(`${this.api}/api/world/${this.sid}/mesh/status`).then((r) => r.json()).catch(() => ({ state: 'failed' }))
+    const st = await fetch(`${this.api}/api/world/${this.sid}/mesh/status`).then((r) => (r.ok ? r.json() : { state: 'none' })).catch(() => ({ state: 'none' }))
     if (this.gone) return
     if (st.state === 'ready') {
-      // the atlas only fits the mesh it was baked for, and both are cached for a day: name the bake in the address
-      new THREE.TextureLoader().load(`${this.api}/api/world/${this.sid}/mesh/atlas.jpg?v=${st.version}-${st.triangles}`, (t) => {
-        // every triangle has its own cell in the atlas, so smaller mip levels would mix neighbours that are not neighbours
-        t.colorSpace = THREE.NoColorSpace; t.generateMipmaps = false; t.minFilter = t.magFilter = THREE.LinearFilter
-        if (this.gone) { t.dispose(); return }
-        this.uniforms.map.value = t; this.uniforms.uHasMap.value = 1; this.colour = 'ready'; this.onChange()
-      })
+      this.atlas = `${this.api}/api/world/${this.sid}/mesh/atlas.jpg?v=${st.version}-${st.triangles}-${st.atlas_px}`
+      this.colour = 'ready'; this.progress = 1; this.paint()
     } else if (st.state === 'baking') {
-      this.colour = 'baking'; this.progress = st.progress ?? 0; this.onChange()
+      this.colour = 'baking'; this.progress = st.progress ?? 0
       this.timer = window.setTimeout(() => void this.poll(), 2500)
-    } else { this.colour = 'none'; this.onChange() }
+    } else this.colour = 'none'
+    this.onChange()
+  }
+
+  /** Put the atlas on the mesh, once there is both. */
+  private paint() {
+    if (!this.mesh || !this.atlas || this.painted) return
+    this.painted = true
+    new THREE.TextureLoader().load(this.atlas, (t) => {
+      // every triangle has its own cell in the atlas, so smaller mip levels would mix neighbours that are not neighbours
+      t.colorSpace = THREE.NoColorSpace; t.generateMipmaps = false; t.minFilter = t.magFilter = THREE.LinearFilter
+      if (this.gone) { t.dispose(); return }
+      this.uniforms.map.value = t; this.uniforms.uHasMap.value = 1; this.onChange()
+    })
   }
 
   update(dt: number): boolean {

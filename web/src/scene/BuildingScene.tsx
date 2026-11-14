@@ -23,6 +23,10 @@ export interface BuildingSceneProps {
   /** Where /api lives. Empty means same origin. */
   api?: string
   className?: string
+  /** true asks the server, as soon as the scene mounts, to colour the scanned mesh in the background; `onState`
+      then reports `scan.colour` ('unknown', then 'baking' with `scan.progress`, 'ready' or 'none'). Without it the
+      question is only asked when the photoreal surface is first shown. */
+  prepare?: boolean
   /** false leaves out the scene's own view switcher (surface, surroundings, x-ray, fly in), for a look
       that mounts <ViewSwitcher> in its own toolbar. */
   switcher?: boolean
@@ -32,7 +36,7 @@ const NO_OVERLAYS: Overlay[] = []
 const DEFAULT_VIEW: View = { mode: 'dollhouse' }
 const niceLength = (m: number) => [0.5, 1, 2, 5, 10, 20, 50].find((v) => v >= m) ?? 100
 
-export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = DEFAULT_VIEW, onPick, onViewChange, onCamera, onState, api = '', className, switcher = true }: BuildingSceneProps) {
+export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = DEFAULT_VIEW, onPick, onViewChange, onCamera, onState, api = '', className, switcher = true, prepare = false }: BuildingSceneProps) {
   const host = useRef<HTMLDivElement>(null), engine = useRef<Engine | null>(null)
   const planLayer = useRef<HTMLDivElement>(null), planHandle = useRef<FloorPlanHandle>(null), insetHandle = useRef<FloorPlanHandle>(null)
   const scaleBar = useRef<HTMLDivElement>(null), scaleText = useRef<HTMLSpanElement>(null)
@@ -57,11 +61,11 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
       }
       insetHandle.current?.cone(f.look)
     }
-    const e = new Engine(host.current!, plan, { api, onPick: (p) => cb.current.onPick?.(p), onViewChange: change, onState: (st) => { setState(st); cb.current.onState?.(st) }, onFrame, onCamera: (c) => cb.current.onCamera?.(c) })
+    const e = new Engine(host.current!, plan, { api, onPick: (p) => cb.current.onPick?.(p), onViewChange: change, onState: (st) => { setState(st); cb.current.onState?.(st) }, onFrame, onCamera: (c) => cb.current.onCamera?.(c), prepare })
     engine.current = e; setModel(e.model)
     useSceneLink.setState({ hover: null, selected: null })
     return () => { e.dispose(); engine.current = null }
-  }, [plan, api, change])
+  }, [plan, api, change, prepare])
   useEffect(() => { engine.current?.setOverlays(overlays) }, [overlays, model])
   useEffect(() => { engine.current?.setView(view) }, [view, model])
 
@@ -98,6 +102,7 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
         const w = state.world, s = state.scan, lines: string[] = []
         if (view.env === 'aerial') lines.push(w.status === 'loading' ? 'Loading the surroundings' : w.status === 'missing' ? `No surroundings for this scan. ${w.note}` : w.kind ? `${state.site ? 'Drone capture round the house, ' : ''}Vexcel ${w.kind}${state.site ? ' beyond' : ''}${w.capture ? `, flown ${w.capture.slice(0, 7).replace('/', '-')}` : ''}. ${w.note}` : '')
         if ((view.surface ?? 'model') !== 'model' && mode === 'dollhouse' && state.interior.status !== 'ready' && state.interior.status !== 'loading') lines.push(s.status === 'loading' ? 'Loading the scanned mesh' : s.status === 'missing' ? 'This scan has no scanned mesh; showing the measured model.' : s.colour === 'baking' ? `Colouring the scanned mesh from its panoramas: ${Math.round(s.progress * 100)}%` : s.colour === 'none' && s.status === 'ready' ? 'The scanned mesh could not be coloured; showing its form.' : '')
+        if (mode === 'splat' && view.env === 'aerial' && state.splat.splats) lines.unshift(`Drone capture: a sample, ${(state.splat.splats / 1e6).toFixed(2)}M of its ${(state.splat.total / 1e6).toFixed(1)}M Gaussians.`)
         const text = lines.filter(Boolean)
         return <>{text.length > 0 && <p className="th-note th-note-layers">{text.map((t) => <span key={t}>{t}</span>)}</p>}{w.credit && view.env === 'aerial' && w.status === 'ready' && <span className="th-credit">© Vexcel Imaging, Microsoft</span>}</>
       })()}
@@ -147,7 +152,7 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
         </div>
       )}
 
-      {mode === 'splat' && state && (
+      {mode === 'splat' && state && view.env !== 'aerial' && (
         <p className="th-note">
           {state.splat.status === 'missing' ? 'No drone capture for this scan.'
             : state.splat.splats ? <>Drone capture: <span className="th-num">{(state.splat.splats / 1e6).toFixed(2)}M</span> of <span className="th-num">{(state.splat.total / 1e6).toFixed(1)}M</span> Gaussians loaded, a sample</>

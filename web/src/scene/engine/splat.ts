@@ -1,5 +1,5 @@
 // The drone Gaussian splat, drawn by Spark in the same three.js scene. The file is 70 to 660 MB and its Gaussians are in
-// no spatial order, so a prefix is a fair sample of the whole: we read one stream and show 4 MB, then 24 MB, then 96 MB.
+// no spatial order, so a prefix is a fair sample of the whole: we read one stream and show 4 MB, then 24 MB, then 72 MB.
 import * as THREE from 'three'
 import { SparkRenderer, SplatEdit, SplatEditSdf, SplatEditSdfType, SplatMesh } from '@sparkjsdev/spark'
 import { splatUrlDev } from '../dev/splatSource.ts'
@@ -11,12 +11,15 @@ export async function splatUrl(api: string, sid: string): Promise<string> {
   return ok ? route : splatUrlDev(sid)
 }
 
-const STAGES_MB = [4, 24, 96]
+// 72 MB is about 1.1 million Gaussians. 96 MB (1.48 million) dropped a small house seen close, inside its
+// surroundings, to 45 frames a second on a Radeon 780M; the picture is filled by them and the fill is the cost.
+const STAGES_MB = [4, 24, 72]
 
 interface Prefix { bytes: Uint8Array; count: number; total: number; centre: THREE.Vector3; radius: number }
 
-/** Turn the first `len` bytes of an INRIA splat PLY into a valid, smaller PLY. Exported for the self-check below. */
-export function plyPrefix(buf: Uint8Array, len: number): Prefix | null {
+/** Turn the first `len` bytes of an INRIA splat PLY into a valid, smaller PLY. Exported for the self-check below.
+    `stray` names points where the capture can hold nothing real (inside the rooms); Gaussians there are dropped. */
+export function plyPrefix(buf: Uint8Array, len: number, stray?: (x: number, y: number, z: number) => boolean): Prefix | null {
   const head = new TextDecoder().decode(buf.subarray(0, Math.min(len, 4096)))
   const end = head.indexOf('end_header\n')
   if (end < 0) return null
@@ -36,7 +39,7 @@ export function plyPrefix(buf: Uint8Array, len: number): Prefix | null {
   for (let i = 0; i < count; i++) {
     const o = i * rec, x = f.getFloat32(o + ix, true), y = f.getFloat32(o + iy, true), z = f.getFloat32(o + iz, true)
     if (grow > 0.01) for (const s of scales) if (s >= 0) f.setFloat32(o + s, f.getFloat32(o + s, true) + grow, true)
-    if (Math.hypot(x, y) > 70 && iop >= 0) f.setFloat32(o + iop, -12, true) // far background: the drone's horizon haze
+    if ((Math.hypot(x, y) > 70 || stray?.(x, y, z)) && iop >= 0) f.setFloat32(o + iop, -12, true) // far background (the drone's horizon haze), or a stray inside the house
     else if (i % 8 === 0 && Math.hypot(x, y) < 9) zs.push(z)
   }
   // The capture is centred on the property: orbit the origin, at the typical height of what stands there.
@@ -47,7 +50,9 @@ export function plyPrefix(buf: Uint8Array, len: number): Prefix | null {
 /** Spark draws every splat in the scene through one renderer object. Whoever shows a splat first makes it. */
 export function sparkFor(renderer: THREE.WebGLRenderer, scene: THREE.Scene, onDirty: () => void): SparkRenderer {
   const held = scene.userData as { spark?: SparkRenderer }
-  if (!held.spark) { held.spark = new SparkRenderer({ renderer, onDirty }); scene.add(held.spark) }
+  // Each Gaussian is drawn out to sqrt(6) standard deviations (Spark's default is sqrt(8)) and no wider than 256 px:
+  // a quarter less of the screen to fill per Gaussian, which is what a close view of a capture is short of.
+  if (!held.spark) { held.spark = new SparkRenderer({ renderer, onDirty, maxStdDev: Math.sqrt(6), maxPixelRadius: 256 }); scene.add(held.spark) }
   return held.spark
 }
 
@@ -91,8 +96,10 @@ export class SplatView {
   private abort: AbortController | null = null
 
   private renderer: THREE.WebGLRenderer; private scene: THREE.Scene; private api: string; private sid: string
-  constructor(renderer: THREE.WebGLRenderer, scene: THREE.Scene, api: string, sid: string) {
-    this.renderer = renderer; this.scene = scene; this.api = api; this.sid = sid; this.group.visible = false
+  private stray?: (x: number, y: number, z: number) => boolean
+  /** `stray`: where the capture can hold nothing real. The capture shares the scan's frame, so this is the plan's rooms. */
+  constructor(renderer: THREE.WebGLRenderer, scene: THREE.Scene, api: string, sid: string, stray?: (x: number, y: number, z: number) => boolean) {
+    this.renderer = renderer; this.scene = scene; this.api = api; this.sid = sid; this.stray = stray; this.group.visible = false
   }
 
   /** Start streaming. Safe to call again; it only loads once. */
@@ -127,7 +134,7 @@ export class SplatView {
   }
 
   private async swap(buf: Uint8Array, len: number) {
-    const p = plyPrefix(buf, len)
+    const p = plyPrefix(buf, len, this.stray)
     if (!p) return
     const mesh = new SplatMesh({ fileBytes: p.bytes, fileName: 'splat.ply' } as ConstructorParameters<typeof SplatMesh>[0])
     await mesh.initialized

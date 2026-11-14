@@ -3,11 +3,21 @@ from __future__ import annotations
 
 import httpx
 
+from ..config import DATA
 from ..sources import footprint, matterport as mp
+from ..sources.upstream import check
 from . import frame, tiles3d
 
 ORTHO = ((360, 2048), (90, 1536))  # (metres across, pixels): the neighbourhood, then the lot at close to native detail
 FLOOR_ABOVE_GROUND_M = 0.2        # assumed: a slab-on-grade house floor sits about this far above the soil
+
+
+def has_interior_splat(sid: str) -> bool:
+    """Whether the splat workstream has written an interior splat for this scan (its files are
+    `$THRESHOLD_DATA_DIR/splat/<sid>/interior.json` beside `interior.spz` or `interior.ply`)."""
+    check(sid, "sid")
+    d = DATA / "splat" / sid
+    return (d / "interior.json").exists() and ((d / "interior.spz").exists() or (d / "interior.ply").exists())
 
 
 def describe(sid: str) -> dict:

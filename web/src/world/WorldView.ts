@@ -133,9 +133,11 @@ export class WorldView {
     this.onChange()
   }
 
-  /** The footprint and the scan's rooms, drawn into a small mask the shaders cut by. */
+  /** The scan's rooms, and the building's footprint when the scan was fitted to it, drawn into a small mask the
+      shaders cut by. A scan that was not fitted is often one unit of a larger block, whose footprint is the whole
+      block: cutting that away would leave the unit alone in a hole the size of the block. */
   private mask(site: Site, scanFromEnu: THREE.Matrix4) {
-    const foot = (site.footprint_enu ?? []).map(([e, n]) => { const v = new THREE.Vector3(e, n, 0).applyMatrix4(scanFromEnu); return [v.x, v.y] as Vec2 })
+    const foot = (site.georef.verified ? site.footprint_enu ?? [] : []).map(([e, n]) => { const v = new THREE.Vector3(e, n, 0).applyMatrix4(scanFromEnu); return [v.x, v.y] as Vec2 })
     const rings = [...this.outline, ...(foot.length > 2 ? [foot] : [])].filter((r) => r.length > 2)
     const xs = rings.flat().map((p) => p[0]), ys = rings.flat().map((p) => p[1])
     if (!xs.length) return
