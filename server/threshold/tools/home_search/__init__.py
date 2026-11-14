@@ -24,7 +24,12 @@ from ..types import Action, GeoAnchor, Pin, PinsOverlay, ScansScope
 KIT = Source(layer="costar", method="lookup", confidence="medium", note="CoStar kit: community pet policy, listing features")
 NEAR = Source(layer="model", method="geometry", confidence="low",
               note=f"{nearby.NOTE}; straight line times {nearby.DETOUR}, at {nearby.WALK_M_MIN:g} m a minute")
+YARD = Source(layer="vexcel", method="geometry", confidence="medium",
+              note="Yard behind the house measured by a pet_fit run, else parcel less footprint from cached Vexcel answers")
 NearCat = Literal[nearby.CITY_CATEGORIES]
+NEAR_SETS = {"playground and park": ["playground", "park"], "dog park": ["dog_park"], "park": ["park"],
+             "elementary school": ["school_elementary"], "playground and elementary school": ["playground", "school_elementary"],
+             "soccer field": ["soccer"], "tennis court": ["tennis"], "pickleball court": ["pickleball"]}
 
 
 class Inputs(BaseModel):
@@ -38,6 +43,7 @@ class Inputs(BaseModel):
     min_yard_m2: float | None = field(None, gt=0, description="Houses: yard at least this big (behind the house when pet_fit measured it)")
     min_flat_pct: float | None = field(None, ge=0, le=100, description="Houses: at least this share of the back yard flat (pet_fit runs only)")
     near: list[NearCat] = field([], description="Each of these within `walk_min` (straight-line estimate)")
+    near_set: Literal[tuple(NEAR_SETS)] | None = field(None, description="A common set of places to be near, added to `near`")
     walk_min: float = field(10, gt=0, le=60, unit="min", description="Walk for `near`")
     limit: int = field(20, ge=1, le=100)
 
@@ -128,6 +134,8 @@ def house_yard(row: dict, measured: dict) -> dict:
       examples=["Houston houses with a flat yard over 100 m2 and no pool", "LA apartments that allow dogs over 50 lb",
                 "Houston homes within a 10-minute walk of a playground and a park"])
 def run(ctx, inputs: Inputs) -> ToolResult:
+    if inputs.near_set:
+        inputs = inputs.model_copy(update={"near": list(dict.fromkeys(inputs.near + NEAR_SETS[inputs.near_set]))})
     apt = inputs.kind == "apartment_unit"
     asks_apt = inputs.dog_lb is not None or inputs.cats or inputs.max_pet_rent is not None
     asks_house = inputs.fenced or inputs.no_pool or inputs.min_yard_m2 is not None or inputs.min_flat_pct is not None
@@ -224,7 +232,13 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         unit = "communities"
         comms = len({r["property_id"] for r in rows if r["has_policy"] and not r["no_pets"]})
         no_limit = sum(1 for h in hits if inputs.dog_lb is not None and h[0]["dog_lb"] is None)
-    else:
+    else:  # one row per address: a house scanned twice is one house
+        seen, uniq = set(), []
+        for h in hits:
+            if (h[0]["name"] or h[0]["sid"]) not in seen:
+                seen.add(h[0]["name"] or h[0]["sid"])
+                uniq.append(h)
+        hits = uniq
         n_match, unit = len(hits), "houses"
     top = hits[:inputs.limit]
     checks, findings, cells, ps = [], [], [], []
@@ -238,7 +252,8 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         ps.append(Pin(id=f"m{i}", anchor=GeoAnchor(geo=(r["lon"], r["lat"])), label=r["name"] or r["sid"], status="pass"))
         for col in ("yard_m2", "dog_lb", "walk"):
             if col in vals:
-                cells.append(Metric(id=f"m{i}/{col}", label=r["name"] or r["sid"], value=vals[col], unit="", source=KIT))
+                cells.append(Metric(id=f"m{i}/{col}", label=r["name"] or r["sid"], value=vals[col], unit="",
+                                    source=NEAR if col == "walk" else YARD if col == "yard_m2" else KIT))
     asked = [k for k, v in (("policy", asks_apt), ("fence", inputs.fenced), ("pool", inputs.no_pool),
                             ("yard", inputs.min_yard_m2 is not None), ("flat", inputs.min_flat_pct is not None),
                             ("near", bool(inputs.near)))

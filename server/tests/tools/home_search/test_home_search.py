@@ -60,3 +60,9 @@ def test_mixed_criteria_are_refused(fake):
     assert r.verdict.status == "unknown" and "apartment criteria" in r.verdict.text
     with pytest.raises(ToolError):
         run_tool("home_search", {"city": "Paris"})
+
+
+def test_a_near_set_is_the_same_as_its_categories(fake):
+    a = run_tool("home_search", {"city": "Houston", "near_set": "playground and park"})
+    b = run_tool("home_search", {"city": "Houston", "near": ["playground", "park"]})
+    assert a.verdict.text == b.verdict.text
