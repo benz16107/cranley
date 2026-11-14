@@ -485,6 +485,10 @@ export interface WsFinding {
   run?: string | null;
   tool?: string | null;
   feedback?: Feedback | null;
+  /**
+   * A later run of the same tool on the same scan that no longer reports this finding; hide it
+   */
+  superseded_by?: string | null;
 }
 /**
  * This interface was referenced by `WorkspaceContract`'s JSON-Schema

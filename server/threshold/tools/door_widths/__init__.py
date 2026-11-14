@@ -28,8 +28,8 @@ WIDTH = Source(layer="matterport", method="geometry", confidence="medium",
 
 class Inputs(BaseModel):
     scan: str = field(source="selection.scan", description="Scan id")
-    min_width_m: float = field(ask="What door width do you need to get through, in metres? "
-                                   "(US accessibility rules ask for 0.813 m, which is 32 in.)",
+    min_width_m: float = field(ask="How wide a door do you need, in metres? For furniture, use its narrowest side; "
+                                   "a wheelchair needs 0.813 m (32 in).",
                                pref="access.door_width_m", unit="m", gt=0.3, le=3.0)
     warn_margin_m: float = field(0.05, pref="access.door_warn_margin_m", unit="m", ge=0, le=0.5,
                                  description="Doorways this close above the threshold are a warning")

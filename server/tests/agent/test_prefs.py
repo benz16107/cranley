@@ -58,3 +58,13 @@ def test_a_new_session_starts_with_what_the_profile_learned(tmp_path):
     a.submit({"op": "pref.set", "key": "access.door_width_m", "value": 0.9, "reason": "You set it"}, by="user")
     b = Session.create(root=tmp_path)
     assert b.doc.prefs["access.door_width_m"].value == 0.9 and b.base.id != a.base.id
+
+
+def test_rerun_retires_findings_it_no_longer_reports(session):
+    setup(session)
+    inv = Investigation(session)
+    inv.run("door_widths", {"scan": "t1"})
+    assert len(session.doc.findings) == 2
+    session.submit({"op": "pref.set", "key": "access.door_width_m", "value": 0.6}, by="user")
+    second = inv.run("door_widths", {"scan": "t1"})["run"]
+    assert {f.superseded_by for f in session.doc.findings} == {second}

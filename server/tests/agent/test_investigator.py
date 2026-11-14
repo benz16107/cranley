@@ -90,3 +90,10 @@ def test_turn_stops_at_questions(session):
     assert out["status"] == "questions"
     session.submit({"op": "question.answer", "id": out["questions"][0], "value": 0.9}, by="user")
     assert session.doc.brief.facts["access.door_width_m"] == 0.9
+
+
+def test_short_keeps_whole_sentences():
+    from threshold.agent.investigator import short
+    text = "First sentence here. " * 20
+    assert len(short(text)) <= 280 and short(text).endswith(".")
+    assert short("x" * 300).endswith("…") and len(short("x" * 300)) == 280

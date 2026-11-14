@@ -54,6 +54,14 @@ from .workspace import (
 RANK = {"fail": 0, "warn": 1, "unknown": 2, "pass": 3}
 
 
+def short(text: str, n: int = 280) -> str:
+    """Fit a Note: whole sentences up to n characters, else a hard cut."""
+    if len(text) <= n:
+        return text
+    cut = text[:n].rfind(". ")
+    return text[:cut + 1] if cut > 0 else text[:n - 1] + "…"
+
+
 def attach(session: Session, plans: Callable[[str], dict] = default_plan) -> Session:
     """Give a session what the validator needs: a plan loader and the tool ids that exist."""
     session.plans = plans
@@ -133,6 +141,12 @@ class Investigation:
         shown = [f for f in result.findings if f.id not in hidden]
         for f in shown:
             self.emit(FindingAdd(finding=WsFinding(**f.model_dump(), run=rec.id, tool=tool_id), run=rec.id))
+        sid_of = {r.id: r.sid for r in self.s.doc.runs}
+        kept = {f.id for f in shown}
+        for old in self.s.doc.findings:  # a re-run retires what it no longer reports
+            if (old.tool == tool_id and old.run != rec.id and sid_of.get(old.run) == rec.sid and old.id not in kept
+                    and not old.superseded_by):
+                self.emit(FindingAdd(finding=old.model_copy(update={"superseded_by": rec.id}), run=rec.id))
         ids = [f"{tool_id}:{rec.sid}:{i}" for i in range(len(result.overlays))]
         for oid, o in zip(ids, result.overlays):
             self.emit(OverlayUpsert(overlay=WsOverlay(id=oid, sid=rec.sid, overlay=o, tool=tool_id, run=rec.id),
@@ -180,7 +194,7 @@ class Investigation:
 
     def note(self, text: str) -> str:
         self.notes = (self.notes + [text])[-5:]
-        ok = self.emit(PanelUpsert(panel=Panel(id="agent:notes", title="Notes", blocks=[Note(text=t[:280])
+        ok = self.emit(PanelUpsert(panel=Panel(id="agent:notes", title="Notes", blocks=[Note(text=short(t))
                                                                                           for t in self.notes])))
         if not ok:
             self.notes.pop()
@@ -278,7 +292,7 @@ class Investigation:
                             last = msg.text
         self.compare()
         if last and not self.emit(PanelUpsert(panel=Panel(id="agent:summary", title="Where to look first",
-                                                          blocks=[Note(text=last[:280])]))):
+                                                          blocks=[Note(text=short(last))]))):
             last = ""
         if self.files:
             (self.s.root / f"{self.s.base.id}.casefile.json").write_text(json.dumps(self.files, default=str))

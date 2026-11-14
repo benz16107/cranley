@@ -3441,6 +3441,18 @@
             }
           ],
           "default": null
+        },
+        "superseded_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A later run of the same tool on the same scan that no longer reports this finding; hide it"
         }
       },
       "required": [

@@ -200,6 +200,8 @@ class WsFinding(Finding):
     run: str | None = None
     tool: str | None = None
     feedback: Feedback | None = None
+    superseded_by: str | None = Field(None, description="A later run of the same tool on the same scan that no "
+                                                        "longer reports this finding; hide it")
 
 
 class Layer(Strict):
@@ -629,6 +631,8 @@ class Session:
         tmp.write_text(json.dumps({"id": self.base.id, "profile": self.base.profile, "created": self.base.created,
                                    "log": [e.model_dump(mode="json", by_alias=True) for e in self.log]}))
         tmp.replace(self.path)
+        # shortcut: the profile is this workspace's prefs, last write wins; two live workspaces on one profile
+        # overwrite each other. Merge by key with timestamps when there are real users.
         prof = self.root / "profiles" / f"{self.base.profile}.json"
         prof.parent.mkdir(exist_ok=True)
         prof.write_text(json.dumps({k: v.model_dump(mode="json") for k, v in self.doc.prefs.items()}))
