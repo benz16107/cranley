@@ -43,7 +43,11 @@ def search(q: str | None = None, profile: str | None = None, workspace: str | No
 
 @router.get("/similar")
 def similar(text: str, persona: str | None = None, k: int = Query(3, ge=1, le=10)) -> list[dict]:
-    return mongo_store().recall(text, persona=persona, k=k)
+    from ..store.mongo import EmbedLimit
+    try:
+        return mongo_store().recall(text, persona=persona, k=k)
+    except EmbedLimit as e:
+        raise HTTPException(503, str(e), headers={"Retry-After": "60"}) from None
 
 
 @router.get("/shortlist")

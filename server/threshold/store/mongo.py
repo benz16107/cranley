@@ -47,6 +47,11 @@ HISTORY_INDEX = {"mappings": {"dynamic": False, "fields": {
     **{f: {"type": "token"} for f in [*FACETS, "profile", "workspace", "persona", "sid"]},
     "at": {"type": "number"}}}}
 FILTERS = [{"type": "filter", "path": p} for p in ("persona", "profile", "workspace")]
+RECALL_TTL = 60  # the free tier allowed about three query embeddings a minute (measured 2026-11-14)
+
+
+class EmbedLimit(RuntimeError):
+    """Atlas automated embedding refused the query for now."""
 
 
 def _now() -> dt.datetime:
@@ -65,6 +70,7 @@ class MongoStore:
         self._seen: dict[tuple[str, str], dict[str, str]] = {}  # (collection, workspace) -> {_id: content hash}
         self._lock = threading.Lock()
         self.vector_mode = "local"
+        self._recalled: dict[tuple, tuple[float, list[dict]]] = {}  # shortcut: per process and unbounded; fine for one event
         self.setup()
 
     # ---- setup ----
@@ -276,7 +282,23 @@ class MongoStore:
 
     def recall(self, text: str, persona: str | None = None, exclude: str | None = None, k: int = 3,
                min_score: float = 0.0) -> list[dict]:
-        """Past needs most like `text` (Atlas Vector Search), optionally only one persona's, best first."""
+        """Past needs most like `text` (Atlas Vector Search), optionally only one persona's, best first. Answers are
+        kept for RECALL_TTL seconds: with automated embedding each query is one Voyage call, and the free tier
+        refuses a burst of them ("Embedding provider rate limit exceeded", raised as EmbedLimit)."""
+        key = (text, persona, exclude, k, min_score)
+        hit = self._recalled.get(key) if self.vector_mode == "auto" else None  # local embedding has no quota
+        if hit and time.time() - hit[0] < RECALL_TTL:
+            return hit[1]
+        try:
+            rows = self._recall(text, persona, exclude, k, min_score)
+        except OperationFailure as e:
+            if "rate limit" in str(e).lower():
+                raise EmbedLimit("Atlas embedding is rate limited; try again in a minute") from None
+            raise
+        self._recalled[key] = (time.time(), rows)
+        return rows
+
+    def _recall(self, text, persona, exclude, k, min_score) -> list[dict]:
         flt = {k_: v for k_, v in (("persona", persona), ("workspace", {"$ne": exclude} if exclude else None)) if v}
         vs = {"index": "memory", "numCandidates": max(50, k * 20), "limit": k}
         if self.vector_mode == "auto":
