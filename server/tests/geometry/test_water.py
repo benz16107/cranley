@@ -58,3 +58,15 @@ def test_one_low_panorama_is_not_a_step(plan):
     p["panos"] = [{"id": "a", "position": [1, 1, 1.4], "floor": "f1", "room": "A", "rotation": None},
                   {"id": "c", "position": [9, 1, 1.0], "floor": "f1", "room": "C", "rotation": None}]
     assert {r["room"]: r for r in water(p, 0.3)["rooms"]}["C"]["step_m"] == 0
+
+
+def test_rooms_sharing_a_wall_without_a_doorway_still_flood(plan):
+    import copy
+    p = copy.deepcopy(plan)
+    p["openings"] = [o for o in p["openings"] if o["id"] != "AB"]
+    for w in p["walls"]:
+        w["openings"] = [o for o in w["openings"] if o != "AB"]
+    w = water(p, 0.1)
+    rooms = {r["room"]: r for r in w["rooms"]}
+    assert rooms["B"]["depth"] == pytest.approx(0.1) and rooms["B"]["via"] is None
+    assert "share a wall" in w["note"]

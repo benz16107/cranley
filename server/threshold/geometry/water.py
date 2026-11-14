@@ -48,6 +48,13 @@ def flood_levels(plan: dict, entry: str | None = None) -> dict:
         for l in g["links"]:
             a, b = l["rooms"]
             link(a, b, l["sill"] if l["sill"] is not None else max(z0[a], z0[b]), l["opening"] or l["id"])
+        seeped = _seep_links(plan, g["components"])
+        for a, b in seeped:
+            link(a, b, max(z0[a], z0[b]), None)
+        if seeped:
+            note = (f"{len(seeped)} pairs of rooms share a wall but no doorway in the scan (an open passage the scan "
+                    "missed, or a wall); water is taken to pass between them at the higher floor, as house walls are "
+                    "not watertight.")
     if "outside" not in adj:
         note = "No exterior opening in the scan; water is taken to rise from the floor in every room."
         for r in rooms:
@@ -72,6 +79,27 @@ def flood_levels(plan: dict, entry: str | None = None) -> dict:
                 heapq.heappush(heap, (nd, v))
     return {"levels": {r["id"]: best.get(r["id"]) for r in rooms}, "via": via, "floor_z": fz, "room_z": z0,
             "note": note}
+
+
+SHARED_WALL_M = 0.6   # rooms whose outlines run side by side this far share a wall
+
+
+def _seep_links(plan: dict, components: list[list[str]]) -> list[tuple[str, str]]:
+    """Room pairs on one floor, in different connected parts of the room graph, that share a wall."""
+    comp = {r: i for i, c in enumerate(components) for r in c}
+    polys = polygons(plan)
+    rooms = [r for r in plan.get("rooms") or [] if polys.get(r["id"]) is not None and r.get("label") != "Void"]
+    out = []
+    for i, a in enumerate(rooms):
+        for b in rooms[i + 1:]:
+            if a["floor"] != b["floor"] or comp.get(a["id"]) == comp.get(b["id"]):
+                continue
+            pa, pb = polys[a["id"]], polys[b["id"]]
+            if pa.distance(pb) > 0.3:
+                continue
+            if pa.buffer(0.2).intersection(pb.buffer(0.2)).area / 0.4 >= SHARED_WALL_M:
+                out.append((a["id"], b["id"]))
+    return out
 
 
 def water(plan: dict, level: float, entry: str | None = None) -> dict:
