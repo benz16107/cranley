@@ -81,7 +81,7 @@ export function useBuildingView(sid: string, opts?: { /** draw only these tools'
     return () => { on = false }
   }, [sid, tries])
   useEffect(() => { setQuery({ v: look.mode === 'dollhouse' ? null : look.mode, p: look.mode === 'pano' ? look.pano : null }) }, [look.mode, look.pano])
-  useEffect(() => { if (q.get('demo') === 'access') replayDemo(sid) }, [sid, q])
+  useEffect(() => { if (q.get('demo') === 'access') void replayDemo(sid) }, [sid, q])
 
   // what is given in map coordinates (an outdoor path, a pin on the roof) is the map's to draw, not the building's
   const only = opts?.tools?.join('\n')

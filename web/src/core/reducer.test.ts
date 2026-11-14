@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { apply, emptyDoc, inverse } from './reducer.ts'
+import { apply, emptyDoc, inverse, isFresh } from './reducer.ts'
 import type { Doc, Op, Panel } from './types.ts'
 
 const run = (ops: Op[], doc: Doc = emptyDoc()) => ops.reduce(apply, doc)
@@ -83,4 +83,12 @@ test('inverse undoes user ops in the same vocabulary', () => {
 test('an op this build does not know leaves the document alone', () => {
   const d = emptyDoc()
   assert.equal(apply(d, { op: 'hologram.project', by: 'agent' } as unknown as Op), d)
+})
+
+test('a document is fresh until anything happens in it', () => {
+  assert.equal(isFresh(emptyDoc()), true)
+  assert.equal(isFresh({ ...emptyDoc(), brief: { text: 'I use a wheelchair', facts: [] } }), false)
+  // a workspace from the server has an empty log, so the demo replay must look at the document itself
+  assert.equal(isFresh(run([{ op: 'pref.set', by: 'user', key: 'flood.depth_m', value: 0.5 }])), false)
+  assert.equal(isFresh({ ...emptyDoc(), log: [], shortlist: [{ sid: 's1', name: 'Unit A', address: '' }] }), false)
 })

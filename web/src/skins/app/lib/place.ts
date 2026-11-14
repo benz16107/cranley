@@ -1,4 +1,4 @@
-import { navigate, useRoute } from '../../../core/index.ts'
+import { decodeSegment, navigate, useRoute } from '../../../core/index.ts'
 
 /* The pages of this look. `/`, `/map` and `/scan/<sid>` are core's places and mean the same in every look. The rest
    are places only this look has: core's router reports them as `/`, so they are read from the address here.
@@ -12,9 +12,11 @@ export function usePlace(): Place {
   if (r.path === '/scan') return { page: 'building', id: null, sid: r.sid, q: r.q }
   if (r.path === '/map') return { page: 'explore', id: null, sid: null, q: r.q }
   const [, , seg, id] = window.location.pathname.split('/')
+  // a read-only link (/shared/<token>) opens on the investigation it shares; the server names that document "shared"
+  if (seg === 'shared' && id) return { page: 'investigation', id: 'shared', sid: null, q: r.q }
   const own = OWN.find((p) => p === seg)
   if (!own) return { page: 'home', id: null, sid: null, q: r.q }
-  return { page: own === 'investigations' && id ? 'investigation' : own, id: id ? decodeURIComponent(id) : null, sid: null, q: r.q }
+  return { page: own === 'investigations' && id ? 'investigation' : own, id: id ? decodeSegment(id) : null, sid: null, q: r.q }
 }
 
 const PATH: Record<Exclude<Page, 'building' | 'investigation'>, string> = { home: '/', explore: '/map', investigations: '/investigations', buildings: '/buildings', insights: '/insights', tools: '/tools', settings: '/settings' }

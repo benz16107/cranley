@@ -5,6 +5,10 @@ export const emptyDoc = (id = 'local'): Doc => ({
   plan: [], prefs: [], shortlist: [], camera: null, log: [],
 })
 
+/** Nothing has happened in this document yet: no brief, no tool, no run, no result, no answer, nothing kept. */
+export const isFresh = (d: Doc): boolean =>
+  !d.brief && !d.log.length && [d.questions, d.tools, d.runs, d.findings, d.panels, d.plan, d.prefs, d.shortlist, d.overlays].every((x) => x.length === 0)
+
 const BLOCKS: ReadonlySet<BlockType> = new Set([
   'VerdictHeader', 'MetricRow', 'CheckList', 'EvidenceStrip', 'RankedTable', 'MiniChart', 'FloorPlanMini',
   'Controls', 'AssumptionChips', 'StepLog', 'Note', 'ActionBar',

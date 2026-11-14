@@ -1,5 +1,6 @@
 import { notify } from './notices.ts'
 import { dispatch, useWorkspace } from './store.ts'
+import { isFresh } from './reducer.ts'
 import type { Action, Block, Doc, Op, OpInput, Panel, Question, ScanPlan, ToolResult } from './types.ts'
 import * as server from './server.ts'
 import { fetchPlan } from './api.ts'
@@ -41,10 +42,11 @@ useWorkspace.setState({
 void server.resume()
 
 /** Start over: a new brief means a new workspace, on the server too. */
-export function startOver() { playing++; server.forget(); useWorkspace.getState().reset(); lastSids = [] }
+export function startOver() { if (server.refused()) return; playing++; server.forget(); useWorkspace.getState().reset(); lastSids = [] }
 
 /* ---------- composing: who you are, which tools, which questions ---------- */
 export async function compose(sentence: string, needId?: string) {
+  if (server.refused()) return // a read-only link: nothing is composed into someone else's workspace
   startOver()
   const live = await server.connect()
   // shown at once; with a server this never reaches it as an op, the turn below carries the sentence
@@ -69,7 +71,7 @@ export async function investigate() {
     const open = d.questions.filter((q) => q.answer == null)
     if (open.some((q) => q.hint == null)) { notify('Answer the questions first.', { description: 'The tools cannot run without them.' }); return }
     for (const q of open) dispatch({ op: 'question.answer', by: 'user', id: q.id, answer: q.hint! })
-    await new Promise((r) => setTimeout(r, open.length ? 600 : 0)) // let the answers land before the turn reads them
+    await server.settled() // the answers are on the server before the turn reads them, however long that takes
     void serverTurn()
     return
   }
@@ -235,9 +237,13 @@ export async function playAccess(opts: { sids?: string[]; city?: Need['city']; q
   instant = false
 }
 
-/** A link with ?demo=access replays the whole audit on that scan at once, so the view it names can be opened cold. */
-export function replayDemo(sid: string) {
-  if (doc().log.length) return
+/** A link with ?demo=access replays the whole audit on that scan at once, so the view it names can be opened cold.
+    Only over nothing: with a server the log on screen is always empty, so the test is the document itself, and a
+    workspace the server holds (or a read-only link) is never written over with fixture ops. */
+export async function replayDemo(sid: string) {
+  if (!isFresh(doc())) return
+  if ((await server.connect()) && (server.serverDoc() || server.remembered())) return
+  if (!isFresh(doc())) return // it arrived while the probe was out
   const need = NEEDS[0]
   say({ op: 'brief.set', brief: { text: need.sentence, facts: [] } })
   for (const [id, reason] of need.tools) say({ op: 'tool.enable', tool: { ...TOOLS[id], reason } })

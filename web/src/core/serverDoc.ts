@@ -1,4 +1,4 @@
-import type { Block, Doc, Op, Panel, Question, Source, Status, ToolRef } from './types.ts'
+import type { Block, Doc, Op, Panel, Pref, Question, Source, Status, ToolRef } from './types.ts'
 
 /* The agent server's side of the workspace. The server owns the document (docs/contracts/workspace.md): blocks name
    runs and findings by id, runs carry their ToolResult. The shell renders its own Doc, with the numbers already in
@@ -16,6 +16,20 @@ const SRC: Source = { layer: 'matterport', method: 'geometry', confidence: 'medi
 const shown = (v: unknown) => (v === true ? 'Yes' : v === false ? 'No' : (v as string | number))
 export const typeOf = (input: J) => input.type ?? input.anyOf?.find((a: J) => a.type && a.type !== 'null')?.type
 const placeLabel = (p: J | null | undefined) => (p?.address ?? (p?.property_id ? `Property ${p.property_id}` : p?.geo ? 'A point on the map' : ''))
+
+/** What a learned item is called, apart from its value: the tool input it sets (the manifest's own title and unit),
+    or the kind of note it is. The value stays in `value`, so an undo of a later change puts the old one back. */
+export function prefName(key: string, manifests: Map<string, Manifest>): { label: string; unit?: string } {
+  for (const m of manifests.values()) for (const [k, p] of Object.entries(m.inputs.properties ?? {})) {
+    if ((p['x-pref'] ?? `${m.id}.${k}`) !== key) continue
+    const unit = p['x-unit'] as string | undefined, title = String(p.title ?? k).replace(/_/g, ' ').replace(/ (m|m2|ft2|kw|min|pct|km)$/i, '').toLowerCase()
+    return { label: title.charAt(0).toUpperCase() + title.slice(1), unit }
+  }
+  const kind = ([['label.', 'Room name'], ['doubt.', 'Room name in doubt'], ['mute.', 'Muted'], ['tool.off.', 'Tool switched off']] as const).find(([pre]) => key.startsWith(pre))
+  if (kind) return { label: kind[1] }
+  const last = (key.split('.').pop() ?? key).replace(/_/g, ' ')
+  return { label: last.charAt(0).toUpperCase() + last.slice(1) }
+}
 
 export function toQuestion(q: J): Question {
   const input = q.input ?? {}, type = typeOf(input)
@@ -108,7 +122,7 @@ export function toDoc(ws: J, learned: J[], manifests: Map<string, Manifest>, nam
       return { id: p.id, tool: p.tool ?? 'agent', title: p.title, scope: sid ? names(sid)?.name : undefined, sid: sid ?? undefined, run: p.run ?? undefined, role, blocks: toBlocks(p, runs, ws, names) }
     }),
     plan: ((ws.plan ?? []) as J[]).map((s) => ({ id: s.id, label: s.text, status: s.status === 'completed' ? 'done' : s.status === 'in_progress' ? 'active' : 'pending' })),
-    prefs: learned.map((l) => ({ key: l.key, label: l.text, value: '', from: l.by === 'user' ? 'You set this' : 'Learned from what you did', by: l.by === 'agent' ? 'agent' : 'user', at: (l.at ?? 0) * 1000 })),
+    prefs: learned.map((l) => ({ ...prefName(l.key, manifests), key: l.key, value: (l.value ?? '') as Pref['value'], from: l.text ?? '', by: l.by === 'agent' ? 'agent' : 'user', at: (l.at ?? 0) * 1000 })),
     shortlist: ((ws.shortlist ?? []) as J[]).map((s) => ({ sid: s.sid, name: names(s.sid)?.name ?? s.sid, address: names(s.sid)?.address ?? '', note: s.note || undefined })),
     camera, log: [],
   }

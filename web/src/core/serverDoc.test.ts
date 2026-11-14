@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { toDoc, toQuestion, toServerOp, type Manifest } from './serverDoc.ts'
+import { prefName, toDoc, toQuestion, toServerOp, type Manifest } from './serverDoc.ts'
+import { apply, inverse } from './reducer.ts'
 
 const src = { layer: 'matterport', method: 'geometry', confidence: 'high' }
 const ws = {
@@ -64,4 +65,26 @@ test('questions and user ops cross in both directions', () => {
   assert.deepEqual(toServerOp({ op: 'tool.disable', by: 'user', id: 'doors' }, null), { op: 'tool.disable', tool: 'doors' })
   assert.equal(toServerOp({ op: 'camera.focus', by: 'user', anchor: { sid: 's1', room: 'r' } }, null), null) // where the person looks stays in the browser
   assert.equal(toServerOp({ op: 'pref.set', by: 'user', key: 'input:doors:strict', value: true }, null), null) // a run input, not a preference
+})
+
+test('a learned item keeps its value, so undoing a later change puts the old value back', () => {
+  const tools = new Map<string, Manifest>([['flood', { id: 'flood', title: 'Flood rehearsal', summary: '', status: 'ready',
+    inputs: { properties: { depth_m: { title: 'Depth M', type: 'number', 'x-pref': 'flood.depth_m', 'x-unit': 'm' }, riser_m: { title: 'Riser M', type: 'number' } } } }]])
+  const learned = [{ key: 'flood.depth_m', value: 0.5, text: 'You answered “How deep could the water get?”', by: 'user', at: 7 }]
+  const d = toDoc({ id: 'ws_1' }, learned, tools, names)
+  assert.deepEqual(d.prefs, [{ key: 'flood.depth_m', label: 'Depth', unit: 'm', value: 0.5, from: 'You answered “How deep could the water get?”', by: 'user', at: 7000 }])
+  // the person moves the depth to 1 m, then presses Ctrl Z: the op that goes back to the server carries 0.5, not ''
+  const change = { op: 'pref.set', by: 'user', key: 'flood.depth_m', value: 1 } as const
+  const undo = inverse(d, change)
+  assert.equal(undo?.op === 'pref.set' && undo.value, 0.5)
+  assert.deepEqual(toServerOp(undo!, null), { op: 'pref.set', key: 'flood.depth_m', value: 0.5, reason: 'You answered “How deep could the water get?”' })
+  assert.equal(apply(apply(d, change), undo!).prefs[0].value, 0.5)
+})
+
+test('a learned item is named by the input it sets, or by what kind of note it is', () => {
+  const tools = new Map<string, Manifest>([['stairs', { id: 'stairs', title: 'Stairs', summary: '', status: 'ready', inputs: { properties: { riser_m: { title: 'Riser M', 'x-unit': 'm' } } } }]])
+  assert.deepEqual(prefName('stairs.riser_m', tools), { label: 'Riser', unit: 'm' }) // no x-pref: the key is <tool>.<input>
+  assert.deepEqual(prefName('label.s1.r4', tools), { label: 'Room name' })
+  assert.deepEqual(prefName('tool.off.flood', tools), { label: 'Tool switched off' })
+  assert.deepEqual(prefName('access.turning_needed', tools), { label: 'Turning needed' })
 })
