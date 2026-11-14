@@ -19,6 +19,9 @@ dependencies = [
   "pymongo>=4.20.0",
   "segno>=1.6.6",
   "cryptography>=44",
+  "langgraph-checkpoint-mongodb>=0.5.1",
+  "langchain-mcp-adapters>=0.3.2",
+  "pgai>=0.12.1",
 ]
 
 [dependency-groups]
