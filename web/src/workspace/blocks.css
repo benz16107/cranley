@@ -1,0 +1,103 @@
+/* A panel is a sheet in the rail: a header strip with the tool's key, then blocks separated by hairlines. */
+.panel { background: var(--pane); border: 1px solid var(--rule-strong); border-radius: var(--r-1); flex: none; }
+.panel > header { display: flex; align-items: center; gap: var(--s-2); padding: 7px var(--s-2) 7px var(--s-3); border-bottom: 1px solid var(--rule-strong); }
+.panel[data-open='false'] > header { border-bottom: 0; }
+.panel h3 { flex: 1; min-width: 0; font-size: var(--text-sm); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.panel h3 .scope { font-weight: 400; color: var(--ink-3); margin-left: var(--s-2); }
+.panel .code { font-size: 0.62rem; color: var(--ink-3); }
+.panel > header .btn svg { transition: rotate var(--dur-2) var(--ease-out); }
+.panel[data-open='false'] > header .btn svg { rotate: -90deg; }
+.panel > * + * { border-top: 1px solid var(--rule); }
+.panel > header + * { border-top: 0; }
+.panel-loading { height: 120px; }
+.stale { display: flex; align-items: center; gap: var(--s-2); padding: var(--s-2) var(--s-3); font-size: var(--text-xs); color: var(--ink-2); background: var(--pane-2); }
+.stale .hatch { width: 14px; height: 14px; border: 1px solid var(--rule-strong); }
+
+.b-verdict { display: grid; grid-template-columns: 16px 1fr; gap: var(--s-2); padding: var(--s-4) var(--s-3); align-items: start; }
+.b-verdict .glyph { margin-top: 2px; }
+.b-verdict p { font-size: var(--text-lg); line-height: 1.28; font-weight: 560; margin-top: 5px; text-wrap: balance; }
+.b-verdict[data-status='pass'] .label { color: var(--pass); }
+.b-verdict[data-status='warn'] .label { color: var(--warn); }
+.b-verdict[data-status='fail'] .label { color: var(--fail); }
+
+/* Metrics sit in one ruled row, like the cells of a title block. Not cards. */
+.b-metrics { display: grid; }
+.b-metrics > div { padding: var(--s-3); border-left: 1px solid var(--rule); min-width: 0; display: grid; gap: 6px; align-content: start; }
+.b-metrics > div:first-child { border-left: 0; }
+.b-metrics dt { min-height: 2.4em; }
+.b-metrics dd { font-size: 1.3rem; line-height: 1; font-weight: 500; white-space: nowrap; }
+.b-metrics dd small { font-size: 0.62rem; color: var(--ink-3); margin-left: 4px; font-weight: 400; }
+.b-metrics .nil { display: inline-block; width: 28px; height: 14px; border: 1px solid var(--rule); }
+.b-metrics .src { justify-self: start; max-width: 100%; overflow: hidden; }
+
+.b-checks .check { width: 100%; display: grid; grid-template-columns: 12px 1fr auto; gap: 6px var(--s-2); align-items: center; padding: 10px var(--s-3); border-top: 1px solid var(--rule); transition: background-color var(--dur-1) ease; }
+.b-checks li:first-child .check { border-top: 0; }
+.b-checks .rule small, .b-checks .m small { display: block; font-size: 0.62rem; color: var(--ink-3); margin-top: 1px; }
+.b-checks .rule small { font-family: var(--font-sans); font-size: var(--text-xs); }
+.b-checks .m { text-align: right; font-size: 0.72rem; }
+.b-checks .check[aria-current] { background: var(--accent-wash); outline: 1px solid var(--accent); outline-offset: -1px; }
+.b-checks .check:focus-visible { outline-offset: -2px; }
+.b-checks .check:disabled { cursor: default; }
+@media (hover: hover) and (pointer: fine) { .b-checks .check:not(:disabled):not([aria-current]):hover { background: var(--pane-2); } }
+/* the dimension line: end ticks, a dashed tick at the limit, a mark at the measurement */
+.gauge { grid-column: 2 / 4; height: 9px; position: relative; border-inline: 1px solid var(--ink-3); }
+.gauge::before { content: ''; position: absolute; inset: 4px 0 auto; border-top: 1px solid var(--ink-3); }
+.gauge u { position: absolute; top: -3px; height: 15px; border-left: 1px dashed var(--ink-2); }
+.gauge i { position: absolute; top: -1px; width: 3px; height: 11px; margin-left: -1px; transition: left var(--dur-3) var(--ease-out); }
+
+.b-evidence { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-2); padding: var(--s-3); }
+.b-evidence button { display: grid; gap: 5px; width: 100%; text-align: left; }
+.b-evidence .thumb { display: block; aspect-ratio: 4 / 3; position: relative; overflow: hidden; outline: 1px solid light-dark(rgb(0 0 0 / 0.14), rgb(255 255 255 / 0.14)); outline-offset: -1px; }
+.b-evidence img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity var(--dur-3) ease; }
+.b-evidence img[data-ok='true'] { opacity: 1; }
+.b-evidence .cap { position: absolute; left: 4px; bottom: 4px; display: inline-flex; align-items: center; gap: 4px; background: var(--pane); padding: 2px 5px; font-size: 0.6rem; }
+.b-evidence .t { font-size: var(--text-xs); line-height: 1.3; color: var(--ink-2); }
+.b-evidence button[aria-current] .thumb { outline: 2px solid var(--accent); }
+.b-evidence button[aria-current] .t { color: var(--ink); }
+
+.b-table { padding: var(--s-2) var(--s-3) var(--s-3); display: grid; gap: var(--s-2); justify-items: start; }
+.b-table table { width: 100%; border-collapse: collapse; font-size: var(--text-xs); }
+.b-table th, .b-table td { padding: 7px 0 7px var(--s-2); border-bottom: 1px solid var(--rule); text-align: right; font-weight: 400; white-space: nowrap; }
+.b-table th:first-child { text-align: left; padding-left: 0; width: 46%; max-width: 0; }
+.b-table thead th { border-bottom-color: var(--rule-strong); }
+.b-table thead button { font: 600 var(--text-2xs)/1.2 var(--font-sans); font-stretch: 80%; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+.b-table thead .num { text-transform: none; letter-spacing: 0; }
+.b-table th[aria-sort]:not([aria-sort='none']) button { color: var(--ink); }
+.b-table tbody th button { display: block; width: 100%; overflow: hidden; text-overflow: ellipsis; text-decoration: underline; text-decoration-color: var(--rule-strong); text-underline-offset: 3px; }
+.b-table td { font-size: 0.7rem; }
+.b-table td[data-best] { font-weight: 700; }
+
+.b-chart { padding: var(--s-3); display: grid; gap: var(--s-2); }
+.b-chart figcaption { display: flex; justify-content: space-between; align-items: center; gap: var(--s-2); }
+.b-chart .bars { height: 64px; display: flex; align-items: flex-end; gap: 3px; position: relative; border-bottom: 1px solid var(--ink-3); }
+.b-chart .bar { flex: 1; max-width: 28px; height: 100%; display: flex; align-items: flex-end; }
+.b-chart .bar i { display: block; width: 100%; min-height: 2px; transition: height var(--dur-3) var(--ease-out); }
+.b-chart .mark { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--ink-2); }
+.b-chart .mark .num { position: absolute; right: 0; bottom: 2px; font-size: 0.6rem; color: var(--ink-2); background: var(--pane); padding-left: 4px; }
+.b-chart .axis { display: flex; justify-content: space-between; font-size: 0.6rem; color: var(--ink-3); }
+
+.b-plan { display: block; width: 100%; height: 190px; padding: var(--s-2); position: relative; }
+.b-plan .drawing { width: 100%; height: 100%; }
+.b-plan p { position: absolute; inset: 0; display: grid; place-content: center; }
+@media (hover: hover) and (pointer: fine) { button.b-plan:hover { background: var(--pane-2); } }
+
+.b-controls { padding: var(--s-2) var(--s-3); display: grid; }
+.control { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: var(--s-3); min-height: 40px; }
+.control:has(.slider) { grid-template-columns: 1fr 110px auto; }
+.control .field { height: 28px; width: auto; padding: 0 var(--s-2); }
+.control .val { font-size: 0.7rem; }
+
+.b-assume { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: var(--s-3); }
+.b-assume .label { margin-right: 2px; }
+.b-assume .mine { width: 5px; height: 5px; background: var(--accent); align-self: center; }
+.assume-edit { display: grid; gap: var(--s-2); width: 200px; }
+.assume-edit label { display: grid; gap: 6px; }
+.assume-edit .row { display: flex; align-items: center; gap: var(--s-2); }
+
+.b-steps { padding: var(--s-2) var(--s-3); }
+.b-steps li { display: grid; grid-template-columns: 22px 1fr auto; gap: var(--s-2); padding: 4px 0; font-size: var(--text-xs); color: var(--ink-2); align-items: baseline; }
+.b-steps .n, .b-steps .t { font-size: 0.6rem; color: var(--ink-3); }
+.b-steps small { display: block; color: var(--ink-3); }
+
+.b-note { padding: var(--s-3); font-size: var(--text-xs); color: var(--ink-2); line-height: 1.5; }
+.b-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); padding: var(--s-3); }

@@ -1,0 +1,44 @@
+/* The front door is the cover sheet of the set, laid on the left of the stage. The map stays live beside it. */
+.app[data-view='door'] { grid-template-columns: 0 minmax(0, 1fr) 0; column-gap: 0; }
+.app[data-view='door'] .dock { margin-left: calc(min(620px, 100vw - 24px) + var(--gap)); }
+.app[data-view='door'] .free { left: calc(min(620px, 100vw - 24px) + var(--gap)); }
+.door { position: absolute; left: var(--gap); top: calc(var(--bar-h) + var(--gap)); bottom: var(--gap); width: min(620px, calc(100vw - 2 * var(--gap))); z-index: 4; padding: 0 var(--s-6) var(--s-6); }
+.sheethead { display: flex; justify-content: space-between; padding: var(--s-4) 0 var(--s-3); border-bottom: 1px solid var(--ink); margin-bottom: var(--s-7); position: sticky; top: 0; background: var(--pane); z-index: 1; }
+.door h1 { font-size: clamp(2rem, 3.4vw, var(--text-3xl)); line-height: 1.02; font-weight: 700; font-stretch: 112%; letter-spacing: -0.02em; max-width: 12em; }
+.door h1.said { font-size: var(--text-xl); line-height: 1.2; font-stretch: 100%; font-weight: 600; letter-spacing: -0.005em; max-width: none; }
+.door .lede { font-size: var(--text-md); line-height: 1.5; color: var(--ink-2); margin-top: var(--s-5); max-width: 34em; }
+.door .lede b { color: var(--ink); font-weight: 600; font-size: 0.95em; }
+.door .lede .count { display: inline-block; width: 4em; height: 0.9em; vertical-align: -1px; }
+.say { margin-top: var(--s-6); display: grid; gap: var(--s-2); }
+.say .row { display: flex; gap: var(--s-2); }
+.say .field { height: 44px; font-size: var(--text-md); }
+.say .btn { min-height: 44px; padding: 0 var(--s-5); }
+.door .idx { margin-top: var(--s-7); padding-bottom: var(--s-2); border-bottom: 1px solid var(--rule-strong); }
+
+/* the index of starting points: rows of a sheet list, not cards */
+.needs button { width: 100%; display: grid; grid-template-columns: 28px 1fr auto; gap: 3px var(--s-3); align-items: baseline; padding: 13px 0; border-bottom: 1px solid var(--rule); transition: background-color var(--dur-1) ease, padding var(--dur-2) var(--ease-out); }
+.needs .n { font-size: 0.62rem; color: var(--ink-3); }
+.needs .who { font-size: var(--text-md); color: var(--ink-2); }
+.needs .who b { color: var(--ink); font-weight: 620; }
+.needs .codes { display: flex; gap: 3px; align-self: center; }
+.needs .on { grid-column: 2 / 4; font-size: var(--text-xs); }
+.needs button:focus-visible { outline-offset: -2px; }
+@media (hover: hover) and (pointer: fine) { .needs button:hover { background: var(--pane-2); } }
+.door .explore { margin-top: var(--s-5); display: inline-block; }
+
+.picked li { display: grid; grid-template-columns: 30px 1fr; gap: var(--s-3); padding: var(--s-3) 0; border-bottom: 1px solid var(--rule); align-items: start; }
+.picked .toolkey { margin-top: 2px; }
+.picked b { display: block; font-size: var(--text-md); font-weight: 620; }
+.picked .why { color: var(--ink-2); }
+.picked .pending { display: block; padding: var(--s-3) 0; }
+.picked .pending .skeleton { display: block; height: 40px; }
+.door .asks { margin-top: var(--s-4); gap: var(--s-4); }
+.door .go { display: flex; align-items: center; gap: var(--s-4); margin-top: var(--s-5); flex-wrap: wrap; }
+.door .go .btn { min-height: 40px; padding: 0 var(--s-4); }
+
+@media (max-width: 760px) {
+  .door { left: 0; top: var(--bar-h); bottom: 0; width: 100%; border-width: 0; padding: 0 var(--s-4) var(--s-6); }
+  .sheethead { margin-bottom: var(--s-5); }
+  .say .row { flex-direction: column; }
+  .needs button { grid-template-columns: 24px 1fr; } .needs .codes { display: none; } .needs .on { grid-column: 2; }
+}

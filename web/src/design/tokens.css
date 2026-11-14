@@ -1,0 +1,113 @@
+/* Threshold design tokens. Direction: "Sheet", a survey sheet and an architect's drawing set.
+   Light is ink on drafting paper. Dark is a blueprint: pale line on Prussian blue.
+   Rules for using these are in README.md beside this file. Add nothing ad hoc. */
+
+:root {
+  color-scheme: light dark;
+
+  /* Ground and ink */
+  --paper: light-dark(#f4f1ea, #0e1a2a); /* the sheet: page and map ground */
+  --pane: light-dark(#fbfaf6, #142438); /* anything laid on the sheet */
+  --pane-2: light-dark(#f0ede5, #1b2e47); /* wells, hover, pressed */
+  --ink: light-dark(#18212b, #e6edf5);
+  --ink-2: light-dark(#4a5563, #adbbcc); /* secondary text, 7:1 on pane */
+  --ink-3: light-dark(#5f6a78, #8597ad); /* labels and captions, 5.2:1 on pane */
+  --rule: light-dark(rgb(24 33 43 / 0.15), rgb(230 237 245 / 0.14)); /* hairlines inside a pane */
+  --rule-strong: light-dark(rgb(24 33 43 / 0.42), rgb(230 237 245 / 0.36)); /* pane edges, field borders */
+
+  /* One accent: drafting blue. Selection, focus, links, and the agent's mark. Nothing else. */
+  --accent: light-dark(#2545b8, #8fb5ff);
+  --on-accent: light-dark(#fbfaf6, #0e1a2a);
+  --accent-wash: color-mix(in srgb, var(--accent) 9%, var(--pane));
+
+  /* The single status scale. Always paired with its glyph (circle, triangle, square, hatched ring). */
+  --pass: light-dark(#1f7a4d, #5fd39a);
+  --warn: light-dark(#a65f00, #f0b24a);
+  --fail: light-dark(#b3261e, #ff8a7d);
+  --unknown: var(--ink-3);
+  --pass-wash: color-mix(in srgb, var(--pass) 11%, var(--pane));
+  --warn-wash: color-mix(in srgb, var(--warn) 12%, var(--pane));
+  --fail-wash: color-mix(in srgb, var(--fail) 10%, var(--pane));
+
+  /* The single sequential ramp for data, low to high. Six steps of the accent hue. */
+  --ramp-1: light-dark(#dfe6f5, #223a5e);
+  --ramp-2: light-dark(#b9c8ee, #2f5390);
+  --ramp-3: light-dark(#8fa6e3, #4470bd);
+  --ramp-4: light-dark(#6382d6, #5f8fe0);
+  --ramp-5: light-dark(#3f61c6, #86adf5);
+  --ramp-6: light-dark(#2545b8, #b9d0ff);
+
+  /* One hue per tool, shared by its dock chip, panel header, pins and overlays. Assigned in toolHue(). */
+  --tool-1: light-dark(#6b4bc4, #b6a1f5); /* violet  */
+  --tool-2: light-dark(#0b6e99, #6cc4e8); /* water   */
+  --tool-3: light-dark(#b5521a, #f0a070); /* rust    */
+  --tool-4: light-dark(#0e7a6c, #62cdb9); /* teal    */
+  --tool-5: light-dark(#9a3d7a, #e59ac6); /* plum    */
+  --tool-6: light-dark(#6a6f1c, #c5c96e); /* olive   */
+  --tool-7: light-dark(#3d5a8c, #9db7e0); /* slate   */
+  --tool-8: light-dark(#8c4a4a, #e0a3a3); /* clay    */
+
+  /* Basemap */
+  --map-water: light-dark(#dbe5ea, #12263b);
+  --map-water-line: light-dark(#6a8ba3, #5f86a8);
+  --map-green: light-dark(#e7e9da, #11222f);
+  --map-road: light-dark(rgb(24 33 43 / 0.3), rgb(190 210 232 / 0.22));
+  --map-road-major: light-dark(rgb(24 33 43 / 0.58), rgb(190 210 232 / 0.48));
+  --map-building: light-dark(#e9e4d8, #18293e);
+
+  /* Type. Archivo carries a width axis: narrow for labels, normal for text, wide for display.
+     Martian Mono, narrowed, is for anything measured or counted. */
+  --font-sans: 'Archivo Variable', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Martian Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
+  --text-2xs: 0.625rem; /* 10  labels in capitals */
+  --text-xs: 0.71875rem; /* 11.5 captions */
+  --text-sm: 0.8125rem; /* 13  interface text */
+  --text-md: 0.9375rem; /* 15  reading text */
+  --text-lg: 1.125rem; /* 18  verdicts */
+  --text-xl: 1.5rem; /* 24  headings */
+  --text-2xl: 2.25rem; /* 36  */
+  --text-3xl: 3.5rem; /* 56  cover sheet */
+
+  /* Space: a 4 px step */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 72px;
+
+  /* Radius. A drawing is square. 2 px takes the edge off; 10 px is only for the phone sheet's top corners. */
+  --r-1: 2px;
+  --r-sheet: 10px;
+
+  /* Elevation: only things that float above the sheet (callouts, menus, the phone sheet). */
+  --lift: 0 0 0 1px var(--rule-strong), 0 14px 30px -14px light-dark(rgb(24 33 43 / 0.4), rgb(0 0 0 / 0.7));
+
+  /* Motion */
+  --dur-1: 120ms; /* press, hover colour */
+  --dur-2: 180ms; /* popovers, chips arriving */
+  --dur-3: 260ms; /* panels, sheets */
+  --dur-stage: 2400ms; /* the flight between cities, the one long move */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* Layout */
+  --bar-h: 48px;
+  --case-w: 288px;
+  --rail-w: 372px;
+  --gap: 12px;
+}
+
+:root[data-theme='light'] { color-scheme: light; }
+:root[data-theme='dark'] { color-scheme: dark; }
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-2: 1ms;
+    --dur-3: 1ms;
+    --dur-stage: 1ms;
+  }
+}
