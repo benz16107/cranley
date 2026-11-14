@@ -84,7 +84,7 @@ def site_facts(lat: float, lon: float) -> dict:
     add("solar", "Solar panels", s.get("roof-objects.solar.value"), None, model)
     for obj in ("ac-unit", "chimney", "roof-vent", "satellite-dish", "skylight"):
         add(f"roof_{obj.replace('-', '_')}", f"Roof {obj.replace('-', ' ')}s", s.get(f"roof-objects.{obj}.count"), "count", model)
-    defects = [k.split(".")[1] for k, v in s.items() if k.startswith("roof-defects.") and k.endswith(".detected") and v]
+    defects = [k[len("roof-defects."):-len(".detected")] for k, v in s.items() if k.startswith("roof-defects.") and k.endswith(".detected") and v]
     add("roof_defects", "Roof defects detected", defects, None, model)
     add("pool", "Pool", p.get("pool.detected"), None, model)
     add("pool_area", "Pool area", _r(p.get("pool.total-area")), "m2", model)
@@ -189,8 +189,9 @@ def _heights(kind: str, lonlats: list[tuple[float, float]]) -> tuple[list[float]
     return zs,{"collection": (r.get("collection") or [None])[0], "layer": (r.get("layer") or [None])[0]}
 
 
-GROUND_NOTE = ("Vexcel's bare-ground model is a wide-area collection and the surface model is a city collection; "
-               "on one Houston house they disagreed by up to 1.6 m on open ground, so height above ground is approximate")
+GROUND_NOTE = ("Vexcel's bare-ground model (DTM) is a wide-area collection and its surface model (DSM) a city collection. "
+               "On open ground they disagreed by 0.6 m (a Houston warehouse lot) to 1.6 m (a Houston house), DTM higher, "
+               "so DSM minus DTM is not a reliable height. For a building's height use site_facts roof_height")
 
 
 def ground_and_surface(lat: float, lon: float) -> dict:
@@ -202,7 +203,7 @@ def ground_and_surface(lat: float, lon: float) -> dict:
         "sources": {
             "surface_m": source("lookup", "high", f"Vexcel DSM {dm['collection']} ({dm['layer']})"),
             "ground_m": source("lookup", "medium", f"Vexcel DTM {tm['collection']} ({tm['layer']})"),
-            "height_above_ground_m": source("geometry", "medium", GROUND_NOTE),
+            "height_above_ground_m": source("geometry", "low", GROUND_NOTE),
         },
     }
 

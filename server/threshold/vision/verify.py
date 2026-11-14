@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import io
 import json
-import statistics
 import sys
 
 import numpy as np
@@ -19,6 +18,7 @@ from PIL import Image, ImageDraw
 from ..config import DATA
 from ..sources import matterport as mp
 from . import projection as pj
+from .locate import floor_z
 
 SHOTS = DATA / "shots" / "perception"
 
@@ -55,17 +55,6 @@ def calibrate_caps(imgs) -> list[tuple[float, float, float]]:
 
 
 # ---- doorways ---------------------------------------------------------------------------------
-
-def floor_z(plan: dict, floor: str) -> float:
-    """Floor elevation in the scan frame: panoramas sit at camera height above their floor, and the lowest
-    floor is at z = 0 in every fixture, so a floor is its panoramas' median z minus the lowest floor's."""
-    zs: dict[str, list[float]] = {}
-    for p in plan["panos"]:
-        zs.setdefault(p["floor"], []).append(p["position"][2])
-    seq = {f["id"]: f["sequence"] for f in plan["floors"]}
-    base = statistics.median(zs[min(zs, key=lambda f: seq.get(f, 0))])
-    return statistics.median(zs.get(floor, [base])) - base
-
 
 def opening_corners(plan: dict, op: dict) -> list[np.ndarray]:
     """The four 3D corners of an opening (bottom-left, bottom-right, top-right, top-left along its wall)."""
