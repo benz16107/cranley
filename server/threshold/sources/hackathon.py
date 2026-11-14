@@ -80,6 +80,7 @@ def _xmp(head: bytes) -> dict:
             "alt_abs": num("AbsoluteAltitude"), "gimbal_yaw_deg": num("GimbalYawDegree"),
             "gimbal_pitch_deg": num("GimbalPitchDegree"), "flight_yaw_deg": num("FlightYawDegree"),
             "gimbal_roll_deg": num("GimbalRollDegree"), "gps_status": tags.get("GpsStatus"),
+            "product": tags.get("ProductName"),
             "rtk_std_hgt": num("RtkStdHgt"),
             # calibrated pinhole intrinsics, in pixels of the full-size original
             "focal_px": num("CalibratedFocalLength"), "cx_px": num("CalibratedOpticalCenterX"),
@@ -90,7 +91,7 @@ def _xmp(head: bytes) -> dict:
 
 
 def _drone_meta(sid: str, name: str) -> dict:
-    raw = cached(cache_path("drone", sid, "meta2", f"{name}.json"),
+    raw = cached(cache_path("drone", sid, "meta3", f"{name}.json"),
                  lambda: json.dumps(_xmp(_read_head(f"resources/{sid}/drone-imagery/{name}", XMP_BYTES))).encode())
     return {"name": name, **json.loads(raw)}
 
