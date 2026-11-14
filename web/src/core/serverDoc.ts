@@ -133,7 +133,7 @@ export function toDoc(ws: J, learned: J[], manifests: Map<string, Manifest>, nam
     runs: ((ws.runs ?? []) as J[]).map((r) => ({ id: r.id, tool: r.tool, step: r.plan_step ?? undefined, stale: !!r.stale, sid: r.sid ?? undefined, place: r.place ?? undefined,
       label: [title(r.tool), r.sid ? names(r.sid)?.name ?? r.sid : placeLabel(r.place)].filter(Boolean).join(' · '),
       status: r.status === 'running' ? 'running' : r.status === 'error' ? 'failed' : 'done',
-      ms: r.started && r.finished ? (r.finished - r.started) * 1000 : undefined,
+      ms: r.started && r.finished ? (r.finished - r.started) * 1000 : undefined, at: r.started ? r.started * 1000 : undefined,
       summary: (r.error ?? (r.status === 'running' ? r.steps?.at(-1) : r.summary)) || undefined })),
     findings: ((ws.findings ?? []) as J[]).filter((f) => !f.superseded_by && f.feedback?.verdict !== 'rejected').map((f) => ({ ...f, tool: f.tool ?? '', run: f.run ?? undefined, media: f.media ?? [] })) as Doc['findings'],
     layers: [],

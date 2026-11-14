@@ -89,7 +89,7 @@ userOp(op)                                       // the person changes the works
 | `questions` | `{ id, text, kind: 'choice' \| 'number' \| 'text', options?, unit?, answer?, hint? }` | a form; `answer == null` is open; offer `hint` |
 | `tools` | `ToolRef { id, title, code?, summary?, reason, coverage?, by }` | the dock, with why each is here and who added it |
 | `plan` | `PlanStep { id, label, status: 'pending' \| 'active' \| 'done' }` | the agent's plan, live |
-| `runs` | `Run { id, tool, label, sid?, place?, step?, status: 'running' \| 'done' \| 'failed', ms?, summary?, stale? }`; `sid` is the scan it is about | tool calls under their plan step (`step` is a `PlanStep.id`); a running run's `summary` is its latest progress line |
+| `runs` | `Run { id, tool, label, sid?, place?, step?, status: 'running' \| 'done' \| 'failed', ms?, at?, summary?, stale? }`; `sid` is the scan it is about | tool calls under their plan step (`step` is a `PlanStep.id`); a running run's `summary` is its latest progress line |
 | `panels` | `Panel { id, tool, title, role?, scope?, sid?, run?, blocks }`; `role` is `'tool'` (also when missing), `'summary'` (the agent's closing note), `'ranking'` or `'note'` | one panel each, built from the twelve blocks |
 | `findings` | `Finding { id, title, status, detail?, anchor, source, media? } & { tool, run? }` | evidence; `anchor` is where it is in the building or on the map |
 | `overlays` | `{ id, tool, sid?, overlay }` | drawn in the scene (core does this) and on the map (you do this, from `useMapModel().geo`) |
