@@ -44,8 +44,8 @@ LAYERS, FETCH = collect(
           "from the Archaeological and Historical Commission.", extra={"hue": "--tool-6"}, **COH),
     layer("hou_land_use", "Land use (appraisal district)", "Rules", "area", LAND_USE, grid_z=16, minzoom=15,
           fields="SITE_ADDR_1,LANDUSE_DSCR,GROUP_DSCR,YR_IMPR", offset=0.000005,
-          name=lambda a: (a.get("LANDUSE_DSCR") or a.get("GROUP_DSCR") or "").strip().title(),
-          detail=lambda a: join((a.get("SITE_ADDR_1") or "").strip().title(),
+          name=lambda a: (a.get("GROUP_DSCR") or a.get("LANDUSE_DSCR") or "").strip(),
+          detail=lambda a: join((a.get("SITE_ADDR_1") or "").strip().title(), (a.get("LANDUSE_DSCR") or "").strip().title(),
                                 f"built {a['YR_IMPR']}" if a.get("YR_IMPR") and str(a["YR_IMPR"]) != "0" else ""),
           props=lambda a: {"group": (a.get("GROUP_DSCR") or "").strip()},
           confidence="medium", note="What each parcel is used for, as the Harris Central Appraisal District classes it for tax. "

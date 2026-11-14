@@ -7,17 +7,18 @@ from collections.abc import Callable
 from ..catalog import Layer, arcgis
 
 
-def layer(id: str, title: str, group: str, shape: str, url: str | dict[str, str], *, fields: str = "",
+def layer(id: str, title: str, group: str, shape: str, url: str | list[str] | dict[str, str], *, fields: str = "",
           name: Callable[[dict], str] | str = "", detail: Callable[[dict], str] | None = None,
           props: Callable[[dict], dict] | None = None, offset: float | None = None, where: str = "1=1",
           scope: str = "grid", **entry) -> tuple[Layer, Callable]:
-    """`url` is one service layer, or {city: url} where each city has its own. `name` is a field, a fixed string
+    """`url` is one service layer, several to merge, or {city: url} where each city has its own. `name` is a field, a fixed string
     or a function of the feature's attributes."""
     def fetch(box, city):
-        u = url.get(city) if isinstance(url, dict) else url
-        if not u:
-            return [], False
-        feats, cut = arcgis(u if u.endswith("/query") else u.rstrip("/") + "/query", box, fields, offset, where)
+        urls = [url.get(city)] if isinstance(url, dict) else url if isinstance(url, list) else [url]
+        feats, cut = [], False
+        for u in filter(None, urls):
+            got, c = arcgis(u if u.endswith("/query") else u.rstrip("/") + "/query", box, fields, offset, where)
+            feats, cut = feats + got, cut or c
         out = []
         for f in feats:
             if not f.get("geometry"):
