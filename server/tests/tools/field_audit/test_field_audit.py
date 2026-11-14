@@ -35,7 +35,9 @@ def test_judge_bedrooms_with_panorama_labels():
     deep = {"comparisons": [], "evidence": {}}
     labels = [{"label": "Bedroom"}] * 3
     assert judge(r, make_home(), deep, labels)[0] == "measurement"
-    assert judge(r, make_home(), deep, [{"label": "Bedroom"}] * 2)[0] == "record"
+    assert judge(r, make_home(), deep, [{"label": "Bedroom"}] * 2)[0] == "unclear"  # the scan may be partial
+    whole = {"comparisons": [{"key": "living_area", "label": "Living area", "verdict": "confirmed"}], "evidence": {}}
+    assert judge(r, make_home(), whole, [{"label": "Bedroom"}] * 2)[0] == "record"
 
 
 def test_run_audit_end_to_end(monkeypatch):

@@ -201,18 +201,27 @@ def judge(row: dict, plan: dict, deep: dict, labels: list[dict] | None) -> tuple
         if fp and fp["verdict"] == "confirmed" and row["kind"] != "home":
             return "measurement", "The aerial footprint agrees with the record, so the scan is the partial side."
         return "unclear", "No second source decides it; check the excluded rooms and the floor plan by eye."
+    whole = next((x for k, x in comps.items() if FAMILY.get(k) == "area" and x["verdict"] == "confirmed"), None)
     if f == "bedrooms" and labels is not None:
         n = sum(1 for x in labels if x["label"] == "Bedroom")
         want, got = row["record_value"], row["measured_value"]
+        rooms = f"{n} bedroom{'s' if n != 1 else ''}"
         if n == want:
-            return "measurement", (f"Reading the panoramas finds {n} bedrooms, as the record says; Matterport's labels "
-                                   "missed one (a room furnished otherwise).")
+            return "measurement", (f"Reading the panoramas finds {rooms}, as the record says; Matterport's labels were "
+                                   "wrong (a room furnished otherwise, or a utility room with a bed-sized floor).")
+        if n == got and (n > want or whole):
+            return "record", (f"Reading the panoramas also finds {rooms}, and " + (
+                "the scan holds more than the record allows." if n > want else
+                f"the scan covers the whole place ({whole['label'].lower()} confirmed), so the record's count looks wrong."))
         if n == got:
-            return "record", f"Reading the panoramas also finds {n} bedrooms, so the record's count looks wrong."
-        return "unclear", f"Reading the panoramas finds {n} bedrooms, matching neither side."
+            return "unclear", f"Reading the panoramas also finds {rooms}, but the scan may not cover every room."
+        return "unclear", f"Reading the panoramas finds {rooms}, matching neither side."
     if f == "bathrooms" and c:
         if c["verdict"] == "contradicted" and "panoramas" in c["reason"]:
-            return "record", "With tubs and showers read from the panoramas the scan still disagrees: " + c["reason"][:200]
+            more = (c["measured"]["value"] or 0) > (c["claim"]["value"] or 0)
+            if more or whole:
+                return "record", "With tubs and showers read from the panoramas the scan still disagrees: " + c["reason"][:200]
+            return "unclear", "The scan has fewer bathrooms than the record and may not cover them all: " + c["reason"][:160]
         return "unclear", "The bathroom panoramas were not all read, so full and half baths are a size guess."
     if f == "stories":
         est = None
@@ -223,9 +232,9 @@ def judge(row: dict, plan: dict, deep: dict, labels: list[dict] | None) -> tuple
             if h:
                 est = max(1, round((h - (2.0 if shape not in (None, "flat") else 0)) / 3.0))
         if est == row["record_value"]:
-            return "measurement", f"The roof height suggests {est} stories, as the record says; a floor went unscanned."
+            return "measurement", f"The roof height suggests {est} stor{'ies' if est != 1 else 'y'}, as the record says; the scan splits or adds a level."
         if est == row["measured_value"]:
-            return "record", f"The roof height suggests {est} stories, as the scan has."
+            return "record", f"The roof height suggests {est} stor{'ies' if est != 1 else 'y'}, as the scan has."
         return "unclear", "The roof height decides neither way."
     if f == "ceiling height":
         if row["kind"] == "industrial" and (row["measured_value"] or 0) < (row["record_value"] or 0):
