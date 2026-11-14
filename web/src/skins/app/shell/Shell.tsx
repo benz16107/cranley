@@ -19,6 +19,7 @@ import { Settings } from '../pages/Settings.tsx'
 import { Tools } from '../pages/Tools.tsx'
 import { CommandMenu } from './CommandMenu.tsx'
 import { PanelDrawer, RunPanel } from './RunPanel.tsx'
+import { Knows } from './Knows.tsx'
 import { StartTool } from './StartTool.tsx'
 import { PAGE_KEYS, Sidebar } from './Sidebar.tsx'
 import { Topbar } from './Topbar.tsx'
@@ -118,6 +119,7 @@ export function Shell() {
         <CommandMenu />
         <Shortcuts />
         <PanelDrawer />
+        <Knows />
         <StartTool />
       </div>
     </Tooltip.Provider>
