@@ -31,8 +31,10 @@ export function Mobile() {
     const root = document.documentElement
     let t = 0
     const typing = () => { const e = document.activeElement; return e instanceof HTMLTextAreaElement || (e instanceof HTMLInputElement && !['file', 'checkbox', 'radio', 'button', 'range'].includes(e.type)) }
-    const on = () => { clearTimeout(t); root.toggleAttribute('data-kb', typing()) }
-    const off = () => { clearTimeout(t); t = window.setTimeout(on, 300) } // late, so a tap on Save lands before the bar moves back
+    const sync = () => root.toggleAttribute('data-kb', typing())
+    // the bar moves back late, so a tap on Save lands first (Chrome focuses the button on touch-down, before the click)
+    const off = () => { clearTimeout(t); t = window.setTimeout(sync, 500) }
+    const on = () => { if (typing()) { clearTimeout(t); sync() } else off() }
     document.addEventListener('focusin', on); document.addEventListener('focusout', off)
     return () => { document.removeEventListener('focusin', on); document.removeEventListener('focusout', off); clearTimeout(t) }
   }, [])
