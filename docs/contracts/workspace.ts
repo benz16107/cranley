@@ -507,6 +507,10 @@ export interface BoxOverlay {
   yaw_deg?: number;
   label: string;
   status: "pass" | "warn" | "fail" | "unknown";
+  /**
+   * Model class the scene draws stretched to exactly this box, such as vehicle/pickup or furniture/sofa; none draws the box alone
+   */
+  model?: string | null;
 }
 /**
  * This interface was referenced by `WorkspaceContract`'s JSON-Schema

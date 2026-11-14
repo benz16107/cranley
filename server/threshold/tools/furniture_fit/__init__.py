@@ -29,6 +29,10 @@ PRESETS = {
     "dining table": ((1.83, 0.91, 0.76), False, "Dining Room", "72 in table, legs on"),
 }
 Obj = Literal[tuple(PRESETS)]
+# The 3D model the scene stretches to the object's box. A mattress is a slab, so its box is already its picture.
+MODELS = {"sofa": "furniture/sofa", "loveseat": "furniture/sofa", "upright piano": "furniture/piano",
+          "refrigerator": "furniture/fridge", "washer": "furniture/washer", "wardrobe": "furniture/wardrobe",
+          "dining table": "furniture/table"}
 
 
 class Inputs(BaseModel):
@@ -54,7 +58,7 @@ def _yaw_near(route_pts: list, pt) -> float:
 
 
 def carry_audit(ctx, plan: dict, tool_id: str, box: tuple, flat: bool, target: dict, entrance: str | None,
-                what: str, name: str | None = None) -> dict:
+                what: str, name: str | None = None, model: str | None = None) -> dict:
     """carry() from the main entrance (its door checked too) to `target`. Returns checks, findings, overlays,
     the overall result and the tightest point."""
     sid = plan["sid"]
@@ -129,7 +133,7 @@ def carry_audit(ctx, plan: dict, tool_id: str, box: tuple, flat: bool, target: d
         out["tight"] = {"slack": slack, "where": where, "status": status}
         out["overlays"].append(BoxOverlay(center=(pt[0], pt[1], pt[2] + box[2] / 2), size=tuple(box),
                                           yaw_deg=_yaw_near(route_pts, pt), status=status,
-                                          label=f"Tightest: {where}"))
+                                          label=f"Tightest: {where}", model=model))
     return out
 
 
@@ -184,7 +188,8 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     if target is None:
         return ToolResult(scope=scope, assumptions=assumptions, verdict=Verdict(status="unknown", text=(
             f"No {(inputs.room or default_room).lower()} in this scan; name the room to carry it to.")))
-    a = carry_audit(ctx, plan, "furniture_fit", box, upright, target, inputs.entrance, f"The {inputs.object}")
+    a = carry_audit(ctx, plan, "furniture_fit", box, upright, target, inputs.entrance, f"The {inputs.object}",
+                    model=MODELS.get(inputs.object))
     ctx.step(f"Carried a {box[0]:.2f} x {box[1]:.2f} x {box[2]:.2f} m {inputs.object} toward the {label(target).lower()}")
     if a["reason"]:
         return ToolResult(scope=scope, assumptions=assumptions,
