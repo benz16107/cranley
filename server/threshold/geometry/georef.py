@@ -1,8 +1,9 @@
 """Scan frame to east/north metres and lat/lon, window compass directions, and when the sun reaches each window.
 
 The conversion is  ENU = Rz(YAW_SIGN * yaw_deg) applied around the translation chosen by TRANSLATION.
-Neither constant is verified against an aerial photo yet: run `python -m threshold.geometry.check_georef` and
-lay the printed corners over the ortho. Until then every result here carries confidence `low`."""
+Checked 2026-11-13 against Vexcel building footprints on four houses (<scan-id>, <scan-id>, <scan-id>,
+<scan-id>): the scan outline's overlap (IoU) with the footprint is 0.53 to 0.77 with translation "enu" and at
+most 0.34 with "scan"; yaw sign +1 wins on three, ties on the fourth (a 9 degree yaw on a near-square hip roof)."""
 from __future__ import annotations
 
 import datetime as dt
@@ -21,9 +22,9 @@ from ._plan import (
     walls_by_id,
 )
 
-YAW_SIGN = 1                  # +1: yaw_deg rotates scan axes onto east/north counter-clockwise. UNVERIFIED.
-TRANSLATION = "scan"          # "scan": ENU = R(p - t); "enu": ENU = R p + t. UNVERIFIED.
-VERIFIED = False
+YAW_SIGN = 1                  # +1: yaw_deg rotates scan axes onto east/north counter-clockwise.
+TRANSLATION = "enu"           # "scan": ENU = R(p - t); "enu": ENU = R p + t.
+VERIFIED = True
 WGS84_A, WGS84_E2 = 6378137.0, 6.69437999014e-3
 COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
 
