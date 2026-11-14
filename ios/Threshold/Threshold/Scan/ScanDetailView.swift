@@ -3,6 +3,7 @@ import SwiftUI
 /// One phone scan as the server sees it: the plan drawn from its numbers, its rooms, and the geometry tools run on it.
 struct ScanDetailView: View {
   var sid: String
+  var onReport: ((String) -> Void)? = nil  // open the report form for this scan, with its name
   @Environment(AppModel.self) private var app
   @State private var plan: ScanPlan?
   @State private var floor: String?
@@ -66,6 +67,12 @@ struct ScanDetailView: View {
     }
     .navigationTitle(plan?.name ?? "Scan")
     .navigationBarTitleDisplayMode(.inline)
+    .toolbar {
+      if let onReport {
+        Button { onReport(plan?.name ?? "") } label: { Label("Make a report", systemImage: "doc.richtext") }
+          .disabled(plan == nil)
+      }
+    }
     .task { await load() }
     .refreshable { await load() }
   }

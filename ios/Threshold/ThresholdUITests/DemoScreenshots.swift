@@ -1,8 +1,8 @@
 import XCTest
 
-/// Walks the demo path in the simulator and saves screenshots: send the sample home, see its plan and the tools'
-/// verdicts, then the Measure and Workspace tabs. Needs a Threshold server; pass it as THRESHOLD_SERVER
-/// (default http://linuxbox:8811). Screenshots go to THRESHOLD_SHOTS (default /tmp/threshold-shots) on the Mac.
+/// Walks a field visit in the simulator and saves screenshots: the test cafe as the scan, the report form, the checks
+/// running, the finished visit and the report PDF. Needs a Threshold server; pass it as THRESHOLD_SERVER
+/// (default http://linuxbox:8843). Screenshots go to THRESHOLD_SHOTS (default /tmp/threshold-shots) on the Mac.
 final class DemoScreenshots: XCTestCase {
   let env = ProcessInfo.processInfo.environment
 
@@ -19,38 +19,41 @@ final class DemoScreenshots: XCTestCase {
   }
 
   @MainActor
-  func testDemoPath() throws {
+  func testFieldVisit() throws {
     let app = XCUIApplication()
-    app.launchArguments = ["-server", env["THRESHOLD_SERVER"] ?? "https://linuxbox.<tailnet>:8470"]
-    if let ws = env["THRESHOLD_WORKSPACE"] { app.launchArguments += ["-workspace", ws] }
+    app.launchArguments = ["-server", env["THRESHOLD_SERVER"] ?? "http://linuxbox:8843"]
     app.launch()
 
-    XCTAssertTrue(app.navigationBars["Your home"].waitForExistence(timeout: 10))
+    XCTAssertTrue(app.navigationBars["Site visits"].waitForExistence(timeout: 10))
     shot("01-home")
 
-    app.buttons["Send the sample home"].tap()
-    XCTAssertTrue(app.staticTexts["Rooms"].waitForExistence(timeout: 30), "the sample home did not open")
-    let doorVerdict = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'doorways are narrower'")).firstMatch
-    XCTAssertTrue(doorVerdict.waitForExistence(timeout: 60), "tool verdicts did not arrive")
-    sleep(2)
-    shot("02-scan-plan")
+    app.buttons["Use the test cafe"].tap()
+    XCTAssertTrue(app.navigationBars["New report"].waitForExistence(timeout: 5))
+    let business = app.textFields["business"]
+    XCTAssertTrue(business.waitForExistence(timeout: 5))
+    business.tap()
+    business.typeText("Test Cafe (made up)")
+    let space = app.textFields["place"]
+    space.tap()
+    space.typeText("Ground floor shop")
+    app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Fire safety pre-plan'")).firstMatch.tap()
+    shot("02-report-form")
 
+    app.navigationBars["New report"].buttons["Send"].tap()
+    let finished = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'checks finished'")).firstMatch
+    XCTAssertTrue(finished.waitForExistence(timeout: 120), "the visit's checks did not finish")
+    sleep(1)
+    shot("03-visit-finished")
     app.swipeUp()
     sleep(1)
-    shot("03-scan-tools")
+    shot("04-visit-on-site")
+    app.swipeDown()
+
+    app.buttons["Open report"].tap()
+    sleep(12)  // the server prints the PDF, then Quick Look opens it
+    shot("05-report")
     app.swipeUp()
     sleep(1)
-    shot("04-scan-tools-more")
-
-    app.tabBars.buttons["Measure"].tap()
-    XCTAssertTrue(app.navigationBars["Measure"].waitForExistence(timeout: 5))
-    shot("05-measure")
-    app.buttons["Floor above street"].tap()
-    sleep(1)
-    shot("06-floor-height")
-
-    app.tabBars.buttons["Workspace"].tap()
-    XCTAssertTrue(app.navigationBars["Workspace"].waitForExistence(timeout: 5))
-    shot("07-workspace")
+    shot("06-report-more")
   }
 }

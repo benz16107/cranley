@@ -37,6 +37,29 @@ struct DemoExportTests {
   }
 }
 
+struct DemoCafeTests {
+  /// The test cafe is a hand-made export too (threshold.roomplan.demo --cafe); Apple's decoder must take it.
+  @Test func `the test cafe decodes as a CapturedRoom`() throws {
+    let url = try #require(Bundle(for: Probe.self).url(forResource: "DemoCafe", withExtension: "json")
+      ?? Bundle.main.url(forResource: "DemoCafe", withExtension: "json"))
+    let room = try JSONDecoder().decode(CapturedRoom.self, from: Data(contentsOf: url))
+    #expect(room.walls.count == 7)
+    #expect(room.doors.count == 4)
+    #expect(room.objects.contains { $0.category == .toilet })
+  }
+}
+
+struct VisitRecordTests {
+  @Test func `a visit is named for the business, else the place`() {
+    var v = VisitRecord(workspace: "ws_1", token: "t", sid: "u_1", kind: .fire, business: "", place: "Shop", started: .now)
+    #expect(v.name == "Shop")
+    v.business = "Cafe"
+    #expect(v.name == "Cafe")
+    let again = try? JSONDecoder().decode(VisitRecord.self, from: JSONEncoder().encode(v))
+    #expect(again == v)
+  }
+}
+
 final class Probe {}
 
 struct CompassTests {
