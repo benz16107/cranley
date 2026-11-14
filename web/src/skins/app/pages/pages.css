@@ -29,6 +29,8 @@
 .insp-body { flex: 1; min-height: 0; }
 .insp-body[hidden] { display: none; }
 .ins-pad { padding: var(--s-4); }
+.insp .stats { flex-wrap: wrap; }
+.insp .stats > div { flex: 1 1 40%; box-shadow: 0 -1px 0 var(--rule); }
 .ins-sec { display: grid; gap: 8px; }
 .ins-sec > h3 { display: flex; align-items: center; gap: 6px; font-size: var(--text-xs); font-weight: 560; color: var(--ink-3); }
 .rows { border: 1px solid var(--rule); border-radius: var(--r-1); }

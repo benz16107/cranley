@@ -277,7 +277,7 @@ export function Building({ sid }: { sid: string }) {
             <IconBtn icon="right" label="Next scan at this address" disabled={i >= b.scans.length - 1} onClick={() => goScan(b.scans[i + 1].sid)} />
           </div>
         )}
-        <RunToolMenu sid={sid} trigger={<button type="button" className="btn"><Icon name="play" size={13} />Run a tool<Icon name="down" size={11} /></button>} />
+        <RunToolMenu sid={sid} trigger={<button type="button" className="btn" disabled={!v.plan}><Icon name="play" size={13} />Run a tool<Icon name="down" size={11} /></button>} />
         <button type="button" className="btn" aria-pressed={v.kept} onClick={v.toggleKeep} disabled={!v.plan} title="Keep this scan in Buildings ( K )"><Icon name="keep" size={14} />{v.kept ? 'Kept' : 'Keep'}</button>
       </header>
 
@@ -323,7 +323,11 @@ export function Building({ sid }: { sid: string }) {
             <Tabs.Tab value="record">Record</Tabs.Tab>
             <Tabs.Tab value="history">History{runs.length > 0 && <span className="count">{runs.length}</span>}</Tabs.Tab>
           </Tabs.List>
-          <Tabs.Panel value="overview" className="insp-body scroll">{v.plan ? <Overview plan={v.plan} sid={sid} panels={panels} onResults={(id) => { setChosen(id); setPick(null); setTab('results') }} /> : <div className="ins-pad stack">{[60, 80, 45].map((w, k) => <span key={k} className="sk" style={{ width: `${w}%` }} />)}</div>}</Tabs.Panel>
+          <Tabs.Panel value="overview" className="insp-body scroll">
+            {v.plan ? <Overview plan={v.plan} sid={sid} panels={panels} onResults={(id) => { setChosen(id); setPick(null); setTab('results') }} />
+              : v.error ? <Empty icon="building" title="Nothing to show for this scan" action={<button className="btn" onClick={() => go('explore')}>Back to the map</button>}>{v.error}</Empty>
+              : <div className="ins-pad stack">{[60, 80, 45].map((w, k) => <span key={k} className="sk" style={{ width: `${w}%` }} />)}</div>}
+          </Tabs.Panel>
           <Tabs.Panel value="results" className="insp-body scroll">
             {working.map((r) => <div key={r.id} className="b-loading working"><RunState state="running">{r.label.split(' · ')[0]}</RunState>{r.summary && <p className="muted small">{r.summary}</p>}<span className="sk" style={{ width: '64%' }} /></div>)}
             {panels.length === 0 && working.length === 0 && (

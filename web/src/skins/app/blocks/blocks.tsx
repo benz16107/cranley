@@ -178,7 +178,8 @@ function Controls({ b }: { b: Extract<Block, { type: 'Controls' }> }) {
   return (
     <div className="b-controls">
       {b.controls.map((c) => {
-        const set = (value: number | boolean | string) => userOp({ op: 'pref.set', key: c.id, label: c.label, value, unit: c.unit, from: 'You moved the control' })
+        // the server keeps `from` as the learned item's wording, so it says what was set
+        const set = (value: number | boolean | string) => userOp({ op: 'pref.set', key: c.id, label: c.label, value, unit: c.unit, from: `You set “${c.label}” to ${value === true ? 'yes' : value === false ? 'no' : value}${c.unit ? ` ${c.unit}` : ''}` })
         return (
           <div key={c.id} className="control">
             <span className="lab">{c.label}</span>
@@ -224,7 +225,7 @@ function AssumptionEdit({ a }: { a: { id: string; label: string; value: number; 
   const n = Number(v)
   const ok = v.trim() !== '' && Number.isFinite(n) && (a.min == null || n >= a.min) && (a.max == null || n <= a.max)
   return (
-    <form className="assume-edit" onSubmit={(e) => { e.preventDefault(); if (ok && n !== a.value) userOp({ op: 'pref.set', key: a.id, label: a.label, value: n, unit: a.unit, from: `You changed it from ${a.value} ${a.unit ?? ''}`.trim() }) }}>
+    <form className="assume-edit" onSubmit={(e) => { e.preventDefault(); if (ok && n !== a.value) userOp({ op: 'pref.set', key: a.id, label: a.label, value: n, unit: a.unit, from: `You changed “${a.label}” from ${a.value} to ${n}${a.unit ? ` ${a.unit}` : ''}` }) }}>
       <label className="fld"><span>{a.label}</span>
         <span className="row"><input className="field" inputMode="decimal" value={v} onChange={(e) => setV(e.target.value)} aria-invalid={!ok} autoFocus />{a.unit && <span className="num">{a.unit}</span>}</span>
       </label>
