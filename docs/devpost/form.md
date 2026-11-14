@@ -61,3 +61,5 @@ labels rooms and finds objects such as smoke alarms in panorama photos, and writ
 states a measurement: every number comes from geometry, a simulation or a lookup, and a rubric grader rejects closing
 messages that contain numbers. Embeddings: Ollama nomic-embed-text inside Tiger via pgai, voyage-4 inside Atlas, and
 bge-small through fastembed.
+
+Devpost draft: project 1548715, slug `threshold-o1e7uj`, https://devpost.com/software/threshold-o1e7uj (draft submission 1303844). Ben submits.
