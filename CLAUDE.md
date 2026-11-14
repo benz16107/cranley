@@ -21,7 +21,10 @@ workspace of tools for anyone whose need involves a building. Read `docs/ARCHITE
    A model may choose, label and explain; it may not state a measured value from memory.
 6. **Say what you did not check.** Reliability labels (`high`, `medium`, `low`) on every source are part of
    the product.
-7. No copyleft (GPL, AGPL) dependencies. No Co-Authored-By or "Generated with" lines in commits.
+7. Git ignores any folder named `data`, `cache`, `shots`, `build` or `dist` anywhere in the repo (to keep sponsor data
+   out). Never give a source folder one of those names, and run `git status --short --ignored` before your final
+   commit to confirm none of your source files are being ignored.
+8. No copyleft (GPL, AGPL) dependencies. No Co-Authored-By or "Generated with" lines in commits.
 
 ## Working rules
 
