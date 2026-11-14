@@ -32,8 +32,10 @@ export function connect(): Promise<boolean> {
 export const isLive = () => useCatalog.getState().live === true
 export const serverDoc = () => ws
 
+let writing: string[] = [] // runs the server is still writing the findings, panel and camera of
 function show(view: J, resumed = false) {
   ws = view.doc as J
+  writing = view.busy ?? []
   id = ws.id; store.set(KEY, id)
   const cur = useWorkspace.getState().doc.camera, sc = ws.camera as J | null
   let camera = cur
@@ -68,7 +70,7 @@ export async function resume() {
   if (b.state === 'loading') await new Promise<void>((res) => { const off = useBuildings.subscribe((x) => { if (x.state !== 'loading') { off(); res() } }) })
   await sync(true)
   // A turn that was running when the page went away is still running on the server: keep reading until it settles.
-  const busy = () => (ws?.runs as J[] | undefined)?.some((r) => r.status === 'running') || (ws?.plan as J[] | undefined)?.some((s) => s.status === 'in_progress')
+  const busy = () => (ws?.runs as J[] | undefined)?.some((r) => r.status === 'running') || (ws?.plan as J[] | undefined)?.some((s) => s.status === 'in_progress') || writing.length > 0
   for (let i = 0; i < 300 && busy() && !streaming; i++) { await new Promise((r) => setTimeout(r, 2000)); if (!streaming) await sync() }
 }
 async function ensure(): Promise<boolean> {
@@ -140,7 +142,8 @@ export async function runTool(tool: string, sid: string, inputs: J = {}): Promis
   // ordinary workspace ops, so every look shows it as a running run; here we only keep reading until it settles.
   for (let i = 0; out.status === 'running' && i < 1500; i++) {
     const run = (ws?.runs as J[] | undefined)?.find((x) => x.id === out.run)
-    if (!run || run.status !== 'running') { out = run?.status === 'error' ? { error: run.error ?? 'The tool stopped.' } : {}; break }
+    // "done" comes a few seconds before the run's panel and camera are written: read until those are in too
+    if ((!run || run.status !== 'running') && !writing.includes(out.run)) { out =run?.status === 'error' ? { error: run.error ?? 'The tool stopped.' } : {}; break }
     await new Promise((res) => setTimeout(res, 1200))
     await sync()
   }

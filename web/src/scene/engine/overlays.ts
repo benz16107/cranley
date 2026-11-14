@@ -23,6 +23,9 @@ const WATER_FRAG = /* glsl */ `
     gl_FragColor = vec4(col, (0.42 + 0.4 * fres) * uOn);
   }`
 
+// A label keeps its DOM element for as long as its id stays the same, so every id below carries what its chip says:
+// an id made only of the overlay's place in the list let one tool's chip keep its words when another tool's
+// overlays took that place.
 export class Overlays3D {
   group = new THREE.Group()
   private made: THREE.Object3D[] = []
@@ -78,7 +81,7 @@ export class Overlays3D {
         let len = 0
         for (let i = 1; i < r.points.length; i++) len += Math.hypot(r.points[i][0] - r.points[i - 1][0], r.points[i][1] - r.points[i - 1][1])
         const end = r.points[r.points.length - 1]
-        labels.push({ id: `route${oi}`, pos: [end[0], end[1], fz + 0.3], floor: f, make: () => chip('th-chip-route', null, h('span', 'th-chip-text', r.label ?? 'Route'), h('span', 'th-num', fmtM(len))) })
+        labels.push({ id: `route${oi}.${r.label ?? ''}.${r.points.length}.${r.points[0]?.join(',')}`, pos: [end[0], end[1], fz + 0.3], floor: f, make: () => chip('th-chip-route', null, h('span', 'th-chip-text', r.label ?? 'Route'), h('span', 'th-num', fmtM(len))) })
         for (const [ci, c] of (r.chokes ?? []).entries()) {
           // the caliper: a bar across the path, exactly as wide as the measured clearance
           let best = 0, bd = Infinity
@@ -90,7 +93,7 @@ export class Overlays3D {
           const nx = -(b[1] - a[1]) / L, ny = (b[0] - a[0]) / L, tx = (b[0] - a[0]) / L, ty = (b[1] - a[1]) / L, hw = c.width / 2, z = 0.09, tk = 0.11
           const P = (s: number, t: number) => [c.point[0] + nx * s + tx * t, c.point[1] + ny * s + ty * t, z]
           this.cased(g, [...P(-hw, 0), ...P(hw, 0), ...P(-hw, -tk), ...P(-hw, tk), ...P(hw, -tk), ...P(hw, tk)], statusColor(c.status, tok), 3, true)
-          labels.push({ id: `choke${oi}.${ci}`, pos: [c.point[0], c.point[1], fz + 0.5], floor: f, make: () => chip('th-chip-measure', c.status, h('span', 'th-num', fmtM(c.width))) })
+          labels.push({ id: `choke${oi}.${ci}.${c.width}.${c.status}`, pos: [c.point[0], c.point[1], fz + 0.5], floor: f, make: () => chip('th-chip-measure', c.status, h('span', 'th-num', fmtM(c.width))) })
         }
       } else if (ov.kind === 'water') {
         const w = ov as Of<'water'>
@@ -117,7 +120,7 @@ export class Overlays3D {
         holder.add(fill, this.line(pts, tok.paper, 5, { segments: true, opacity: 0.9, order: 7 }), this.line(pts, col, 2, { segments: true, order: 8 }))
         g.add(holder); this.made.push(holder, ...holder.children)
         const dims = `${b.size[0].toFixed(2)} × ${b.size[1].toFixed(2)} × ${b.size[2].toFixed(2)} m`
-        labels.push({ id: `box${oi}`, pos: [b.center[0], b.center[1], b.center[2] + b.size[2] / 2 + 0.12], floor: at.floor, make: () => chip('th-chip-box', b.status, h('span', 'th-chip-text', b.label ?? 'Object'), h('span', 'th-num', dims)) })
+        labels.push({ id: `box${oi}.${b.label ?? ''}.${b.status}.${b.size.join('x')}`, pos: [b.center[0], b.center[1], b.center[2] + b.size[2] / 2 + 0.12], floor: at.floor, make: () => chip('th-chip-box', b.status, h('span', 'th-chip-text', b.label ?? 'Object'), h('span', 'th-num', dims)) })
       } else if (ov.kind === 'pins') {
         const pins = (ov as Of<'pins'>).pins ?? []
         pins.forEach((p, i) => {
@@ -130,7 +133,7 @@ export class Overlays3D {
             g.add(stem); this.made.push(stem)
           }
           labels.push({
-            id: `pin${oi}.${p.id}`, pos: [at.point[0], at.point[1], at.point[2] + lift], floor: at.floor, skipWall: 'wall' in p.anchor ? p.anchor.wall : 'opening' in p.anchor ? m.openingById.get(p.anchor.opening)?.wall : undefined,
+            id: `pin${oi}.${p.id}.${i}.${p.status}.${p.label}`, pos: [at.point[0], at.point[1], at.point[2] + lift], floor: at.floor, skipWall: 'wall' in p.anchor ? p.anchor.wall : 'opening' in p.anchor ? m.openingById.get(p.anchor.opening)?.wall : undefined,
             make: () => {
               const el = h('button', `th-pin${pins.length > 8 ? ' th-pin-compact' : ''}`, h('span', 'th-pin-mark', h('span', '', String(i + 1))), h('span', 'th-pin-label', p.label))
               el.dataset.status = p.status; el.dataset.at = anchorKey(p.anchor); el.setAttribute('aria-label', `${i + 1}. ${p.label} (${p.status})`)

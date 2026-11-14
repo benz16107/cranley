@@ -50,6 +50,14 @@ export class SceneBoundary extends Component<{ children: ReactNode; fallback: Re
   render() { return this.state.failed ? this.props.fallback : this.props.children }
 }
 
+/** Where "inside" starts when the person has not chosen a position: in the room of the thing being looked at, else
+    the first position that stands in a room (a scan's first position is often outside on the path), else the first. */
+function firstInside(plan: ScanPlan | null, at: Anchor | null) {
+  if (!plan) return undefined
+  const rooms = at && 'room' in at ? [at.room] : at && 'opening' in at ? plan.openings.find((o) => o.id === at.opening)?.rooms ?? [] : []
+  return plan.panos.find((p) => p.room && rooms.includes(p.room)) ?? plan.panos.find((p) => p.room) ?? plan.panos[0]
+}
+
 const MODES: Mode[] = ['dollhouse', 'plan', 'pano', 'splat']
 const isMode = (v: string | null): v is Mode => MODES.includes(v as Mode)
 
@@ -112,7 +120,7 @@ export function useBuildingView(sid: string, opts?: { /** draw only these tools'
     /** The modes this scan can show: no drone capture means no 'splat', no positions means no 'pano'. */
     modes: plan ? MODES.filter((m) => (m !== 'splat' || plan.has.splat) && (m !== 'pano' || plan.panos.length > 0)) : [],
     mode: look.mode,
-    setMode: (m: Mode) => setLook((v) => ({ ...v, mode: m, pano: m === 'pano' ? v.pano ?? plan?.panos[0]?.id : v.pano })),
+    setMode: (m: Mode) => setLook((v) => ({ ...v, mode: m, pano: m === 'pano' ? v.pano ?? firstInside(plan, cam)?.id : v.pano })),
     /** The whole view (floor, cut, pull-apart, wipe, measures) for a skin that draws its own scene controls. */
     view: look, setView: setLook,
     /** Frame the whole building again in the current mode, after a close-up on a finding. */

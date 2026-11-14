@@ -22,6 +22,9 @@ router = APIRouter(prefix="/api")
 _sessions: dict[str, Session] = {}
 _lock = threading.Lock()
 _background = concurrent.futures.ThreadPoolExecutor(max_workers=4, thread_name_prefix="tool-run")  # runs that outlive their request
+# workspace id -> run id -> its background job. A run reads "done" before its findings, panel and camera are written
+# (each op is stored as it is emitted), so the view names the runs still writing in `busy`.
+_jobs: dict[str, dict[str, concurrent.futures.Future]] = {}
 
 
 def session(id: str) -> Session:
@@ -38,7 +41,7 @@ def session(id: str) -> Session:
 
 def view(s: Session, log: bool = False) -> dict:
     out = {"doc": s.doc.model_dump(mode="json", by_alias=True), "learned": prefs.learned(s.doc),
-           "seq": len(s.log)}
+           "seq": len(s.log), "busy": [rid for rid, j in _jobs.get(s.doc.id, {}).items() if not j.done()]}
     if log:
         out["log"] = [e.model_dump(mode="json", by_alias=True) for e in s.log]
     return out
@@ -58,7 +61,8 @@ def tool_run(tool_id: str, inputs: dict[str, Any] = Body(default={}), workspace:
     With ?workspace and ?wait=<seconds> a slow tool (a smoke simulation takes minutes) does not hold the request
     open: when the run has not finished in that time the reply is `{"status": "running", "run": <id>}` and the run
     carries on in the background. Its `run.start`, `run.progress` and `run.finish` ops, findings, overlays and panel
-    reach the workspace exactly as they do for a fast tool, so a client follows it by reading the workspace."""
+    reach the workspace exactly as they do for a fast tool, so a client follows it by reading the workspace until
+    the run's id leaves the view's `busy` list (the run reads "done" a few seconds before its panel is written)."""
     if tool_id not in catalog():
         raise HTTPException(404, f"Unknown tool {tool_id}")
     if workspace:
@@ -71,6 +75,8 @@ def tool_run(tool_id: str, inputs: dict[str, Any] = Body(default={}), workspace:
             return job.result(timeout=wait)
         except concurrent.futures.TimeoutError:
             started = next((r.id for r in reversed(s.doc.runs) if r.id not in before and r.tool == tool_id), None)
+            if started:
+                _jobs[workspace] = {k: j for k, j in _jobs.get(workspace, {}).items() if not j.done()} | {started: job}
             return {"status": "running", "run": started, "tool": tool_id}
     try:
         return run_tool(tool_id, inputs).model_dump(mode="json")

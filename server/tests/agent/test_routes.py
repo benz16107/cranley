@@ -70,13 +70,15 @@ def test_a_slow_tool_run_answers_early_and_finishes_in_the_background(tmp_path, 
     assert out["status"] == "running" and out["run"]
     run = next(r for r in c.get(f"/api/workspace/{wid}").json()["doc"]["runs"] if r["id"] == out["run"])
     assert run["status"] == "running" and run["steps"] == ["Half way"]  # progress is in the workspace while it runs
+    assert c.get(f"/api/workspace/{wid}").json()["busy"] == [out["run"]]
     release.set()
-    for _ in range(100):
-        run = next(r for r in c.get(f"/api/workspace/{wid}").json()["doc"]["runs"] if r["id"] == out["run"])
-        if run["status"] != "running":
+    for _ in range(100):  # "busy" clears only when the panel is written, which is after the run reads "done"
+        v = c.get(f"/api/workspace/{wid}").json()
+        if not v["busy"]:
             break
         time.sleep(0.05)
-    assert run["status"] == "done" and c.get(f"/api/workspace/{wid}").json()["doc"]["panels"]
+    run = next(r for r in v["doc"]["runs"] if r["id"] == out["run"])
+    assert run["status"] == "done" and v["doc"]["panels"]
     quick = c.post(f"/api/tools/room_census/run?workspace={wid}&wait=5", json={"scan": "t1"}).json()
     assert quick["verdict"] and "status" not in quick  # a run that finishes inside the wait answers as it always did
 
