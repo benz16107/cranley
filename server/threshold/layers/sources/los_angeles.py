@@ -31,6 +31,8 @@ def zone_group(zone: str) -> str:
     return "Other or specific plan"
 
 
+LEGEND = [[0, "Open space"], [1, "Residential"], [2, "Public facilities"], [3, "Other or specific plan"],
+          [4, "Commercial, or the new Chapter 1A code"], [5, "Industrial"]]  # one stop per level: the list keys on it
 GROUP_LEVEL = {"Open space": 0, "Residential": 1, "Public facilities": 2, "Other or specific plan": 3, "Commercial": 4,
                "Chapter 1A (new code)": 4, "Industrial": 5}
 
@@ -65,7 +67,7 @@ _pairs = (
           source="Los Angeles City Planning, ZIMAS", source_url="https://zimas.lacity.org/", confidence="high",
           note="The zone string on each lot, such as C2-1VL or R1-1: class, then height district. Q and T conditions, "
           "D limits, specific plans and overlays can change what it allows; ZIMAS's parcel report lists them.",
-          extra={"hue": "--tool-7", "legend": {"title": "Zone class", "unit": "", "stops": [[v, k] for k, v in GROUP_LEVEL.items()]}},
+          extra={"hue": "--tool-7", "legend": {"title": "Zone class", "unit": "", "stops": LEGEND}},
           **CITY),
     layer("la_general_plan", "General Plan land use", "Rules", "area", GENPLAN, grid_z=14, minzoom=12.5,
           fields="*", offset=0.00001,

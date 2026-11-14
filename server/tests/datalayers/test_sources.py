@@ -23,7 +23,9 @@ def test_every_layer_says_where_it_comes_from(L):
         assert L.grid_z >= 12  # never a whole county in one tile
     if L.scope == "tiles":
         assert L.tiles.startswith("https://") and ("{z}" in L.tiles or "{bbox-epsg-3857}" in L.tiles)
-    for level, label in (L.extra.get("legend") or {}).get("stops", []):
+    stops = (L.extra.get("legend") or {}).get("stops", [])
+    assert len({lv for lv, _ in stops}) == len(stops)  # the legend keys its rows on the level
+    for level, label in stops:
         assert 0 <= level <= 5 and label
 
 
