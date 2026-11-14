@@ -126,14 +126,14 @@ export function toDoc(ws: J, learned: J[], manifests: Map<string, Manifest>, nam
   const title = (id: string) => manifests.get(id)?.title ?? id
   return {
     id: ws.id,
-    brief: ws.brief?.text ? { text: ws.brief.text, facts: [], limits: ws.brief.limits ?? [] } : null,
+    brief: ws.brief?.text ? { text: ws.brief.text, facts: [], limits: ws.brief.limits ?? [], scope: ws.brief.scope?.sids?.length ? [...ws.brief.scope.sids] : undefined } : null,
     questions: ((ws.questions ?? []) as J[]).map(toQuestion),
     tools: ((ws.tools ?? []) as J[]).filter((t) => t.enabled !== false).map((t): ToolRef => ({ id: t.id, title: title(t.id), summary: manifests.get(t.id)?.summary, reason: t.reason ?? '',
       coverage: t.status === 'planned' ? 'Planned, not built yet' : undefined, by: t.by === 'user' ? 'user' : 'agent' })),
     runs: ((ws.runs ?? []) as J[]).map((r) => ({ id: r.id, tool: r.tool, step: r.plan_step ?? undefined, stale: !!r.stale, sid: r.sid ?? undefined, place: r.place ?? undefined,
       label: [title(r.tool), r.sid ? names(r.sid)?.name ?? r.sid : placeLabel(r.place)].filter(Boolean).join(' · '),
       status: r.status === 'running' ? 'running' : r.status === 'error' ? 'failed' : 'done',
-      ms: r.started && r.finished ? (r.finished - r.started) * 1000 : undefined,
+      ms: r.started && r.finished ? (r.finished - r.started) * 1000 : undefined, at: r.started ? r.started * 1000 : undefined,
       summary: (r.error ?? (r.status === 'running' ? r.steps?.at(-1) : r.summary)) || undefined })),
     findings: ((ws.findings ?? []) as J[]).filter((f) => !f.superseded_by && f.feedback?.verdict !== 'rejected').map((f) => ({ ...f, tool: f.tool ?? '', run: f.run ?? undefined, media: f.media ?? [] })) as Doc['findings'],
     layers: [],

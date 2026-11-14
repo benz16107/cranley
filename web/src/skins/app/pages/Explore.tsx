@@ -10,6 +10,7 @@ import { goScan } from '../lib/place.ts'
 import { CityMap, useMap } from '../map/CityMap.tsx'
 import { useScheme } from '../shell/theme.ts'
 import { useIsPhone } from '../shell/store.ts'
+import { Edge, Fill, Pane, Split } from '../design/split.tsx'
 
 const KIND_LABEL: Record<Kind, string> = { home: 'House', apartment: 'Apartment', amenity: 'Shared room', office: 'Office', other: 'Other' }
 type View = 'map' | 'split' | 'table'
@@ -236,7 +237,8 @@ export function Explore() {
         <Seg label="Layout" compact value={view} onChange={(v: View) => setQuery({ app_view: v === 'split' && !phone ? null : v })}
           options={phone ? [{ id: 'map', label: 'Map', icon: 'map' }, { id: 'table', label: 'Table', icon: 'table' }] : [{ id: 'map', label: 'Map', icon: 'map' }, { id: 'split', label: 'Split', icon: 'split' }, { id: 'table', label: 'Table', icon: 'table' }]} />
       </div>
-      <div className="ex-body">
+      <Split className="ex-body" off={phone}>
+        {(phone || view !== 'table') && <Fill key="map" id="map" min={320}>
         <div className="ex-map">
           <CityMap buildings={measured ? hitBuildings : m.shown} selected={m.selected} marks={m.marks} geo={m.geo} look={m.look} city={city} scheme={scheme} onSelect={select} />
           <HoverTip />
@@ -253,8 +255,10 @@ export function Explore() {
           </p>
           {view === 'map' && <p className="mapcount">{measured ? `${int(hitBuildings.length)} buildings with a matching scan` : `${int(m.shown.length)} buildings`}{doc.runs.some((r) => r.status === 'running') ? ' · the agent is working' : ''}</p>}
         </div>
-        {side}
-      </div>
+        </Fill>}
+        {!phone && view === 'split' && <Edge key="edge" of="list" label="Resize the list" />}
+        {phone || view === 'split' ? <Pane key="list" id="list" size="44%" min={360} max="72%">{side}</Pane> : view === 'table' && <Fill key="list" id="table">{side}</Fill>}
+      </Split>
     </div>
   )
 }

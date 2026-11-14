@@ -4,6 +4,8 @@ import { Tooltip } from '@base-ui/react/tooltip'
 import { Drawer } from 'vaul'
 import { currentRoute, setQuery, useWorkspace } from '../../../core/index.ts'
 import { Icon } from '../design/ui.tsx'
+import { Edge, Fill, Pane, Split } from '../design/split.tsx'
+import { FirstRun } from './FirstRun.tsx'
 import { go, usePlace } from '../lib/place.ts'
 import '../lib/pending.ts' // keeps the index of investigations seen in this browser
 import { useBuildings } from '../../../core/index.ts'
@@ -26,7 +28,7 @@ import { useIsPhone, useUi } from './store.ts'
 export const SHORTCUTS: [keys: string, what: string][] = [
   ['Ctrl K', 'Search and commands'], ['/', 'Search'], [']', 'Show or hide the agent panel'], ['[', 'Narrow or widen the sidebar'],
   ['G then H', 'Home'], ['G then E', 'Explore'], ['G then I', 'Investigations'], ['G then B', 'Saved buildings'], ['G then N', 'Insights'], ['G then T', 'Tools'], ['G then S', 'Settings'],
-  ['1 2 3 4', 'On a building: 3D, plan, inside, drone'], ['K', 'On a building: keep or stop keeping it'], ['Ctrl Z', 'Undo my last change'], ['Esc', 'Close what is open, or clear the selected building'], ['?', 'This list'],
+  ['C', 'On Home: write a new brief'], ['1 2 3 4', 'On a building: 3D, plan, inside, drone'], ['K', 'On a building: keep or stop keeping it'], ['Ctrl Z', 'Undo my last change'], ['Esc', 'Close what is open, or clear the selected building'], ['?', 'This list'],
 ]
 const typing = (e: KeyboardEvent) => { const t = e.target as HTMLElement; return /^(input|textarea|select)$/i.test(t.tagName) || t.isContentEditable }
 
@@ -58,7 +60,8 @@ export function Shell() {
   // The run panel opens by itself when the agent starts working or needs an answer. Closing it is the person's.
   const busy = useWorkspace((s) => s.doc.plan.some((p) => p.status === 'active') || ((s.doc.plan.length > 0 || s.doc.runs.length > 0 || !s.doc.brief) && s.doc.questions.some((q) => q.answer == null)))
   const was = useRef(busy)
-  useEffect(() => { if (busy && !was.current) setRun(true); was.current = busy }, [busy, setRun])
+  // not on a phone during the guided first run: there the panel is a sheet over the page, and the page is what is being shown
+  useEffect(() => { if (busy && !was.current && !(phone && useUi.getState().first)) setRun(true); was.current = busy }, [busy, setRun, phone])
 
   useEffect(() => {
     let g = 0
@@ -88,10 +91,18 @@ export function Shell() {
     <Tooltip.Provider delay={450} closeDelay={0}>
       <div className="app" data-page={place.page} data-rail={rail || undefined} data-run={(run && !phone) || undefined}>
         <a className="skip" href="#main">Skip to the page</a>
-        {!phone && <Sidebar />}
-        <Topbar />
-        <main className="main" id="main" tabIndex={-1}>{page}</main>
-        {run && !phone && <RunPanel onClose={() => setRun(false)} />}
+        {/* Sidebar, page and agent panel resize by the edges between them. The narrow sidebar is a fixed 52 px. */}
+        <Split className="frame" off={phone}>
+          {!phone && (rail ? <Pane key="rail" id="rail" size={52} fixed><Sidebar /></Pane> : <Pane key="side" id="side" size={224} min={184} max={400}><Sidebar /></Pane>)}
+          {!phone && !rail && <Edge key="side-edge" of="side" label="Resize the sidebar" />}
+          <Fill key="work" id="work" min={360} className="workpane">
+            <FirstRun />
+            <Topbar />
+            <main className="main" id="main" tabIndex={-1}>{page}</main>
+          </Fill>
+          {run && !phone && <Edge key="run-edge" of="run" label="Resize the agent panel" />}
+          {run && !phone && <Pane key="run" id="run" size={window.innerWidth <= 1700 ? 344 : 372} min={300} max={720}><RunPanel onClose={() => setRun(false)} /></Pane>}
+        </Split>
 
         {phone && (
           <Drawer.Root open={nav} onOpenChange={(o) => useUi.setState({ nav: o })} direction="left">

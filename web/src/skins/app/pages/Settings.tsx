@@ -2,6 +2,7 @@ import { Switch } from '@base-ui/react/switch'
 import { useCatalog, useToolCatalog, useWorkspace } from '../../../core/index.ts'
 import { Copy, Icon, Seg } from '../design/ui.tsx'
 import { useSeen } from '../lib/pending.ts'
+import { go } from '../lib/place.ts'
 import { Learned } from '../shell/RunPanel.tsx'
 import { SHORTCUTS } from '../shell/Shell.tsx'
 import { useTheme, type Theme } from '../shell/theme.ts'
@@ -31,10 +32,12 @@ export function Settings() {
   const { theme, setTheme } = useTheme()
   const follow = useWorkspace((s) => s.follow), setFollow = useWorkspace((s) => s.setFollow)
   const id = useWorkspace((s) => s.doc.id)
-  const live = useCatalog((s) => s.live), tools = useToolCatalog()
+  const live = useCatalog((s) => s.live), shared = useCatalog((s) => s.shared), tools = useToolCatalog()
   const seen = useSeen((s) => Object.keys(s.all).length)
   const { rail, setRail } = useUi()
-  const clear = (prefix: string) => { try { for (const k of Object.keys(localStorage)) if (k.startsWith(prefix)) localStorage.removeItem(k) } catch { /* nothing kept */ } window.location.reload() }
+  // layout choices share the prefix of the list of investigations: resetting the layout leaves that list alone
+  const LIST = 'threshold.app.investigations'
+  const clear = (prefix: string) => { try { for (const k of Object.keys(localStorage)) if (k.startsWith(prefix) && (prefix === LIST || k !== LIST)) localStorage.removeItem(k) } catch { /* nothing kept */ } window.location.reload() }
   return (
     <div className="page"><div className="inner narrow settings">
       <section className="card">
@@ -47,6 +50,7 @@ export function Settings() {
       <section className="card">
         <header><h2>Agent</h2></header>
         <div className="set"><div><b>Follow the agent’s view</b><p>When the agent looks at a finding, go to that building or that point on the map. Turn it off to stay where you are while it works.</p></div><Switch.Root className="switch" checked={follow} onCheckedChange={setFollow} aria-label="Follow the agent’s view"><Switch.Thumb className="knob" /></Switch.Root></div>
+        <div className="set"><div><b>Guided first run</b><p>Asks who you are, then shows the agent set up a workspace on a real building. It starts a new investigation; the open one stays under Investigations.</p></div><button className="btn" disabled={!!shared} onClick={() => { go('home'); useUi.setState({ first: 'ask' }) }}>Run it again</button></div>
         <div className="set"><div><b>Server</b><p>{live == null ? 'Checking.' : live ? `Connected. ${tools.length} tools listed.` : 'Not answering. Starting points play back a recorded composition.'}</p></div><span className="rs" data-state={live ? 'done' : 'pending'}><Icon name={live ? 'check' : 'clock'} size={12} />{live ? 'Connected' : live == null ? 'Checking' : 'Scripted'}</span></div>
       </section>
       <section className="card">
@@ -64,8 +68,8 @@ export function Settings() {
           <p>The building data belongs to those providers and is shown under the event’s terms, so do not copy it out of the app. The service is offered as it is, with no warranty.</p>
         </div>
         <div className="set"><div><b>Open investigation</b><p className="row"><span className="num">{id || 'none'}</span>{id && <Copy text={id} label="Copy the id" />}</p></div></div>
-        <div className="set"><div><b>Investigations listed in this browser</b><p>{seen} listed. Clearing the list does not delete them from the server.</p></div><button className="btn" disabled={!seen} onClick={() => clear('threshold.app.investigations')}>Clear the list</button></div>
-        <div className="set"><div><b>Layout choices</b><p>Table columns, the sidebar and the agent panel.</p></div><button className="btn" onClick={() => clear('threshold.app.')}>Reset</button></div>
+        <div className="set"><div><b>Investigations listed in this browser</b><p>{seen} listed. Clearing the list does not delete them from the server.</p></div><button className="btn" disabled={!seen} onClick={() => clear(LIST)}>Clear the list</button></div>
+        <div className="set"><div><b>Layout choices</b><p>Panel sizes, table columns, the narrow sidebar and whether the agent panel is open. Drag the edge of any panel to resize it; double-click the edge to put it back.</p></div><button className="btn" onClick={() => clear('threshold.app.')}>Reset</button></div>
       </section>
       <section className="card">
         <header><h2>Keyboard</h2></header>

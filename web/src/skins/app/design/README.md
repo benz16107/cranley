@@ -10,6 +10,17 @@ a tool a person works in all day. Tokens are in `tokens.css`, shared classes in 
   page. `lib/place.ts` maps the address to a page.
 - **Pages** (`pages/`): Home, Explore, Building, Investigations, Buildings, Insights, Tools, Settings. A page is either
   a document that scrolls (`.page > .inner`) or a work surface that fills the window (`.listpage`, `.ex`, `.bld`).
+  Home is two columns that fold into one under 1000 px of page width: on the left the field for a brief, the open
+  investigation and its buildings as aerial photos; on the right the map of scanned addresses and one activity feed
+  (runs, failures, questions, phone captures). What it lists is worked out in `lib/home.ts`. A building's picture is
+  the 256 px aerial the server keeps on disk, one image per card, never a 3D view.
+- **The guided first run** (`shell/FirstRun.tsx`, steps worked out in `lib/firstrun.ts`): on a first visit to Home a
+  dialog asks one thing, who you are and what you need, in one line or one tap. Then it stands aside. The real
+  workspace is on the page while the agent composes it, and a small card in the corner says which step is happening:
+  tools chosen, a plan, a building opened, first results. It opens one of the agent's picks (one that is photoreal
+  and on its site when there is one) and holds the page there until that building has results, then says what was
+  found and where to look next. Shown once per browser (`threshold.firstrun`), left at any moment, started again
+  from Settings.
 - **Blocks** (`blocks/`): the twelve panel blocks. A tool's result is only ever built from these.
 - **Stand-ins** (`lib/pending.ts`, `lib/tools.ts`): what core does not give yet. Each part names the request that
   replaces it.
@@ -42,7 +53,13 @@ a tool a person works in all day. Tokens are in `tokens.css`, shared classes in 
 11. **Words.** Sentence case. Plain sentences, the person's words ("doorway", not "opening"), no exclamation marks.
     A message about a failure says what to do next. When something is not connected, the page says so.
 12. **Components come from what is installed**: Base UI (menu, popover, tooltip, tabs, dialog, switch, slider), cmdk,
-    Sonner, Vaul. Icons are Phosphor regular (`icons.ts`), one set.
+    Sonner, Vaul, react-resizable-panels. Icons are Phosphor regular (`icons.ts`), one set.
+13. **Panels resize by their edges** (`design/split.tsx`, on react-resizable-panels): the sidebar, the agent panel, a
+    building's inspector, Explore's list and a drawer's sheet. No handle is drawn. The 8 px on the line two panes
+    share take the pointer, and an accent line shows there under the pointer, during a drag and for keyboard focus
+    (arrow keys, Home, End). A pane keeps its pixels when the window changes, is remembered per browser under
+    `threshold.app.size.<id>`, and goes back to its designed size on a double click. A new side panel is a `<Pane>`
+    in a `<Split>`, never a fixed grid column. On a phone a split is off and nothing drags.
 
 ## The design tells checklist
 
@@ -55,6 +72,6 @@ frosted blur, Inter, Geist and Space Grotesk, coloured left stripes, bento grids
 pricing tiers, soft radius everywhere, purple and black, glow orbs, dot grids, sparkles, animated arrows, hover
 motion, neon, pastels, em dashes and "not X but Y" copy.
 
-Partial, and why: Home's stat strip holds four counts side by side. It is one ruled strip at 14 px, the form the
-references use for a row of facts, and not four cards. The tool keys use seven hues, one per tool family; they are
+Partial, and why: Home's five needs sit three and two in bordered tiles at 1440 px. They are buttons that start an
+investigation, with no icon and no marketing line, and one row of five on a wide page. The tool keys use seven hues, one per tool family; they are
 18 px squares and the only place those hues appear.

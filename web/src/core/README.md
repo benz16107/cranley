@@ -85,11 +85,11 @@ userOp(op)                                       // the person changes the works
 
 | Field | What it is | Must be shown as |
 |---|---|---|
-| `brief` | `{ text, limits? }`: what the person said; `limits` are plain sentences on what no tool here can do | the brief, and its limits |
+| `brief` | `{ text, limits?, scope? }`: what the person said; `limits` are plain sentences on what no tool here can do; `scope` is the scans the agent has narrowed the work to, once it has | the brief, and its limits |
 | `questions` | `{ id, text, kind: 'choice' \| 'number' \| 'text', options?, unit?, answer?, hint? }` | a form; `answer == null` is open; offer `hint` |
 | `tools` | `ToolRef { id, title, code?, summary?, reason, coverage?, by }` | the dock, with why each is here and who added it |
 | `plan` | `PlanStep { id, label, status: 'pending' \| 'active' \| 'done' }` | the agent's plan, live |
-| `runs` | `Run { id, tool, label, sid?, place?, step?, status: 'running' \| 'done' \| 'failed', ms?, summary?, stale? }`; `sid` is the scan it is about | tool calls under their plan step (`step` is a `PlanStep.id`); a running run's `summary` is its latest progress line |
+| `runs` | `Run { id, tool, label, sid?, place?, step?, status: 'running' \| 'done' \| 'failed', ms?, at?, summary?, stale? }`; `sid` is the scan it is about | tool calls under their plan step (`step` is a `PlanStep.id`); a running run's `summary` is its latest progress line |
 | `panels` | `Panel { id, tool, title, role?, scope?, sid?, run?, blocks }`; `role` is `'tool'` (also when missing), `'summary'` (the agent's closing note), `'ranking'` or `'note'` | one panel each, built from the twelve blocks |
 | `findings` | `Finding { id, title, status, detail?, anchor, source, media? } & { tool, run? }` | evidence; `anchor` is where it is in the building or on the map |
 | `overlays` | `{ id, tool, sid?, overlay }` | drawn in the scene (core does this) and on the map (you do this, from `useMapModel().geo`) |
@@ -142,7 +142,8 @@ The store applies the op at once and core tells the server. You do not call the 
 ## The agent
 
 ```ts
-compose(sentence, needId?)   // the front door: a new brief. Tools and questions arrive in doc as the server composes
+compose(sentence, needId?)   // the front door: a new brief. Tools and questions arrive in doc as the server composes;
+                             // the promise resolves when composing has ended, for a caller that goes straight on
 investigate()                // every question answered (or "use the defaults"): start the work
 ask(text)                    // the one-line command bar, anywhere
 runToolHere(toolId, sid)     // run one tool on the scan in view, from the dock. A slow tool does not block: see below
@@ -305,7 +306,8 @@ may use: the pin of the focused finding is `.th-pin[aria-current="true"]`.
 sides), `panoEquirect(sid, pano)`, `floorplanImage(sid, floor)`, `orthoImage(lat, lon, size_m)`, `fetchRecord(sid)`
 (the CoStar or listing record), `fetchDrone(sid)` and `droneImage(sid, name, width?)`, `fetchScans(filter)`. `anchorFloor(plan,
 anchor)` tells you which floor an anchor is on. From the facts database: `fetchFactHistory(sid)` (every value recorded for
-a scan) and `fetchFloodWet()`. `fetchCaptures(workspaceId)` lists what a paired phone sent.
+a scan) and `fetchFloodWet()`. `fetchCaptures(workspaceId)` lists what a paired phone sent. `photorealReady(sid)` says whether a scan's
+photoreal colour is made already, without starting to make it.
 
 ## Minimum to be a complete skin
 

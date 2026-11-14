@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { Dialog } from '@base-ui/react/dialog'
 import { useWorkspace, userOp } from '../../../core/index.ts'
 import { DataTable, Empty, Icon, Seg, ToolKey, type Col } from '../design/ui.tsx'
+import { Sheet } from '../design/split.tsx'
+import { sheetFocus } from '../lib/split.ts'
 import { usePlace } from '../lib/place.ts'
 import { startTool } from '../shell/StartTool.tsx'
 import { FAMILIES, family, useTools, type Family, type ToolInfo } from '../lib/tools.ts'
@@ -13,9 +15,9 @@ function Detail({ t, on, onClose, onRun }: { t: ToolInfo | null; on: boolean; on
     <Dialog.Root open={!!t} onOpenChange={(o) => !o && onClose()}>
       <Dialog.Portal>
         <Dialog.Backdrop className="backdrop" />
-        <Dialog.Popup className="drawer">
+        <Dialog.Popup className="drawerwrap" initialFocus={sheetFocus}>
           {t && (
-            <>
+            <Sheet>
               <header><ToolKey id={t.id} title={t.title} /><Dialog.Title render={<h2 className="trunc" />}><b>{t.title}</b><span className="muted"> · {family(t.id).label}</span></Dialog.Title><Dialog.Close render={<button className="btn icon quiet" aria-label="Close" />}><Icon name="close" /></Dialog.Close></header>
               <div className="body tooldetail">
                 <p>{t.summary}</p>
@@ -34,7 +36,7 @@ function Detail({ t, on, onClose, onRun }: { t: ToolInfo | null; on: boolean; on
                 <section><h3>Shows</h3><p className="dim">{[t.draws.length ? `On the building: ${t.draws.map((d) => DRAWS[d] ?? d).join(', ')}` : 'Nothing drawn on the building', `${t.blocks.length} kinds of result block`, t.slow ? 'slow: seconds to minutes' : 'fast'].join('. ')}.</p></section>
                 {t.examples.length > 0 && <section><h3>Questions it answers</h3><ul className="asks">{t.examples.map((e) => <li key={e}>{e}</li>)}</ul></section>}
               </div>
-            </>
+            </Sheet>
           )}
         </Dialog.Popup>
       </Dialog.Portal>

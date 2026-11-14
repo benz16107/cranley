@@ -23,7 +23,8 @@ export type Need = {
 }
 export const NEEDS: Need[] = [
   { id: 'wheelchair', who: 'A wheelchair user', need: 'choosing an apartment', city: 'hou', runsOn: 'Apartment units', scripted: true,
-    sentence: 'I use a power wheelchair and I am choosing a one-bedroom apartment.',
+    // the city is said, as the need's own `city` has it: the agent then searches Houston, where the demo scans are warmed
+    sentence: 'I use a power wheelchair and I am choosing a one-bedroom apartment in Houston.',
     tools: [
       ['access', 'You use a wheelchair, so every doorway on the way in has to clear your chair.'],
       ['fit_through', 'A power chair needs room to turn. That is the same clearance check with your chair as the box.'],

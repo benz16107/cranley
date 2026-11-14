@@ -17,7 +17,9 @@ type Facts = {
 export const facts = core as unknown as Partial<Facts>
 
 /* ---------- App 4: past work. An index of the investigations this browser has seen, kept by the look. ---------- */
-export type Seen = { id: string; brief: string; first: number; last: number; steps: number; done: number; runs: number; failed: number; findings: number; kept: number; tools: number; status: 'setup' | 'working' | 'waiting' | 'done' }
+export type Seen = { id: string; brief: string; first: number; last: number; steps: number; done: number; runs: number; failed: number; findings: number; kept: number; tools: number; status: 'setup' | 'working' | 'waiting' | 'done'
+  /** Up to three of its scans (kept first), for their pictures on Home. Missing on entries made before this was kept. */
+  sids?: string[] }
 const KEY = 'threshold.app.investigations'
 const read = (): Record<string, Seen> => { try { return JSON.parse(localStorage.getItem(KEY) ?? '{}') } catch { return {} } }
 export const useSeen = create<{ all: Record<string, Seen> }>(() => ({ all: read() }))
@@ -40,7 +42,8 @@ useWorkspace.subscribe(({ doc: d }) => {
   const all = { ...useSeen.getState().all }, now = Date.now(), old = all[d.id]
   const next = { id: d.id, brief: d.brief?.text ?? old?.brief ?? '', first: old?.first ?? now, last: now,
     steps: d.plan.length, done: d.plan.filter((s) => s.status === 'done').length, runs: d.runs.length, failed: d.runs.filter((r) => r.status === 'failed').length,
-    findings: d.findings.length, kept: d.shortlist.length, tools: d.tools.length, status: statusOf(d) }
+    findings: d.findings.length, kept: d.shortlist.length, tools: d.tools.length, status: statusOf(d),
+    sids: [...new Set([...d.shortlist.map((s) => s.sid), ...d.runs.flatMap((r) => (r.sid ? [r.sid] : [])).reverse()])].slice(0, 3) }
   if (old && counts(old) === counts(next)) next.last = old.last // a reload shows the same work again: not a change
   all[d.id] = next
   useSeen.setState({ all })

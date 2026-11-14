@@ -33,10 +33,11 @@ const names = (sid: string) => (sid === 's1' ? { name: 'Unit A', address: '1 Tes
 
 test('the server document becomes the shell document, numbers untouched', () => {
   const d = toDoc(ws, [{ key: 'access.door_width_m', text: 'You need 0.9 m doors', by: 'user', at: 5 }], manifests, names)
-  assert.deepEqual(d.brief, { text: 'I use a wheelchair', facts: [], limits: ['Nothing here checks parking.'] })
+  assert.deepEqual(d.brief, { text: 'I use a wheelchair', facts: [], limits: ['Nothing here checks parking.'], scope: ['s1'] }) // the scans the work is narrowed to
   assert.deepEqual(d.tools.map((t) => [t.id, t.title, t.by]), [['doors', 'Door widths', 'agent']])
   assert.deepEqual(d.runs.map((r) => [r.label, r.status, r.ms, r.summary, r.stale]), [
     ['Door widths · Unit A', 'done', 2500, undefined, true], ['Door widths · s2', 'failed', undefined, 'needs min_width_m', false], ['Door widths · s3', 'running', undefined, 'Reading the plan', false]])
+  assert.equal(d.runs[0].at, 10_000) // when it started, in ms
   assert.deepEqual(d.findings.map((f) => f.id), ['f1'])
   assert.deepEqual(d.overlays.map((o) => o.id), ['o_on'])
   assert.deepEqual(d.plan, [{ id: 'p1', label: 'Measure the doors', status: 'active' }])

@@ -5,6 +5,7 @@ import {
   type Doc, type SceneMode, type SceneState, type ScanPlan, type Status,
 } from '../../../core/index.ts'
 import { PanelView } from '../blocks/blocks.tsx'
+import { Edge, Fill, Pane, Split } from '../design/split.tsx'
 import { Copy, Empty, Icon, IconBtn, Menu, MenuBtn, RunState, Seg, SourceChip, St, Stats, StatusGlyph, ToolKey, type IconName } from '../design/ui.tsx'
 import { dur, int, plural } from '../lib/format.ts'
 import { facts } from '../lib/pending.ts'
@@ -13,7 +14,7 @@ import { FAMILIES, useTools, type ToolInfo } from '../lib/tools.ts'
 import { useScheme } from '../shell/theme.ts'
 import { startTool } from '../shell/StartTool.tsx'
 import { DownloadReport } from '../report/DownloadReport.tsx'
-import { useUi } from '../shell/store.ts'
+import { useIsPhone, useUi } from '../shell/store.ts'
 
 const MODES: { id: SceneMode; label: string; icon: IconName; none: string }[] = [
   { id: 'dollhouse', label: '3D', icon: 'cube', none: '' }, { id: 'plan', label: 'Plan', icon: 'plan', none: '' },
@@ -217,6 +218,7 @@ function FactHistory({ sid }: { sid: string }) {
 export function Building({ sid }: { sid: string }) {
   const doc = useWorkspace((s) => s.doc)
   const scheme = useScheme()
+  const phone = useIsPhone()
   const runs = useMemo(() => doc.runs.filter((r) => r.sid === sid), [doc.runs, sid])
   const panels = useMemo(() => doc.panels.filter((p) => p.sid === sid), [doc.panels, sid])
   const citywide = useMemo(() => doc.panels.filter((p) => !p.sid && (p.role ?? 'tool') === 'tool'), [doc.panels])
@@ -322,7 +324,8 @@ export function Building({ sid }: { sid: string }) {
         <DownloadReport workspace={doc.id} sid={sid} name={v.plan?.name} disabled={!runs.some((r) => r.status === 'done')} />
       </header>
 
-      <div className="bld-body">
+      <Split className="bld-body" off={phone}>
+        <Fill id="scene" min={320}>
         <section className="work" aria-label="Building view">
           <div className="worktools">
             <Seg label="View" value={v.mode} onChange={v.setMode} options={MODES.map((m) => ({ id: m.id, label: m.label, icon: m.icon, disabled: !v.modes.includes(m.id), title: v.plan && !v.modes.includes(m.id) ? m.none : undefined }))} />
@@ -377,7 +380,9 @@ export function Building({ sid }: { sid: string }) {
             )}
           </div>
         </section>
-
+        </Fill>
+        <Edge of="insp" label="Resize the inspector" />
+        <Pane id="insp" size={window.innerWidth <= 1180 ? 360 : window.innerWidth <= 1700 ? 352 : 408} min={300} max={760}>
         <Tabs.Root className="insp" value={tab} onValueChange={(t) => setTab(String(t))} aria-label="Inspector">
           <Tabs.List className="tabs">
             <Tabs.Tab value="overview">Overview</Tabs.Tab>
@@ -416,7 +421,8 @@ export function Building({ sid }: { sid: string }) {
           <Tabs.Panel value="record" className="insp-body scroll"><Record sid={sid} /></Tabs.Panel>
           <Tabs.Panel value="history" className="insp-body scroll"><History sid={sid} runs={runs} /></Tabs.Panel>
         </Tabs.Root>
-      </div>
+        </Pane>
+      </Split>
     </div>
   )
 }

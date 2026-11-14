@@ -86,10 +86,14 @@ export type Block =
 export type BlockType = Block['type']
 
 /* ---------- Contract 5: the workspace document ---------- */
-export type Brief = { text: string; facts: { id: string; label: string; value?: string }[]; /** what the person needs that no tool does, said to them */ limits?: string[] }
+export type Brief = { text: string; facts: { id: string; label: string; value?: string }[]; /** what the person needs that no tool does, said to them */ limits?: string[]
+  /** The scans the work has been narrowed to, once the agent has picked them. */
+  scope?: string[] }
 export type Question = { id: string; text: string; kind: 'choice' | 'number' | 'text'; options?: string[]; unit?: string; pref?: string; tool?: string; answer?: string | number; /** a value to offer: the tool's default, or what the person already said */ hint?: string | number }
 export type ToolRef = { id: string; title: string; code?: string; summary?: string; reason: string; coverage?: string; by: By }
 export type Run = { id: string; tool: string; label: string; step?: string; status: 'running' | 'done' | 'failed'; ms?: number; summary?: string; stale?: boolean
+  /** When it started, ms since the epoch, when the server says. */
+  at?: number
   /** The scan the run is about; or, for a run on a place with no scan, the place. */
   sid?: string; place?: { property_id?: number | null; address?: string | null; geo?: [number, number] | null } }
 export type Panel = { id: string; tool: string; title: string; scope?: string; sid?: string; run?: string; blocks: Block[]

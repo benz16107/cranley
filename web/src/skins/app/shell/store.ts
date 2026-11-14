@@ -20,12 +20,14 @@ type Ui = {
   start: { tool: string; sid: string | null } | null
   /** Phone: the navigation drawer. */
   nav: boolean
+  /** The guided first run: asking who you are, narrating the agent's work, showing where it ended; null when it is not on. */
+  first: null | 'ask' | 'watch' | 'end'
   setRun: (on: boolean) => void
   setRail: (on: boolean) => void
 }
 export const useUi = create<Ui>((set) => ({
   // on a phone the agent panel is a drawer over the page: it opens when asked for, never because it was left open on a desk
-  run: get('run', false) && !window.matchMedia('(max-width: 760px)').matches, rail: get('rail', false), menu: false, keys: false, panel: null, start: null, nav: false,
+  run: get('run', false) && !window.matchMedia('(max-width: 760px)').matches, rail: get('rail', false), menu: false, keys: false, panel: null, start: null, nav: false, first: null,
   setRun: (run) => { put('run', run); set({ run }) },
   setRail: (rail) => { put('rail', rail); set({ rail }) },
 }))
