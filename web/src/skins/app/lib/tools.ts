@@ -18,7 +18,7 @@ export const FAMILIES: { id: Family; label: string; icon: keyof typeof ICONS; hu
   { id: 'other', label: 'Other', icon: 'tool', hue: 8 },
 ]
 const IN: Record<Exclude<Family, 'other'>, string> = {
-  access: 'step_free_route turning_space bathroom_clearance stairs_count aging_in_place furniture_fit stretcher_route robot_fit curb_to_door door_widths measure_search access',
+  access: 'renovate step_free_route turning_space bathroom_clearance stairs_count aging_in_place furniture_fit stretcher_route robot_fit curb_to_door door_widths measure_search access',
   flood: 'flood_rehearsal valuables_height storm_plan flood',
   fire: 'fire_preplan egress_routes life_safety_census smoke_clock size_up_quiz fire',
   office: 'room_labeller office_fit amenity_census unit_compare takeoff_bid storage_space room_census',

@@ -106,6 +106,7 @@ def apply(plan: dict, edits: list) -> tuple[dict, list[dict]]:
     out["sid"] = derived_sid(base, all_edits)
     out["whatif"] = {"base": base, "edits": [x.model_dump() for x in all_edits]}
     out["name"] = f"{plan.get('name') or base} (what if)"
+    out["floorplans"] = []  # the floor photos show the rooms as they are; a moved wall would not match them
     return out, diff
 
 
@@ -113,6 +114,10 @@ def apply(plan: dict, edits: list) -> tuple[dict, list[dict]]:
 
 def _cm(x: float) -> str:
     return f"{x * 100:.1f}".rstrip("0").rstrip(".") + " cm"
+
+
+def _pair(plan: dict, rooms: list[str]) -> str:
+    return " to ".join(_room_name(plan, r) for r in rooms) if len(rooms) > 1 else f"{_room_name(plan, rooms[0])} to outside"
 
 
 def _by(plan: dict, key: str, id_: str, what: str) -> dict:
@@ -210,6 +215,7 @@ def _widen_door(plan: dict, e: WidenDoor) -> dict:
     t = _place(wall, t0, e.width_m, others)
     o["center"], o["width"] = _at(wall, t), e.width_m
     return {"opening": o["id"], "wall": wall["id"], "rooms": o["rooms"], "width": [old, e.width_m],
+            "short": f"Widen door, {_pair(plan, o['rooms'])}",
             "shift_m": round(abs(t - t0) * L, 3), "wall_length": wall["length"],
             "text": f"Widen the door between {' and '.join(_room_name(plan, r) for r in o['rooms']) or 'rooms'} "
                     f"from {_cm(old)} to {_cm(e.width_m)}"}
@@ -275,7 +281,8 @@ def _move_wall(plan: dict, e: MoveWall) -> dict:
         o["center"] = [o["center"][0] + nx * off, o["center"][1] + ny * off]
     touched = set(rooms) | {r for w, _, _ in links for r in w["rooms"]}
     areas = _reshape(plan, touched)
-    return {"wall": wall["id"], "rooms": rooms, "offset_m": round(abs(off), 3), "a": [old_a, wall["a"]],
+    return {"wall": wall["id"], "rooms": rooms, "offset_m": round(abs(off), 3),
+            "short": f"Move wall {abs(off) * 100:.0f} cm, {_pair(plan, rooms)}", "a": [old_a, wall["a"]],
             "b": [old_b, wall["b"]], "length": wall["length"], "stretched": [w["id"] for w, _, _ in links], "slid_openings": slid,
             "areas": {k: [round(a, 2) if a else a, round(b, 2)] for k, (a, b) in areas.items()},
             "swept_m2": round(abs(off) * wall["length"], 2),
@@ -314,6 +321,7 @@ def _remove_wall(plan: dict, e: RemoveWall) -> dict:
         keep["area"] = old_keep + old_gone
     length = sum(w["length"] for w in walls_before if w["id"] in shared)
     return {"wall": wall["id"], "walls": sorted(shared), "rooms": [keep_id, gone_id], "merged_into": keep_id,
+            "short": f"Take out wall, {keep.get('label') or 'room'} and {gone.get('label') or 'room'}",
             "removed_openings": dropped, "length": length,
             "areas": {keep_id: [round(old_keep, 2), round(keep["area"], 2)], gone_id: [round(old_gone, 2), 0.0]},
             "text": f"Take out the wall between the {keep.get('label') or 'room'} and the {gone.get('label') or 'room'}"}
@@ -332,6 +340,7 @@ def _add_ramp(plan: dict, e: AddRamp) -> dict:
     o["sill"] = z
     run = rise / RAMP_SLOPE
     return {"opening": o["id"], "rooms": o["rooms"], "rise_m": round(rise, 3), "run_m": round(run, 2),
+            "short": f"Ramp, {_pair(plan, o['rooms'])}",
             "text": f"Ramp the {rise * 100:.0f} cm step at the door to the {_room_name(plan, o['rooms'][0])} "
                     f"({run:.1f} m at 1:12)"}
 
@@ -343,6 +352,7 @@ def _grab_bars(plan: dict, e: GrabBars) -> dict:
         raise EditError(f"the {r.get('label') or 'room'} has no stretch of free wall {BAR_RUN_M:.2f} m long for a bar")
     plan.setdefault("fixtures", []).append({"kind": "grab_bars", "room": r["id"], "count": e.bars, "source": "whatif"})
     return {"room": r["id"], "bars": e.bars, "longest_free_wall": round(runs[0]["length"], 2),
+            "short": f"Grab bars, {r.get('label') or 'room'}",
             "text": f"Fit {e.bars} grab bars in the {r.get('label') or 'room'} (with blocking in the wall)"}
 
 
@@ -358,6 +368,8 @@ def _door_swing(plan: dict, e: DoorSwing) -> dict:
         o["width"] = old + HUNG_LEAF_M
     o["swing"] = e.swing
     return {"opening": o["id"], "rooms": o["rooms"], "swing": e.swing, "width": [old, o["width"]],
+            "short": {"offset_hinges": "Offset hinges", "pocket": "Pocket door", "swing_out": "Door swings out"}[e.swing]
+                     + f", {_pair(plan, o['rooms'])}",
             "modelled": e.swing != "swing_out",
             "text": {"offset_hinges": "Rehang the door on offset hinges", "pocket": "Replace the door with a pocket door",
                      "swing_out": "Rehang the door to swing out"}[e.swing]

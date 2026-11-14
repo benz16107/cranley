@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from ...whatif import AnyEdit, EditError, renovate as engine
 from .. import (Action, Assumption, Check, Finding, Metric, OpeningAnchor, RoomAnchor, RuleOverlay, ScanScope,
                 SelectOpenings, Source, ToolError, ToolResult, Verdict, field, tool)
-from ..types import SelectRooms, SelectWalls, WallAnchor
+from ..types import SelectWalls, WallAnchor
 
 GEO = Source(layer="matterport", method="geometry", confidence="medium",
              note="The goal's tools re-run on the edited wall graph; panoramas are not read (they show the home as it is)")
@@ -61,7 +61,7 @@ TITLE = {"widen_door": "Widen a door", "move_wall": "Move a wall", "remove_wall"
       blocks=["VerdictHeader", "MetricRow", "RankedTable", "CheckList", "AssumptionChips", "StepLog", "ActionBar"],
       overlays=["rule"],
       table=[{"metric": "fixed", "label": "Checks fixed"}, {"metric": "cost", "label": "Cost"},
-             {"metric": "per_1k", "label": "Fixed per $1k"}],
+             {"metric": "per_1k", "label": "Per $1k"}],
       examples=["What would it take to make this apartment wheelchair-ready?",
                 "Widen the bathroom door to 36 inches: what changes?"])
 def run(ctx, inputs: Inputs) -> ToolResult:
@@ -93,33 +93,48 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                Metric(id="failing_before", label="Failing now", value=b["failing"], unit="", source=GEO),
                Metric(id="failing_after", label="Failing after", value=a["failing"], unit="", source=GEO)]
     for i, t in enumerate(c for c in r["candidates"] if not c["error"]):
-        name = ("* " if t["in_package"] else "") + t["text"]
+        name = t["short"] + ("" if t["in_package"] else " (left out)")
         metrics += [Metric(id=f"e{i}/fixed", label=name, value=t["fixed"], unit="", source=GEO),
                     Metric(id=f"e{i}/cost", label=name, value=t["cost"]["total"], unit="$", source=PRICE),
                     Metric(id=f"e{i}/per_1k", label=name, value=t["per_1k"], unit="", source=PRICE)]
-    checks = [Check(id=f"{f['tool']}:{f['check']}", rule=f"{f['rule']} ({f['change']})",
+    def was(f):
+        b, a = f["before"] or {}, f["after"] or {}
+        if b.get("measured") is None or a.get("measured") is None:
+            return f"{b.get('status', 'none')} to {a.get('status', 'none')}"
+        return f"{b['measured']:g} to {a['measured']:g} {f['unit']}".strip()
+    checks = [Check(id=f"{f['tool']}:{f['check']}", rule=f"{f['rule']} ({f['change']}: {was(f)})",
                     measured=(f["after"] or {}).get("measured"), threshold=f["threshold"], unit=f["unit"],
                     status=(f["after"] or {}).get("status") or "unknown") for f in r["flips"]]
     findings = [Finding(id=f"renovate:{inputs.scan}:{ln['edit']['op']}:{n}", title=TITLE[ln["edit"]["op"]],
                         status="pass", detail=f"{ln['text']}. About ${ln['cost']['total']:,} ("
                         + "; ".join(f"{i['quantity']:g} {i['unit']} at ${i['rate']:g}" for i in ln["cost"]["items"])
                         + ")." + (f" {ln['cost']['note']}" if ln["cost"]["note"] else ""),
-                        anchor=_anchor(sid, ln["change"]), source=PRICE) for n, ln in enumerate(r["package"])]
+                        anchor=_anchor(inputs.scan, ln["change"]), source=PRICE) for n, ln in enumerate(r["package"])]
     findings += [Finding(id=f"renovate:{inputs.scan}:skipped:{n}", title="Edit left out", status="warn",
                          detail=s["reason"], anchor=None, source=GEO) for n, s in enumerate(r["skipped"])]
     opens = [ln["change"]["opening"] for ln in r["package"] if ln["change"].get("opening")]
     walls = [ln["change"]["wall"] for ln in r["package"] if ln["change"].get("wall")]
-    rooms = sorted({rid for ln in r["package"] for rid in (ln["change"].get("areas") or {})})
     overlays = [RuleOverlay(select=SelectOpenings(openings=opens), style="highlight")] if opens else []
     overlays += [RuleOverlay(select=SelectWalls(walls=walls), style="highlight")] if walls else []
-    overlays += [RuleOverlay(select=SelectRooms(rooms=rooms), style="highlight")] if rooms else []
     assumptions = [Assumption(id=x["id"], label=f"{x['label']} ({x['source']})", value=x["value"], unit=x["unit"],
                               editable=False) for x in r["assumptions"]]
-    if r["fork"]:
-        fk = r["fork"]
-        metrics.append(Metric(id="city_pass_after", label=fk.get("label", "Homes passing after one door widened"),
-                              value=fk.get("after"), unit="", source=Source(layer="model", method="lookup",
-                              confidence="medium", note=fk.get("note"))))
+    fk = r["fork"]
+    if fk and fk.get("available"):
+        csrc = Source(layer="model", method="lookup", confidence="medium", note=fk["note"])
+        metrics += [Metric(id="city_ready_now", label=f"Ready now, {fk['kind'] or 'homes'} in {fk['city']}",
+                           value=fk["ready_now"], unit="", source=csrc),
+                    Metric(id="city_ready_widened", label=fk["label"], value=fk["after"], unit="", source=csrc)]
+        findings.append(Finding(id=f"renovate:{inputs.scan}:city", title="City-wide, on a database fork", status="pass",
+                                detail=f"{fk['ready_now']} of {fk['homes']} {fk['kind'] or 'homes'} in {fk['city']} have a "
+                                       f"wheelchair-ready bathroom now; {fk['after']} would with the doors on the way "
+                                       f"widened to 36 in. This renovation makes this home one of them"
+                                       f"{'' if fk['renovated_ready'] else ' only partly (it still misses a check)'}. "
+                                       f"Ran on {'a zero-copy fork ' + fk['service'] if fk['mode'] == 'fork' else 'a scenario schema'}"
+                                       f" ({fk['ms'] / 1000:.0f} s), deleted after.", anchor=None, source=csrc))
+        text += f" City-wide: {fk['ready_now']} of {fk['homes']} ready now, {fk['after']} with doors widened."
+    elif fk:
+        findings.append(Finding(id=f"renovate:{inputs.scan}:city", title="City-wide scenario did not run",
+                                status="unknown", detail=fk["reason"], anchor=None, source=GEO))
     actions = [Action(id=f"after_{t}", label=f"Run {t.replace('_', ' ')} on the renovated plan", tool=t,
                       inputs={"scan": sid}) for t in r["tools"]]
     return ToolResult(scope=scope, verdict=Verdict(status=status, text=text), metrics=metrics, checks=checks,

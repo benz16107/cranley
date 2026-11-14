@@ -19,7 +19,7 @@ def _try(plan: dict, edit, goal: str, before: dict, ctx: ToolContext) -> dict:
     fl = compare.flips(before, res)
     c = cost.line(diff[0], after)
     fixed = sum(f["change"] == "fixed" for f in fl)
-    return {"edit": edit.model_dump(), "text": diff[0]["text"], "change": diff[0], "flips": fl, "fixed": fixed,
+    return {"edit": edit.model_dump(), "text": diff[0]["text"], "short": diff[0]["short"], "change": diff[0], "flips": fl, "fixed": fixed,
             "better": sum(f["change"] == "better" for f in fl), "broke": sum(f["change"] in ("broke", "worse") for f in fl),
             "cost": c, "per_1k": round(1000 * fixed / c["total"], 2) if c["total"] else None,
             "measured": edit.op not in RECORD_ONLY, "error": None}
