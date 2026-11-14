@@ -89,13 +89,13 @@ def shoot(tool_id: str, inputs: dict, name: str, size_m: float | None = None, ex
     s = locate(ToolContext(), Where(**{k: inputs.get(k) for k in ("scan", "property_id", "lat", "lon")}))
     fx = facts(s)
     fp = fx.get("footprint")
-    c = shapely_wkt.loads(fp).centroid if fp else None
+    c = max(getattr(g := shapely_wkt.loads(fp), "geoms", [g]), key=lambda p: p.area).centroid if fp else None
     lat, lon = (c.y, c.x) if c else (s.lat, s.lon)
     if size_m is None:
         geos = [p["anchor"]["geo"] for ov in r.get("overlays") or [] if ov["kind"] == "pins" for p in ov["pins"]
                 if "geo" in p["anchor"]]
         geos += [(x, y) for ov in r.get("overlays") or [] if ov["kind"] == "route" and ov["floor"] == "geo" for x, y, _ in ov["points"]]
-        geos += list(shapely_wkt.loads(fp).exterior.coords) if fp else []
+        geos += [c for g in getattr(shapely_wkt.loads(fp), "geoms", [shapely_wkt.loads(fp)]) for c in g.exterior.coords] if fp else []
         span = max([abs(g[0] - lon) * 111320 * math.cos(math.radians(lat)) for g in geos] +
                    [abs(g[1] - lat) * 110574 for g in geos] + [40])
         size_m = min(500, 2 * span + 30)

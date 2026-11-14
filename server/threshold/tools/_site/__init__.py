@@ -212,7 +212,11 @@ def capture(s: Site) -> str:
 
 def footprint(s: Site) -> Polygon | None:
     w = facts(s).get("footprint")
-    return shapely_wkt.loads(w) if w else None
+    if not w:
+        return None
+    g = shapely_wkt.loads(w)
+    # Vexcel sometimes returns a MultiPolygon (a building in parts): the largest part stands for the building
+    return max(g.geoms, key=lambda p: p.area) if hasattr(g, "geoms") else g
 
 
 def parcel(s: Site):
