@@ -10,6 +10,10 @@ a tool a person works in all day. Tokens are in `tokens.css`, shared classes in 
   page. `lib/place.ts` maps the address to a page.
 - **Pages** (`pages/`): Home, Explore, Building, Investigations, Buildings, Insights, Tools, Settings. A page is either
   a document that scrolls (`.page > .inner`) or a work surface that fills the window (`.listpage`, `.ex`, `.bld`).
+  Home is two columns that fold into one under 1000 px of page width: on the left the field for a brief, the open
+  investigation and its buildings as aerial photos; on the right the map of scanned addresses and one activity feed
+  (runs, failures, questions, phone captures). What it lists is worked out in `lib/home.ts`. A building's picture is
+  the 256 px aerial the server keeps on disk, one image per card, never a 3D view.
 - **Blocks** (`blocks/`): the twelve panel blocks. A tool's result is only ever built from these.
 - **Stand-ins** (`lib/pending.ts`, `lib/tools.ts`): what core does not give yet. Each part names the request that
   replaces it.
@@ -55,6 +59,6 @@ frosted blur, Inter, Geist and Space Grotesk, coloured left stripes, bento grids
 pricing tiers, soft radius everywhere, purple and black, glow orbs, dot grids, sparkles, animated arrows, hover
 motion, neon, pastels, em dashes and "not X but Y" copy.
 
-Partial, and why: Home's stat strip holds four counts side by side. It is one ruled strip at 14 px, the form the
-references use for a row of facts, and not four cards. The tool keys use seven hues, one per tool family; they are
+Partial, and why: Home's five needs sit three and two in bordered tiles at 1440 px. They are buttons that start an
+investigation, with no icon and no marketing line, and one row of five on a wide page. The tool keys use seven hues, one per tool family; they are
 18 px squares and the only place those hues appear.

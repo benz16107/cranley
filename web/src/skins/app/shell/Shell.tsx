@@ -26,7 +26,7 @@ import { useIsPhone, useUi } from './store.ts'
 export const SHORTCUTS: [keys: string, what: string][] = [
   ['Ctrl K', 'Search and commands'], ['/', 'Search'], [']', 'Show or hide the agent panel'], ['[', 'Narrow or widen the sidebar'],
   ['G then H', 'Home'], ['G then E', 'Explore'], ['G then I', 'Investigations'], ['G then B', 'Saved buildings'], ['G then N', 'Insights'], ['G then T', 'Tools'], ['G then S', 'Settings'],
-  ['1 2 3 4', 'On a building: 3D, plan, inside, drone'], ['K', 'On a building: keep or stop keeping it'], ['Ctrl Z', 'Undo my last change'], ['Esc', 'Close what is open, or clear the selected building'], ['?', 'This list'],
+  ['C', 'On Home: write a new brief'], ['1 2 3 4', 'On a building: 3D, plan, inside, drone'], ['K', 'On a building: keep or stop keeping it'], ['Ctrl Z', 'Undo my last change'], ['Esc', 'Close what is open, or clear the selected building'], ['?', 'This list'],
 ]
 const typing = (e: KeyboardEvent) => { const t = e.target as HTMLElement; return /^(input|textarea|select)$/i.test(t.tagName) || t.isContentEditable }
 
