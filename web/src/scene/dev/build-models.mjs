@@ -38,7 +38,6 @@ const SOURCES = {
   caravan: pizza('77t77GQMubf', 'caravan', 'Caravan', 'Poly by Google', BY),
   piano: pizza('1YoE664mJTd', 'piano', 'Piano', 'Poly by Google', BY),
   crib: pizza('4iV2yZ0wIf1', 'crib', 'Crib', 'Poly by Google', BY),
-  workbench: pizza('pX3YnfKa6Q', 'workbench', 'Workbench', 'Kenney', CC0),
   sofa: furn('loungeSofa'), sectional: furn('loungeSofaLong'), armchair: furn('loungeChair'),
   bedSingle: furn('bedSingle'), bedDouble: furn('bedDouble'), table: furn('table'), chair: furn('chair'),
   desk: furn('desk'), wardrobe: furn('bookcaseClosedDoors'), bookshelf: furn('bookcaseOpen'),
@@ -66,7 +65,7 @@ const SPECS = {
   'furniture/wardrobe': one('wardrobe'), 'furniture/bookshelf': one('bookshelf'), 'furniture/fridge': one('fridge'),
   'furniture/washer': one('washer'), 'furniture/coffee-table': one('coffee'), 'furniture/tv-stand': one('tv'),
   'furniture/piano': one('piano', 0, { drop: ['Box002', 'Box003', 'Box004', 'Box005', 'Box006'], yaw: 6.7 }),
-  'furniture/crib': one('crib'), 'furniture/workbench': one('workbench'),
+  'furniture/crib': one('crib'),
 }
 
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': MeshoptEncoder, 'meshopt.decoder': MeshoptDecoder })

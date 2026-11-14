@@ -195,6 +195,12 @@ export class Engine {
     return { floor, x: t.x, y: t.y }
   }
 
+  /** A step on the floor as the picture shows it, in metres: to the right, and away from the camera. For the keyboard. */
+  floorStep(right: number, away: number): [number, number] {
+    const c = this.rig.camera, r = new THREE.Vector3().setFromMatrixColumn(c.matrixWorld, 0).setZ(0).normalize(), u = new THREE.Vector3().setFromMatrixColumn(c.matrixWorld, 1).setZ(0).normalize()
+    return [r.x * right + u.x * away, r.y * right + u.y * away]
+  }
+
   private syncLabels() { this.labels.sync([...this.roomLabels, ...this.overlayLabels, ...this.shows.labels]); this.invalidate() }
 
   private get aerial() { const v = this.view; return v.env === 'aerial' && (v.mode === 'dollhouse' || v.mode === 'splat') }
@@ -582,6 +588,7 @@ export class Engine {
     let best: Furnishing['items'][number] | null = null, near = Infinity
     for (const p of this.furnishing.items) {
       const f = floorUnder(this.model, p), half = new THREE.Vector3(p.size[0] / 2, p.size[1] / 2, p.size[2] / 2)
+      if (!this.doll.floorGroups[f]?.visible) continue // a piece on a floor that is not showing cannot be picked up
       const inv = new THREE.Matrix4().makeRotationZ((p.yaw_deg * Math.PI) / 180).setPosition(p.center[0], p.center[1], p.center[2] + this.doll.floorZ(f) - this.model.floorZ[f]).invert()
       const local = ray.clone().applyMatrix4(inv)
       if (!local.intersectBox(new THREE.Box3(half.clone().negate(), half), hit)) continue

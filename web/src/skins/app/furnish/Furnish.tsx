@@ -13,9 +13,9 @@ type Check = Parameters<NonNullable<Furnish['onReport']>>[0][number]
 
 /* Length, depth and height in metres: common North American sizes, typed in. A piece is drawn at exactly its size. */
 const CATALOGUE: { group: string; items: [label: string, model: string, length: number, depth: number, height: number][] }[] = [
-  { group: 'Living room', items: [['Sofa, three seats', 'furniture/sofa', 2.13, 0.97, 0.86], ['Sectional sofa', 'furniture/sectional', 2.8, 1.65, 0.86], ['Armchair', 'furniture/armchair', 0.9, 0.9, 0.86], ['Coffee table', 'furniture/coffee-table', 1.2, 0.6, 0.45], ['Upright piano', 'furniture/piano', 1.52, 0.64, 1.27]] },
+  { group: 'Living room', items: [['Sofa, three seats', 'furniture/sofa', 2.13, 0.97, 0.86], ['Sectional sofa', 'furniture/sectional', 2.8, 1.65, 0.86], ['Armchair', 'furniture/armchair', 0.9, 0.9, 0.86], ['Coffee table', 'furniture/coffee-table', 1.2, 0.6, 0.45], ['TV stand', 'furniture/tv-stand', 1.6, 0.45, 0.55], ['Upright piano', 'furniture/piano', 1.52, 0.64, 1.27]] },
   { group: 'Bedroom', items: [['Twin bed', 'furniture/bed-single', 1.91, 0.97, 0.6], ['Queen bed', 'furniture/bed-double', 2.03, 1.52, 0.6], ['King bed', 'furniture/bed-double', 2.03, 1.93, 0.6], ['Crib', 'furniture/crib', 1.37, 0.76, 0.9], ['Wardrobe', 'furniture/wardrobe', 1.2, 0.6, 2]] },
-  { group: 'Dining and study', items: [['Dining table and four chairs', 'furniture/dining-set', 1.83, 1.6, 0.95], ['Desk', 'furniture/desk', 1.4, 0.7, 0.75], ['Bookshelf', 'furniture/bookshelf', 0.9, 0.3, 1.8]] },
+  { group: 'Dining and study', items: [['Dining table and four chairs', 'furniture/dining-set', 1.83, 1.6, 0.95], ['Dining chair', 'furniture/chair', 0.45, 0.5, 0.9], ['Desk', 'furniture/desk', 1.4, 0.7, 0.75], ['Bookshelf', 'furniture/bookshelf', 0.9, 0.3, 1.8]] },
   { group: 'Appliances', items: [['Refrigerator', 'furniture/fridge', 0.91, 0.86, 1.78], ['Washer', 'furniture/washer', 0.69, 0.76, 0.97]] },
 ]
 const num = (v: number) => v.toFixed(2) // the scene's own chips print two decimals; the card matches them
@@ -47,7 +47,7 @@ export function FurnishMenu({ sid, off }: { sid: string; off?: string }) {
         </div>
       ))}
       <hr />
-      <p className="fz-fine">A piece stands where you are looking. Drag it on the floor; R turns it, Delete removes it.</p>
+      <p className="fz-fine">A piece stands where you are looking. Drag it on the floor or move it with the arrow keys. R turns it, Delete removes it.</p>
       {count > 0 && <Menu.Item onClick={() => setPieces(sid, [])}>Remove all furniture</Menu.Item>}
     </MenuBtn>
   )

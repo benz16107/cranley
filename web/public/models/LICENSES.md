@@ -1,6 +1,6 @@
 # 3D models: sources and licences
 
-33 models, 687 KB in all. Built by `web/src/scene/dev/build-models.mjs`, which is also the record of what was
+32 models, 683 KB in all. Built by `web/src/scene/dev/build-models.mjs`, which is also the record of what was
 changed: every source was merged into one mesh, its colours were baked into the vertices, it was stood z up, turned
 to face +x and rescaled to a unit cube, then compressed with meshopt. The scene stretches that cube to the box a tool
 measured, so a model's proportions on screen are the measured object's, not the source's.
@@ -43,7 +43,6 @@ brand of the thing it stands for.
 | `furniture/tv-stand` | 3.4 KB | 154 | [Furniture Kit 2.0: cabinetTelevision](https://kenney.nl/assets/furniture-kit) | Kenney | CC0 1.0 |
 | `furniture/piano` | 14.5 KB | 1204 | [Piano](https://poly.pizza/m/1YoE664mJTd) | Poly by Google | CC BY 3.0 |
 | `furniture/crib` | 21.9 KB | 1624 | [Crib](https://poly.pizza/m/4iV2yZ0wIf1) | Poly by Google | CC BY 3.0 |
-| `furniture/workbench` | 4.4 KB | 226 | [Workbench](https://poly.pizza/m/pX3YnfKa6Q) | Kenney | CC0 1.0 |
 
 Kenney: https://kenney.nl (CC0 1.0, https://creativecommons.org/publicdomain/zero/1.0/).
 Quaternius: https://quaternius.com (CC0 1.0), files taken from https://poly.pizza.

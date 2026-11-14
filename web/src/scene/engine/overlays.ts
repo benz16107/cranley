@@ -147,7 +147,7 @@ export class Overlays3D {
         const k = ov as unknown as { floor: number; id: string; lines: { points: Vec3[]; status: Status }[]; chips: { point: Vec3; text: string; status: Status }[] }
         const g = doll.floorGroups[k.floor], fz = m.floorZ[k.floor]
         for (const l of k.lines) this.cased(g, l.points.flatMap((q) => [q[0], q[1], q[2] - fz]), statusColor(l.status, tok), 2)
-        for (const c of k.chips) labels.push({ id: `mark.${k.id}.${c.text}.${c.status}`, pos: c.point, floor: k.floor, make: () => chip('th-chip-measure', c.status === 'unknown' ? null : c.status, h('span', 'th-num', c.text)) })
+        k.chips.forEach((c, i) => labels.push({ id: `mark.${k.id}.${i}.${c.text}.${c.status}`, pos: c.point, floor: k.floor, make: () => chip('th-chip-measure', c.status === 'unknown' ? null : c.status, h('span', 'th-num', c.text)) }))
       } else if (ov.kind === 'pins') {
         const pins = (ov as Of<'pins'>).pins ?? []
         pins.forEach((p, i) => {

@@ -37,7 +37,7 @@ export interface BuildingSceneProps {
       that mounts <ViewSwitcher> in its own toolbar. */
   switcher?: boolean
   /** Furniture a person is trying out, in the 3D view: each piece is drawn as its model at its exact size, can be
-      dragged on the floor (R turns the selected one, Delete removes it), and is checked on every frame of the drag
+      dragged on the floor (the arrow keys move the selected one, R turns it, Delete removes it), and is checked as it moves
       against the walls, the door swings and its room's wheelchair turning circle. All of it is worked out in the
       browser from the plan. Leave it out and the scene has no furniture. */
   furnish?: Furnish | null
@@ -114,6 +114,8 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
       onSelect: (id) => { if (id !== (cb.current.furnish?.selected ?? null)) cb.current.furnish?.onSelect?.(id) },
     })
   }, [furnished, model])
+  // An edit from the keyboard: mid-drag it joins what is being carried, otherwise it goes to whoever owns the pieces.
+  const editPieces = (next: Placed[]) => { if (held.current) { held.current = next; setCarried(next) } else furnish?.onChange(next) }
   const drawn = useMemo(() => (furnished ? [...overlays, ...furnished.overlays.filter((o) => o.kind === 'box')] : overlays), [overlays, furnished])
   useEffect(() => { engine.current?.setView(view) }, [view, model])
 
@@ -135,9 +137,12 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
       onKeyDown={(e) => {
         if (e.target !== e.currentTarget) return // sliders and buttons keep their own keys
         const k: Record<string, [number, number, number]> = { ArrowLeft: [-1, 0, 0], ArrowRight: [1, 0, 0], ArrowUp: [0, -1, 0], ArrowDown: [0, 1, 0], '+': [0, 0, -1], '=': [0, 0, -1], '-': [0, 0, 1] }
-        const piece = furnish && given.find((p) => p.id === picked)
-        if (piece && (e.key === 'r' || e.key === 'R')) furnish.onChange(given.map((p) => (p === piece ? { ...p, yaw_deg: (p.yaw_deg + (e.shiftKey ? -15 : 15) + 360) % 360 } : p)))
-        else if (piece && (e.key === 'Delete' || e.key === 'Backspace')) { furnish.onChange(given.filter((p) => p !== piece)); furnish.onSelect?.(null) }
+        const piece = furnish && pieces.find((p) => p.id === picked)
+        if (piece?.center && k[e.key] && e.key.startsWith('Arrow')) { // the selected piece moves the way the arrow points on screen: 10 cm, or 50 with Shift
+          const s = e.shiftKey ? 0.5 : 0.1, [dx, dy] = engine.current?.floorStep(k[e.key][0] * s, -k[e.key][1] * s) ?? [0, 0]
+          editPieces(pieces.map((p) => (p === piece ? { ...p, center: [piece.center![0] + dx, piece.center![1] + dy, piece.center![2]] } : p))); e.preventDefault()
+        } else if (piece && (e.key === 'r' || e.key === 'R')) editPieces(pieces.map((p) => (p === piece ? { ...p, yaw_deg: (p.yaw_deg + (e.shiftKey ? -15 : 15) + 360) % 360 } : p)))
+        else if (piece && (e.key === 'Delete' || e.key === 'Backspace')) { editPieces(pieces.filter((p) => p !== piece)); furnish.onSelect?.(null) }
         else if (piece && e.key === 'Escape') furnish.onSelect?.(null)
         else if (e.key === 'Escape' && mode === 'pano') change({ ...view, mode: 'dollhouse' })
         else if (k[e.key]) { engine.current?.step(...k[e.key]); e.preventDefault() }
