@@ -62,6 +62,9 @@ def model(sid: str) -> dict:
 def plan_json(sid: str) -> bytes:
     if user_scans.owns(sid):  # a phone scan of someone's own home (sources/user_scans.py)
         return user_scans.plan_json(sid)
+    if sid.startswith("w_"):  # a what-if renovation of another scan (whatif/store.py)
+        from ..whatif import store as whatif
+        return whatif.plan_json(sid)
     p = normalize(model(sid), index().get(sid))
     if not p["quality"]["walls"]:
         apply_recovered_walls(p, _recover(p), (index().get(sid) or {}).get("kind"))
