@@ -114,6 +114,7 @@ export class Engine {
     this.doll = new Dollhouse(this.model, this.tokens, opts.api)
     this.doll.onChange = this.invalidate
     this.overlays3d = new Overlays3D(this.model, this.tokens, this.doll, (p) => this.emitPick(p))
+    this.overlays3d.onModels = () => { if (!this.listeners.signal.aborted) this.setOverlays(this.rawOverlays) }
     this.pano = new PanoView(opts.api, plan.sid, plan.has.defurnished)
     this.pano.onLoad = () => { this.invalidate(); this.pushState() }
     this.splat = new SplatView(this.renderer, this.scene, opts.api, plan.sid, interiorTest(this.model))

@@ -48,7 +48,9 @@ export type Overlay =
   | { kind: 'pins'; pins: { id: string; anchor: Anchor; label: string; status: Status }[] }
   | { kind: 'route'; floor: string; points: Vec3[]; chokes: { point: Vec3; width: number; status: Status }[]; label?: string }
   | { kind: 'water'; level_m: number; datum: 'scan_z' }
-  | { kind: 'box'; center: Vec3; size: Vec3; yaw_deg: number; label?: string; status: Status }
+  /** `model`: a class under public/models ("vehicle/pickup", "furniture/sofa") drawn stretched to exactly this box;
+      the box stays as a faint outline, and is all that is drawn when the model is missing. */
+  | { kind: 'box'; center: Vec3; size: Vec3; yaw_deg: number; label?: string; status: Status; model?: string | null }
   | { kind: string; [key: string]: unknown } // unknown kinds are ignored by every renderer
 
 export type Mode = 'dollhouse' | 'plan' | 'pano' | 'splat'
