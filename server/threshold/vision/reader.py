@@ -26,7 +26,8 @@ HOME_LABELS = ["Balcony", "Basement", "Bathroom", "Bedroom", "Closet", "Dining R
 COMMERCIAL_LABELS = ["open office", "private office", "conference room", "reception", "kitchen or break room",
                      "restroom", "corridor", "storage", "server or electrical room", "lobby", "gym", "pool", "laundry",
                      "mail room", "leasing office", "retail floor", "warehouse floor", "loading area", "stairwell",
-                     "elevator lobby", "other"]
+                     "elevator lobby", "phone booth", "lounge or clubroom", "business center", "media room",
+                     "playground", "outdoor area", "other"]
 # Matterport labels that name the same kind of space; used only for the lenient agreement count.
 SAME = [{"Living Room", "Family Room"}, {"Laundry", "Utility Room"}, {"Entrance", "Hallway"}]
 
@@ -75,16 +76,25 @@ def _parallel(fn, items):
 
 # ---- room labels ------------------------------------------------------------------------------
 
-def label_rooms(plan: dict, rooms: list[str] | None = None) -> list[dict]:
+def label_rooms(plan: dict, rooms: list[str] | None = None, *, labels: list[str] | None = None,
+                context: str | None = None, hints: dict[str, str] | None = None,
+                examples: list[dict] | None = None) -> list[dict]:
     """A room type for every room that has a panorama, from the panorama nearest its centre.
 
     Homes (scans with Matterport labels) use Matterport's label set, and the model is not shown
     Matterport's label, so `agrees` is an honest check of one against the other. Other scans use a
-    commercial label set."""
+    commercial label set. `labels` overrides the set. `context` is a sentence about the building (say, the
+    property type in its CoStar record); `hints` maps a room id to measured facts about that room (area,
+    doors, windows, position); `examples` are rooms a person labelled, [{sid, pano, face, label}], sent
+    after the room's faces as references. All three are evidence the model weighs, never labels it copies."""
     home = bool(plan["has"].get("room_labels"))
-    labels = HOME_LABELS if home else COMMERCIAL_LABELS
+    labels = labels or (HOME_LABELS if home else COMMERCIAL_LABELS)
     todo = [r for r in _rooms_to_read(plan) if rooms is None or r["id"] in rooms]
     faces = [1, 2, 3, 4]
+    examples = examples or []
+    ref_imgs = [jpeg(mp.pano_face(e["sid"], e["pano"], e["face"], "2k"), 512) for e in examples]
+    ref_note = "".join(f" Image {5 + i} is a reference: a room elsewhere in this property that a person labelled "
+                       f"'{e['label']}'." for i, e in enumerate(examples))
     schema = {"type": "object", "additionalProperties": False, "required": ["label", "confidence", "evidence_image", "reason"],
               "properties": {"label": {"type": "string", "enum": labels}, "confidence": CONFIDENCE,
                              "evidence_image": {"type": "integer", "enum": [1, 2, 3, 4]},
@@ -92,16 +102,20 @@ def label_rooms(plan: dict, rooms: list[str] | None = None) -> list[dict]:
 
     def one(room):
         pano = room_panos(plan, room)[0]
-        prompt = (CUBE_NOTE.format(px=ROOM_PX, faces=_describe(faces)) +
+        prompt = (CUBE_NOTE.format(px=ROOM_PX, faces=_describe(faces)) + ref_note +
                   " The camera stands inside one room of a " + ("home" if home else "commercial building") +
+                  (f" ({context})" if context else "") +
                   ". What type of room is the camera standing in? Judge the room the camera is in, not rooms seen "
-                  "through doorways. Pick the image that shows it best.")
-        a = ask(_faces(plan["sid"], pano["id"], faces, ROOM_PX), prompt, schema, key=f"label_room/{plan['sid']}/{pano['id']}")
+                  "through doorways. Pick the image that shows it best." +
+                  (f" Measured facts about this room from the floor plan: {hints[room['id']]}. Use them as evidence "
+                   "alongside the images; what you see decides." if hints and hints.get(room["id"]) else ""))
+        a = ask(_faces(plan["sid"], pano["id"], faces, ROOM_PX) + ref_imgs, prompt, schema,
+                key=f"label_room/{plan['sid']}/{pano['id']}")
         out = {"room": room["id"], "label": a["label"], "confidence": a["confidence"], "reason": a["reason"],
                "evidence": {"sid": plan["sid"], "pano": pano["id"], "face": faces[a["evidence_image"] - 1]},
                "source": {"layer": "model", "method": "vision", "confidence": a["confidence"],
                           "note": f"Vision model on panorama {pano['id']} faces 1-4"}}
-        if home:
+        if home and labels is HOME_LABELS:
             mm = room.get("label")
             out["matterport_label"] = mm
             out["agrees"] = mm == a["label"]
@@ -109,6 +123,40 @@ def label_rooms(plan: dict, rooms: list[str] | None = None) -> list[dict]:
         return out
 
     return _parallel(one, todo)
+
+
+FLOOR_FINISHES = ["carpet", "hardwood or wood-look", "tile or stone", "polished or sealed concrete", "vinyl or linoleum",
+                  "rubber or gym flooring", "outdoor paving or deck", "artificial turf or grass", "cannot tell"]
+
+
+def floor_finishes(plan: dict, rooms: list[str] | None = None, batch: int = 8) -> dict[str, dict]:
+    """Floor finish per room, from the straight-down face of its central panorama. Several rooms per call
+    (`batch`), each image one room, so a whole suite costs a call or two. Returns room id -> {finish,
+    confidence, evidence: {sid, pano, face}}."""
+    todo = [r for r in _rooms_to_read(plan) if rooms is None or r["id"] in rooms]
+    schema = {"type": "object", "additionalProperties": False, "required": ["floors"], "properties": {"floors": {
+        "type": "array", "items": {"type": "object", "additionalProperties": False,
+                                   "required": ["image", "finish", "confidence"],
+                                   "properties": {"image": {"type": "integer"}, "finish": {"type": "string", "enum": FLOOR_FINISHES},
+                                                  "confidence": CONFIDENCE}}}}}
+
+    def one(chunk):
+        panos = [room_panos(plan, r)[0] for r in chunk]
+        prompt = (f"Each of the {len(chunk)} images looks straight down at the floor from a 360-degree camera on a "
+                  "tripod in a different room of one building (the tripod's shadow or base may show in the centre). "
+                  "For every image, name the floor finish. Rugs on top of a floor do not count; judge the floor around "
+                  "them. Answer once per image, by image number starting at 1.")
+        a = ask([jpeg(mp.pano_face(plan["sid"], p["id"], 5, "2k"), 512) for p in panos],
+                prompt, schema, key=f"floor_finish/{plan['sid']}/{panos[0]['id']}")
+        got = {f["image"]: f for f in a["floors"]}
+        return {r["id"]: {"finish": got[i + 1]["finish"], "confidence": got[i + 1]["confidence"],
+                          "evidence": {"sid": plan["sid"], "pano": p["id"], "face": 5}}
+                for i, (r, p) in enumerate(zip(chunk, panos)) if i + 1 in got}
+
+    out: dict[str, dict] = {}
+    for part in _parallel(one, [todo[i:i + batch] for i in range(0, len(todo), batch)]):
+        out.update(part)
+    return out
 
 
 # ---- objects ----------------------------------------------------------------------------------
