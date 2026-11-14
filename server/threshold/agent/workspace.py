@@ -81,7 +81,10 @@ class RankedTable(Strict):
     type: Literal["RankedTable"] = "RankedTable"
     title: str
     columns: list[RankedColumn] = Field(max_length=6)
-    rows: list[str] = Field(description="Run ids, one per candidate building")
+    rows: list[str] = Field(description="Run ids, one per candidate building; with `run`, row keys inside that run")
+    run: str | None = Field(None, description="A table inside one run's result (city_census groups): a cell is the "
+                                              "metric `<row>/<column.metric>` of this run")
+    labels: dict[str, str] = Field({}, description="With `run`: each row key's label")
 
 
 class MiniChart(Strict):
@@ -549,6 +552,12 @@ def bind(doc: Workspace, blk, tools: set[str]) -> tuple[Any, str | None]:
             if not keep:
                 return None, "dropped EvidenceStrip: no such findings"
             return blk.model_copy(update={"findings": keep}), None if keep == blk.findings else "EvidenceStrip: dropped unknown findings"
+        case RankedTable() if blk.run:
+            rows = [r for r in blk.rows if any(m.startswith(f"{r}/") for m in metric_ids)]
+            cols = [c for c in blk.columns if any(f"{r}/{c.metric}" in metric_ids for r in rows)]
+            if not rows or not cols:
+                return None, f"dropped RankedTable: no such rows or columns in run {blk.run}"
+            return blk.model_copy(update={"rows": rows, "columns": cols}), None
         case RankedTable():
             rows = [r for r in blk.rows if r in runs and runs[r].result]
             if not rows:

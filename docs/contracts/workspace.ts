@@ -688,9 +688,19 @@ export interface RankedTable {
     | [RankedColumn, RankedColumn, RankedColumn, RankedColumn, RankedColumn]
     | [RankedColumn, RankedColumn, RankedColumn, RankedColumn, RankedColumn, RankedColumn];
   /**
-   * Run ids, one per candidate building
+   * Run ids, one per candidate building; with `run`, row keys inside that run
    */
   rows: string[];
+  /**
+   * A table inside one run's result (city_census groups): a cell is the metric `<row>/<column.metric>` of this run
+   */
+  run?: string | null;
+  /**
+   * With `run`: each row key's label
+   */
+  labels?: {
+    [k: string]: string;
+  };
 }
 /**
  * This interface was referenced by `WorkspaceContract`'s JSON-Schema
@@ -1196,6 +1206,10 @@ export interface Manifest {
   annotations?: Annotations;
   examples?: string[];
   status?: "ready" | "planned";
+  /**
+   * Columns of the run's own RankedTable: each row is a key k with metrics `k/<column.metric>`; the first cell's label names the row
+   */
+  table?: TableColumn[];
 }
 /**
  * This interface was referenced by `WorkspaceContract`'s JSON-Schema
@@ -1212,6 +1226,15 @@ export interface Requirement {
 export interface Annotations {
   read_only?: boolean;
   cost?: "fast" | "slow";
+}
+/**
+ * This interface was referenced by `WorkspaceContract`'s JSON-Schema
+ * via the `definition` "TableColumn".
+ */
+export interface TableColumn {
+  metric: string;
+  label: string;
+  better?: "higher" | "lower";
 }
 /**
  * This interface was referenced by `WorkspaceContract`'s JSON-Schema
