@@ -3,7 +3,7 @@ import { dispatch, useWorkspace } from './store.ts'
 import type { Action, Block, Doc, Op, OpInput, Panel, Question, ScanPlan, ToolResult } from './types.ts'
 import { fetchPlan } from '../lib/api.ts'
 import { currentRoute, navigate } from '../lib/router.ts'
-import { CITIES, useBuildings, type Building } from '../map/buildings.ts'
+import { CITIES, useBuildings, type Building, type CityId } from '../map/buildings.ts'
 import { ACCESS_DEFAULTS, accessAudit, accessPanel, type AccessPrefs } from '../fixtures/access.ts'
 import { matchNeed, NEEDS, TOOLS, type Need } from '../fixtures/catalog.ts'
 
@@ -108,7 +108,7 @@ async function buildings(): Promise<Building[]> {
 const buildingOf = (all: Building[], sid: string) => all.find((b) => b.scans.some((s) => s.sid === sid))
 
 /** Addresses with two or more one-bedroom units, nearest the middle of the city first: small, fair sets to compare. */
-function candidateAddresses(all: Building[], city: Need['city']): { b: Building; sids: string[] }[] {
+function candidateAddresses(all: Building[], city: CityId): { b: Building; sids: string[] }[] {
   const [cx, cy] = CITIES[city].center
   const one = (b: Building) => b.scans.filter((s) => /\b1 ?(br|bed)/i.test(s.name))
   return all.filter((x) => x.metro === city && one(x).length >= 2)
