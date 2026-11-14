@@ -42,6 +42,32 @@
    }
   ]
  },
+ "Before we buy in Houston: is this house in a flood zone or a hurricane evacuation zone, and did Harvey flood the street?": {
+  "cannot": [
+   "None of these tools can confirm whether this particular house took water in Harvey or has a flood insurance claim history."
+  ],
+  "persona": "family_neighbourhood_check",
+  "stated": [],
+  "summary": "A Houston homebuyer who wants to know the flood zone, hurricane evacuation zone and whether Harvey flooded the street before buying.",
+  "tools": [
+   {
+    "id": "hazard_profile",
+    "reason": "You get the FEMA flood zone, the hurricane evacuation zone, storm surge and Hurricane Harvey's high-water marks near this address in one place."
+   },
+   {
+    "id": "flood_rehearsal",
+    "reason": "If the house is scanned, you can see how deep water would get in each room and which rooms flood first."
+   },
+   {
+    "id": "permit_history",
+    "reason": "You can see neighbours' recent service requests to the city nearby, which may show drainage or flooding complaints on the street."
+   },
+   {
+    "id": "area_profile",
+    "reason": "You get a picture of who lives around the house next to the county, for the rest of your buying decision."
+   }
+  ]
+ },
  "Can I park my boat trailer off the street at this house?": {
   "cannot": [
    "Nothing here checks local rules or HOA restrictions on parking a boat trailer in a driveway."
@@ -176,6 +202,33 @@
    {
     "id": "property_coverage",
     "reason": "For a whole complex, it shows which buildings, floor plans and shared spaces have a scan and which have no data to plan from."
+   }
+  ]
+ },
+ "Houston has no zoning, right? What rules would stop me running a small office from a house I'm buying there?": {
+  "cannot": [
+   "Houston's real limits on home businesses usually come from private deed restrictions and HOA covenants, and no tool here reads those, so ask the title company for the recorded restrictions before you close.",
+   "No tool here checks business licensing, signage, parking-for-customers or occupancy rules for commercial use of a house."
+  ],
+  "persona": "business_site_check",
+  "stated": [],
+  "summary": "Buying a house in Houston and wants to know what rules could stop them running a small office from it.",
+  "tools": [
+   {
+    "id": "zoning_check",
+    "reason": "Houston has no zoning, so this shows the city rules that do apply to your lot: lot size, building lines and any historic district."
+   },
+   {
+    "id": "permit_history",
+    "reason": "You can see what has been permitted at and near the house and what neighbours have recently reported to the city, which hints at how closely the area is watched."
+   },
+   {
+    "id": "area_profile",
+    "reason": "You get a picture of who lives around the house, which matters if clients will be coming and going on a residential street."
+   },
+   {
+    "id": "connectivity",
+    "reason": "An office needs good internet and a way for staff or clients to get there, and this shows the broadband offered and nearby transit and bike routes."
    }
   ]
  },
@@ -520,6 +573,32 @@
    }
   ]
  },
+ "I want to open a cafe at 3322 W 1st St in Los Angeles. Is it allowed there, and what has been permitted at the building?": {
+  "cannot": [
+   "Whether a cafe needs a conditional use permit, a health permit or a change-of-use approval at this address has to be confirmed with the city and county."
+  ],
+  "persona": "business_site_check",
+  "stated": [],
+  "summary": "You want to open a cafe at 3322 W 1st St in Los Angeles and need to know if the zoning allows it and what has been permitted at the building.",
+  "tools": [
+   {
+    "id": "zoning_check",
+    "reason": "This shows the lot's zone and its main allowed uses, so you can see whether a cafe fits."
+   },
+   {
+    "id": "permit_history",
+    "reason": "This lists what was permitted at and near the address by type and year, plus any code enforcement cases."
+   },
+   {
+    "id": "area_profile",
+    "reason": "This shows who lives around the building, which helps you judge your likely customers."
+   },
+   {
+    "id": "connectivity",
+    "reason": "This shows the transit stops, bikeways and road traffic nearby, so you know how customers would reach you."
+   }
+  ]
+ },
  "I want to open a daycare and need to know how many children this space can legally hold.": {
   "cannot": [
    "Nothing here applies your local childcare licensing or building code rules to turn floor area and exits into a legal child count; your licensing agency or a code official sets that.",
@@ -558,6 +637,25 @@
    {
     "id": "photo_measure",
     "reason": "If a spot like a beam or the garage door track looks low, you can measure that height from one photo with a door or sheet of paper in it."
+   }
+  ]
+ },
+ "I work from home. Is there fiber at this apartment, and can I get downtown by train?": {
+  "cannot": [
+   "None of these tools plans a train trip downtown or tells you how long the ride takes.",
+   "None of these tools measures the actual internet speed you would get, only what providers offer."
+  ],
+  "persona": "remote_worker",
+  "stated": [],
+  "summary": "Works from home and wants to know if this apartment has fiber internet and a train connection downtown.",
+  "tools": [
+   {
+    "id": "connectivity",
+    "reason": "This shows you whether fiber is offered at the address and which rail and bus stops are within a walk."
+   },
+   {
+    "id": "area_profile",
+    "reason": "This gives you a picture of who lives around the apartment if you want a feel for the neighbourhood."
    }
   ]
  },
@@ -1220,6 +1318,36 @@
    }
   ]
  },
+ "We're a family looking at a house in the Los Angeles hills. What natural hazards are there, and what is the neighbourhood like?": {
+  "cannot": [
+   "None of these tools rates local schools, crime or how safe the streets feel for children."
+  ],
+  "persona": "family_neighbourhood_check",
+  "stated": [],
+  "summary": "A family considering a house in the Los Angeles hills who wants to know its natural hazards and what the neighbourhood is like.",
+  "tools": [
+   {
+    "id": "hazard_profile",
+    "reason": "You get every hazard map at the address in one place, including fire hazard zones, earthquake faults, landslide and liquefaction zones, flood, heat and traffic noise."
+   },
+   {
+    "id": "area_profile",
+    "reason": "You see who lives around the house, including income, age mix, households, renting share and home values, next to the county."
+   },
+   {
+    "id": "connectivity",
+    "reason": "You learn what home internet is offered, how close buses, rail and bike routes are, and how busy the nearest road is."
+   },
+   {
+    "id": "permit_history",
+    "reason": "You see what has been permitted at and near the house, which can show past repairs or rebuilding, and any code enforcement cases."
+   },
+   {
+    "id": "roof_facts",
+    "reason": "In the hills, the roof material, its condition and trees over it matter for wildfire, and you can read them from the aerial photo."
+   }
+  ]
+ },
  "We're a robotics startup testing a robot vacuum in real homes and need the tight spots and door thresholds.": {
   "cannot": [
    "Nothing here measures the height of door thresholds or floor transitions your vacuum has to climb.",
@@ -1365,6 +1493,30 @@
    {
     "id": "door_widths",
     "reason": "This measures the doorways your deliveries pass through after unloading and flags any too narrow for your load."
+   }
+  ]
+ },
+ "Who lives around this building? I want to know incomes, ages and how many renters before I lease the shop.": {
+  "cannot": [],
+  "persona": "business_site_check",
+  "stated": [],
+  "summary": "You're about to lease a shop and want to know who lives around the building: incomes, ages and how many rent.",
+  "tools": [
+   {
+    "id": "area_profile",
+    "reason": "This shows the household income, age mix and share of renters for the area around the building, next to the county."
+   },
+   {
+    "id": "connectivity",
+    "reason": "This shows how customers can reach the shop by bus, rail, bike or car."
+   },
+   {
+    "id": "zoning_check",
+    "reason": "This checks that a shop is an allowed use on this lot before you sign."
+   },
+   {
+    "id": "permit_history",
+    "reason": "This shows what has been permitted at and near the address, a hint of how the area is changing."
    }
   ]
  },

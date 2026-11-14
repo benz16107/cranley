@@ -57,5 +57,11 @@
   {"id": "car-search", "brief": "Find houses in Houston whose garage fits two F-150s.", "persona": ["car_owner"], "must": [["garage_fit"]], "never": ["fire_preplan"]},
   {"id": "boat-driveway", "brief": "Can I park my boat trailer off the street at this house?", "persona": ["rv_boat_owner"], "must": [["driveway_fit"]], "never": ["fire_preplan"]},
   {"id": "van-ramp", "brief": "I drive a wheelchair van with a side ramp. Does this garage leave room for the ramp?", "persona": ["wheelchair_van_owner"], "must": [["garage_fit"]], "never": ["fire_preplan"]},
-  {"id": "garage-gym", "brief": "I want to put a squat rack in the garage. Is the ceiling high enough to press overhead?", "persona": ["home_gym_builder"], "must": [["garage_fit"]], "never": ["fire_preplan"]}
+  {"id": "garage-gym", "brief": "I want to put a squat rack in the garage. Is the ceiling high enough to press overhead?", "persona": ["home_gym_builder"], "must": [["garage_fit"]], "never": ["fire_preplan"]},
+  {"id": "biz-cafe-la", "brief": "I want to open a cafe at 3322 W 1st St in Los Angeles. Is it allowed there, and what has been permitted at the building?", "persona": ["business_site_check"], "must": [["zoning_check"], ["permit_history"]], "never": ["fire_preplan"]},
+  {"id": "biz-houston-rules", "brief": "Houston has no zoning, right? What rules would stop me running a small office from a house I'm buying there?", "persona": ["business_site_check"], "must": [["zoning_check"]]},
+  {"id": "family-hazards-la", "brief": "We're a family looking at a house in the Los Angeles hills. What natural hazards are there, and what is the neighbourhood like?", "persona": ["family_neighbourhood_check"], "must": [["hazard_profile"], ["area_profile"]]},
+  {"id": "family-flood-houston", "brief": "Before we buy in Houston: is this house in a flood zone or a hurricane evacuation zone, and did Harvey flood the street?", "persona": ["family_neighbourhood_check", "houston_homeowner_storm"], "must": [["hazard_profile", "flood_rehearsal"]]},
+  {"id": "remote-internet", "brief": "I work from home. Is there fiber at this apartment, and can I get downtown by train?", "persona": ["remote_worker"], "must": [["connectivity"]], "never": ["fire_preplan", "truck_access"]},
+  {"id": "area-who-lives", "brief": "Who lives around this building? I want to know incomes, ages and how many renters before I lease the shop.", "persona": ["business_site_check", "none"], "must": [["area_profile"]]}
 ]

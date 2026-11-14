@@ -69,8 +69,8 @@ def compare(key: str, tract, county) -> str:
 
 
 @tool(id="area_profile", title="Area profile", icon="users",
-      summary="Who lives around a building: population, density, income, age mix and households for its census tract, "
-              "next to the county.",
+      summary="Who lives around a building: population, density, household income, age mix, households, the share "
+              "renting, rent and home value for its census tract, next to the county.",
       model_description="Census profile of the tract around a place in Houston or Los Angeles (ACS 5-year): population, "
                         "density, median household income, median age, under 18 and 65+ shares, households, renters, "
                         "median rent and home value, each with the county value for comparison. Use for questions about "

@@ -1,0 +1,15 @@
+{
+  "id": "remote_worker",
+  "title": "Remote worker",
+  "who": "Works from home and wants fast home internet, a quiet street and transit or a bike route for the days out.",
+  "tools": [
+    "connectivity",
+    "hazard_profile",
+    "area_profile"
+  ],
+  "thresholds": {},
+  "layout": {
+    "view": "map",
+    "lead_tool": "connectivity"
+  }
+}

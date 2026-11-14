@@ -138,8 +138,9 @@ def traffic(p, site, city) -> None:
 
 
 @tool(id="connectivity", title="Connectivity", icon="wifi",
-      summary="How well a place is connected: home broadband on offer, transit stops within a walk, the nearest bikeway "
-              "and the traffic on the nearest counted road.",
+      summary="How well a place is connected: home broadband on offer (fiber, cable, how many providers), bus and rail "
+              "stops within a walk, the nearest bikeway and the traffic on the nearest counted road. Offered speeds, not "
+              "measured ones.",
       model_description="Connectivity of a place in Houston or Los Angeles: FCC broadband availability for its block group "
                         "(share offered 100/20 Mbps, provider, fiber and cable counts), transit stops within `walk_m` "
                         "(nearest, rail), the nearest bikeway, and annual average daily traffic at the nearest state count "

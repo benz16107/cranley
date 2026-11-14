@@ -249,8 +249,9 @@ def _la(p: Profile, lon, lat):
 
 
 @tool(id="hazard_profile", title="Hazard profile", icon="shield-alert",
-      summary="Every hazard map at an address in one place: flood zone, storm surge, sea level rise, earthquake faults "
-              "and liquefaction, fire zones, heat, noise, and what is happening now.",
+      summary="Every hazard map at an address in one place: FEMA flood zone, hurricane evacuation zone, storm surge, "
+              "Hurricane Harvey's high-water marks nearby, sea level rise, earthquake faults, liquefaction and landslide "
+              "zones, fire hazard zones, urban heat, traffic noise, and weather alerts, earthquakes and wildfires now.",
       model_description="All public hazard layers at one place in Houston or Los Angeles: FEMA flood zone, transportation "
                         "noise, urban heat, sea level rise 3 and 6 ft, weather alerts now, earthquakes and wildfires nearby; "
                         "Houston also hurricane evacuation zone, airport noise, category 3 storm surge and Harvey high-water "

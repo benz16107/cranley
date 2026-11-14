@@ -152,7 +152,7 @@ def _houston(ctx, site, inputs) -> ToolResult:
 
 @tool(id="permit_history", title="Permit history", icon="file-check",
       summary="What was permitted at and near an address, by type and year, and any code enforcement cases (Los Angeles); "
-              "recent 311 reports nearby in Houston.",
+              "residents' recent service requests to the city nearby in Houston.",
       model_description="Building permits since 2010 at and within a radius of a Los Angeles address (LADBS open data), "
                         "counted by year and type, with the permits at the address itself and LADBS code enforcement "
                         "cases on that street number. In Houston, which publishes no permit locations, recent 311 "
