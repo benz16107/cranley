@@ -1,0 +1,23 @@
+{
+  "id": "racket_player",
+  "title": "Tennis or pickleball player",
+  "who": "Plays tennis or pickleball and wants courts within a short walk or ride, with a gym and a park close by.",
+  "tools": [
+    "nearby",
+    "home_search"
+  ],
+  "thresholds": {
+    "nearby.mode": "walk",
+    "nearby.ok_min": 10,
+    "nearby.categories": [
+      "tennis",
+      "pickleball",
+      "gym",
+      "park"
+    ]
+  },
+  "layout": {
+    "view": "map",
+    "lead_tool": "nearby"
+  }
+}
