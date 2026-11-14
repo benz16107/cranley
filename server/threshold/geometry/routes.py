@@ -32,6 +32,7 @@ from ._plan import (
 from .graph import neighbours, room_graph
 
 WALK_OFFSET_M = 0.3        # half a person's width: routes keep this far from inside corners
+MAX_DOOR_GAP_M = 0.25      # at most half a thick wall between a doorway and the room outline it opens from
 EPS_M = 0.02               # slack so a segment along a wall or ending on a door still counts as inside
 SAMPLE_STEP_M = 0.2        # spacing of corridor width samples along the route
 DOOR_SKIP_M = 0.35         # near a door the door width governs, so corridor samples skip this span
@@ -100,7 +101,8 @@ def _build_nav(plan: dict, floor: str) -> _Nav:
             pos[f"d:{d['id']}"] = tuple(d["center"])
     for members in groups.values():
         polys = [p for p in (room_polys[m] for m in members) if p is not None]
-        region = unary_union([p.buffer(EPS_M) for p in polys]) if polys else None
+        region = unary_union([room_polys[m].buffer(EPS_M + _door_gap(room_polys[m], m, doors))
+                              for m in members if room_polys[m] is not None]) if polys else None
         sp = _Space(members, region)
         if region is not None:
             inside = [shapely.linestrings([a, b]) for wid, a, b, _ in pieces if not wall_rooms[wid] & set(members)]
@@ -121,6 +123,13 @@ def _build_nav(plan: dict, floor: str) -> _Nav:
     segs = (np.array([p[1] for p in pieces]).reshape(-1, 2), np.array([p[2] for p in pieces]).reshape(-1, 2),
             np.array([p[3] for p in pieces]))
     return _Nav(floor, floor_z(plan).get(floor, 0.0), pos, adj, spaces, room_space, doors, segs)
+
+
+def _door_gap(poly: Polygon, room: str, doors: dict[str, dict]) -> float:
+    """How far this room's doorways stand outside its outline. Recovered (DXF) walls put the door on the wall's
+    centreline and the outline on its inner face, half a wall away; Matterport outlines reach the door."""
+    gaps = [poly.distance(Point(d["center"])) for d in doors.values() if room in (d.get("rooms") or [d.get("room")])]
+    return min(max(gaps, default=0.0), MAX_DOOR_GAP_M)
 
 
 def _corner_waypoints(poly: Polygon) -> list[tuple[float, float]]:
