@@ -1,0 +1,152 @@
+import { useEffect, useRef } from 'react'
+import { create } from 'zustand'
+import { MapLibreOverlay } from '@deck.gl/maplibre'
+import { PathLayer, ScatterplotLayer, TextLayer } from 'deck.gl'
+import { MapLibre, type GeoMarks } from '../../../core/index.ts'
+import { mapStyle } from '../../../core/index.ts'
+import { CITIES, type Building, type CityId } from '../../../core/index.ts'
+import { tokenCss, tokenRgba } from '../design/ui.tsx'
+
+/** The live map, a counter that ticks when the view moves, and the building under the pointer. */
+export const useMap = create<{ map: MapLibre | null; tick: number; hover: Building | null }>(() => ({ map: null, tick: 0, hover: null }))
+
+const palette = () => ({
+  ground: tokenCss('--paper'), water: tokenCss('--map-water'), waterLine: tokenCss('--map-water-line'), green: tokenCss('--map-green'),
+  road: tokenCss('--map-road'), roadMajor: tokenCss('--map-road-major'), rail: tokenCss('--map-road'), building: tokenCss('--map-building'),
+  label: tokenCss('--ink'), labelMuted: tokenCss('--ink-3'), halo: tokenCss('--paper'),
+})
+const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+const NO_GEO: GeoMarks = { paths: [], pins: [] }
+
+type Props = {
+  buildings: Building[]
+  selected: Building | null
+  marks: { lon: number; lat: number }[] // places the agent has put on the map
+  /** Overlays given in map coordinates (a path outside a building, pins on a roof or a pool), drawn where they are. */
+  geo?: GeoMarks
+  /** A point the camera was told to look at: the map goes there, close enough to read the marks. */
+  look?: [number, number] | null
+  city: CityId
+  scheme: 'light' | 'dark'
+  onSelect: (b: Building | null) => void
+}
+
+export function CityMap({ buildings, selected, marks, geo = NO_GEO, look = null, city, scheme, onSelect }: Props) {
+  const el = useRef<HTMLDivElement>(null)
+  const overlay = useRef<MapLibreOverlay | null>(null)
+  const live = useRef({ buildings, selected, marks, geo, onSelect, fonts: false })
+  live.current = { ...live.current, buildings, selected, marks, geo, onSelect }
+
+  const draw = () => {
+    const map = useMap.getState().map
+    if (!map || !overlay.current) return
+    const { buildings: data, selected: sel, marks: agentMarks, geo: marksGeo, fonts } = live.current
+    const hover = useMap.getState().hover
+    const z = map.getZoom()
+    const ink = tokenRgba('--ink'), paper = tokenRgba('--paper'), accent = tokenRgba('--accent')
+    const far = Math.max(0, Math.min(1, (12.4 - z) / 1.2)) // 1 at city scale, 0 once single buildings read
+    const px = (b: Building) => 2.2 + Math.sqrt(b.count) * 1.5
+    const grow = Math.max(0.75, Math.min(2.6, 1 + (z - 12) * 0.32))
+    const under = { beforeId: 'road-name' } as object // interleaved: draw beneath the map's labels
+
+    overlay.current.setProps({
+      layers: [
+        new ScatterplotLayer<Building>({
+          id: 'buildings', data, getPosition: (b) => [b.lon, b.lat], ...under,
+          radiusUnits: 'pixels', getRadius: px, radiusScale: grow * (1 - 0.34 * far), radiusMinPixels: 1.3,
+          getFillColor: ink, stroked: true, getLineColor: paper, lineWidthUnits: 'pixels', getLineWidth: 1,
+          opacity: 1 - far * 0.42, pickable: true,
+          onHover: ({ object }) => { if ((object ?? null) !== useMap.getState().hover) { useMap.setState({ hover: object ?? null }); draw() } },
+          onClick: ({ object }) => live.current.onSelect(object ?? null),
+        }),
+        fonts && z >= 12.6 && new TextLayer<Building>({
+          id: 'counts', data: data.filter((b) => b.count > 1), getPosition: (b) => [b.lon, b.lat], getText: (b) => String(b.count),
+          getSize: 9.5, sizeScale: Math.min(1.5, grow * 0.72), getColor: paper, fontFamily: '"Martian Mono Variable"', fontWeight: 600,
+          characterSet: '0123456789', getTextAnchor: 'middle', getAlignmentBaseline: 'center',
+        }),
+        new ScatterplotLayer<{ lon: number; lat: number }>({
+          id: 'marks', data: agentMarks, getPosition: (m) => [m.lon, m.lat], radiusUnits: 'pixels', getRadius: 11, filled: false,
+          stroked: true, getLineColor: accent, lineWidthUnits: 'pixels', getLineWidth: 1.5,
+        }),
+        new PathLayer<[number, number][]>({
+          id: 'geo-paths', data: marksGeo.paths, getPath: (d) => d, widthUnits: 'pixels', getWidth: 3, getColor: accent, capRounded: true, jointRounded: true,
+        }),
+        new ScatterplotLayer<GeoMarks['pins'][number]>({
+          id: 'geo-pins', data: marksGeo.pins, getPosition: (d) => [d.lon, d.lat], radiusUnits: 'pixels', getRadius: 6,
+          getFillColor: (d) => tokenRgba(`--${d.status}`), stroked: true, getLineColor: paper, lineWidthUnits: 'pixels', getLineWidth: 1.5,
+        }),
+        new ScatterplotLayer<Building>({
+          id: 'ring', data: [hover, sel].filter((b): b is Building => !!b), getPosition: (b) => [b.lon, b.lat],
+          radiusUnits: 'pixels', getRadius: (b) => px(b) * grow + (b === sel ? 5 : 3.5), filled: false, stroked: true,
+          getLineColor: accent, lineWidthUnits: 'pixels', getLineWidth: (b) => (b === sel ? 2.2 : 1.4),
+          updateTriggers: { getRadius: [sel?.id, grow], getLineWidth: sel?.id },
+        }),
+      ],
+    })
+  }
+
+  // Create the map once.
+  useEffect(() => {
+    const start = live.current.selected
+    const map = new MapLibre({
+      container: el.current!, style: mapStyle(palette()), attributionControl: false, dragRotate: false, pitchWithRotate: false,
+      center: start ? [start.lon, start.lat] : CITIES[city].center, zoom: start ? 15 : CITIES[city].zoom, minZoom: 3, maxZoom: 19,
+    })
+    map.touchZoomRotate.disableRotation()
+    overlay.current = new MapLibreOverlay({ interleaved: true, layers: [], getCursor: ({ isHovering }) => (isHovering ? 'pointer' : 'grab') })
+    map.addControl(overlay.current as never)
+    let raf = 0
+    const onMove = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { useMap.setState((s) => ({ tick: s.tick + 1 })); draw() }) }
+    map.on('move', onMove)
+    map.on('load', () => { useMap.setState({ map }); draw() })
+    document.fonts.load('600 10px "Martian Mono Variable"').then(() => { live.current.fonts = true; draw() })
+    const ro = new ResizeObserver(() => map.resize())
+    ro.observe(el.current!)
+    return () => { ro.disconnect(); map.remove(); useMap.setState({ map: null, hover: null }) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const map = useMap((s) => s.map)
+  useEffect(draw, [buildings, selected, marks, geo, map]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The basemap is redrawn from the tokens when the scheme changes.
+  const firstScheme = useRef(scheme)
+  useEffect(() => {
+    if (!map || firstScheme.current === scheme) return
+    firstScheme.current = scheme
+    map.setStyle(mapStyle(palette()))
+    map.once('styledata', draw)
+  }, [scheme, map]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The city switch is the one long move: a flight between the two cities.
+  const firstCity = useRef(true)
+  useEffect(() => {
+    if (!map) return
+    if (firstCity.current) { firstCity.current = false; return }
+    if (live.current.selected?.metro === city) return
+    const { center, zoom } = CITIES[city]
+    if (reduced()) map.jumpTo({ center, zoom })
+    else map.flyTo({ center, zoom, duration: 2400, curve: 1.25, essential: true })
+  }, [city, map])
+
+  // A point the camera was told to look at wins over the selected building: go there, close enough to read the marks.
+  const lookKey = look?.join(',')
+  useEffect(() => {
+    if (!map || !look) return
+    const go = () => { map.resize(); const to = { center: look, zoom: 18.5 }; if (reduced()) map.jumpTo(to); else map.flyTo({ ...to, duration: 1400, essential: true }) }
+    const t = setTimeout(go, 120) // after the page has laid the map out
+    return () => clearTimeout(t)
+  }, [lookKey, map]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!map || !selected || look) return
+    const z = map.getZoom()
+    const inView = map.getBounds().contains([selected.lon, selected.lat])
+    const to = { center: [selected.lon, selected.lat] as [number, number], zoom: Math.max(z, 14.5) }
+    if (reduced()) map.jumpTo(to)
+    else if (z < 12.5 || !inView) map.flyTo({ ...to, duration: 1400, essential: true })
+  }, [selected, map, lookKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  return <div ref={el} className="citymap" role="application" aria-label={`Map of scanned buildings in ${CITIES[city].name}. The table beside it lists the same buildings for the keyboard.`} />
+}
