@@ -79,6 +79,7 @@ async function chrome() {
     console.log(`${id}: ${state?.done ? 'done' : 'NOT DONE'} in ${secs} s${notes.length ? `; ${notes.join(' | ')}` : ''}${errors.length ? `; page errors: ${errors.length}` : ''}`)
     fs.writeFileSync(reportFile, JSON.stringify(report, null, 2))
   }
-  await browser.close().catch(() => {})
-  if (started) process.kill(-started.pid)
+  if (started) { try { process.kill(-started.pid) } catch { started.kill() } } // the Chrome this run started goes with it
+  else await Promise.race([browser.close().catch(() => {}), new Promise((r) => setTimeout(r, 3000))]) // closing a CDP link can hang on macOS
+  process.exit(0)
 })().catch((e) => { console.error(e); process.exit(1) })
