@@ -77,19 +77,19 @@ function Findings({ doc }: { doc: Doc }) {
   const where = (f: F) => (f.anchor && 'sid' in f.anchor ? scanName(all, f.anchor.sid) : f.anchor ? 'On the map' : '')
   const cols: Col<F>[] = [
     { id: 'status', label: 'Status', width: 124, sort: (f) => order[f.status], cell: (f) => <St status={f.status} /> },
-    { id: 'title', label: 'Finding', fixed: true, sort: (f) => f.title, cell: (f) => <><span className="strong">{f.title}</span>{f.detail && <span className="sub">{f.detail}</span>}</> },
+    { id: 'title', label: 'Check', fixed: true, sort: (f) => f.title, cell: (f) => <><span className="strong">{f.title}</span>{f.detail && <span className="sub">{f.detail}</span>}</> },
     { id: 'tool', label: 'Tool', width: '16%', sort: (f) => f.tool, cell: (f) => <span className="dim">{doc.tools.find((t) => t.id === f.tool)?.title ?? f.tool}</span> },
     { id: 'where', label: 'Where', width: '18%', sort: where, cell: (f) => <span className="dim">{where(f) || <span className="muted">no place</span>}</span> },
-    { id: 'source', label: 'Source', width: 108, cell: (f) => <SourceChip source={f.source} /> },
+    { id: 'source', label: 'Where it comes from', width: 200, cell: (f) => <SourceChip source={f.source} /> },
   ]
   return (
     <>
       <div className="bar thin">
         <Seg label="Status" value={only} onChange={setOnly} options={[{ id: 'all', label: `All ${doc.findings.length}` }, ...(['fail', 'warn', 'unknown', 'pass'] as Status[]).map((s) => ({ id: s, label: `${statusWord(s)} ${n(s)}`, disabled: n(s) === 0 }))]} />
-        <span className="grow" /><span className="muted small">A row opens the finding in its building.</span>
+        <span className="grow" /><span className="muted small">A row opens the check in its building.</span>
       </div>
-      <DataTable label="Findings" noun="finding" cols={cols} rows={rows} rowKey={(f) => f.id} onRow={(f) => (f.anchor ? focusFinding(f) : toast('This finding has no place to show.'))}
-        empty={<Empty icon="target" title="No findings yet">Each finding carries its status, where it is, and where the number came from.</Empty>} />
+      <DataTable label="Checks" noun="check" cols={cols} rows={rows} rowKey={(f) => f.id} onRow={(f) => (f.anchor ? focusFinding(f) : toast('This check has no place to show.'))}
+        empty={<Empty icon="target" title="Nothing checked yet">Each check carries its status, where it is, and where its number came from.</Empty>} />
     </>
   )
 }
@@ -117,15 +117,14 @@ function OverviewTab({ doc }: { doc: Doc }) {
   const notes = doc.panels.filter((p) => p.role && p.role !== 'tool')
   return (
     <div className="page"><div className="inner inv-over">
-      <section className="card">
-        <header><h3 className="grow">Brief</h3></header>
+      {(!!doc.brief?.limits?.length || doc.questions.length > 0) && <section className="card">
+        <header><h3 className="grow">{doc.questions.some((q) => q.answer == null) ? 'Before the work starts' : 'Before you rely on this'}</h3></header>
         <div className="body stack">
-          <p className="said">{doc.brief?.text ?? <span className="muted">No brief. Tools were run by hand.</span>}</p>
           {!!doc.brief?.limits?.length && <div className="note"><Icon name="info" size={13} /><div><b>What the tools here cannot do</b>{doc.brief.limits.map((l) => <p key={l}>{l}</p>)}</div></div>}
           {doc.questions.length > 0 && <div className="stack">{doc.questions.map((q) => <QuestionForm key={q.id} q={q} />)}</div>}
           {doc.brief && doc.questions.length > 0 && !doc.plan.length && <div className="row"><button className="btn solid" disabled={open.length > 0} onClick={() => void investigate()}>{open.length ? `${open.length} left to answer` : 'Start the investigation'}</button>{open.length > 0 && open.every((q) => q.hint != null) && <button className="btn" onClick={() => void investigate()}>Use the defaults</button>}</div>}
         </div>
-      </section>
+      </section>}
       {notes.length > 0 ? (
         <section className="card">
           <header><h3 className="grow">What the agent concluded</h3></header>
@@ -176,12 +175,12 @@ export function Investigation({ id }: { id: string }) {
       <div className="page"><div className="inner">
         {/* a link to an investigation made in another browser: its id is enough to open it, if the server still has it */}
         <Empty icon="runs" title={seen?.brief || 'This investigation is not the open one'} action={seen || id.startsWith('ws_') ? <button className="btn solid" onClick={() => openSeen(id)}>Open it</button> : <button className="btn" onClick={() => (doc.id ? goInvestigation(doc.id) : newInvestigation())}>Go to the open investigation</button>}>
-          {seen ? `Last changed ${ago(seen.last)}: ${seen.runs} runs, ${seen.findings} findings. Opening it loads the page again.` : 'It is not in this browser’s list. Opening it replaces the investigation open in this browser and loads the page again.'}
+          {seen ? `Last changed ${ago(seen.last)}: ${seen.findings} checks made. Opening it loads the page again.` : 'It is not in this browser’s list. Opening it replaces the investigation open in this browser and loads the page again.'}
         </Empty>
       </div></div>
     )
   }
-  const status = statusOf(doc), time = doc.runs.reduce((t, r) => t + (r.ms ?? 0), 0) // shown as the total of the listed run times
+  const status = statusOf(doc)
   const failed = doc.runs.filter((r) => r.status === 'failed').length
   return (
     <div className="listpage">
@@ -193,19 +192,18 @@ export function Investigation({ id }: { id: string }) {
       </header>
       <div className="inv-stats">
         <Stats items={[
+          // the run count is on the Activity tab and the time each took is in its rows: the strip keeps what a person asks first
           { label: 'Status', value: <RunState state={STATUS[status].state}>{STATUS[status].label}</RunState> },
           { label: 'Steps done', value: doc.plan.length ? `${doc.plan.filter((s) => s.status === 'done').length} of ${doc.plan.length}` : '–' },
-          { label: 'Runs', value: <>{int(doc.runs.length)}{failed > 0 && <span className="st" data-status="fail">{failed} failed</span>}</> },
-          { label: 'Findings', value: int(doc.findings.length) },
-          { label: 'Time in tools', value: time ? dur(time) : '–' },
+          { label: 'Checks made', value: <>{int(doc.findings.length)}{failed > 0 && <span className="st" data-status="fail" title="Tool runs that failed; see Activity">{failed} failed</span>}</> },
           { label: 'Kept', value: int(doc.shortlist.length) },
         ]} />
       </div>
       <Tabs.Root className="tabpage" value={tab} onValueChange={(v) => setTab(String(v))}>
         <Tabs.List className="tabs">
           <Tabs.Tab value="overview">Overview</Tabs.Tab>
-          <Tabs.Tab value="runs">Runs<span className="count">{doc.runs.length}</span></Tabs.Tab>
-          <Tabs.Tab value="findings">Findings<span className="count">{doc.findings.length}</span></Tabs.Tab>
+          <Tabs.Tab value="findings">Checks<span className="count">{doc.findings.length}</span></Tabs.Tab>
+          <Tabs.Tab value="runs">Activity<span className="count">{doc.runs.length}</span></Tabs.Tab>
           <Tabs.Tab value="tools">Tools<span className="count">{doc.tools.length}</span></Tabs.Tab>
           <Tabs.Tab value="learned">Learned<span className="count">{doc.prefs.length}</span></Tabs.Tab>
           <Tabs.Tab value="kept">Kept<span className="count">{doc.shortlist.length}</span></Tabs.Tab>

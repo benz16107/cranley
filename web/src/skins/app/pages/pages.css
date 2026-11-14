@@ -38,6 +38,22 @@
 .insp .stats { flex-wrap: wrap; }
 .insp .stats > div { flex: 1 1 40%; box-shadow: 0 -1px 0 var(--rule); }
 .ins-sec { display: grid; gap: 8px; }
+/* The summary leads with the verdict: one block, a size up, set apart by space. What to do next sits under it. */
+.sum-verdict { display: grid; gap: 8px; justify-items: start; padding-bottom: var(--s-4); border-bottom: 1px solid var(--rule); }
+.sum-verdict .text { font-size: var(--text-md); font-weight: 560; line-height: 1.45; text-wrap: pretty; }
+.sum-verdict .row { margin-top: 4px; gap: 6px; }
+/* A fold in the inspector: what is there when wanted (about the scan, other scans, run history). */
+.ins-fold > summary { display: flex; align-items: center; gap: 6px; min-height: 30px; font-size: var(--text-xs); font-weight: 560; color: var(--ink-2); cursor: pointer; list-style: none; border-radius: var(--r-1); }
+.ins-fold > summary::-webkit-details-marker { display: none; }
+.ins-fold > summary svg { color: var(--ink-3); flex: none; }
+.ins-fold[open] > summary svg { rotate: 90deg; }
+.ins-fold[open] > summary { color: var(--ink); }
+.ins-fold > :not(summary) { margin-top: 8px; }
+.ins-fold.flush > summary { min-height: 36px; padding: 0 var(--s-4); border-top: 1px solid var(--rule); border-radius: 0; }
+.ins-fold.flush > :not(summary) { margin-top: 0; }
+@media (hover: hover) and (pointer: fine) { .ins-fold > summary:hover { color: var(--ink); } }
+.pagehead h2.row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.worktools.playing > b { font-size: var(--text-xs); font-weight: 600; min-width: 40px; }
 .ins-sec > h3 { display: flex; align-items: center; gap: 6px; font-size: var(--text-xs); font-weight: 560; color: var(--ink-3); }
 .rows { border: 1px solid var(--rule); border-radius: var(--r-1); }
 .rows li + li { border-top: 1px solid var(--rule); }
@@ -57,7 +73,9 @@
 .evid .t { display: flex; align-items: baseline; gap: 7px; font-weight: 560; line-height: 1.35; }
 .evid .t .glyph { flex: none; translate: 0 0.5px; }
 .evid .s { font-size: var(--text-xs); color: var(--ink-2); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.evid .m { display: flex; align-items: center; gap: 8px; font-size: var(--text-xs); white-space: nowrap; }
+.evid .grow > * { min-width: 0; }
+/* the tool, then where it comes from: on a second line when the two do not fit one */
+.evid .m { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font-size: var(--text-xs); }
 .evid button[aria-current='true'] { background: var(--accent-wash); outline: 1px solid var(--accent); outline-offset: -1px; }
 .evid button[disabled] { cursor: default; }
 @media (hover: hover) and (pointer: fine) { .evid button:not([disabled]):not([aria-current='true']):hover { background: var(--pane-2); } }

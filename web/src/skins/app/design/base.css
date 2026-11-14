@@ -131,14 +131,14 @@ button.chip[aria-pressed='true'] { background: var(--accent-wash); border-color:
 
 .toolkey { display: inline-grid; place-items: center; width: 18px; height: 18px; flex: none; border-radius: 2px; color: var(--pane); font: 600 0.5625rem / 1 var(--font-mono); font-stretch: 80%; }
 
-/* Source chip: which layer, which method, how sure. */
-.src { display: inline-flex; align-items: center; gap: 4px; height: 16px; padding: 0 4px; border: 1px solid var(--rule); border-radius: 2px;
-  font: 500 0.5625rem / 1 var(--font-mono); font-stretch: 80%; text-transform: uppercase; letter-spacing: 0.02em; color: var(--ink-3); white-space: nowrap; position: relative; flex: none; }
+/* Where a number came from: a quiet line of plain words and three marks for how sure. Not a code, not a box. */
+.src { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-xs); line-height: 1.3; color: var(--ink-3); white-space: nowrap; position: relative; flex: none; }
 .src::after { content: ''; position: absolute; inset: -8px -3px; }
 .src .pips { display: inline-flex; gap: 1.5px; }
 .src .pips i { width: 2px; height: 7px; background: var(--ink-2); }
 .src .pips i.off { background: var(--rule-strong); }
-@media (hover: hover) and (pointer: fine) { button.src:hover { border-color: var(--rule-strong); color: var(--ink); } }
+button.src { text-decoration: underline dotted var(--rule-strong); text-underline-offset: 3px; }
+@media (hover: hover) and (pointer: fine) { button.src:hover { color: var(--ink); } }
 
 /* ---------- floating layers (Base UI) ---------- */
 .pop, .menu {
@@ -157,6 +157,12 @@ button.chip[aria-pressed='true'] { background: var(--accent-wash); border-color:
 .menu .mh { padding: 6px 8px 4px; font-size: var(--text-2xs); color: var(--ink-3); font-weight: 560; }
 .menu hr { border: 0; border-top: 1px solid var(--rule); margin: 4px -4px; }
 .menu small { color: var(--ink-3); margin-left: auto; padding-left: 12px; font-size: var(--text-xs); }
+/* an item that says what it is in a second line */
+.menu .mi.two { align-items: flex-start; white-space: normal; padding-block: 6px; max-width: 320px; }
+.menu .mi.two > svg { margin-top: 2px; flex: none; }
+.menu .mi.two .grow { display: grid; gap: 1px; }
+.menu .mi.two b { font-weight: 560; }
+.menu .mi.two .s { color: var(--ink-3); font-size: var(--text-xs); line-height: 1.35; }
 @media (pointer: coarse) { .menu [role^='menuitem'] { min-height: 40px; } }
 .tip { background: var(--ink); color: var(--pane); padding: 3px 7px; border-radius: var(--r-1); font-size: var(--text-xs); max-width: 260px;
   transform-origin: var(--transform-origin); transition: opacity var(--dur-1) ease; }
