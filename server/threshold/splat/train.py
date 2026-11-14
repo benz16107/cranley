@@ -38,7 +38,7 @@ def _brush(d: Path, out: Path, meta: dict, start: int, end: int, sh_degree: int,
         subprocess.run(cmd, cwd=out, stdout=log, stderr=subprocess.STDOUT, check=True)
 
 
-def run(sid: str, steps: int = 15000, sh_degree: int = 2, max_splats: int = 1_500_000, phases: int = 3) -> dict:
+def run(sid: str, steps: int = 10000, sh_degree: int = 2, max_splats: int = 1_500_000, phases: int = 1) -> dict:
     """Train in `phases` Brush runs; after each, carve the free-space splats and start the next from what is left.
     A last one-step run scores the carved result on the held-out sweeps."""
     root, d = ROOT / sid, dataset.dataset_dir(sid)
@@ -68,7 +68,14 @@ def run(sid: str, steps: int = 15000, sh_degree: int = 2, max_splats: int = 1_50
         shutil.move(out / f"phase_{steps + 1}.ply", out / "final.ply")
     else:
         shutil.move(out / "carved.ply", out / "final.ply")
-    seconds = round(time.time() - t0)
+    return publish(sid, out, steps, sh_degree, max_splats, round(time.time() - t0), phases, carved)
+
+
+def publish(sid: str, out: Path, steps: int, sh_degree: int, max_splats: int, seconds: int, phases: int,
+            carved: list) -> dict:
+    """Score a finished run folder (final.ply and eval_*/), and write interior.spz, .ply and .json beside the dataset."""
+    root, d = ROOT / sid, dataset.dataset_dir(sid)
+    meta = json.loads((d / "dataset.json").read_text())
     scores = {int(p.name.split("_")[1]): psnr_dir(p, d / "images") for p in sorted(out.glob("eval_*"))}
     last = scores.get(max(scores)) if scores else None
     sbs = side_by_side(sid, out / f"eval_{max(scores)}", d / "images") if scores else []
@@ -87,7 +94,8 @@ def run(sid: str, steps: int = 15000, sh_degree: int = 2, max_splats: int = 1_50
         "files": {"spz": {"url": f"/api/scan/{sid}/interior-splat", "bytes": (root / "interior.spz").stat().st_size},
                   "ply": {"url": f"/api/scan/{sid}/interior-splat?format=ply", "bytes": (root / "interior.ply").stat().st_size}},
         "splats": n, "sh_degree": sh_degree,
-        "bounds": {"min": np.percentile(xyz, 1, 0).round(3).tolist(), "max": np.percentile(xyz, 99, 0).round(3).tolist()},
+        "bounds": {"min": np.percentile(xyz.astype(float), 1, 0).round(3).tolist(),
+                   "max": np.percentile(xyz.astype(float), 99, 0).round(3).tolist()},
         "trainer": {"name": "brush", "version": BRUSH_VERSION, "licence": "Apache-2.0", "steps": steps,
                     "resolution": meta["res"], "max_splats": max_splats, "seconds": seconds,
                     "phases": phases, "carved": carved},
