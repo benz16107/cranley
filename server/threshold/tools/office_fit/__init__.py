@@ -7,6 +7,7 @@ import re
 
 from pydantic import BaseModel
 
+from ...geometry._plan import indoor_rooms
 from ...sources import costar
 from .. import (
     Assumption,
@@ -146,7 +147,7 @@ def fit(rooms: list[dict], p: Inputs) -> dict:
     program_m2 = need_desks * p.desk_m2 + p.private_offices * max(p.office_min_m2, 10) + \
         p.meeting_rooms * p.meeting_seats * p.seat_m2 + (12 if p.kitchen else 0)
     program_m2 *= 1.15  # circulation and support the program does not name
-    usable = sum(r["area"] for r in rooms if r.get("area"))
+    usable = sum(r["area"] for r in rooms if r.get("area") and r.get("indoor", True))
     if short_desks and not any(c["kind"] == "density" for c in changes):
         changes.append({"kind": "space", "text": f"Look for about {_ft2(max(program_m2 - usable, short_desks * p.desk_m2))} more, "
                         f"or seat {short_desks} people elsewhere", "status": "fail"})
@@ -225,8 +226,9 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     plan = ensure_labels(ctx, sid, inputs.label_with_vision)
     q = facts.quality(plan)
     fx = facts.room_facts(plan)
-    rooms = [{"id": r["id"], "label": facts.commercial(r.get("label")), "area": r.get("area"), "windows": fx[r["id"]]["windows"]}
-             for r in facts.live_rooms(plan)]
+    indoor = {r["id"] for r in indoor_rooms(plan)}
+    rooms = [{"id": r["id"], "label": facts.commercial(r.get("label")), "area": r.get("area"), "windows": fx[r["id"]]["windows"],
+              "indoor": r["id"] in indoor} for r in facts.live_rooms(plan)]
     ctx.step(f"Read {len(rooms)} rooms and their labels")
     assumptions = [
         Assumption(id="office.desk_m2", label="Open-plan area per desk", value=inputs.desk_m2, unit="m²", editable=True),

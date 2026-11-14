@@ -5,6 +5,7 @@ from collections import defaultdict
 
 from pydantic import BaseModel
 
+from ...geometry._plan import indoor_rooms
 from .. import (
     Check,
     Finding,
@@ -38,8 +39,9 @@ class Inputs(BaseModel):
       examples=["What rooms does this unit have?", "How big are the bedrooms?"])
 def run(ctx, inputs: Inputs) -> ToolResult:
     plan = ctx.plan(inputs.scan)
-    rooms = [r for r in plan["rooms"] if r.get("label") != "Void"]  # Void is Matterport's "not floor"
-    ctx.step(f"Read {len(rooms)} rooms from the wall graph")
+    rooms = indoor_rooms(plan)  # no Void ("not floor"), no wall-less yard or unscanned capture
+    open_air = sum(r.get("label") != "Void" for r in plan["rooms"]) - len(rooms)
+    ctx.step(f"Read {len(rooms)} rooms from the wall graph" + (f"; left out {open_air} areas with no walls (outdoor or unscanned)" if open_air else ""))
     by_type: dict[str, list[dict]] = defaultdict(list)
     for r in rooms:
         by_type[r.get("label") or "Unlabelled"].append(r)
@@ -70,4 +72,5 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     kinds = ", ".join(k for k in by_type if k != "Unlabelled") or "no labelled rooms"
     return ToolResult(scope=ScanScope(sid=inputs.scan), metrics=metrics, checks=[check], findings=findings,
                       overlays=[lens], verdict=Verdict(status=status,
-                                                       text=f"{len(rooms)} rooms, {total:.0f} m²: {kinds}."))
+                                                       text=f"{len(rooms)} rooms, {total:.0f} m²: {kinds}."
+                                                       + (f" {open_air} area{'s' if open_air > 1 else ''} with no walls (outdoor or unscanned) {'are' if open_air > 1 else 'is'} left out." if open_air else "")))

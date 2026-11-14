@@ -11,6 +11,7 @@ from shapely.geometry import LineString, Point
 
 from ...aerial import detect as aerial_detect
 from ...aerial import site as aerial
+from ...geometry._plan import indoor_rooms
 from .. import Check, Finding, Metric, Source, ToolResult, Verdict, field, tool
 from .._site import (
     Where,
@@ -140,7 +141,7 @@ def inside_count(ctx, sid: str) -> dict | None:
     # the largest rooms: a warehouse floor, not the front offices
     found = find_objects(plan, labels=["loading dock door", "roll-up door"], panos=[room_panos(plan, r)[0]["id"] for r in big])
     return {"found": found, "rooms": len(big), "largest_m2": big[0].get("area") or 0,
-            "scanned_m2": sum(r.get("area") or 0 for r in plan["rooms"]),
+            "scanned_m2": sum(r.get("area") or 0 for r in indoor_rooms(plan)),
             "dock": sum(f["label"] == "loading dock door" for f in found),
             "rollup": sum(f["label"] == "roll-up door" for f in found)}
 
