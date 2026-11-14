@@ -27,12 +27,14 @@ export function Mobile() {
     addEventListener('popstate', pop); document.addEventListener('visibilitychange', seen)
     return () => { removeEventListener('popstate', pop); document.removeEventListener('visibilitychange', seen) }
   }, [])
-  useEffect(() => { // mobile Safari and Chrome put the keyboard over fixed bars: lift the action bar above it, hide the tabs
-    const vv = visualViewport, root = document.documentElement
-    if (!vv) return
-    const fit = () => { const kb = Math.max(0, innerHeight - vv.height - vv.offsetTop); root.style.setProperty('--kb', `${kb}px`); root.toggleAttribute('data-kb', kb > 80) }
-    vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit)
-    return () => { vv.removeEventListener('resize', fit); vv.removeEventListener('scroll', fit) }
+  useEffect(() => { // the keyboard and iOS's toolbar over it hide fixed bars: while typing, the action bar follows the field
+    const root = document.documentElement
+    let t = 0
+    const typing = () => { const e = document.activeElement; return e instanceof HTMLTextAreaElement || (e instanceof HTMLInputElement && !['file', 'checkbox', 'radio', 'button', 'range'].includes(e.type)) }
+    const on = () => { clearTimeout(t); root.toggleAttribute('data-kb', typing()) }
+    const off = () => { clearTimeout(t); t = window.setTimeout(on, 300) } // late, so a tap on Save lands before the bar moves back
+    document.addEventListener('focusin', on); document.addEventListener('focusout', off)
+    return () => { document.removeEventListener('focusin', on); document.removeEventListener('focusout', off); clearTimeout(t) }
   }, [])
   const busy = view?.busy
   useEffect(() => { // while the agent or a slow tool works, read often; otherwise now and then, for what the desktop adds
