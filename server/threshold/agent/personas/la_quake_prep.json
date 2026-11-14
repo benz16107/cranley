@@ -1,0 +1,15 @@
+{
+  "id": "la_quake_prep",
+  "title": "Los Angeles household preparing for an earthquake",
+  "who": "Lives in Los Angeles and wants each room's safe spot, nothing tall that can fall on a bed, the ways out, and the gas shutoff found before the shaking starts.",
+  "tools": [
+    "quake_ready",
+    "egress_routes",
+    "field_check"
+  ],
+  "thresholds": {},
+  "layout": {
+    "view": "plan",
+    "lead_tool": "quake_ready"
+  }
+}

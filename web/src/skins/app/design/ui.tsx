@@ -6,6 +6,7 @@ import type { Source, Status } from '../../../core/index.ts'
 import { family } from '../lib/tools.ts'
 import { int } from '../lib/format.ts'
 import { ICONS } from './icons.ts'
+import { sourceWords } from '../lib/source.ts'
 
 export type IconName = keyof typeof ICONS
 export function Icon({ name, size = 15 }: { name: IconName; size?: number }) {
@@ -62,19 +63,20 @@ const METHOD: Record<Source['method'], [short: string, long: string]> = {
 }
 const CONF = { high: 3, medium: 2, low: 1 } as const
 export const sourceText = (s: Source) => `${LAYER[s.layer]?.[1] ?? s.layer}, ${(METHOD[s.method]?.[1] ?? s.method).toLowerCase()}`
-/** Every measured number carries one: which data layer, which method, how confident. Opens the full note.
-    `plain` is the same mark without the popover, for inside a row that is itself a button. */
+/** Where a number came from, in plain words ("Measured from the scan"), with three marks for how sure. Every measured
+    number carries one, or shares one with its neighbours. Opens the full note.
+    `plain` is the same line without the popover, for inside a row that is itself a button. */
 export function SourceChip({ source, plain }: { source: Source; plain?: boolean }) {
   const n = CONF[source.confidence] ?? 0, layer = LAYER[source.layer] ?? [source.layer, source.layer], method = METHOD[source.method] ?? [source.method, source.method]
   const said = `Source: ${layer[1]}, ${method[1]}, ${source.confidence} confidence`
-  const mark = <>{layer[0]}·{method[0]}<span className="pips" aria-hidden="true">{[1, 2, 3].map((i) => <i key={i} className={i > n ? 'off' : ''} />)}</span></>
+  const mark = <>{sourceWords(source)}<span className="pips" aria-hidden="true">{[1, 2, 3].map((i) => <i key={i} className={i > n ? 'off' : ''} />)}</span></>
   if (plain) return <span className="src" title={source.note ? `${said}. ${source.note}` : said}><span className="sr">{said}</span><span aria-hidden="true" style={{ display: 'contents' }}>{mark}</span></span>
   return (
     <Popover.Root>
       {/* a chip in a clickable table row opens its note, not the row */}
       <Popover.Trigger className="src" aria-label={said} onClick={(e) => e.stopPropagation()}>{mark}</Popover.Trigger>
       <Popover.Portal><Popover.Positioner sideOffset={6} align="start" style={{ zIndex: 60 }}><Popover.Popup className="pop">
-        <dl className="kv"><dt>Layer</dt><dd>{layer[1]}</dd><dt>Method</dt><dd>{method[1]}</dd><dt>Confidence</dt><dd style={{ textTransform: 'capitalize' }}>{source.confidence}</dd></dl>
+        <dl className="kv"><dt>From</dt><dd>{layer[1]}</dd><dt>How</dt><dd>{method[1]}</dd><dt>How sure</dt><dd style={{ textTransform: 'capitalize' }}>{source.confidence} confidence</dd></dl>
         {source.note && <p className="dim" style={{ marginTop: 8, fontSize: 'var(--text-xs)' }}>{source.note}</p>}
       </Popover.Popup></Popover.Positioner></Popover.Portal>
     </Popover.Root>

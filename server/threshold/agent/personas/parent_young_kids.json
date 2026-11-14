@@ -1,0 +1,21 @@
+{
+  "id": "parent_young_kids",
+  "title": "Parent with young kids choosing a home",
+  "who": "Is choosing a home with a toddler or young children: stairs that need gates, a pool path with no barrier, windows a child could fall from, a yard the kitchen looks onto, and a playground, park and elementary school within a short walk.",
+  "tools": [
+    "kids_fit",
+    "path_to_water",
+    "nearby",
+    "stairs_count",
+    "home_search",
+    "tour"
+  ],
+  "thresholds": {
+    "kids.youngest_age": 3,
+    "nearby.profile": "kids"
+  },
+  "layout": {
+    "view": "scene",
+    "lead_tool": "kids_fit"
+  }
+}

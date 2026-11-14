@@ -1,0 +1,15 @@
+{
+  "id": "feng_shui_curious",
+  "title": "Arranging a home by feng shui",
+  "who": "Wants a home read the way a feng shui practitioner would: the front door's direction, the Bagua sectors, where the bed and desk go, and their own favourable directions.",
+  "tools": [
+    "feng_shui",
+    "room_sizes",
+    "furniture_fit"
+  ],
+  "thresholds": {},
+  "layout": {
+    "view": "plan",
+    "lead_tool": "feng_shui"
+  }
+}
