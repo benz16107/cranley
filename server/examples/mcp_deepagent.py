@@ -36,4 +36,6 @@ async def main(question: str) -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main(" ".join(sys.argv[1:]) or "Will a Ford F-150 fit in the garage of scan <scan-id>?"))
+    if len(sys.argv) < 2:
+        sys.exit('usage: mcp_deepagent.py "<question naming a scan id>"')
+    asyncio.run(main(" ".join(sys.argv[1:])))
