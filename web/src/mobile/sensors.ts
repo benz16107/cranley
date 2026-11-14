@@ -75,7 +75,13 @@ export function useHeading() {
   const allow = useCallback(async () => setState((await askMotion()) ? 'unknown' : 'denied'), [])
   const sample = useCallback((ms = 2000) => new Promise<{ heading: number; spread: number } | null>((res) => {
     const from = performance.now()
-    setTimeout(() => { const xs = buf.current.filter((b) => b.t >= from).map((b) => b.h); const m = headingMean(xs); res(xs.length < 5 ? null : { heading: m.mean, spread: m.spread }) }, ms)
+    setTimeout(() => {
+      const fresh = buf.current.filter((b) => b.t >= from).map((b) => b.h), last = buf.current.at(-1)
+      // the browser fires only when the heading changes, and turning the phone always fires: no event means it held still
+      const xs = fresh.length ? fresh : last ? [last.h] : []
+      if (!xs.length) { res(null); return }
+      const m = headingMean(xs); res({ heading: m.mean, spread: m.spread })
+    }, ms)
   }), [])
   return { state, now, allow, sample }
 }
@@ -85,14 +91,15 @@ export function getFix(ms = 6000): Promise<Fix> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) { reject(new Error('This browser has no location.')); return }
     const got: Parameters<typeof bestFix>[0] = []
-    let failed: string | null = null
+    let failed: string | null = null, end = 0
+    // the averaging window starts at the first fix, not the tap: iOS can show two permission prompts before one comes
+    const finish = () => { clearInterval(early); clearTimeout(end); clearTimeout(cap); navigator.geolocation.clearWatch(id); const f = bestFix(got); if (f) resolve(f); else reject(new Error(failed ?? 'No fix came in time. Try again near a window.')) }
     const id = navigator.geolocation.watchPosition(
-      (p) => got.push({ lat: p.coords.latitude, lon: p.coords.longitude, accuracy_m: p.coords.accuracy ?? null, altitude_m: p.coords.altitude, altitude_accuracy_m: p.coords.altitudeAccuracy }),
+      (p) => { got.push({ lat: p.coords.latitude, lon: p.coords.longitude, accuracy_m: p.coords.accuracy ?? null, altitude_m: p.coords.altitude, altitude_accuracy_m: p.coords.altitudeAccuracy }); if (!end) end = window.setTimeout(finish, ms) },
       (e) => { failed = e.code === e.PERMISSION_DENIED ? 'Location is switched off for this page. Allow it in the browser settings, or pick the building from the list.' : 'The phone could not get a fix here. Step outside or near a window and try again.' },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: ms })
-    const done = () => { navigator.geolocation.clearWatch(id); const f = bestFix(got); if (f) resolve(f); else reject(new Error(failed ?? 'No fix came in time. Try again near a window.')) }
-    const early = setInterval(() => { if (failed && !got.length) { clearInterval(early); clearTimeout(end); done() } }, 300)
-    const end = setTimeout(() => { clearInterval(early); done() }, ms)
+      { enableHighAccuracy: true, maximumAge: 0, timeout: ms * 2 }) // a cold first fix can take longer than the window
+    const early = setInterval(() => { if (failed && !got.length) finish() }, 300)
+    const cap = setTimeout(finish, ms + 60_000)
   })
 }
 
@@ -155,7 +162,7 @@ export function useDictation(onText: (text: string, final: boolean) => void) {
     const r = new Make()
     r.continuous = false; r.interimResults = true; r.lang = navigator.language || 'en-US'
     r.onresult = (e) => { let text = '', final = true; for (let i = 0; i < e.results.length; i++) { text += e.results[i][0].transcript; final &&= e.results[i].isFinal } onText(text.trim(), final) }
-    r.onerror = (e) => setError(e.error === 'not-allowed' ? 'The microphone is switched off for this page.' : e.error === 'no-speech' ? 'Nothing was heard.' : 'Dictation stopped. Type it below.')
+    r.onerror = (e) => { setOn(false); setError(e.error === 'not-allowed' ? 'Dictation is switched off for this page. The microphone key on the keyboard still works.' : e.error === 'no-speech' ? 'Nothing was heard.' : 'Dictation stopped. Type it below.') } // Safari can skip onend after an error
     r.onend = () => setOn(false)
     rec.current = r; setError(null); setOn(true)
     try { r.start() } catch { setOn(false) }

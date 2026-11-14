@@ -27,6 +27,17 @@ export function Mobile() {
     addEventListener('popstate', pop); document.addEventListener('visibilitychange', seen)
     return () => { removeEventListener('popstate', pop); document.removeEventListener('visibilitychange', seen) }
   }, [])
+  useEffect(() => { // the keyboard and iOS's toolbar over it hide fixed bars: while typing, the action bar follows the field
+    const root = document.documentElement
+    let t = 0
+    const typing = () => { const e = document.activeElement; return e instanceof HTMLTextAreaElement || (e instanceof HTMLInputElement && !['file', 'checkbox', 'radio', 'button', 'range'].includes(e.type)) }
+    const sync = () => root.toggleAttribute('data-kb', typing())
+    // the bar moves back late, so a tap on Save lands first (Chrome focuses the button on touch-down, before the click)
+    const off = () => { clearTimeout(t); t = window.setTimeout(sync, 500) }
+    const on = () => { if (typing()) { clearTimeout(t); sync() } else off() }
+    document.addEventListener('focusin', on); document.addEventListener('focusout', off)
+    return () => { document.removeEventListener('focusin', on); document.removeEventListener('focusout', off); clearTimeout(t) }
+  }, [])
   const busy = view?.busy
   useEffect(() => { // while the agent or a slow tool works, read often; otherwise now and then, for what the desktop adds
     const t = setInterval(() => { if (document.visibilityState === 'visible') void refresh() }, busy ? 2500 : 8000)

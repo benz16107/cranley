@@ -9,12 +9,16 @@ final class AppModel {
   /// The pairing token from the desktop's Phone link, or nil when the phone is not linked. It is not the workspace id.
   var workspace: String? { didSet { UserDefaults.standard.set(workspace, forKey: "workspace") } }
   var scans: [UserScan] = []
+  /// Ids of the scans this phone uploaded: the server lists every phone's scans, and "Sent from this phone" means this one.
+  var mine: [String] { didSet { UserDefaults.standard.set(mine, forKey: "mine") } }
   var lastError: String?
 
   init() {
     let saved = UserDefaults.standard.string(forKey: "server").flatMap(URL.init(string:))
-    server = saved ?? URL(string: "http://linuxbox:8787")!
+    // the always-on HTTPS phone address; its /api reaches the event server (the API itself listens on localhost only)
+    server = saved ?? URL(string: "https://linuxbox.<tailnet>:8470")!
     workspace = UserDefaults.standard.string(forKey: "workspace")
+    mine = UserDefaults.standard.stringArray(forKey: "mine") ?? []
   }
 
   var api: ThresholdAPI { ThresholdAPI(base: server) }
@@ -31,7 +35,7 @@ final class AppModel {
 
   func refreshScans() async {
     do {
-      scans = try await api.userScans(workspace: nil)
+      scans = try await api.userScans(workspace: nil).filter { mine.contains($0.sid) }
       lastError = nil
     } catch {
       lastError = error.localizedDescription

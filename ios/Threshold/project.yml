@@ -35,7 +35,7 @@ targets:
         NSCameraUsageDescription: Threshold uses the camera and LiDAR to scan rooms, measure doors and steps, and read the workspace code on your computer.
         NSLocationWhenInUseUsageDescription: Threshold records where a scan was made and which way a window faces, so the tools can place your home on the map.
         NSMotionUsageDescription: Threshold reads the barometer to measure how far your front door sits above the street.
-        # The Threshold server runs on the tailnet over plain HTTP (http://linuxbox:8787).
+        # A server named in a pasted link may be plain HTTP on the tailnet; the default is the HTTPS phone address.
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
     settings:

@@ -21,7 +21,7 @@ final class DemoScreenshots: XCTestCase {
   @MainActor
   func testDemoPath() throws {
     let app = XCUIApplication()
-    app.launchArguments = ["-server", env["THRESHOLD_SERVER"] ?? "http://linuxbox:8787"]
+    app.launchArguments = ["-server", env["THRESHOLD_SERVER"] ?? "https://linuxbox.<tailnet>:8470"]
     if let ws = env["THRESHOLD_WORKSPACE"] { app.launchArguments += ["-workspace", ws] }
     app.launch()
 

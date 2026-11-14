@@ -1,7 +1,7 @@
 import SwiftUI
 import VisionKit
 
-/// Link the phone to a desktop workspace (the code under its Phone tab), see the field tasks it asks for, and set
+/// Link the phone to a desktop workspace (the code under Continue on a phone), see the field tasks it asks for, and set
 /// the server.
 struct WorkspaceView: View {
   @Environment(AppModel.self) private var app
@@ -30,7 +30,7 @@ struct WorkspaceView: View {
         } header: {
           Text("Workspace")
         } footer: {
-          Text("On the computer, open the Phone tab at the bottom of the page. Scans and measurements from this phone then show up in that workspace.")
+          Text("On the computer, click Continue on a phone in the sidebar and scan its code or paste its link. Scans and measurements from this phone then show up in that workspace.")
         }
 
         if app.workspace != nil {
@@ -77,7 +77,7 @@ struct WorkspaceView: View {
       serverText = app.server.absoluteString
       taskError = nil
     } else {
-      taskError = "That link has no pairing code. Scan the code under the Phone tab on your computer."
+      taskError = "That link has no pairing code. Use the code under Continue on a phone on your computer."
     }
   }
 

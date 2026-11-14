@@ -71,9 +71,9 @@ export function RoomPick({ rooms, value, onChange }: { rooms: Room[]; value: str
 /** The camera, through the system's own picker: the most reliable way to a full photo or video on both platforms. */
 export function Camera({ label, video, onFile, quiet }: { label: string; video?: boolean; onFile: (f: File) => void; quiet?: boolean }) {
   const ref = useRef<HTMLInputElement>(null)
-  return (
+  return ( // no `capture`: the phone then offers camera or library, so a photo taken earlier works too (and in a simulator)
     <>
-      <input ref={ref} className="sr" type="file" accept={video ? 'video/*' : 'image/*'} capture="environment" tabIndex={-1} aria-hidden="true"
+      <input ref={ref} className="sr" type="file" accept={video ? 'video/*' : 'image/*'} tabIndex={-1} aria-hidden="true"
         onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) onFile(f) }} />
       <button className={`btn m-btn${quiet ? '' : ' solid'}`} onClick={() => ref.current?.click()}>{label}</button>
     </>
@@ -100,7 +100,7 @@ export function Row({ status, title, sub, right, onClick, done }: { status?: Sta
 export function OutcomeCard({ outcome, task }: { outcome: Outcome; task: Pick<Task, 'unit' | 'scan_value' | 'threshold' | 'kind'> }) {
   return (
     <section className="m-card" data-status={outcome.status} aria-live="polite">
-      <header><StatusGlyph status={outcome.status} size={11} /><b>{SAID[outcome.verdict]}</b><span className="src">{outcome.method === 'manual' ? 'Tape' : outcome.method === 'vision' ? 'Photo' : 'Sensor'} · {outcome.confidence}</span></header>
+      <header><StatusGlyph status={outcome.status} size={11} /><b>{SAID[outcome.verdict]}</b><span className="src">{outcome.method === 'manual' ? (task.kind === 'floor_height' ? 'Counted' : task.kind === 'alarm' ? 'Your word' : 'Tape') : outcome.method === 'vision' ? 'Photo' : 'Sensor'} · {outcome.confidence}</span></header>
       <dl className="m-kv">
         {outcome.value != null && <><dt>On site</dt><dd className="num">{num(outcome.value, task.unit)}{outcome.err ? ` ± ${num(outcome.err, task.unit)}` : ''}</dd></>}
         {task.scan_value != null && task.kind !== 'floor_height' && <><dt>Scan</dt><dd className="num">{num(task.scan_value, task.unit)}</dd></>}

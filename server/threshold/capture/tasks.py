@@ -119,8 +119,10 @@ def tasks(doc, plans: Callable[[str], dict], captures: list[dict] | None = None)
             elif tool == "step_free_route" and tail.startswith("seen:"):
                 ramp = "ramp" in f.title.lower()
                 if ramp or "step" in f.title.lower():
+                    seen = (f.detail or "").split(". ", 1)[0].strip().rstrip(".")  # the vision model's words: where it is
                     add("slope" if ramp else "step", sid, tail.split(":", 1)[1],
-                        "Check the slope of the ramp on your route" if ramp else "Measure the step seen on your route",
+                        f"{'Check the slope' if ramp else 'Measure the step'}: {seen[0].lower() if seen[1:2].islower() else seen[0]}{seen[1:]}" if seen
+                        else "Check the slope of the ramp on your route" if ramp else "Measure the step seen on your route",
                         "A panorama shows it; nothing in the scan measures it.", tool, f.id,
                         threshold=None if ramp else LEVEL_VERTICAL_M, unit="%" if ramp else "m",
                         standard="ADA 2010 405.2: running slope 1:12 (8.33%) maximum" if ramp else STD["level"])

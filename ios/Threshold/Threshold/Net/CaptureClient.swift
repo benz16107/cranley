@@ -48,7 +48,7 @@ nonisolated struct CaptureClient: Sendable {
     var kind: Kind
     var value: Double
     var unit: String
-    var method: String              // "arkit_lidar" | "barometer" | "compass"
+    var method: String              // "arkit_lidar" | "barometer" | "compass" | "tape"
     var accuracy: Double?
     var points: [[Double]]?         // ARKit world metres, y up
     var location: Location?
@@ -84,7 +84,8 @@ nonisolated struct CaptureClient: Sendable {
   @discardableResult
   func send(_ m: Measurement) async throws -> Reply {
     guard let token else { throw NotLinked() }
-    var values: [String: Any] = ["unit": m.unit, "sensor": m.method]
+    var values: [String: Any] = ["unit": m.unit]
+    if m.method != "tape" { values["sensor"] = m.method }  // no sensor: the server takes it as a typed tape reading
     if let a = m.accuracy { values["err_m"] = a }
     if let p = m.points { values["points"] = p }
     var meta: [String: Any] = ["kind": m.photo == nil ? "reading" : "photo", "device": "\(Device.model) threshold-ios/1",

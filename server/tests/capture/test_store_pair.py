@@ -28,7 +28,7 @@ def test_the_bytes_decide_the_type_not_the_label():
         store.save("ws_a", store.Meta(kind="photo"), MP4)
     with pytest.raises(store.Rejected, match="not a photo, video or audio"):
         store.save("ws_a", store.Meta(kind="photo"), b"#!/bin/sh\nrm -rf /\n" + b"0" * 40)
-    with pytest.raises(store.Rejected, match="needs its file"):
+    with pytest.raises(store.Rejected, match="arrived without its file"):
         store.save("ws_a", store.Meta(kind="video"), None)
     with pytest.raises(store.Rejected, match="carries no file"):
         store.save("ws_a", store.Meta(kind="reading"), JPEG)
