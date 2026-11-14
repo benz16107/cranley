@@ -84,6 +84,22 @@ export interface View {
   orbit?: number
   /** Change this number to frame the whole building again in the current mode (after a close-up on a finding). */
   fit?: number
+
+  // ---- what the building is drawn from and what stands around it. All optional; missing is the first value. ----
+  /** Dollhouse: 'model' draws the walls and openings measured in the plan; 'scan' draws the scanned mesh with
+      colour baked from the panoramas, our own photoreal dollhouse; 'splat' draws the interior Gaussian splat trained
+      from the panoramas where one exists (else it is 'scan'). Rooms, routes, pins and water draw on all three. */
+  surface?: 'model' | 'scan' | 'splat'
+  /** Dollhouse and splat: 'studio' is the building alone; 'aerial' stands it in its real surroundings: the drone
+      capture for the house and garden where there is one, and Vexcel's 3D city mesh (or its surface model) beyond.
+      The house is cut open at the cut height so the rooms show inside it, and closes over as the camera pulls away.
+      Needs plan.geo; without it the scene says so and stays in the studio. */
+  env?: 'studio' | 'aerial'
+  /** 'xray' draws the model's walls as glass, so a route or a failing room reads through them. In splat mode it
+      shows the model inside the drone capture (the two share the scan frame). */
+  style?: 'solid' | 'xray'
+  /** Change this number to play the flight from above the neighbourhood down into a room. */
+  tour?: number
 }
 
 /** What onCamera reports: the camera in the same units as `pose` and `fov`, and where `view.focus` is on screen. */

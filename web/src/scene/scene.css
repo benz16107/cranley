@@ -158,3 +158,26 @@
   .th-loading[data-known='false'] { animation: none; opacity: 0.6; }
   .th-pin-mark, .th-floors button { transition: none; }
 }
+
+/* ---- view switcher: what the building is drawn from, what is around it, how it is drawn ----------------------------- */
+.th-views { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.th-views-in { position: absolute; z-index: 5; right: 12px; top: 12px; max-width: calc(100% - 24px); justify-content: flex-end; }
+.th-seg, .th-toggle { background: var(--scene-paper); border-radius: var(--scene-radius); box-shadow: 0 0 0 1px var(--scene-hairline), 0 2px 10px rgb(0 0 0 / 0.1); }
+.th-seg { display: flex; align-items: center; gap: 2px; padding: 3px; }
+.th-seg-label { padding: 0 6px 0 7px; font-size: var(--scene-text-xs); color: var(--scene-ink-2); white-space: nowrap; }
+.th-seg button, .th-toggle { min-height: 26px; padding: 0 9px; border: 0; color: var(--scene-ink); font: 500 var(--scene-text-sm) var(--scene-font); cursor: pointer; white-space: nowrap;
+  transition: background-color 120ms ease, scale 120ms var(--scene-ease-out); }
+.th-seg button { border-radius: 2px; background: none; }
+.th-toggle { min-height: 32px; }
+.th-seg button[aria-pressed='true'], .th-toggle[aria-pressed='true'] { background: var(--scene-ink); color: var(--scene-paper); }
+.th-seg button:disabled { opacity: 0.4; cursor: default; }
+.th-seg button:active:not(:disabled), .th-toggle:active { scale: 0.96; }
+.th-seg button:focus-visible, .th-toggle:focus-visible { outline: 2px solid var(--scene-accent); outline-offset: 1px; }
+@media (hover: hover) and (pointer: fine) {
+  .th-seg button:not([aria-pressed='true']):not(:disabled):hover, .th-toggle:not([aria-pressed='true']):hover { background: color-mix(in srgb, var(--scene-ink) 10%, var(--scene-paper)); }
+}
+@media (pointer: coarse) { .th-seg button { min-height: 40px; } .th-toggle { min-height: 46px; } }
+.th-note-layers { display: grid; gap: 2px; text-align: left; text-wrap: pretty; }
+.th-credit { position: absolute; z-index: 3; right: 8px; bottom: 6px; padding: 1px 5px; border-radius: 2px; background: color-mix(in srgb, var(--scene-paper) 80%, transparent); color: var(--scene-ink-2); font-size: 10px; pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) { .th-seg button, .th-toggle { transition: none; } }

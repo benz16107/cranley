@@ -12,10 +12,21 @@ import { azOfBearing, bearingOfAz, freeRect, lookAngles } from './camera.ts'
 import { PanoView } from './pano.ts'
 import { easeInOut, reducedMotion, Rig } from './rig.ts'
 import { SplatView } from './splat.ts'
+import { InteriorSplat } from '../../world/InteriorSplat.ts'
+import { ScanMesh } from '../../world/ScanMesh.ts'
+import { WorldView } from '../../world/WorldView.ts'
 
 export interface SceneState {
   mode: Mode; loading: boolean; pano: string | null; hasEmpty: boolean; noWalls: boolean
   splat: { status: SplatView['status']; progress: number; splats: number; total: number }
+  /** The surroundings: what they are drawn from, how sure the placement is, and when the pictures were taken. */
+  world: { status: WorldView['status']; kind: WorldView['kind']; placed: boolean; note: string; capture: string; credit: string }
+  /** The scanned mesh and its colour atlas (baked on first use; `progress` is 0..1 while baking). */
+  scan: { status: ScanMesh['status']; colour: ScanMesh['colour']; progress: number }
+  /** The interior splat trained from the panoramas: 'none' when this scan has none, which is the usual case. */
+  interior: { status: InteriorSplat['status'] }
+  /** In real surroundings: the drone capture is drawn round the house, cut open at the cut height. */
+  site: boolean
 }
 /** Per-frame facts the React layer applies straight to the DOM (no re-render): the plan transform and the view cone. */
 export interface FrameInfo {
@@ -34,6 +45,9 @@ export interface EngineOpts {
 }
 
 const DOLL_FOV = 32, PLAN_FOV = 14, PANO_FOV = 76, PANO_FOV_MIN = 34, PANO_FOV_MAX = 96, SPLAT_DIST = 58
+const AERIAL_MAX_DIST = 560 // metres: far enough to see the block, near enough that the fetched tiles stay few
+const SPLAT_CLEAR_M = 34    // the drone capture is good to about here; the surroundings take over beyond it
+const smooth = (a: number, b: number, x: number) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t) }
 const RAD = Math.PI / 180
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 const differs = (a: unknown, b: unknown) => JSON.stringify(a ?? null) !== JSON.stringify(b ?? null)
@@ -50,6 +64,11 @@ export class Engine {
   private overlays3d: Overlays3D
   private pano: PanoView
   private splat: SplatView
+  private world: WorldView
+  private scan: ScanMesh
+  private interior: InteriorSplat
+  private tour = 0 // the step of the flight in from above that is playing; 0 is none
+  private opened = { cur: 1, goal: 1 } // real surroundings: 1 the building is cut out and the model stands in the gap, 0 it is whole
   private overlays: Overlay[] = []
   private overlayLabels: LabelSpec[] = []
   private roomLabels: LabelSpec[]
@@ -93,7 +112,16 @@ export class Engine {
       if (this.view.mode === 'splat' && this.splat.splats && !this.splatAimed) { this.splatAimed = true; this.rig.flyTo({ target: this.splat.centre.clone() }, 700) } // flyTo keeps the orbit distance; a nudge would freeze the move mid-way
       this.invalidate(); this.pushState()
     }
-    this.scene.add(this.pano.group, this.doll.group, this.overlays3d.group, this.splat.group)
+    const b = this.model.bounds, layerChanged = () => { this.invalidate(); this.pushState() }
+    this.world = new WorldView(this.renderer, opts.api, plan.sid, this.tokens.stage,
+      this.model.plan.rooms.filter((r) => r.polygon.length > 2).map((r) => r.polygon), [(b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2], this.radius())
+    this.world.onChange = layerChanged
+    const du = this.doll.uniforms
+    this.scan = new ScanMesh(opts.api, plan.sid, this.tokens, { uCut: du.uCut, uFloorShow: du.uFloorShow, uFloorZ: du.uFloorZ, base: this.model.floorZ })
+    this.scan.onChange = layerChanged
+    this.interior = new InteriorSplat(this.renderer, this.scene, opts.api, plan.sid)
+    this.interior.onChange = layerChanged
+    this.scene.add(this.world.group, this.pano.group, this.doll.group, this.scan.group, this.overlays3d.group, this.splat.group, this.interior.group)
 
     this.labels = new Labels(this.model)
     el.appendChild(this.labels.root)
@@ -124,7 +152,45 @@ export class Engine {
     this.labels.sync([...this.roomLabels, ...this.overlayLabels])
     this.markCurrent()
     this.applyStyles()
+    this.world.setMute(this.overlays.length ? 0.4 : 0) // a result on the building: the surroundings step back
     this.invalidate()
+  }
+
+  private get aerial() { const v = this.view; return v.env === 'aerial' && (v.mode === 'dollhouse' || v.mode === 'splat') }
+  /** In real surroundings a scan with a drone capture uses it for the house and garden; the city mesh starts beyond. */
+  private get site() { return this.aerial && this.view.mode === 'dollhouse' && this.model.plan.has.splat && this.splat.status !== 'missing' }
+  /** What is drawn besides the model (surroundings, scanned mesh) and how the model itself is drawn. */
+  private applyLayers(prev: View | null) {
+    const v = this.view, aerial = this.aerial, rig = this.rig, R = this.radius()
+    const photo = v.mode === 'dollhouse' && (v.surface ?? 'model') !== 'model' // the scanned mesh or the interior splat stands where the drawn walls would
+    this.doll.setSurface(photo ? 'scan' : 'model')
+    this.doll.setXray(v.style === 'xray' && !photo)
+    this.doll.setGround(!aerial)
+    this.overlays3d.setReach(aerial ? 300 : 0) // a flood level covers the street too, wherever the real ground is lower
+    if (v.mode === 'dollhouse') rig.limits.maxDist = aerial ? AERIAL_MAX_DIST : R * 9
+    if (v.mode === 'splat') rig.limits.maxDist = aerial ? AERIAL_MAX_DIST : 160
+    const was = !!prev && prev.env === 'aerial' && (prev.mode === 'dollhouse' || prev.mode === 'splat')
+    if (prev && aerial !== was && v.mode === prev.mode) { // step back to take the surroundings in, or return to the building
+      if (v.mode === 'dollhouse') rig.flyTo(this.withPose(aerial ? { ...this.dollPose(), dist: Math.max(this.dollPose().dist * 1.7, 70), pol: 1.02, az: rig.goal.az } : { ...this.dollPose(), az: rig.goal.az }), 1100)
+      else rig.flyTo({ dist: aerial ? 120 : this.splatDist() }, 1100)
+    }
+    if (prev && v.tour != null && v.tour !== prev.tour) this.startTour()
+  }
+
+  /** The flight in: up over the neighbourhood, down to the building, then into a room. Any touch stops it. */
+  private startTour() {
+    if (this.view.mode !== 'dollhouse') return
+    const p = this.dollPose()
+    this.rig.flyTo({ target: p.target, az: this.rig.pose.az + 0.5, pol: 0.62, dist: this.aerial ? 330 : p.dist * 2.4, fov: DOLL_FOV }, 1300)
+    this.tour = 1
+  }
+  private stepTour() {
+    const p = this.dollPose(), rig = this.rig
+    if (this.tour === 1) { rig.flyTo({ ...p, az: rig.pose.az - 1.35, pol: 0.98, dist: p.dist * 0.92 }, 3600); this.tour = 2; return }
+    this.tour = 0
+    const c = this.centre(), off = (q: Pano) => Math.hypot(q.position[0] - c.x, q.position[1] - c.y)
+    const inside = this.model.plan.panos.filter((q) => q.room).sort((a, b) => off(a) - off(b))[0] ?? this.nearestPano(c.x, c.y) // a position in a room, not on the path outside
+    if (inside) this.opts.onViewChange({ ...this.view, mode: 'pano', pano: inside.id })
   }
 
   setView(next: View) {
@@ -157,6 +223,7 @@ export class Engine {
     if (next.focus && JSON.stringify(next.focus) !== JSON.stringify(prev.focus)) this.focusOn(next.focus)
     if (differs(next.focus, prev.focus)) this.markCurrent()
     if (next.fit !== prev.fit && next.fit != null && next.mode === prev.mode) this.stepBack()
+    this.applyLayers(prev)
     this.pushState(); this.invalidate()
   }
 
@@ -313,9 +380,13 @@ export class Engine {
   }
   private pushState() {
     const s: SceneState = {
-      mode: this.view.mode, loading: this.loading > 0 || (this.view.mode === 'splat' && this.splat.status === 'loading'), pano: this.pano.current?.id ?? null,
+      mode: this.view.mode, loading: this.loading > 0 || ((this.view.mode === 'splat' || this.site) && this.splat.status === 'loading') || this.interior.status === 'loading', pano: this.pano.current?.id ?? null,
       hasEmpty: this.pano.hasEmpty, noWalls: !this.model.hasWalls,
       splat: { status: this.splat.status, progress: Math.round(this.splat.progress * 50) / 50, splats: this.splat.splats, total: this.splat.total },
+      world: { status: this.world.status, kind: this.world.kind, placed: !!this.world.site?.georef?.verified, note: this.world.site?.georef?.note ?? this.world.site?.note ?? '',
+        capture: (this.world.kind === 'city mesh' && this.world.site?.tiles3d?.capture?.[0]) || '', credit: (this.world.kind === 'city mesh' && this.world.site?.tiles3d?.copyright) || '' },
+      scan: { status: this.scan.status, colour: this.scan.colour, progress: Math.round(this.scan.progress * 20) / 20 },
+      interior: { status: this.interior.status }, site: this.site,
     }
     const key = JSON.stringify(s)
     if (key !== this.stateKey) { this.stateKey = key; this.opts.onState(s) }
@@ -338,6 +409,41 @@ export class Engine {
     else if (this.drift && mode === 'splat' && !this.rig.moving) this.rig.goal.az += dt * 0.05
     let moving = this.rig.update(dt)
     const flying = this.rig.moving
+    if (this.tour && !flying) this.stepTour()
+    // In real surroundings the building is whole from far off and opens as the camera comes in: the roof of the city
+    // mesh dissolves and the model rises in the gap. A splat brings its own ground, so the surroundings clear a disc.
+    const aerial = this.aerial, site = this.site, surface = mode === 'dollhouse' ? this.view.surface ?? 'model' : 'model'
+    const splatIn = surface === 'splat' && this.interior.status !== 'none' && this.interior.status !== 'unknown'
+    const scanOn = surface === 'scan' || (surface === 'splat' && !splatIn) // no interior splat for this scan: the scanned mesh is the photoreal one
+    // It opens and closes as a short move of its own when the camera crosses a distance (with some slack, so resting
+    // near the line does not flicker), never part-way: a half-dissolved house reads as a fault.
+    const o = this.opened, line = this.dollPose().dist * 2.1
+    o.goal = !aerial || mode === 'splat' ? 1 : this.rig.goal.dist < line * (o.goal ? 1.12 : 1) ? 1 : 0
+    if (o.cur !== o.goal) { o.cur = reducedMotion() ? o.goal : o.cur + Math.sign(o.goal - o.cur) * Math.min(Math.abs(o.goal - o.cur), dt / 0.7); moving = true }
+    const open = o.cur
+    if (aerial) {
+      this.world.setHole(site ? 0 : smooth(0, 1, open), mode === 'splat' || site ? SPLAT_CLEAR_M : 0)
+      const cam = this.rig.camera, far = Math.min(cam.far, this.rig.pose.dist + 900)
+      if (far !== cam.far) { cam.far = far; cam.updateProjectionMatrix() }
+    }
+    const present = mode === 'splat' ? (this.view.style === 'xray' ? 1 : 0) : open > 0.5 ? 1 : 0
+    this.doll.anim.reveal.goal = present
+    this.world.show(aerial); this.scan.show(scanOn && present === 1); this.interior.show(splatIn && present === 1)
+    this.splat.show(mode === 'splat' || site)
+    // The house cut open. Inside the building's box nothing of a splat is drawn above a cut height, so the rooms
+    // show. The drone capture is the outer shell: it is cut at the ground floor's cut, which takes the roof and any
+    // upper storey's outside walls with it (and it gets them back from above as the view closes). The interior splat
+    // is cut as the walls are: on every floor shown, from the cut height up to the floor above (or the sky), so each
+    // floor's ceiling goes and the next floor's own floor stays. "Full" walls still lose the roof or the ceiling.
+    const bb = this.model.bounds, topF = this.view.floor ? this.model.floorOf.get(this.view.floor) ?? 0 : this.model.floorZ.length - 1
+    const cutAbove = (f: number) => this.doll.floorZ(f) + Math.min(this.doll.anim.cut.cur, this.model.floorH[f] + 0.3)
+    const slab = (z0: number, z1: number) => ({ centre: [(bb.minX + bb.maxX) / 2, (bb.minY + bb.maxY) / 2, (z0 + z1) / 2], half: [(bb.maxX - bb.minX) / 2 + 1.2, (bb.maxY - bb.minY) / 2 + 1.2, (z1 - z0) / 2] })
+    this.splat.cut.set(this.splat.shown, site ? [slab(cutAbove(0) + (1 - smooth(0, 1, open)) * 16, 80)] : [], aerial ? SPLAT_CLEAR_M + 8 : 0, [(bb.minX + bb.maxX) / 2, (bb.minY + bb.maxY) / 2, 0])
+    this.interior.cut.set(this.interior.shown, splatIn ? this.model.floorZ.slice(0, topF + 1).map((_, f) => slab(cutAbove(f), f < topF ? Math.max(cutAbove(f) + 0.01, this.doll.floorZ(f + 1) - 0.2) : 80)) : [])
+    if (this.interior.update(dt)) moving = true
+    this.scan.setWater(this.doll.anim.water.cur)
+    if (this.world.update(dt)) moving = true
+    if (this.scan.update(dt)) moving = true
     if (this.off.t < 1) { // the picture's centre eases into the free rectangle
       const o = this.off; o.t = Math.min(1, o.t + dt / 0.4)
       const k = easeInOut(o.t); o.cur = [o.from[0] + (o.to[0] - o.from[0]) * k, o.from[1] + (o.to[1] - o.from[1]) * k]
@@ -436,7 +542,7 @@ export class Engine {
       if ((e.target as HTMLElement).closest('[data-scene-ui]')) return // rulers, sliders and pins handle themselves
       this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
       this.drag = { moved: 0, t: performance.now(), vx: 0, vy: 0, last: performance.now(), button: e.button }
-      this.drift = false; this.orbiting = false
+      this.drift = false; this.orbiting = false; this.tour = 0
     }
     const onMove = (e: PointerEvent) => {
       const prev = this.pointers.get(e.pointerId)
@@ -481,7 +587,7 @@ export class Engine {
     }
     const onWheel = (e: WheelEvent) => {
       if ((e.target as HTMLElement).closest('[data-scene-ui]')) return
-      e.preventDefault(); this.drift = false; this.orbiting = false
+      e.preventDefault(); this.drift = false; this.orbiting = false; this.tour = 0
       const mode = this.view.mode, k = Math.exp(e.deltaY * 0.0014)
       if (mode === 'pano') { rig.nudge((g) => (g.fov += e.deltaY * 0.035)); return }
       if (mode === 'plan') { // keep the point under the pointer still
@@ -530,7 +636,7 @@ export class Engine {
 
   dispose() {
     cancelAnimationFrame(this.raf); this.unsub(); this.ro.disconnect(); this.listeners.abort()
-    this.doll.dispose(); this.pano.dispose(); this.splat.dispose()
+    this.doll.dispose(); this.pano.dispose(); this.splat.dispose(); this.world.dispose(); this.scan.dispose(); this.interior.dispose()
     this.renderer.dispose(); this.renderer.domElement.remove(); this.labels.root.remove()
   }
 }
