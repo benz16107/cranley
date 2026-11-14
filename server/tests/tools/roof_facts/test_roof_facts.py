@@ -1,4 +1,4 @@
-from _site.fakes import facts, offline  # noqa: F401
+from tests.tools._site.fakes import facts, offline  # noqa: F401
 
 from threshold.aerial import site
 from threshold.tools import run_tool

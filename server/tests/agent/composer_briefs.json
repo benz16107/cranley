@@ -46,5 +46,8 @@
   {"id": "amenity-audit", "brief": "I audit apartment communities and need to check what this one really offers against what its listing says.", "persona": ["amenity_auditor"], "must": [["amenity_census"]]},
   {"id": "cleaning-bid", "brief": "I run a janitorial company and need to price cleaning this office from the scan.", "persona": ["cleaning_bidder"], "must": [["takeoff_bid"]]},
   {"id": "research-audit", "brief": "I lead a research team that maintains property records and want to find which records disagree with the scans.", "persona": ["costar_research_lead"], "must": [["field_audit", "record_vs_reality"]]},
-  {"id": "renter-claims", "brief": "I'm about to rent this apartment and want to check whether what the listing says is true.", "persona": ["renter_checking_claims", "renter_listing"], "must": [["listing_claims", "record_vs_reality"]]}
+  {"id": "renter-claims", "brief": "I'm about to rent this apartment and want to check whether what the listing says is true.", "persona": ["renter_checking_claims", "renter_listing"], "must": [["listing_claims", "record_vs_reality"]]},
+  {"id": "commercial-underwriter", "brief": "I price commercial property and need the roof, the dock doors and the parking at this warehouse set against the record.", "persona": ["commercial_underwriter", "insurance_underwriter"], "must": [["risk_sheet", "roof_facts"], ["loading_docks", "parking_count"]]},
+  {"id": "daycare-operator", "brief": "I'm looking for a building to license as a child-care centre and need its capacity inside and outside.", "persona": ["daycare_operator"], "must": [["daycare_capacity"]]},
+  {"id": "pool-parent", "brief": "We have a toddler and a backyard pool, and I want to see every way she could reach the water.", "persona": ["pool_safety_parent"], "must": [["path_to_water"]]}
 ]

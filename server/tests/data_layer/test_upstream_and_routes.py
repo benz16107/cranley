@@ -154,7 +154,7 @@ def small_index(tmp_path, monkeypatch):
             "costar_property_id", "homes_listing_id", "splat", "drone_photos", "pano_count", "room_count", "floor_count", "created",
             "defurnished", "ai_summary"]
     rows = [
-        ["house0000001", "<address>", "residential", "29.6", "-95.1", "model", "<address>, Houston, TX, 77059, US", "Houston", "TX", "77059", "Homes-1", "", "111", "yes", "9", "100", "30", "2", "2026-11-09", "yes", "no"],
+        ["house0000001", "12 Sample Creek Ln", "residential", "29.6", "-95.1", "model", "12 Sample Creek Lane, Houston, TX, 77000, US", "Houston", "TX", "77000", "Homes-1", "", "111", "yes", "9", "100", "30", "2", "2026-11-09", "yes", "no"],
         ["unit0000001", "2BR, 2BA - 900SF", "commercial", "29.7", "-95.2", "model", "100 Main St, Houston, TX, 77001, US", "Houston", "TX", "77001", "Apartments-5", "5", "", "no", "", "20", "8", "1", "2026-11-09", "yes", "yes"],
         ["unit0000002", "1BR, 1BA - 700SF", "commercial", "29.7001", "-95.2001", "model", "100 Main Street Unit 4, Houston, TX, 77001, US", "Houston", "TX", "77001", "Apartments-5", "5", "", "no", "", "15", "6", "1", "2026-11-09", "yes", "yes"],
         ["gym00000001", "Fitness Center", "commercial", "29.7", "-95.2", "model", "US", "Houston", "TX", "", "Apartments-5", "", "", "no", "", "9", "2", "1", "2026-11-09", "yes", "no"],

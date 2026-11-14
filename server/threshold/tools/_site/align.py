@@ -1,6 +1,7 @@
-"""Does a scan's floor plan sit on its building footprint? The scan frame to lat/lon convention is not verified yet
-(geometry.georef says so), so each site tool that crosses from inside to outside checks it on the house itself:
-the plan outline is placed under all four conventions and compared with Vexcel's footprint.
+"""Does a scan's floor plan sit on its building footprint? The scan frame to lat/lon convention is settled
+(geometry.georef: yaw +1, translation "enu", checked by the walls workstream on 40 houses), so this places the plan
+outline under that one convention, with the plan's verified footprint refit when it has one, and reports how well
+it overlaps Vexcel's footprint. A poor overlap means a wrong footprint or a bad anchor, not another convention.
 """
 from __future__ import annotations
 
@@ -10,7 +11,7 @@ from ...geometry import georef
 from ...geometry.check_georef import outline_corners
 from . import metres
 
-CONVENTIONS = [(1, "scan"), (1, "enu"), (-1, "scan"), (-1, "enu")]
+CONVENTIONS = [(georef.YAW_SIGN, georef.TRANSLATION)]  # the settled one; the other three were ruled out
 GOOD_IOU = 0.55   # the plan covers only the scanned floor area, and footprints include garages and eaves
 FAIR_IOU = 0.35
 

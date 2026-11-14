@@ -1,4 +1,4 @@
-from _site.fakes import facts, ll, offline  # noqa: F401
+from tests.tools._site.fakes import facts, ll, offline  # noqa: F401
 from shapely import wkt
 
 from threshold.aerial import detect, site

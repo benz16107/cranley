@@ -1,4 +1,4 @@
-from _site.fakes import LAT, ll, square_wkt
+from tests.tools._site.fakes import LAT, ll, square_wkt
 from shapely import wkt
 
 from threshold.tools._site import metres

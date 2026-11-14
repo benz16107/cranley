@@ -276,6 +276,34 @@
    }
   ]
  },
+ "I price commercial property and need the roof, the dock doors and the parking at this warehouse set against the record.": {
+  "cannot": [],
+  "persona": "commercial_underwriter",
+  "stated": [],
+  "summary": "A commercial property pricer who needs the warehouse's roof, dock doors and parking checked against the record.",
+  "tools": [
+   {
+    "id": "roof_facts",
+    "reason": "You get the roof's material, shape, condition and defects read from the aerial photo."
+   },
+   {
+    "id": "loading_docks",
+    "reason": "You get the dock and drive-in doors counted on each wall and set beside the CoStar record."
+   },
+   {
+    "id": "parking_count",
+    "reason": "You get the parking stalls counted from the aerial photo and compared with the record."
+   },
+   {
+    "id": "record_vs_reality",
+    "reason": "You see each recorded fact beside what the scan and aerial photo measure, with the evidence."
+   },
+   {
+    "id": "risk_sheet",
+    "reason": "You get one printable page pulling the roof and other risks together with evidence and confidence for your pricing."
+   }
+  ]
+ },
  "I run a janitorial company and need to price cleaning this office from the scan.": {
   "cannot": [],
   "persona": "cleaning_bidder",
@@ -658,6 +686,30 @@
    }
   ]
  },
+ "I'm looking for a building to license as a child-care centre and need its capacity inside and outside.": {
+  "cannot": [],
+  "persona": "daycare_operator",
+  "stated": [],
+  "summary": "You are looking for a building to license as a child-care centre and need its indoor and outdoor capacity.",
+  "tools": [
+   {
+    "id": "daycare_capacity",
+    "reason": "This works out how many children the space could be licensed for from indoor room area, outdoor play area, toilets and sinks, and names what limits it."
+   },
+   {
+    "id": "room_census",
+    "reason": "This shows which rooms the space has and how big each kind is, so you can plan classrooms and support rooms."
+   },
+   {
+    "id": "door_widths",
+    "reason": "This measures every doorway so you can see where strollers, cribs or evacuation could be tight."
+   },
+   {
+    "id": "path_to_water",
+    "reason": "If the property has a pool, this traces how a small child could reach it and names the missing barrier."
+   }
+  ]
+ },
  "I'm quoting commercial property insurance for this warehouse.": {
   "cannot": [
    "Assessing fire protection such as sprinklers, alarms and construction class for commercial rating.",
@@ -951,6 +1003,29 @@
    {
     "id": "stairs_count",
     "reason": "This finds steps at doorways and between floors, which a wheeled robot cannot climb past."
+   }
+  ]
+ },
+ "We have a toddler and a backyard pool, and I want to see every way she could reach the water.": {
+  "cannot": [
+   "Nothing here can test whether your locks, latches, door alarms or pool gate actually work or are out of her reach.",
+   "Nothing here can tell you whether a pool cover or fence meets your local pool-barrier rules."
+  ],
+  "persona": "pool_safety_parent",
+  "stated": [],
+  "summary": "A parent of a toddler with a backyard pool who wants to see every way she could reach the water.",
+  "tools": [
+   {
+    "id": "path_to_water",
+    "reason": "You get every route your daughter could take from each bedroom to the pool, with the missing barrier named on each."
+   },
+   {
+    "id": "door_widths",
+    "reason": "You see every doorway along those routes, so you know which openings lead toward the yard and need a lock, alarm or gate."
+   },
+   {
+    "id": "risk_sheet",
+    "reason": "You get one printable page covering the pool and other hazards inside and out, each with its evidence."
    }
   ]
  },
