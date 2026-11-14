@@ -105,6 +105,22 @@ def test_what_a_token_cannot_do(desk):
                   headers={"content-length": str(10**9)}).status_code in (400, 413)
     assert c.get("/api/capture/cap_0000000000000000/file").status_code == 404
     assert c.post("/api/workspace/ws_missing/pair", json={}).status_code == 404
+    # a phone tool reads only this visit's captures, and a bad scan or place is a 4xx, never a 500 or a junk building
+    other = store.save("ws_other", store.Meta(kind="video"), b"\x00\x00\x00\x18ftypmp42" + b"0" * 64)["id"]
+    assert c.post(f"/api/phone/{t}/run/walkthrough", json={"capture": other}).status_code == 404
+    assert c.post(f"/api/phone/{t}/run/photo_measure", json={"capture": ["x"]}).status_code == 404
+    assert c.post(f"/api/phone/{t}/run/where_am_i", json={"scan": "nope"}).status_code == 404
+    assert c.post(f"/api/phone/{t}/run/where_am_i", json={"scan": 5}).status_code == 404
+    assert c.post(f"/api/phone/{t}/run/where_am_i", json={"place": {"geo": "x"}}).status_code == 422
+    assert c.post(f"/api/phone/{t}/brief", json={"text": "hi", "sid": "nope"}).status_code == 404
+    assert c.get(f"/api/workspace/{wid}").json()["doc"]["brief"]["scope"]["sids"] == ["home"]
+    assert c.get(f"/api/capture/{other}/file").headers["x-content-type-options"] == "nosniff"
+
+
+def test_phone_start_always_makes_a_phone_profile_workspace(desk):
+    c, _ = desk
+    t = c.post("/api/phone/start", json={"profile": "default"}).json()["token"]
+    assert api.session(pair.check(t)).base.profile == "phone"
 
 
 def test_a_phone_alone_starts_its_own_workspace_and_picks_a_building(desk, monkeypatch):
