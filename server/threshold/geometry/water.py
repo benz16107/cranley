@@ -29,7 +29,7 @@ def flood_levels(plan: dict, entry: str | None = None) -> dict:
     `entry` limits where water gets in to one exterior opening id."""
     fz = floor_z(plan)
     rooms = plan.get("rooms") or []
-    z0 = cached(plan, "room_floor_z", lambda: room_floor_z(plan))
+    z0 = room_floor_z(plan)  # not cached: the cache key ignores panoramas, which set the steps
     adj: dict[str, list[tuple[str, float, str | None]]] = {}
 
     def link(a, b, cost, via):
