@@ -2132,7 +2132,7 @@ wheels = [
 [[package]]
 name = "threshold"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "anthropic" },
     { name = "cryptography" },
@@ -2144,6 +2144,7 @@ dependencies = [
     { name = "langchain-mcp-adapters" },
     { name = "langgraph-checkpoint-mongodb" },
     { name = "langgraph-store-mongodb" },
+    { name = "mcp" },
     { name = "numpy" },
     { name = "pg8000" },
     { name = "pgai" },
@@ -2175,6 +2176,7 @@ requires-dist = [
     { name = "langchain-mcp-adapters", specifier = ">=0.3.2" },
     { name = "langgraph-checkpoint-mongodb", specifier = ">=0.5.1" },
     { name = "langgraph-store-mongodb", specifier = ">=0.4.0" },
+    { name = "mcp", specifier = ">=1.30.0" },
     { name = "numpy", specifier = ">=2.0" },
     { name = "pg8000", specifier = ">=1.31" },
     { name = "pgai", specifier = ">=0.12.1" },

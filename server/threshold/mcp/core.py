@@ -33,7 +33,8 @@ def summary(r: dict) -> str:
     v = r["verdict"]
     lines = [f"{r['tool']}: {v['status'].upper()}. {v['text']}"]
     for m in r.get("metrics", [])[:8]:
-        lines.append(f"  {m['label']}: {_num(m['value'])} {m['unit']}".rstrip() + f"  [{m['source']['confidence']}]")
+        val = "not measured" if m["value"] is None else f"{_num(m['value'])} {m['unit']}".rstrip()
+        lines.append(f"  {m['label']}: {val}  [{m['source']['confidence']}]")
     checks = r.get("checks", [])
     if checks:
         n = Counter(c["status"] for c in checks)
@@ -168,8 +169,8 @@ def describe(entry: dict) -> str | None:
         return f"finding ({f.get('status')}): {f.get('title')}"
     if kind == "question.ask":
         return f"question: {(op.get('question') or {}).get('text')}"
-    if kind in ("brief.set", "tool.enable", "plan.set"):
-        return kind
+    if kind == "tool.enable":
+        return f"enabled {op.get('tool')}"
     return None
 
 
