@@ -17,10 +17,11 @@ GROUND_PERCENTILE = 5   # the ground is the low end of the surface near the buil
 GROUND_RADIUS_M = 35
 
 
-def grid(lat: float, lon: float, size_m: float = 320, n: int = 256) -> dict:
+def grid(lat: float, lon: float, size_m: float = 320, n: int = 256, kind: str = "dsm") -> dict:
     """heights (n x n float32, row 0 north, NaN where Vexcel has none), bounds_enu (west, south, east, north) and
-    ground_m, the surface model's own height of the ground at the point (its datum, used only as a difference)."""
-    data, _ = vexcel.call("GET", "dsm/extract", params={
+    ground_m, the surface model's own height of the ground at the point (its datum, used only as a difference).
+    kind "dtm" reads Vexcel's bare-ground model instead of the surface model."""
+    data, _ = vexcel.call("GET", f"{kind}/extract", params={
         "wkt": site.square(lat, lon, size_m), "srid": 4326, "destination-dimensions": f"{n},{n}"})
     r = geotiff.read(data)
     r.heights = _soften(r.heights)
@@ -51,6 +52,18 @@ def sample(g: dict, e: np.ndarray, n: np.ndarray) -> np.ndarray:
     out = np.full(np.shape(e), np.nan, np.float32)
     out[ok] = g["heights"][r[ok], c[ok]]
     return out
+
+
+def bilinear(g: dict, e: np.ndarray, n: np.ndarray) -> np.ndarray:
+    """Height at east/north points, blended from the four cells round each; the edge cell outside the grid."""
+    west, south, east, north = g["bounds_enu"]
+    h, w = g["heights"].shape
+    c = np.clip((np.asarray(e) - west) / (east - west) * w - 0.5, 0, w - 1)
+    r = np.clip((north - np.asarray(n)) / (north - south) * h - 0.5, 0, h - 1)
+    c0, r0 = np.minimum(c.astype(int), w - 2), np.minimum(r.astype(int), h - 2)
+    fc, fr = c - c0, r - r0
+    H = g["heights"]
+    return (H[r0, c0] * (1 - fc) + H[r0, c0 + 1] * fc) * (1 - fr) + (H[r0 + 1, c0] * (1 - fc) + H[r0 + 1, c0 + 1] * fc) * fr
 
 
 def ortho_bounds_enu(lat: float, lon: float, size_m: float, px: int) -> tuple[float, float, float, float]:
