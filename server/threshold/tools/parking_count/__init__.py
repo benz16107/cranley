@@ -106,7 +106,7 @@ def pick_tiles(area_m, lots: list, cars: list[dict], lat0: float) -> list[tuple[
                     out.append((n + lot / 30, (x, y)))
             x += TILE_M
         y += TILE_M
-    return [c for _, c in sorted(out, reverse=True)[:MAX_TILES]]
+    return [c for _, c in sorted(out, reverse=True)]
 
 
 def agree(a, b, pct: float) -> str:
@@ -153,10 +153,11 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     ctx.step(f"Vexcel: {len(cars)} cars, {len(lots)} lot areas totalling {lot_area:.0f} m2 (its detector boxes whole lots, "
              "not stalls)")
     st = {"singles": [], "rows": [], "dropped": [], "count": 0, "back": to_m(lat0)[1]}
-    tiles, vis_dets = [], []
+    tiles, candidates, vis_dets = [], [], []
     if inputs.use_vision:
-        tiles = pick_tiles(area_m, lots, cars, lat0)
-        ctx.step(f"Reading {len(tiles)} tiles of {TILE_M:.0f} m with the vision model")
+        candidates = pick_tiles(area_m, lots, cars, lat0)
+        tiles = candidates[:MAX_TILES]
+        ctx.step(f"Reading {len(tiles)} of {len(candidates)} lot tiles of {TILE_M:.0f} m with the vision model")
         for tx, ty in tiles:
             lo, la = to_m(lat0)[1](tx, ty)
             try:
@@ -247,7 +248,8 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                 + (f"; the record says {rec_spaces}." if rec_spaces is not None else "."))
     else:
         status = "warn" if any(ch.status == "warn" for ch in checks) else "pass"
-        text = (f"About {n} marked stalls counted from above, {len(cars)} cars parked on {capture(s)}"
+        part = f" on {len(tiles)} of {len(candidates)} lot tiles (the busiest)" if len(candidates) > len(tiles) else ""
+        text = (f"About {n} marked stalls counted from above{part}, {len(cars)} cars parked on {capture(s)}"
                 + (f"; the record says {rec_spaces}." if rec_spaces is not None else "; no CoStar parking figure to compare."))
     if fp is not None and rba is None and n:
         rba_ft2 = metres(fp, lat0).area * FT2_PER_M2
