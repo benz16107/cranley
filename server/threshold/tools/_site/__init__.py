@@ -70,6 +70,13 @@ class Site:
         return "CA" if self.lon < -105 else "TX"
 
 
+def not_for_homes(scan: str | None, what: str) -> None:
+    """Truck tools on a house or an apartment unit: say so instead of reading docks off a home."""
+    if scan and (index.rows().get(scan) or {}).get("kind") in ("house", "apartment_unit"):
+        raise NotApplicable(f"This scan is a home, and {what} belong to warehouses and other commercial buildings. "
+                            "Give a commercial property id or a point to check one.")
+
+
 def locate(ctx, w: Where) -> Site:
     """Resolve the inputs to a point. A scan wins, then a property id, then lat and lon."""
     if w.scan:

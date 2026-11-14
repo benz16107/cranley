@@ -52,3 +52,4 @@ def test_a_home_is_not_applicable(monkeypatch):
     monkeypatch.setattr(index, "rows", lambda: {"h1": {"kind": "house"}})
     r = run_tool("loading_docks", {"scan": "h1"})
     assert r.verdict.status == "unknown" and "home" in r.verdict.text
+    assert run_tool("truck_access", {"scan": "h1"}).verdict.status == "unknown"
