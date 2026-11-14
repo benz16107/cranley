@@ -32,8 +32,8 @@ def doc_with_scope():
     return apply(Workspace(id="w"), BriefSet(scope=Scope(sids=["t1"])))
 
 
-def test_sixteen_ops():
-    assert len(OP_NAMES) == 16 and len(set(OP_NAMES)) == 16
+def test_seventeen_ops():
+    assert len(OP_NAMES) == 17 and len(set(OP_NAMES)) == 17
 
 
 def test_reducer_is_pure_and_upserts_in_place():

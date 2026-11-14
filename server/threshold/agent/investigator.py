@@ -8,19 +8,26 @@ virtual filesystem (/notes/<scan>.md), saved next to the workspace as <id>.casef
 """
 from __future__ import annotations
 
+import inspect
 import json
+import re
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from pydantic import Field, create_model
 
-from ..tools import ToolContext, ToolError, run_tool
+from ..tools import Check, Metric, Place, PropertyScope, Source, ToolContext, ToolError, ToolResult, Verdict, run_tool
+from ..tools.places import default_site
 from ..tools.registry import REGISTRY, default_plan, load
 from . import prefs
+from .budget import Budget, BudgetSpent
 from .catalog import catalog, personas, resolve
 from .workspace import (
+    MEASURE,
     ActionBar,
     AssumptionChips,
+    BriefSet,
     CameraFocus,
     CheckList,
     Control,
@@ -41,6 +48,8 @@ from .workspace import (
     Rejected,
     Run,
     RunFinish,
+    RunProgress,
+    Scope,
     RunStart,
     Session,
     ShortlistAdd,
@@ -48,6 +57,8 @@ from .workspace import (
     VerdictHeader,
     WsFinding,
     WsOverlay,
+    clean,
+    known_sids,
     new_id,
 )
 
@@ -60,6 +71,24 @@ def short(text: str, n: int = 280) -> str:
         return text
     cut = text[:n].rfind(". ")
     return text[:cut + 1] if cut > 0 else text[:n - 1] + "…"
+
+
+def target(run: Run) -> str:
+    """What a run looked at, as a key: its scan id, else its place's key."""
+    return run.sid or (run.place.key() if run.place else "")
+
+
+def default_place(doc) -> dict | None:
+    """The workspace's one place when there is exactly one (a scan or a place), else None: the model must say."""
+    options = [{"scan": s} for s in doc.brief.scope.sids] + [p.model_dump(exclude_none=True) for p in doc.brief.scope.places]
+    return options[0] if len(options) == 1 else None
+
+
+def in_scope(place: Place, doc) -> bool:
+    if place.scan:
+        return place.scan in known_sids(doc)
+    return any(p.key() == place.key() or (place.property_id is not None and p.property_id == place.property_id)
+               for p in doc.brief.scope.places)
 
 
 def attach(session: Session, plans: Callable[[str], dict] = default_plan) -> Session:
@@ -89,15 +118,16 @@ def panel_for(m, run: Run, overlay_ids: list[str]) -> Panel:
             "StepLog": lambda: StepLog(run=run.id),
             "ActionBar": lambda: ActionBar(run=run.id) if r.actions else None}
     blocks = [b for b in (make[name]() for name in m.blocks if name in make) if b]
-    return Panel(id=f"panel:{m.id}:{run.sid}", title=m.title, blocks=blocks, tool=m.id, run=run.id)
+    return Panel(id=f"panel:{m.id}:{target(run)}", title=m.title, blocks=blocks, tool=m.id, run=run.id)
 
 
 class Investigation:
     """One agent turn over one workspace. Tool calls from the main agent and subagents land here."""
 
-    def __init__(self, session: Session, turn: str | None = None):
+    def __init__(self, session: Session, turn: str | None = None, budget: Budget | None = None):
         self.s = attach(session, session.plans or default_plan)
         self.turn = turn or new_id("turn")
+        self.budget = budget or Budget()
         self.step: str | None = None  # the plan step in progress
         self.notes: list[str] = []
         self.files: dict[str, Any] = {}
@@ -116,11 +146,25 @@ class Investigation:
         doc = self.s.doc
         if m is None:
             return {"error": f"unknown tool {tool_id}"}
+        if "place" in m.inputs.get("properties", {}):
+            given = {**given, "place": given.get("place") or default_place(doc)}
+            if given["place"] is None:
+                return {"error": "this tool needs a place: a scan, property_id, address or geo [lon, lat]"}
+            try:
+                place = Place.model_validate(given["place"])
+            except ValueError as e:
+                return {"error": f"bad place: {e}"}
+            if not in_scope(place, doc):
+                return {"error": f"place {place.key()} is not in this workspace; add it with consider first"}
+            given["place"] = place.model_dump(exclude_none=True)
         inputs, used, missing = resolve(m, doc, given)
-        rec = Run(id=new_id("run"), tool=tool_id, sid=inputs.get("scan") or given.get("scan"), inputs=inputs,
-                  inputs_from=used, plan_step=self.step)
-        if rec.sid and rec.sid not in doc.brief.scope.sids:
+        place = Place.model_validate(inputs["place"]) if inputs.get("place") else None
+        rec = Run(id=new_id("run"), tool=tool_id, sid=inputs.get("scan") or given.get("scan") or (place.scan if place else None),
+                  place=place if place and not place.scan else None, inputs=inputs, inputs_from=used, plan_step=self.step)
+        if rec.sid and rec.sid not in known_sids(doc):
             return {"error": f"scan {rec.sid} is not in this workspace; use one of {doc.brief.scope.sids}"}
+        if m.status == "ready" and not missing and not self.budget.take_run():
+            return {"error": "this turn's tool-run budget is spent; finish with what you have"}
         self.emit(RunStart(record=rec, run=rec.id))
         if m.status == "planned":
             self.emit(RunFinish(id=rec.id, status="skipped", summary=f"{m.title} is planned, not built yet", run=rec.id))
@@ -129,7 +173,10 @@ class Investigation:
             need = ", ".join(n for n, _ in missing)
             self.emit(RunFinish(id=rec.id, status="error", error=f"needs {need}", run=rec.id))
             return {"run": rec.id, "error": f"missing inputs the person has not given: {need}"}
-        ctx = ToolContext(plans=prefs.with_labels(self.s.plans, doc))
+        ctx = ToolContext(plans=prefs.with_labels(self.s.plans, doc),
+                          on_step=lambda text: self.emit(RunProgress(id=rec.id, step=short(text, 200), run=rec.id)))
+        if self.s.sites:
+            ctx.sites = self.s.sites
         try:
             result = run_tool(tool_id, inputs, ctx)
         except ToolError as e:
@@ -141,25 +188,26 @@ class Investigation:
         shown = [f for f in result.findings if f.id not in hidden]
         for f in shown:
             self.emit(FindingAdd(finding=WsFinding(**f.model_dump(), run=rec.id, tool=tool_id), run=rec.id))
-        sid_of = {r.id: r.sid for r in self.s.doc.runs}
+        target_of = {r.id: target(r) for r in self.s.doc.runs}
         kept = {f.id for f in shown}
         for old in self.s.doc.findings:  # a re-run retires what it no longer reports
-            if (old.tool == tool_id and old.run != rec.id and sid_of.get(old.run) == rec.sid and old.id not in kept
+            if (old.tool == tool_id and old.run != rec.id and target_of.get(old.run) == target(rec) and old.id not in kept
                     and not old.superseded_by):
                 self.emit(FindingAdd(finding=old.model_copy(update={"superseded_by": rec.id}), run=rec.id))
-        ids = [f"{tool_id}:{rec.sid}:{i}" for i in range(len(result.overlays))]
+        ids = [f"{tool_id}:{target(rec)}:{i}" for i in range(len(result.overlays))]
         for oid, o in zip(ids, result.overlays):
             self.emit(OverlayUpsert(overlay=WsOverlay(id=oid, sid=rec.sid, overlay=o, tool=tool_id, run=rec.id),
                                     run=rec.id))
         for old in self.s.doc.overlays:  # a re-run with fewer overlays hides the leftovers
-            if old.tool == tool_id and old.sid == rec.sid and old.id not in ids and old.visible:
+            if old.tool == tool_id and old.id.startswith(f"{tool_id}:{target(rec)}:") and old.id not in ids and old.visible:
                 self.emit(OverlayUpsert(overlay=old.model_copy(update={"visible": False, "run": rec.id}), run=rec.id))
         done = next(r for r in self.s.doc.runs if r.id == rec.id)
         self.emit(PanelUpsert(panel=panel_for(m, done, ids), run=rec.id))
         worst = min((f for f in shown if f.anchor), key=lambda f: RANK[f.status], default=None)
         if worst and worst.status != "pass":
             self.emit(CameraFocus(anchor=worst.anchor, reason=worst.title, run=rec.id))
-        return {"run": rec.id, "tool": tool_id, "scan": rec.sid, "verdict": result.verdict.status,
+        return {"run": rec.id, "tool": tool_id, "scan": rec.sid, "place": rec.place and rec.place.key(),
+                "verdict": result.verdict.status,
                 "summary": result.verdict.text,
                 "findings": [{"id": f.id, "status": f.status, "title": f.title} for f in
                              sorted(shown, key=lambda f: RANK[f.status])[:8]],
@@ -201,6 +249,165 @@ class Investigation:
             return "rejected: notes may not state measurements; point to finding ids instead"
         return "ok"
 
+    # ---- finding buildings ----
+    def _exists(self, sid: str) -> bool:
+        from ..sources import index
+        if sid in index.rows():
+            return True
+        try:
+            self.s.plans(sid)
+            return True
+        except Exception:
+            return False
+
+    def consider(self, scans: list[str] | None = None, property_ids: list[int] | None = None,
+                 addresses: list[str] | None = None, points: list[list[float]] | None = None) -> dict:
+        """Add buildings found by search to the workspace so tools may run on them."""
+        sc = self.s.doc.brief.scope
+        sids, places, problems = list(sc.sids), list(sc.places), []
+        for sid in scans or []:
+            if sid in sids:
+                continue
+            (sids.append(sid) if self._exists(sid) else problems.append(f"no scan {sid}"))
+        wanted = [Place(property_id=p) for p in property_ids or []] + [Place(address=a) for a in addresses or []]
+        for pt in points or []:
+            try:
+                wanted.append(Place(geo=tuple(pt)))
+            except ValueError as e:
+                problems.append(f"bad point {pt}: {e}")
+        have = {p.key() for p in places}
+        for p in wanted:
+            if p.key() in have:
+                continue
+            try:
+                ToolContext(sites=self.s.sites or default_site).site(p)
+                places.append(p)
+                have.add(p.key())
+            except ToolError as e:
+                problems.append(str(e))
+        if len(sids) != len(sc.sids) or len(places) != len(sc.places):
+            self.emit(BriefSet(scope=Scope(sids=sids, address=sc.address, places=places)))
+        return {"scans_in_workspace": len(sids), "places": [p.key() for p in places], "problems": problems}
+
+    def scans_of(self, property_id: int) -> list[dict]:
+        return ToolContext(sites=self.s.sites or default_site).site(Place(property_id=property_id)).scans
+
+    def property_scans(self, property_id: int) -> dict:
+        """The scans of one property, grouped by kind."""
+        try:
+            scans = self.scans_of(property_id)
+        except ToolError as e:
+            return {"error": str(e)}
+        kinds: dict[str, list] = {}
+        for s in scans:
+            kinds.setdefault(s["kind"], []).append({"sid": s["sid"], "name": s["name"]})
+        return {"property_id": property_id, "count": len(scans),
+                "by_kind": {k: {"count": len(v), "first": v[:12]} for k, v in kinds.items()}}
+
+    def fan_out(self, tool_id: str, property_id: int, kinds: list[str] | None = None,
+                scans: list[str] | None = None, max_scans: int | None = None) -> dict:
+        """Run one scan tool over a property's scans, at most `parallel` at once and `max_fan_out` in all, then add one
+        property-level run that aggregates them."""
+        m = catalog().get(tool_id)
+        if not m or m.status != "ready" or "scan" not in m.inputs.get("properties", {}):
+            return {"error": f"{tool_id} is not a ready tool that runs on a scan"}
+        try:
+            all_scans = self.scans_of(property_id)
+        except ToolError as e:
+            return {"error": str(e)}
+        pool = [s for s in all_scans if (not kinds or s["kind"] in kinds) and (not scans or s["sid"] in scans)]
+        cap = max(1, min(max_scans or self.budget.max_fan_out, self.budget.max_fan_out))
+        pick = pool[:cap]
+        if not pick:
+            return {"error": f"no scans of property {property_id} match kinds {kinds}"}
+        self.consider(scans=[s["sid"] for s in pick], property_ids=[property_id])
+        with ThreadPoolExecutor(max_workers=self.budget.parallel) as ex:
+            outs = list(ex.map(lambda s: self.run(tool_id, {"scan": s["sid"]}), pick))
+        checks, counts = [], {k: 0 for k in RANK}
+        for s, o in zip(pick, outs):
+            st = o.get("verdict") or "unknown"
+            counts[st] += 1
+            checks.append(Check(id=f"scan.{s['sid']}", rule=f"{s['name'] or s['sid']} ({s['kind']})", measured=None,
+                                threshold=None, unit="", status=st, standard=o.get("error") or o.get("skipped"),
+                                findings=[f["id"] for f in o.get("findings", [])]))
+        worst = min((c.status for c in checks), key=lambda x: RANK[x])
+        left = len(pool) - len(pick)
+        src = Source(layer="matterport", method="geometry", confidence="medium",
+                     note=f"Aggregate of {m.title} over {len(pick)} scans")
+        text = (f"{m.title} on {len(pick)} scans: {counts['fail']} fail, {counts['warn']} warn, {counts['pass']} pass, "
+                f"{counts['unknown']} unknown." + (f" {left} more scans were not checked." if left else ""))
+        result = ToolResult(tool=tool_id, scope=PropertyScope(property_id=property_id, sids=[s["sid"] for s in pick]),
+                            verdict=Verdict(status=worst, text=text),
+                            metrics=[Metric(id="scans_checked", label="Scans checked", value=len(pick), unit="", source=src),
+                                     Metric(id="scans_not_checked", label="Not checked", value=left, unit="", source=src),
+                                     *[Metric(id=f"verdicts.{k}", label=k, value=v, unit="scans", source=src)
+                                       for k, v in counts.items()]],
+                            checks=sorted(checks, key=lambda c: RANK[c.status]))
+        place = Place(property_id=property_id)
+        rec = Run(id=new_id("run"), tool=tool_id, place=place, plan_step=self.step,
+                  inputs={"place": place.model_dump(exclude_none=True), "scans": [s["sid"] for s in pick]})
+        steps = [f"Ran {m.title} on {len(pick)} of {len(pool)} matching scans, {self.budget.parallel} at a time"]
+        self.emit(RunStart(record=rec, run=rec.id))
+        self.emit(RunFinish(id=rec.id, status="done", summary=text, steps=steps, result=result, run=rec.id))
+        done = next(r for r in self.s.doc.runs if r.id == rec.id)
+        self.emit(PanelUpsert(panel=Panel(id=f"panel:{tool_id}:{place.key()}", title=f"{m.title}: whole property",
+                                          tool=tool_id, run=rec.id,
+                                          blocks=[VerdictHeader(run=rec.id), MetricRow(run=rec.id, metrics=["scans_checked", "scans_not_checked"]),
+                                                  MiniChart(run=rec.id, title="Scans by verdict",
+                                                            metrics=[f"verdicts.{k}" for k in RANK]),
+                                                  CheckList(run=rec.id), StepLog(run=rec.id)]), run=rec.id))
+        return {"run": done.id, "property_id": property_id, "verdict": worst, "summary": text,
+                "worst_scans": [{"scan": c.id[5:], "status": c.status, "findings": c.findings[:4]}
+                                for c in result.checks[:6]]}
+
+    def rank(self, candidates: list[str], reasons: list[str]) -> dict:
+        """A ranked comparison panel: the candidates in the given order, one RankedTable over their latest runs of
+        the tool most of them ran, and one reason each. Candidates are scan ids or p<property id>."""
+        latest: dict[str, dict[str, Run]] = {}
+        for r in self.s.doc.runs:
+            if r.status == "done" and r.result:
+                latest.setdefault(target(r), {})[r.tool] = r
+        tools = [t for c in candidates for t in latest.get(c, {})]
+        if not tools:
+            return {"error": "none of these candidates has a finished run; investigate them first"}
+        lead = personas().get(self.s.doc.brief.persona or "")
+        lead = lead.layout.lead_tool if lead and lead.layout.lead_tool in tools else max(set(tools), key=tools.count)
+        rows = [latest[c][lead] for c in candidates if lead in latest.get(c, {})]
+        cols = [RankedColumn(metric=x.id, label=x.label, better="lower" if "too" in x.id or "fail" in x.id else "higher")
+                for x in rows[0].result.metrics if "." not in x.id][:4]
+        notes, dropped = [], []
+        for i, (c, why) in enumerate(zip(candidates, reasons + [""] * len(candidates))):
+            n = Note(text=short(f"{i + 1}. {self.label(c)}: {why}"))
+            (dropped if MEASURE.search(why) else notes).append(n if not MEASURE.search(why) else c)
+        blocks = [RankedTable(title=f"Ranked by {catalog()[lead].title}", columns=cols, rows=[r.id for r in rows]), *notes]
+        ok = self.emit(PanelUpsert(panel=Panel(id="agent:ranked", title="Ranked for you", blocks=blocks)))
+        return {"ok": ok, "ranked_by": lead, "rows": len(rows),
+                "reasons_dropped_for_measurements": dropped}
+
+    def label(self, key: str) -> str:
+        from ..sources import index
+        r = index.rows().get(key)
+        if r:
+            return r["name"] or r["address"] or key
+        if key.startswith("p") and key[1:].isdigit():
+            try:
+                return ToolContext(sites=self.s.sites or default_site).site(Place(property_id=int(key[1:]))).address or key
+            except ToolError:
+                return key
+        return key
+
+    def compose_panel(self, title: str, blocks: list[dict]) -> dict:
+        """A custom panel from the block catalog, bound to runs, findings and overlays already in the workspace."""
+        slug = "-".join(re.findall(r"[a-z0-9]+", title.lower()))[:40] or "panel"
+        raw = {"op": "panel.upsert", "by": "agent", "run": self.turn,
+               "panel": {"id": f"custom:{slug}", "title": title[:80], "blocks": blocks}}
+        try:
+            op, notes = clean(self.s.doc, raw, self.s.plans or default_plan, self.s.tools or set(catalog()))
+        except Rejected as e:
+            return {"error": str(e)}
+        ok = self.emit(op)
+        return {"panel": op.panel.id if ok else None, "blocks": [b.type for b in op.panel.blocks], "dropped": notes}
+
     def plan(self, todos: list[dict]) -> None:
         steps = [PlanStep(id=f"s{i + 1}", text=t.get("content", ""), status=t.get("status", "pending"))
                  for i, t in enumerate(todos)]
@@ -208,14 +415,15 @@ class Investigation:
         self.emit(PlanSet(steps=steps))
 
     def observe(self, chunk: dict) -> None:
-        """Turn one deepagents stream update into ops: todos become plan.set, files become the case file."""
+        """Turn one deepagents stream update into ops: the main agent's todos become plan.set, files from any agent
+        become the case file."""
         if chunk.get("type") != "updates":
             return
         for data in (chunk.get("data") or {}).values():
             if not isinstance(data, dict):
                 continue
             todos = data.get("todos")
-            if isinstance(todos, list):
+            if isinstance(todos, list) and not chunk.get("ns"):  # a subagent's own todo list is not the plan
                 self.plan([t if isinstance(t, dict) else dict(t) for t in todos])
             files = data.get("files")
             if isinstance(files, dict):
@@ -230,10 +438,12 @@ class Investigation:
             m = catalog().get(t.id)
             if not t.enabled or not m or m.status != "ready":
                 continue
-            fields = {n: (f.annotation if n == "scan" else f.annotation | None,
-                          Field(... if n == "scan" else None, description=f.description or m.inputs["properties"][n]
-                                .get("x-ask", n)))
-                      for n, f in REGISTRY[t.id].inputs.model_fields.items()}
+            fields = {}
+            for n, f in REGISTRY[t.id].inputs.model_fields.items():
+                where = n in ("scan", "place")
+                desc = (PLACE_HELP if n == "place" else f.description or m.inputs["properties"][n].get("x-ask", n))
+                fields[n] = ((dict if n == "place" else f.annotation) if where else f.annotation | None,
+                             Field(... if where else None, description=desc))
             out.append(StructuredTool.from_function(
                 func=(lambda tid: lambda **kw: json.dumps(self.run(tid, {k: v for k, v in kw.items() if v is not None})))(t.id),
                 name=t.id, args_schema=create_model(f"{t.id}_args", **fields),
@@ -245,70 +455,155 @@ class Investigation:
         return [StructuredTool.from_function(self.focus, name="focus",
                                              description="Point the person's camera at one finding by id."),
                 StructuredTool.from_function(self.shortlist, name="shortlist",
-                                             description="Add a scan that meets the need to the person's shortlist."),
+                                             description="Add a scan that meets the need to the person's shortlist "
+                                                         "(shortlist.add), with a short note why, without numbers."),
                 StructuredTool.from_function(self.note, name="note",
                                              description="Add one short note (under 280 characters) for the person. "
                                                          "No measurements or numbers with units.")]
+
+    def search_tools(self) -> list:
+        from langchain_core.tools import StructuredTool
+
+        from . import search
+        j = lambda fn: lambda **kw: json.dumps(fn(**kw), default=str)  # noqa: E731
+        out = [StructuredTool.from_function(j(search.find_scans), name="find_scans",
+                                            description=search.find_scans.__doc__ + " Also: city, text (words in name or "
+                                            "address), address, property_id, drone (a drone capture exists), "
+                                            "empty_room_view (a defurnished view exists), splat, limit (at most 25)."),
+               StructuredTool.from_function(j(lambda **kw: search.find_properties(**kw)), name="find_properties",
+                                            args_schema=create_model("find_properties_args", **{
+                                                n: (p.annotation if n == "limit" else p.annotation, Field(p.default))
+                                                for n, p in inspect.signature(search.find_properties, eval_str=True).parameters.items()
+                                                if n != "rows"}),
+                                            description=search.find_properties.__doc__ + " Rows carry record facts "
+                                            "(units, elevators, walk-up, year built, rent range): use them to choose, "
+                                            "never quote them."),
+               StructuredTool.from_function(j(self.consider), name="consider",
+                                            description="Add found buildings to the workspace before investigating them: "
+                                            "scan ids, CoStar property ids, addresses, or points [lon, lat]."),
+               StructuredTool.from_function(j(self.rank), name="rank",
+                                            description="Show the ranked comparison: candidates (scan ids or p<property "
+                                            "id>) best first, and one plain reason each, without numbers."),
+               StructuredTool.from_function(j(self.compose_panel), name="compose_panel",
+                                            description=PANEL_HELP)]
+        route = search.measures_route()
+        if route:
+            out.append(StructuredTool.from_function(
+                lambda **kw: json.dumps(search.find_by_measure(route, kw.get("params") or kw), default=str),
+                name="find_by_measure", args_schema=create_model("find_by_measure_args", params=(dict, Field(
+                    description=f"Query parameters of GET {search.MEASURES}: {search.measures_params(route)}"))),
+                description="Search scans by measured facts (door widths, step-free routes, turning space) "
+                            "from the access workstream's prefetched measurements."))
+        return out
+
+    def property_tools(self) -> list:
+        from langchain_core.tools import StructuredTool
+        j = lambda fn: lambda **kw: json.dumps(fn(**kw), default=str)  # noqa: E731
+        return [StructuredTool.from_function(j(self.property_scans), name="property_scans",
+                                             description="List one property's scans grouped by kind."),
+                StructuredTool.from_function(j(self.fan_out), name="run_on_property",
+                                             description="Run one ready scan tool over a property's scans (filter by "
+                                                         "kinds, e.g. apartment_unit or amenity, or by scan ids). Runs a "
+                                                         f"few at a time, at most {self.budget.max_fan_out} scans, and "
+                                                         "adds one property-level result."),
+                StructuredTool.from_function(j(lambda property_id: self.run("property_coverage",
+                                                                            {"place": {"property_id": property_id}})),
+                                             name="coverage",
+                                             description="Which floor plans and shared spaces of the property no scan "
+                                                         "covers.")]
 
     def prompt(self, request: str | None) -> str:
         d = self.s.doc
         p = personas().get(d.brief.persona or "")
         enabled = [t for t in d.tools if t.enabled]
+        places = [x.key() for x in d.brief.scope.places]
         return "\n".join([
             f"Person: {d.brief.summary or d.brief.text}", f"They said: {d.brief.text}",
-            f"Persona: {p.title if p else 'none'}", f"Now: {request or 'Investigate these buildings for them.'}",
-            f"Buildings (scan ids): {', '.join(d.brief.scope.sids)}",
+            f"Persona: {p.title if p else 'none'}", f"Now: {request or 'Investigate for them.'}",
+            f"Buildings (scan ids): {', '.join(d.brief.scope.sids) or 'none yet: find them with search'}",
+            f"Places (properties p<id>, addresses, points): {', '.join(places) or 'none'}",
             "Ready tools: " + ", ".join(f"{t.id} ({t.reason})" for t in enabled if t.status == "ready"),
             "Planned tools, not built, already marked skipped: " +
             (", ".join(t.id for t in enabled if t.status == "planned") or "none"),
+            *([f"What the composer said it cannot do: {'; '.join(d.brief.limits)}"] if d.brief.limits else []),
+            f"Budget this turn: {self.budget.model_calls} model calls in all agents, {self.budget.tool_runs} tool runs. "
+            "Investigate at most five candidates.",
             "What the person has taught you:", prefs.as_text(d)])
 
     def build(self, model=None):
         from deepagents import create_deep_agent
-        from langchain.agents.middleware import TodoListMiddleware
+        from langchain.agents.middleware import ModelCallLimitMiddleware, TodoListMiddleware
 
         from .llm import chat
+        b = self.budget
         tools = self.agent_tools()
+        note = self.small_tools()[2]
         building = {"name": "building", "description": "Investigates one building (one scan id) with the ready tools.",
-                    "system_prompt": BUILDING, "tools": tools + [self.small_tools()[2]]}
-        return create_deep_agent(model=model or chat(2048), tools=self.small_tools(), system_prompt=MAIN,
-                                 subagents=[building], middleware=[TodoListMiddleware()], name="investigator")
+                    "system_prompt": BUILDING, "tools": tools + [note],
+                    "middleware": [ModelCallLimitMiddleware(run_limit=b.subagent_calls)]}
+        prop = {"name": "property", "description": "Investigates a whole property (CoStar property id) across its "
+                                                   "scans: units, amenities, lobby. Say which tools and kinds of scan.",
+                "system_prompt": PROPERTY, "tools": self.property_tools() + [note],
+                "middleware": [ModelCallLimitMiddleware(run_limit=b.property_calls)]}
+        return create_deep_agent(model=model or chat(2048), tools=self.small_tools() + self.search_tools(),
+                                 system_prompt=MAIN, subagents=[building, prop],
+                                 middleware=[TodoListMiddleware(), ModelCallLimitMiddleware(run_limit=b.main_calls)],
+                                 name="investigator")
 
     def go(self, request: str | None = None, model=None) -> str:
-        """Run one investigation turn. Returns the agent's closing sentence."""
+        """Run one investigation turn. Returns the agent's closing sentence; `self.budget` says what it spent."""
         d = self.s.doc
         for t in d.tools:  # planned tools show as skipped instead of silently missing
-            if t.enabled and t.status == "planned" and not any(r.tool == t.id for r in d.runs):
+            if t.enabled and t.status == "planned" and not any(r.tool == t.id for r in d.runs) and default_place(d):
                 self.run(t.id, {})
         agent = self.build(model)
         last = ""
-        for chunk in agent.stream({"messages": [{"role": "user", "content": self.prompt(request)}]},
-                                  stream_mode="updates", subgraphs=True, version="v2"):
-            self.observe(chunk)
-            if not chunk.get("ns"):
-                for data in (chunk.get("data") or {}).values():
-                    for msg in (data.get("messages") or []) if isinstance(data, dict) else []:
-                        if getattr(msg, "type", "") == "ai" and not getattr(msg, "tool_calls", None) and msg.text:
-                            last = msg.text
+        config = {"callbacks": [self.budget.callback()], "max_concurrency": self.budget.parallel, "recursion_limit": 120}
+        try:
+            for chunk in agent.stream({"messages": [{"role": "user", "content": self.prompt(request)}]}, config,
+                                      stream_mode="updates", subgraphs=True, version="v2"):
+                self.observe(chunk)
+                if not chunk.get("ns"):
+                    for data in (chunk.get("data") or {}).values():
+                        for msg in (data.get("messages") or []) if isinstance(data, dict) else []:
+                            if getattr(msg, "type", "") == "ai" and not getattr(msg, "tool_calls", None) and msg.text:
+                                last = msg.text
+        except BudgetSpent:
+            last = last or "I stopped at this turn's budget; the results so far are in your workspace."
         self.compare()
         if last and not self.emit(PanelUpsert(panel=Panel(id="agent:summary", title="Where to look first",
                                                           blocks=[Note(text=short(last))]))):
             last = ""
-        if self.files:
-            (self.s.root / f"{self.s.base.id}.casefile.json").write_text(json.dumps(self.files, default=str))
+        (self.s.root / f"{self.s.base.id}.casefile.json").write_text(
+            json.dumps({"files": self.files, "budget": self.budget.report()}, default=str))
         return last
 
 
-MAIN = """You are the investigator in Threshold. You do not chat: the person sees your plan, tool runs, findings and
-camera in their workspace, not your words.
-1. First call write_todos with a short plan: one step per building, then one step to point out what matters.
-2. For each building, call task with subagent_type "building", naming the scan id and what to check for this person.
-   Mark the step in_progress before and completed after.
-3. Tool results go into the workspace by themselves. You see summaries and finding ids. Never restate a measurement
+PLACE_HELP = ("Where to run: {\"scan\": id} or {\"property_id\": id} or {\"address\": text} or {\"geo\": [lon, lat]}. "
+              "It must be in the workspace (consider adds it).")
+
+PANEL_HELP = ("Only when no tool's panel answers the person's question: build one panel from blocks bound to what is "
+              "already in the workspace. Blocks: VerdictHeader{run}, MetricRow{run, metrics[<=4 metric ids]}, "
+              "CheckList{run, checks?, status?}, EvidenceStrip{findings[ids]}, RankedTable{title, columns[{metric, "
+              "label, better}], rows[run ids]}, MiniChart{run, title, metrics[ids]}, FloorPlanMini{sid, overlays[ids]}, "
+              "AssumptionChips{run}, StepLog{run}, Note{text}, ActionBar{run}. Each block has \"type\". Bind by id; "
+              "never type a number. Blocks that name something missing are dropped.")
+
+MAIN = """You are the investigator in Threshold. You do not chat: the person sees your plan, searches, tool runs,
+findings and camera in their workspace, not your words.
+1. First call write_todos with a short plan. Mark steps in_progress before and completed after.
+2. If no buildings are given, find them: find_properties for record facts (city, type, units, elevators, rent,
+   tenants), find_scans for scans (city, kind, address, drone capture, empty-room view), find_by_measure when present.
+   Pick at most five candidates that fit the person, then call consider with them.
+3. For each candidate unit or house, call task with subagent_type "building", naming the scan id and what to check.
+   For a whole property (many scans: units, lobby, gym), use subagent_type "property" with the property id. Several
+   task calls in one message run in parallel.
+4. Tool results go into the workspace by themselves. You see summaries and finding ids. Never restate a measurement
    or invent a number; refer to findings by id.
-4. Then call focus on the one finding that matters most to this person, and shortlist each building that meets the
-   need.
-5. Finish with one short sentence, without numbers, telling the person where to look first."""
+5. With two or more candidates, call rank once with all of them, best first, and one plain reason each. Shortlist the
+   ones that meet the need, each with a short note. Call focus on the one finding that matters most.
+6. Use compose_panel only when no tool's panel answers a question the person asked.
+7. Finish with one short sentence, without numbers, telling the person where to look first. Stay inside the budget."""
 
 BUILDING = """You investigate one building (one scan id) for a person. Run each ready tool that serves their need on
 this scan, once each. Leave out inputs you were not told; the person's preferences fill them. If a tool reports
@@ -316,18 +611,25 @@ missing inputs, do not guess them; say so in your reply. Write a short case note
 /notes/<scan id>.md: which finding ids matter for this person and why, without measurements. Use note only if
 something needs explaining to the person. Reply in two lines: the finding ids that matter most, and why."""
 
+PROPERTY = """You investigate one whole property (a CoStar property id) for a person. Call property_scans first. Then
+call run_on_property once per useful tool, choosing the kinds of scan that matter (units, amenities). Then call
+coverage to learn which floor plans and shared spaces no scan covers. Do not run tools one scan at a time. Write a
+short case note with write_file to /notes/p<property id>.md without measurements. Reply in three lines: the run ids
+that matter, the scans that need attention, and what no scan covers."""
+
 
 def turn(session: Session, text: str | None = None, sids: list[str] | None = None, composer=None,
-         agent_model=None) -> dict:
+         agent_model=None, places: list[dict] | None = None, budget: Budget | None = None) -> dict:
     """One agent turn: set the scope, compose the workspace if it has none, stop at unanswered questions,
-    otherwise investigate. Ops stream to the session's listeners as they apply."""
+    otherwise investigate (searching for buildings when none are given). Ops stream to the session's listeners."""
     from .composer import compose
     from .llm import Claude
-    from .workspace import BriefSet, Scope
     attach(session, session.plans or default_plan)
     t = new_id("turn")
-    if sids:
-        session.submit(BriefSet(by="user", scope=Scope(sids=sids, address=session.doc.brief.scope.address), run=t))
+    sc = session.doc.brief.scope
+    if sids or places:
+        session.submit(BriefSet(by="user", run=t, scope=Scope(sids=sids or sc.sids, address=sc.address,
+                                                             places=[Place.model_validate(p) for p in places] if places else sc.places)))
     if text and not session.doc.brief.persona:
         for op in compose(text, session.doc, composer or Claude(), run=t):
             try:
@@ -338,6 +640,9 @@ def turn(session: Session, text: str | None = None, sids: list[str] | None = Non
     open_qs = [q for q in session.doc.questions if not q.answered]
     if open_qs:
         return {"status": "questions", "questions": [q.id for q in open_qs]}
-    if not session.doc.brief.scope.sids:
-        return {"status": "needs_scope", "message": "Pick a building first"}
-    return {"status": "done", "summary": Investigation(session, t).go(text, agent_model)}
+    sc = session.doc.brief.scope
+    if not sc.sids and not sc.places and not session.doc.brief.text:
+        return {"status": "needs_scope", "message": "Pick a building or say what you are looking for"}
+    inv = Investigation(session, t, budget)
+    summary = inv.go(text, agent_model)
+    return {"status": "done", "summary": summary, "budget": inv.budget.report()}

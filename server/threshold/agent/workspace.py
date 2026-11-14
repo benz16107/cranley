@@ -1,4 +1,4 @@
-"""Contract 5: the workspace document, its sixteen operations, a pure reducer, the validator that cleans agent
+"""Contract 5: the workspace document, its operations, a pure reducer, the validator that cleans agent
 ops, an append-only log with undo, and JSON persistence under $THRESHOLD_DATA_DIR/workspaces/.
 
 The agent and the user change a workspace only through `Session.submit(op)`. The web app renders `doc`.
@@ -25,6 +25,7 @@ from ..tools.types import (
     Overlay,
     PanoAnchor,
     PinsOverlay,
+    Place,
     PointAnchor,
     RoomAnchor,
     Status,
@@ -146,6 +147,7 @@ MapBlock = Literal["PinSet", "ParcelFill", "Extrusion", "ReachRing", "RouteLine"
 class Scope(Strict):
     sids: list[str] = []
     address: str | None = None
+    places: list[Place] = Field(default=[], description="Places without a scan: CoStar properties, addresses, points")
 
 
 class Brief(Strict):
@@ -154,6 +156,7 @@ class Brief(Strict):
     persona: str | None = None
     scope: Scope = Scope()
     facts: dict[str, Any] = Field(default={}, description="Answers keyed by preference key (x-pref)")
+    limits: list[str] = Field(default=[], description="What the workspace cannot do for this person, said to them")
 
 
 class Question(Strict):
@@ -178,6 +181,7 @@ class Run(Strict):
     id: str
     tool: str
     sid: str | None = None
+    place: Place | None = Field(None, description="Where the run looked when it is not one scan (property, address, point)")
     inputs: dict[str, Any] = {}
     inputs_from: dict[str, str] = Field(default={}, description="input -> preference key it came from")
     plan_step: str | None = None
@@ -216,7 +220,7 @@ class Layer(Strict):
 
 class WsOverlay(Strict):
     id: str
-    sid: str
+    sid: str | None = Field(None, description="Scan whose frame the overlay is in; null for map-only pins with geo anchors")
     overlay: Overlay
     tool: str | None = None
     run: str | None = None
@@ -279,7 +283,7 @@ class Workspace(Strict):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
 
-# ---- The sixteen operations ----
+# ---- The operations ----
 
 class OpBase(Strict):
     by: By = "agent"
@@ -293,6 +297,7 @@ class BriefSet(OpBase):
     persona: str | None = None
     scope: Scope | None = None
     facts: dict[str, Any] | None = None
+    limits: list[str] | None = None
 
 
 class QuestionAsk(OpBase):
@@ -322,6 +327,12 @@ class ToolDisable(OpBase):
 class RunStart(OpBase):
     op: Literal["run.start"] = "run.start"
     record: Run
+
+
+class RunProgress(OpBase):
+    op: Literal["run.progress"] = "run.progress"
+    id: str = Field(description="Run id")
+    step: str = Field(description="One step the tool reported while running; appended to the run's steps")
 
 
 class RunFinish(OpBase):
@@ -384,7 +395,7 @@ class ShortlistRemove(OpBase):
     sid: str
 
 
-OP_TYPES = (BriefSet, QuestionAsk, QuestionAnswer, ToolEnable, ToolDisable, RunStart, RunFinish, FindingAdd, LayerUpsert,
+OP_TYPES = (BriefSet, QuestionAsk, QuestionAnswer, ToolEnable, ToolDisable, RunStart, RunProgress, RunFinish, FindingAdd, LayerUpsert,
             OverlayUpsert, PanelUpsert, CameraFocus, PlanSet, PrefSet, ShortlistAdd, ShortlistRemove)
 Op = Annotated[Union[OP_TYPES], Field(discriminator="op")]  # a tuple needs Union[]
 OP = TypeAdapter(Op)
@@ -416,7 +427,7 @@ def apply(doc: Workspace, op: BaseModel, at: float | None = None) -> Workspace:
     d.updated = at
     match op:
         case BriefSet():
-            for k in ("text", "summary", "persona", "scope"):
+            for k in ("text", "summary", "persona", "scope", "limits"):
                 if getattr(op, k) is not None:
                     setattr(d.brief, k, getattr(op, k))
             if op.facts:
@@ -438,6 +449,10 @@ def apply(doc: Workspace, op: BaseModel, at: float | None = None) -> Workspace:
                     t.reason = op.reason or t.reason
         case RunStart():
             _upsert(d.runs, op.record.model_copy(update={"started": op.record.started or at}))
+        case RunProgress():
+            for r in d.runs:
+                if r.id == op.id and r.status == "running":
+                    r.steps = [*r.steps, op.step]
         case RunFinish():
             for r in d.runs:
                 if r.id == op.id:
@@ -482,7 +497,8 @@ class Rejected(ValueError):
 
 
 def known_sids(doc: Workspace) -> set[str]:
-    return set(doc.brief.scope.sids) | {r.sid for r in doc.runs if r.sid}
+    return (set(doc.brief.scope.sids) | {r.sid for r in doc.runs if r.sid} | {p.scan for p in doc.brief.scope.places if p.scan}
+            | {s for r in doc.runs if r.result and hasattr(r.result.scope, "sids") for s in r.result.scope.sids})
 
 
 def anchor_ok(a: Any, doc: Workspace, plans: Callable[[str], dict]) -> bool:
@@ -564,7 +580,9 @@ def clean(doc: Workspace, raw: dict | BaseModel, plans: Callable[[str], dict], t
             raise Rejected("camera anchor names something that does not exist")
         case OverlayUpsert():
             o = op.overlay
-            if o.sid not in known_sids(doc):
+            if o.sid is None and not isinstance(o.overlay, PinsOverlay):
+                raise Rejected(f"a {o.overlay.kind} overlay needs a scan")
+            if o.sid is not None and o.sid not in known_sids(doc):
                 raise Rejected(f"overlay on unknown scan {o.sid}")
             if isinstance(o.overlay, PinsOverlay):
                 o.overlay.pins = [p for p in o.overlay.pins if anchor_ok(p.anchor, doc, plans)]
@@ -619,6 +637,7 @@ class Session:
         self.listeners: list[Callable[[LogEntry], None]] = []
         self.plans: Callable[[str], dict] | None = None  # set by the agent; used to check anchors
         self.tools: set[str] | None = None
+        self.sites: Callable | None = None  # place resolver for tools; None means the default (scan index, CoStar)
 
     # persistence
     @property
