@@ -176,6 +176,8 @@ export function Level({ task, back }: Props) {
     setReading(false)
     if (!r) { toast.error('No readings came from the tilt sensor. Keep the screen on and try again.'); return }
     if (r.spread > 1.5) { toast.error('The phone moved. Let it lie still for two seconds.'); return }
+    // held up, not lying on the ramp: two such readings cancel end for end and would pass as level
+    if (mode !== 'plumb' && Math.abs(axis(r)) > 20) { toast.error(`The phone is ${Math.abs(axis(r)).toFixed(0)}° from flat. Lay it on its back on the ramp, then read.`); return }
     if (!first) { setFirst(r); return }
     await submit(first, r)
   }
@@ -278,7 +280,7 @@ export function Window({ task, back }: Props) {
       <SensorGate state={h.state} allow={() => void h.allow()} name="compass" fallback="Pick the direction the window faces below; a map on your phone will tell you." />
       {h.state === 'on' && h.now && (
         <div className="m-meter"><div className="m-dial" aria-hidden="true"><i style={{ rotate: `${-h.now.heading}deg` }}>N</i></div>
-          <dl className="m-kv"><div><dt>Top edge points</dt><dd className="num">{h.now.heading.toFixed(0)}° {compassPoint(h.now.heading)}</dd></div>{h.now.accuracy != null && <div><dt>Phone says, give or take</dt><dd className="num">{h.now.accuracy.toFixed(0)}°</dd></div>}</dl>
+          <dl className="m-kv"><div><dt>Top edge points</dt><dd className="num">{Math.round(h.now.heading) % 360}° {compassPoint(h.now.heading)}</dd></div>{h.now.accuracy != null && <div><dt>Phone says, give or take</dt><dd className="num">{h.now.accuracy.toFixed(0)}°</dd></div>}</dl>
           {!h.now.flat && <p className="m-hint warn">Hold it flat, like a tray.</p>}</div>
       )}
       {(h.state === 'missing' || h.state === 'denied') && <div className="m-compass" role="group" aria-label="Direction the window faces">{DIRS.map((d, i) => <button key={d} className="btn m-btn" disabled={!ok || s.busy != null} onClick={() => byHand(i)}>{d}</button>)}</div>}

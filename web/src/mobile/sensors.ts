@@ -75,7 +75,12 @@ export function useHeading() {
   const allow = useCallback(async () => setState((await askMotion()) ? 'unknown' : 'denied'), [])
   const sample = useCallback((ms = 2000) => new Promise<{ heading: number; spread: number } | null>((res) => {
     const from = performance.now()
-    setTimeout(() => { const xs = buf.current.filter((b) => b.t >= from).map((b) => b.h); const m = headingMean(xs); res(xs.length < 5 ? null : { heading: m.mean, spread: m.spread }) }, ms)
+    setTimeout(() => {
+      const xs = buf.current.filter((b) => b.t >= from).map((b) => b.h), last = buf.current.at(-1)
+      // the browser only fires when the heading changes: a phone held dead still sends nothing, and that means steady
+      if (xs.length < 5) { res(last && !xs.length ? { heading: last.h, spread: 0 } : null); return }
+      const m = headingMean(xs); res({ heading: m.mean, spread: m.spread })
+    }, ms)
   }), [])
   return { state, now, allow, sample }
 }
