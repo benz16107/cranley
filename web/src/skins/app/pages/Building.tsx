@@ -243,6 +243,9 @@ export function Building({ sid }: { sid: string }) {
     return doc.findings.filter((f) => (f.anchor && 'sid' in f.anchor && f.anchor.sid === sid) || (f.run && mine.has(f.run))).sort((x, y) => WORST[x.status] - WORST[y.status])
   }, [doc.findings, runs, sid])
   const working = runs.filter((r) => r.status === 'running' && !panels.some((p) => p.run === r.id))
+  // a run that failed leaves no result: it stays listed here until the same tool runs again on this scan
+  const failed = runs.filter((r, i) => r.status === 'failed' && !runs.slice(i + 1).some((l) => l.tool === r.tool))
+  const catalogue = useTools()
 
   // A result that arrives while the person is on this scan is shown; so is the result of a focused finding.
   const count = panels.length, last = panels.at(-1)
@@ -259,6 +262,9 @@ export function Building({ sid }: { sid: string }) {
     // a tool the person ran: the server's camera closes in on its worst finding, so frame the whole building again
     if (mine) { const t = setTimeout(v.stepBack, 900); return () => clearTimeout(t) }
   }, [arrived]) // eslint-disable-line react-hooks/exhaustive-deps
+  // a run that fails while the person is here is shown too: its reason is on the Results tab
+  const fails = failed.length, hadFails = useRef(fails)
+  useEffect(() => { if (fails > hadFails.current && performance.now() - born.current > 2500) setTab('results'); hadFails.current = fails }, [fails])
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -332,7 +338,7 @@ export function Building({ sid }: { sid: string }) {
         <Tabs.Root className="insp" value={tab} onValueChange={(t) => setTab(String(t))} aria-label="Inspector">
           <Tabs.List className="tabs">
             <Tabs.Tab value="overview">Overview</Tabs.Tab>
-            <Tabs.Tab value="results">Results{panels.length > 0 && <span className="count">{panels.length}</span>}{working.length > 0 && <i className="ring" />}</Tabs.Tab>
+            <Tabs.Tab value="results">Results{panels.length > 0 && <span className="count">{panels.length}</span>}{working.length > 0 && <i className="ring" />}{working.length === 0 && failed.length > 0 && <span className="faildot" role="img" aria-label={`${failed.length} failed`} />}</Tabs.Tab>
             <Tabs.Tab value="evidence">Evidence{findings.length > 0 && <span className="count">{findings.length}</span>}</Tabs.Tab>
             <Tabs.Tab value="record">Record</Tabs.Tab>
             <Tabs.Tab value="history">History{runs.length > 0 && <span className="count">{runs.length}</span>}</Tabs.Tab>
@@ -344,7 +350,16 @@ export function Building({ sid }: { sid: string }) {
           </Tabs.Panel>
           <Tabs.Panel value="results" className="insp-body scroll">
             {working.map((r) => <div key={r.id} className="b-loading working"><RunState state="running">{r.label.split(' · ')[0]}</RunState>{r.summary && <p className="muted small">{r.summary}</p>}<span className="sk" style={{ width: '64%' }} /></div>)}
-            {panels.length === 0 && working.length === 0 && (
+            {failed.map((r) => {
+              const t = catalogue.find((x) => x.id === r.tool)
+              return (
+                <div key={r.id} className="b-failed" role="status">
+                  <span className="row"><RunState state="failed">{t?.title ?? r.label.split(' · ')[0]} did not run</RunState><span className="grow" />{t && <button type="button" className="btn sm" onClick={() => startTool(t, sid, true)}>Try again</button>}</span>
+                  {r.summary && <p>{r.summary}</p>}
+                </div>
+              )
+            })}
+            {panels.length === 0 && working.length === 0 && failed.length === 0 && (
               <Empty icon="play" title="No results on this scan" action={<RunToolMenu sid={sid} trigger={<button type="button" className="btn solid">Run a tool<Icon name="down" size={11} /></button>} />}>
                 Pick a tool to measure this scan. Its result, checks and evidence appear here, and it draws on the building.
               </Empty>
