@@ -8,7 +8,7 @@ from threshold.layers.sources._arcgis import layer
 
 
 def test_the_catalogue_holds_the_source_modules_whichever_is_imported_first():
-    assert len(MORE) >= 45 and set(l.id for l in MORE) <= set(catalog.BY_ID)
+    assert len(MORE) >= 45 and {l.id for l in MORE} <= set(catalog.BY_ID)
 
 
 @pytest.mark.parametrize("L", MORE, ids=lambda l: l.id)
@@ -63,7 +63,7 @@ def test_an_arcgis_layer_keeps_name_detail_and_style_values(monkeypatch):
         return [{"geometry": {"type": "Point", "coordinates": [1, 2]}, "properties": {"N": "Ada", "V": 7}},
                 {"geometry": None, "properties": {"N": "dropped"}}], False
     monkeypatch.setattr(_arcgis, "arcgis", fake)
-    L, fetch = layer("t", "Test", "Rules", "point", ["https://x/rest/services/A/MapServer/0"], name="N",
+    _L, fetch = layer("t", "Test", "Rules", "point", ["https://x/rest/services/A/MapServer/0"], name="N",
                      detail=lambda a: f"v{a['V']}", props=lambda a: {"level": 2}, source="s", source_url="u", confidence="high", note="n")
     feats, cut = fetch((0, 0, 1, 1), "hou")
     assert got["url"].endswith("/MapServer/0/query") and not cut
@@ -76,5 +76,5 @@ def test_legend_colours_and_tiles():
     assert lookup.nearest_colour((250, 5, 3, 255), sw) == "55.0 - 59.9"
     assert lookup.nearest_colour((250, 5, 3, 0), sw) is None  # transparent: nothing drawn here
     assert lookup.nearest_colour((0, 255, 0, 255), sw) is None  # no swatch is close
-    x, y, px, py = lookup.tile_xy(-95.37, 29.76, 12)
+    x, y, _px, _py = lookup.tile_xy(-95.37, 29.76, 12)
     assert (x, y) == (962, 1693)  # the parent of the catalogue test's downtown tile 13/1925/3386 and 0 <= px < 256 and 0 <= py < 256

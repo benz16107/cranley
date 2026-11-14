@@ -184,6 +184,23 @@ def nearest_colour(rgba, swatches: list[tuple[str, tuple[int, int, int]]], toler
     return best[0] if math.dist(rgba[:3], best[1]) <= tolerance else None
 
 
+def _from_plan(ctx, site, sid: str) -> None:
+    """A scan the index has no location for: its plan's geocoordinates, or else its plan's address, geocoded."""
+    try:
+        plan = ctx.plan(sid)
+    except Exception:  # noqa: BLE001  no plan means no better location; the tool says so
+        return
+    g = plan.get("geo") or {}
+    if g.get("lat") is not None:
+        site.lat, site.lon, site.located_by = g["lat"], g["lon"], "the scan's geocoordinates"
+        return
+    addr = ", ".join(x for x in (plan.get("address"), plan.get("city")) if x)
+    hit = geocode(addr) if addr else None
+    if hit:
+        site.lat, site.lon, site.address = hit["lat"], hit["lon"], site.address or hit["matched"].title()
+        site.located_by = "the scan's address, placed by the US Census Bureau geocoder"
+
+
 def locate(ctx, place):
     """A place as the tools' resolver finds it; an address it cannot place is tried with the Census geocoder."""
     from ..tools import ToolError
@@ -195,6 +212,8 @@ def locate(ctx, place):
             raise
         site = None
     if not place.address:
+        if site and site.lat is None and place.scan:
+            _from_plan(ctx, site, place.scan)
         return site
     # an address the resolver matched by words alone can be far off (a one-letter index address matches anything),
     # so the geocoder's point wins when the two disagree by more than a block
