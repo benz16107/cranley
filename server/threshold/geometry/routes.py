@@ -22,6 +22,7 @@ from ._plan import (
     clear_width,
     floor_z,
     geo_source,
+    implausible,
     judge,
     polygons,
     room_label,
@@ -313,10 +314,10 @@ def _describe(plan, nav: _Nav, pos, path, min_width, start, end) -> dict:
     doors = []
     for n in door_nodes:
         d = nav.doors[n]
-        cw = clear_width(d)
+        cw, bad = clear_width(d), implausible(d)
         doors.append({"opening": d["opening"], "kind": d["kind"], "width": d["width"], "clear_width": cw,
                       "height": d["height"], "center": d["center"], "inferred": d.get("inferred", False),
-                      "result": judge(cw, min_width)})
+                      "implausible": bad, "result": "measure on site" if bad else judge(cw, min_width)})
     # corridor widths sampled along each straight leg, away from doors and bends
     door_xy = np.array([nav.doors[n]["center"] for n in door_nodes]).reshape(-1, 2)
     samples, dirs, along, leg = [], [], [], []
@@ -344,7 +345,8 @@ def _describe(plan, nav: _Nav, pos, path, min_width, start, end) -> dict:
              "door_at_end": nav.doors[pnodes[k + 1]]["opening"] if pnodes[k + 1].startswith("d:") else None}
             for k in range(len(pts) - 1)]
     chokes = [{"point": [*d["center"], z], "width": d["clear_width"], "kind": d["kind"], "opening": d["opening"],
-               "status": VERDICT_STATUS[d["result"]], "result": d["result"]} for d in doors]
+               "status": VERDICT_STATUS[d["result"]], "result": d["result"], "implausible": d["implausible"]}
+              for d in doors]
     run: list[int] = []
     for i in range(len(widths) + 1):
         if i < len(widths) and widths[i] < CORRIDOR_REPORT_M and (not run or along[i] - along[run[-1]] < 2 * SAMPLE_STEP_M):
@@ -354,11 +356,11 @@ def _describe(plan, nav: _Nav, pos, path, min_width, start, end) -> dict:
             k = min(run, key=lambda j: widths[j])
             res = judge(float(widths[k]), min_width)
             chokes.append({"point": [*samples[k], z], "width": float(widths[k]), "kind": "corridor", "opening": None,
-                           "status": VERDICT_STATUS[res], "result": res})
+                           "status": VERDICT_STATUS[res], "result": res, "implausible": False})
             run = []
         if i < len(widths) and widths[i] < CORRIDOR_REPORT_M:
             run = [i]
-    valid = [c for c in chokes if c["width"] is not None]
+    valid = [c for c in chokes if c["width"] is not None and not c["implausible"]]  # data errors are not the narrowest
     narrow = min(valid, key=lambda c: c["width"]) if valid else None
     rooms = rooms_by_id(plan)
     name = lambda s: "the entrance" if s == "entrance" else room_label(rooms[s]) if isinstance(s, str) else "point"
@@ -386,7 +388,9 @@ def reach(plan: dict, min_width: float, start: str | None = None) -> dict:
     """Which rooms a body `min_width` wide can reach from the entrances (or from room `start`).
 
     Each room gets the widest bottleneck over all paths from a start: the narrowest door on the best path.
-    Judged with the scan tolerance: 'likely pass' (reachable), 'measure on site', 'likely fail'. Corridor
+    Judged with the scan tolerance: 'likely pass' (reachable), 'measure on site', 'likely fail'. A doorway with
+    an implausible width (a data error) does not limit the path; rooms reached through one are 'measure on site'
+    and name it in `data_error`. Corridor
     pinches inside rooms are not part of this; use `route` for one path's full clearance profile."""
     g = _graph(plan)
     if not g["available"]:
@@ -400,12 +404,13 @@ def reach(plan: dict, min_width: float, start: str | None = None) -> dict:
         starts, note = [biggest["room"]], "No entrance in the scan; started from the largest room."
     best: dict[str, float] = {}
     via: dict[str, str | None] = {}
+    suspect: dict[str, str | None] = {}  # the implausible link on the best path, if any
     heap = []
     for s in starts:
         ent = [clear_width(e) for e in g["entrances"] if e["room"] == s] if not start else [math.inf]
         w0 = max([w for w in ent if w is not None], default=math.inf)
         if w0 > best.get(s, -1):
-            best[s], via[s] = w0, None
+            best[s], via[s], suspect[s] = w0, None, None
             heapq.heappush(heap, (-w0, s))
     adj = neighbours(g)
     while heap:
@@ -413,18 +418,21 @@ def reach(plan: dict, min_width: float, start: str | None = None) -> dict:
         if -nw < best[u]:
             continue
         for v, link in adj.get(u, ()):
-            cw = clear_width(link)
-            w = min(-nw, cw if cw is not None else 0.0)
+            cw, bad = clear_width(link), implausible(link)
+            w = -nw if bad else min(-nw, cw if cw is not None else 0.0)  # a data error does not limit the width
             if w > best.get(v, -1):
-                best[v], via[v] = w, link["id"]
+                best[v], via[v], suspect[v] = w, link["id"], link["id"] if bad else suspect[u]
                 heapq.heappush(heap, (-w, v))
     rooms = []
     for n in g["nodes"]:
         bw = best.get(n["room"])
         res = "likely fail" if bw is None else ("likely pass" if bw == math.inf else judge(bw, min_width))
+        if res == "likely pass" and suspect.get(n["room"]):
+            res = "measure on site"
         rooms.append({"room": n["room"], "label": n["label"], "floor": n["floor"], "void": n["void"],
                       "bottleneck_width": None if bw in (None, math.inf) else bw, "connected": bw is not None,
-                      "result": res, "status": VERDICT_STATUS[res], "via": via.get(n["room"])})
+                      "result": res, "status": VERDICT_STATUS[res], "via": via.get(n["room"]),
+                      "data_error": suspect.get(n["room"])})
     vals = {r["room"]: {"pass": 1, "warn": 0.5, "fail": 0}[r["status"]] for r in rooms if r["status"] != "unknown"}
     return {"available": True, "min_width": min_width, "starts": starts, "rooms": rooms, "note": note,
             "lens": {"kind": "lens", "values": vals, "ramp": "status",

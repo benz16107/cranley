@@ -50,3 +50,14 @@ def test_reach_judges_each_room_by_its_narrowest_door(plan):
 
 def test_reach_within_tolerance_says_measure_on_site(plan):
     assert {r["room"]: r["result"] for r in reach(plan, 0.84)["rooms"]}["B"] == "measure on site"
+
+
+def test_implausible_door_is_a_data_error_not_a_fail(plan):
+    door = next(o for o in plan["openings"] if o["id"] == "AB")
+    door["width"] = 0.03
+    rt = route(plan, "entrance", "C")
+    ab = next(d for d in rt["doors"] if d["opening"] == "AB")
+    assert ab["implausible"] and ab["result"] == "measure on site"
+    assert rt["narrowest"]["opening"] != "AB"
+    rc = {r["room"]: r for r in reach(plan, 0.6)["rooms"]}
+    assert rc["B"]["result"] == "measure on site" and rc["B"]["data_error"] == "AB"

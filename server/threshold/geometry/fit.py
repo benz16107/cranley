@@ -120,10 +120,10 @@ def carry(plan: dict, start, end, box: tuple[float, float, float], floor: str | 
     for d in r["doors"]:
         cw, h = d["clear_width"], d["height"] or DEFAULT_DOOR_HEIGHT_M
         slack, across, up = _door_fit(box, cw, h, flat)
-        res = judge(slack, 0.0)
+        res = "measure on site" if d.get("implausible") else judge(slack, 0.0)
         doors.append({"opening": d["opening"], "clear_width": cw, "height": h, "across": across, "up": up,
-                      "slack": slack, "result": res, "status": VERDICT_STATUS[res], "center": d["center"]})
-    door_w = {d["opening"]: d["clear_width"] for d in r["doors"]}
+                      "slack": slack, "implausible": bool(d.get("implausible")), "result": res, "status": VERDICT_STATUS[res], "center": d["center"]})
+    door_w = {d["opening"]: d["clear_width"] for d in r["doors"] if not d.get("implausible")}
     door_h = {d["opening"]: d["height"] or DEFAULT_DOOR_HEIGHT_M for d in r["doors"]}
     corners = []
     legs = r["legs"]
@@ -136,7 +136,7 @@ def carry(plan: dict, start, end, box: tuple[float, float, float], floor: str | 
         if angle < TURN_MIN_DEG:
             continue
         a, b = l1["min_width"] or open_w, l2["min_width"] or open_w
-        door = l1["door_at_end"]
+        door = l1["door_at_end"] if l1["door_at_end"] in door_w else None  # a data-error width is no corner
         pairs = [(a, door_w[door]), (door_w[door], b)] if door else [(a, b)]
         headroom = min(ceiling, door_h[door]) if door else ceiling
         fits = [(_corner_fit(box, x, y, headroom, flat), x, y) for x, y in pairs]
