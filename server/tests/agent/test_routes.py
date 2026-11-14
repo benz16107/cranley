@@ -108,3 +108,18 @@ def test_a_rejected_op_in_a_list_says_how_many_were_applied(tmp_path, monkeypatc
 def test_equirect_refuses_a_view_that_walks_out_of_the_cache():
     c = TestClient(app)
     assert c.get("/api/scan/AAAAAAAAAAA/pano/p1/equirect.jpg", params={"view": "../../../../tmp"}).status_code == 404
+
+
+def test_live_resumes_after_the_last_event_id(tmp_path, monkeypatch):
+    import json
+    monkeypatch.setattr(workspace, "STORE", tmp_path)
+    c = TestClient(app)
+    wid = c.post("/api/workspace").json()["doc"]["id"]
+    c.post(f"/api/workspace/{wid}/ops", json=[{"op": "tool.enable", "tool": "door_widths"}, {"op": "shortlist.add", "sid": "t1"}])
+    with c.stream("GET", f"/api/workspace/{wid}/live?after=0", headers={"Last-Event-ID": "1"}) as r:
+        lines = []
+        for line in r.iter_lines():
+            lines.append(line)
+            if line.startswith("data:") and '"seq"' in line:
+                break
+    assert "id: 2" in lines and json.loads(lines[-1][5:])["seq"] == 2   # op 1 is not sent again
