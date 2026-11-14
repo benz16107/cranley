@@ -33,8 +33,10 @@ SRC = Source(layer="model", method="lookup", confidence="medium",
 # Tools whose findings a tour is made of when none are handed in, by what the question is about. Fast ones only:
 # a tour must not start a fire simulation.
 TOPICS = {
-    "fire": (r"fire|smoke|egress|escape|alarm|captain|pre-?plan|hose|crew", ["egress_routes", "life_safety_census", "door_widths"]),
-    "access": (r"wheel|step|access|ramp|door|bathroom|turn|walker|stroller", ["door_widths", "step_free_route", "turning_space", "bathroom_clearance"]),
+    "fire": (r"fire|smoke|egress|escape|alarm|captain|pre-?plan|hose|crew|rescue|evacuat",
+             ["egress_routes", "life_safety_census", "door_widths"]),
+    "access": (r"wheel|step-?free|accessib|ramp|walker|stroller|mobility|scooter|disab|aging|age in place",
+               ["door_widths", "step_free_route", "turning_space", "bathroom_clearance"]),
 }
 EVERY = ["egress_routes", "door_widths", "life_safety_census", "step_free_route"]
 
@@ -206,7 +208,7 @@ def build(plan: dict, question: str | None, evidence: list[Evidence], max_stops:
 
 @tool(id="tour", title="Tour", icon="walk",
       summary="Answers by showing: a camera tour from the way in to each piece of evidence the other tools found, "
-              "with one spoken line at each stop.",
+              "with one spoken line at each stop. The last step of a fire pre-plan or a wheelchair check of a home.",
       model_description="Call this last on a scan, after the other tools have run there. It turns their findings into a "
                         "camera tour that answers the person's question by showing: from the way in, along the route, "
                         "stopping at each finding that matters (a narrow door, a bedroom with no smoke alarm seen, a "

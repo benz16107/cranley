@@ -54,7 +54,7 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
   const cb = useRef({ onPick, onViewChange, onCamera, onState, onShow })
   useEffect(() => { cb.current = { onPick, onViewChange, onCamera, onState, onShow } })
   const playing = view.show?.kind ?? null, shown = show && show.kind === playing ? show : null // a show that ended leaves nothing on screen
-  useEffect(() => { if (!playing) { setShow(null); cb.current.onShow?.(null) } }, [playing])
+  useEffect(() => { if (!playing) cb.current.onShow?.(null) }, [playing])
   const change = useCallback((v: View) => { setView(v); cb.current.onViewChange?.(v) }, [])
 
   useEffect(() => {

@@ -59,7 +59,7 @@ function Fire({ state }: { state: ShowState }) {
               <td>{r.label}{r.fire && <span className="th-show-tag">fire</span>}</td>
               <td className="th-num">{r.layer_m.toFixed(2)} m</td>
               <td className="th-num">{r.upper_c} °C</td>
-              <td className="th-num">{r.untenable_s == null ? 'not in the run' : mmss(r.untenable_s)}</td>
+              <td className="th-num">{r.untenable_s == null ? 'not lost' : mmss(r.untenable_s)}</td>
             </tr>
           ))}
         </tbody>

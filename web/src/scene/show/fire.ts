@@ -41,11 +41,11 @@ const FRAG = /* glsl */ `
     for (int i = 0; i < 10; i++) {
       vec3 p = vW + dir * (dt * (float(i) + 0.5));
       float d = 0.65 * noise(vec3(p.xy * 1.1 + uSeed, p.z * 1.8 - uTime * 0.22)) + 0.35 * noise(vec3(p.xy * 2.7 - uSeed, p.z * 3.1 + uTime * 0.31));
-      tau += uOD * 0.3 * (0.35 + 1.3 * d) * smoothstep(0.0, 0.14, p.z - uBottom) * dt;
+      tau += uOD * 0.18 * (0.15 + 1.7 * d) * smoothstep(0.0, 0.14, p.z - uBottom) * dt;
     }
-    float a = min(0.93, 1.0 - exp(-tau));
-    vec3 col = mix(vec3(0.52, 0.51, 0.49), vec3(0.09, 0.085, 0.08), a);
-    col = mix(col, vec3(1.0, 0.45, 0.1), uHot * 0.5 * (1.0 - 0.4 * a));   // the upper layer glows where it is hot
+    float a = min(0.88, 1.0 - exp(-tau));
+    vec3 col = mix(vec3(0.56, 0.55, 0.53), vec3(0.15, 0.145, 0.14), a);
+    col = mix(col, vec3(1.0, 0.45, 0.1), uHot * 0.42 * (1.0 - 0.5 * a));  // the upper layer glows where it is hot
     gl_FragColor = vec4(col, a);
   }`
 
