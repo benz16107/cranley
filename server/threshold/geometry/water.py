@@ -2,7 +2,8 @@
 
 Water enters through exterior openings (a doorway with one room, or a window with one room) once the level is
 above the sill, and spreads through doorways over their sills. Stairs are not in the scan, so an upper floor
-also floods once the level passes its floor height. Floor heights come from the doorway sills on each floor."""
+also floods once the level passes its floor height. Floor heights come from the doorway sills on each floor; a room
+whose panoramas and a doorway sill both show a step (a sunken garage) gets its own level."""
 from __future__ import annotations
 
 import heapq
@@ -16,6 +17,7 @@ from ._plan import (
     geo_source,
     openings_by_id,
     polygons,
+    room_floor_z,
     room_label,
     walls_by_id,
 )
@@ -27,7 +29,7 @@ def flood_levels(plan: dict, entry: str | None = None) -> dict:
     `entry` limits where water gets in to one exterior opening id."""
     fz = floor_z(plan)
     rooms = plan.get("rooms") or []
-    z0 = {r["id"]: fz.get(r["floor"], 0.0) for r in rooms}
+    z0 = cached(plan, "room_floor_z", lambda: room_floor_z(plan))
     adj: dict[str, list[tuple[str, float, str | None]]] = {}
 
     def link(a, b, cost, via):
@@ -68,7 +70,8 @@ def flood_levels(plan: dict, entry: str | None = None) -> dict:
             if nd < best.get(v, math.inf):
                 best[v], via[v] = nd, through
                 heapq.heappush(heap, (nd, v))
-    return {"levels": {r["id"]: best.get(r["id"]) for r in rooms}, "via": via, "floor_z": fz, "note": note}
+    return {"levels": {r["id"]: best.get(r["id"]) for r in rooms}, "via": via, "floor_z": fz, "room_z": z0,
+            "note": note}
 
 
 def water(plan: dict, level: float, entry: str | None = None) -> dict:
@@ -82,7 +85,7 @@ def water(plan: dict, level: float, entry: str | None = None) -> dict:
     ceiling = default_ceiling(plan) or 2.4
     per_room, values = [], {}
     for r in rooms:
-        z0 = fl["floor_z"].get(r["floor"], 0.0)
+        z0 = fl["room_z"][r["id"]]
         at = fl["levels"][r["id"]]
         reached = at is not None and at < level
         depth = max(0.0, level - z0) if reached else 0.0
@@ -101,6 +104,7 @@ def water(plan: dict, level: float, entry: str | None = None) -> dict:
                     over.append(oid)
         area = r.get("area") or (polys[r["id"]].area if polys[r["id"]] is not None else None)
         per_room.append({"room": r["id"], "label": room_label(r), "floor": r["floor"], "floor_z": z0,
+                         "step_m": round(z0 - fl["floor_z"].get(r["floor"], 0.0), 3),
                          "floods_at": at if at is not None and at > -math.inf else None, "reached": reached,
                          "via": fl["via"].get(r["id"]), "depth": depth,
                          "wetted_floor_area": (area or 0.0) if depth > 0 else 0.0,

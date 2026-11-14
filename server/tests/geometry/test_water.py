@@ -34,3 +34,27 @@ def test_entry_limits_where_water_gets_in(plan):
 def test_no_walls_still_gives_depths(no_walls):
     w = water(no_walls, 0.5)
     assert w["available"] and w["note"]
+
+
+def test_a_sunken_room_floods_first_and_deeper(plan):
+    import copy
+    p = copy.deepcopy(plan)
+    for o in p["openings"]:
+        if o["id"] == "BC":
+            o["sill"] = -0.15                                   # the door down into C
+    p["panos"] = ([{"id": f"a{i}", "position": [1 + i, 1, 1.4], "floor": "f1", "room": "A", "rotation": None}
+                   for i in range(3)] +
+                  [{"id": f"c{i}", "position": [9, 1 + i, 1.25], "floor": "f1", "room": "C", "rotation": None}
+                   for i in range(2)])
+    w = water(p, 0.05)
+    rooms = {r["room"]: r for r in w["rooms"]}
+    assert rooms["C"]["step_m"] == pytest.approx(-0.15)
+    assert rooms["C"]["depth"] == pytest.approx(0.2) and rooms["A"]["depth"] == pytest.approx(0.05)
+
+
+def test_one_low_panorama_is_not_a_step(plan):
+    import copy
+    p = copy.deepcopy(plan)
+    p["panos"] = [{"id": "a", "position": [1, 1, 1.4], "floor": "f1", "room": "A", "rotation": None},
+                  {"id": "c", "position": [9, 1, 1.0], "floor": "f1", "room": "C", "rotation": None}]
+    assert {r["room"]: r for r in water(p, 0.3)["rooms"]}["C"]["step_m"] == 0
