@@ -33,8 +33,8 @@ you save; for the laptop copy run `scripts/demo-sync` again (it rebuilds the web
 
 To show a different tool in a flow, change `"tool"` (and its `"inputs"`) in a `tool` step, or the brief in an `ask`
 step. The tool ids are the ones on the Tools page and at `GET /api/tools`; a tool with a required input that has no
-default needs it in `inputs` (the flow skips the step otherwise, and the bar says which input was missing only in
-the server log).
+default needs it in `inputs`: without it the app asks for it as a question, and the flow notes "did not run" and
+moves on.
 
 Every step may have:
 
