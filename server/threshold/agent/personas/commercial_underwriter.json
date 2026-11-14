@@ -1,0 +1,16 @@
+{
+  "id": "commercial_underwriter",
+  "title": "Commercial property underwriter",
+  "who": "Prices a warehouse, an apartment community or a shop: roof, flood position, what is on site against the record.",
+  "tools": [
+    "risk_sheet",
+    "roof_facts",
+    "loading_docks",
+    "parking_count"
+  ],
+  "thresholds": {},
+  "layout": {
+    "view": "map",
+    "lead_tool": "risk_sheet"
+  }
+}

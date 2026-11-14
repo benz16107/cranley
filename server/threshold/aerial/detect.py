@@ -17,7 +17,8 @@ DETECT_LAYERS = "urban,urban-r,wide-area"
 MAX_AREA_M2 = {"parking space": 30.0, "car": 30.0}
 
 
-def _vexcel(lat: float, lon: float, size_m: float, labels: list[str], obliques: bool, threshold: float) -> dict:
+def _vexcel(lat: float, lon: float, size_m: float, labels: list[str], obliques: bool, threshold: float,
+            keep_large: bool = False) -> dict:
     pt = site.point(lat, lon)
     images = [{"endpoint": "ortho/extract", "request": {"layer": DETECT_LAYERS, "srid": 4326, "wkt": pt}}]
     if obliques:
@@ -35,7 +36,7 @@ def _vexcel(lat: float, lon: float, size_m: float, labels: list[str], obliques: 
             g = shapely_wkt.loads(d["bbox"])
             kind = kinds.get(d.get("imageId"), d.get("imageId"))
             cap = MAX_AREA_M2.get(f["properties"]["label"])
-            if cap and kind == "spherical-ortho" and site.area_m2(g, lat) > cap:
+            if cap and not keep_large and kind == "spherical-ortho" and site.area_m2(g, lat) > cap:
                 continue
             c = g.centroid
             dets.append({"label": f["properties"]["label"], "confidence": round(d.get("confidence") or 0, 3),
@@ -75,14 +76,15 @@ def _vision(lat: float, lon: float, size_m: float, labels: list[str]) -> dict:
 
 
 def detect(lat: float, lon: float, size_m: float = 80, labels: list[str] | tuple = ("car",), *,
-           obliques: bool = False, threshold: float = 0.4, method: str = "auto") -> dict:
+           obliques: bool = False, threshold: float = 0.4, method: str = "auto", keep_large: bool = False) -> dict:
     """Located boxes for each label within a square `size_m` across. method: "auto" (Vexcel, then the vision
-    model if Vexcel fails), "vexcel" or "vision"."""
+    model if Vexcel fails), "vexcel" or "vision". keep_large keeps the whole-row boxes MAX_AREA_M2 drops, for a
+    caller that splits them itself."""
     labels = list(labels)
     error = None
     if method in ("auto", "vexcel"):
         try:
-            out = _vexcel(lat, lon, size_m, labels, obliques, threshold)
+            out = _vexcel(lat, lon, size_m, labels, obliques, threshold, keep_large)
         except vexcel.VexcelError as e:
             if method == "vexcel":
                 raise

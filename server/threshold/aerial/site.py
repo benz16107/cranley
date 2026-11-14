@@ -86,12 +86,20 @@ def site_facts(lat: float, lon: float) -> dict:
     for obj in ("ac-unit", "chimney", "roof-vent", "satellite-dish", "skylight"):
         add(f"roof_{obj.replace('-', '_')}", f"Roof {obj.replace('-', ' ')}s", s.get(f"roof-objects.{obj}.count"), "count", model)
     defects = [k[len("roof-defects."):-len(".detected")] for k, v in s.items() if k.startswith("roof-defects.") and k.endswith(".detected") and v]
+    defects = [d.split(".")[-1] for d in defects]  # discoloration subtypes come as "discoloration.types.water-pooling"
     add("roof_defects", "Roof defects detected", defects, None, model)
+    for d in defects:  # the share of the roof each defect covers
+        pct = s.get(f"roof-defects.{d}.percent", s.get(f"roof-defects.discoloration.types.{d}.percent"))
+        add(f"roof_defect_{d.replace('-', '_')}", f"Roof {d.replace('-', ' ')}", _r(pct), "%", model)
     add("pool", "Pool", p.get("pool.detected"), None, model)
     add("pool_area", "Pool area", _r(p.get("pool.total-area")), "m2", model)
     for kind in ("in-ground", "above-ground", "hot-tub"):
         if p.get(f"pool.types.{kind}.detected"):
             add(f"pool_{kind.replace('-', '_')}", f"Pool type {kind}", True, None, model)
+            k = kind.replace("-", "_")
+            add(f"pool_{k}_enclosed", f"Pool {kind}, enclosed (fenced)", p.get(f"pool.types.{kind}.enclosed.count"), "count", model)
+            add(f"pool_{k}_open", f"Pool {kind}, not enclosed", p.get(f"pool.types.{kind}.non-enclosed.count"), "count", model)
+            add(f"pool_{k}_distance", f"Pool {kind}, distance to the building", _r(p.get(f"pool.types.{kind}.distance")), "m", model)
     add("vehicles", "Vehicles on the parcel on capture day", p.get("vehicles.count") or 0 if p.get("vehicles.detected") is not None else None, "count", model)
     add("paved_percent", "Paved (hardscape) share of the parcel", p.get("hardscapes.percent"), "%", model)
     if parcel is not None:
