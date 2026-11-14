@@ -561,6 +561,15 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "kind": {
+          "default": "limit",
+          "description": "claim: `threshold` is what a record or a listing says, not a limit to meet",
+          "enum": [
+            "limit",
+            "claim"
+          ],
+          "type": "string"
         }
       },
       "required": [

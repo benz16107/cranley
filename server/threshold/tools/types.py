@@ -78,6 +78,7 @@ class Check(Strict):
     status: Status
     standard: str | None = None
     findings: list[str] = []
+    kind: Literal["limit", "claim"] = Field("limit", description="claim: `threshold` is what a record or a listing says, not a limit to meet")
 
 
 class Media(Strict):

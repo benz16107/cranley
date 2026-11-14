@@ -42,6 +42,10 @@ function show(view: J, resumed = false) {
     if (here) camera = { anchor: sc.anchor, by: 'agent', finding: (ws.findings as J[]).find((f) => f.anchor && JSON.stringify(f.anchor) === JSON.stringify(sc.anchor))?.id }
   }
   seenCamera = sc?.at
+  if (resumed) { // a link with ?f opens on that finding, where the link points
+    const f = currentRoute().q.get('f'), hit = f ? (ws.findings as J[]).find((x) => x.id === f && x.anchor) : null
+    if (hit) camera = { anchor: hit.anchor, finding: hit.id, by: 'user', stay: true }
+  }
   useWorkspace.setState({ doc: toDoc(ws, view.learned ?? [], manifests(), names, camera) })
 }
 export async function sync(resumed = false): Promise<boolean> {

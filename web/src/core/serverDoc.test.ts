@@ -41,7 +41,10 @@ test('the server document becomes the shell document, numbers untouched', () => 
   assert.deepEqual(d.plan, [{ id: 'p1', label: 'Measure the doors', status: 'active' }])
   assert.deepEqual(d.shortlist, [{ sid: 's1', name: 'Unit A', address: '1 Test St', note: undefined }])
   const [p] = d.panels
-  assert.deepEqual([p.sid, p.scope, p.run], ['s1', 'Unit A', 'r1'])
+  assert.deepEqual([p.sid, p.scope, p.run, p.role], ['s1', 'Unit A', 'r1', 'tool'])
+  assert.deepEqual(d.runs.map((r) => r.sid), ['s1', 's2', 's3']) // a run names its scan, not only in its label
+  const roles = toDoc({ id: 'w', panels: ['agent:summary', 'agent:ranked', 'compare:doors', 'agent:notes', 'custom:x'].map((id) => ({ id, title: id, blocks: [] })) }, [], manifests, names).panels.map((x) => x.role)
+  assert.deepEqual(roles, ['summary', 'ranking', 'ranking', 'note', 'note'])
   assert.deepEqual(p.blocks.map((b) => b.type), ['VerdictHeader', 'MetricRow', 'CheckList', 'Controls', 'AssumptionChips', 'StepLog', 'ActionBar', 'RankedTable'])
   const block = <T extends string>(t: T) => p.blocks.find((b) => b.type === t) as Extract<(typeof p.blocks)[number], { type: T }>
   assert.deepEqual(block('VerdictHeader'), { type: 'VerdictHeader', status: 'fail', text: 'One door is too narrow.' })

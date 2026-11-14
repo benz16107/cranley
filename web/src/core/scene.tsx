@@ -24,11 +24,12 @@ export type SceneCamera = CameraInfo
 export type SceneState = EngineState
 
 /** Looking at a finding: the building view frames its anchor and whatever lists it can mark it as current. */
-export function focusFinding(f: Finding | undefined) {
+/** `stay`: mark it as the current finding without leaving the place (a roof or dock finding, on its own scan's page). */
+export function focusFinding(f: Finding | undefined, opts?: { stay?: boolean }) {
   if (!f?.anchor) return
-  userOp({ op: 'camera.focus', anchor: f.anchor, finding: f.id })
+  userOp({ op: 'camera.focus', anchor: f.anchor, finding: f.id, stay: opts?.stay })
 }
-export function focusAnchor(anchor: Anchor) { userOp({ op: 'camera.focus', anchor }) }
+export function focusAnchor(anchor: Anchor, opts?: { stay?: boolean }) { userOp({ op: 'camera.focus', anchor, stay: opts?.stay }) }
 
 /** The floor an anchor is on, or null (a point, a map anchor, an id the plan does not have). */
 export function anchorFloor(plan: ScanPlan, a: Anchor | null | undefined): string | null {
@@ -53,7 +54,7 @@ const MODES: Mode[] = ['dollhouse', 'plan', 'pano', 'splat']
 const isMode = (v: string | null): v is Mode => MODES.includes(v as Mode)
 
 /** One scan in the building view: its plan, and everything <Scene> needs, kept in step with the workspace. */
-export function useBuildingView(sid: string) {
+export function useBuildingView(sid: string, opts?: { /** draw only these tools' overlays; missing means every tool's, as before */ tools?: string[] }) {
   const [plan, setPlan] = useState<ScanPlan | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [tries, setTries] = useState(0)
@@ -63,10 +64,11 @@ export function useBuildingView(sid: string) {
   const [look, setLook] = useState<View>(() => { const v = q.get('v'); return isMode(v) ? { mode: v, pano: q.get('p') ?? undefined } : { mode: 'dollhouse' } })
   const doc = useWorkspace((s) => s.doc)
   const shown = useRef(sid)
+  const linked = useRef(isMode(q.get('v'))) // the link named a mode: a camera that comes back with the workspace does not undo it
   useEffect(() => {
     let on = true
     setPlan(null); setError(null)
-    if (shown.current !== sid) { shown.current = sid; setLook({ mode: 'dollhouse' }) } // another scan starts from the outside
+    if (shown.current !== sid) { shown.current = sid; linked.current = false; setLook({ mode: 'dollhouse' }) } // another scan starts from the outside
     fetchPlan(sid).then((p) => on && setPlan(p), (e: Error) => on && setError(e.message))
     return () => { on = false }
   }, [sid, tries])
@@ -74,9 +76,10 @@ export function useBuildingView(sid: string) {
   useEffect(() => { if (q.get('demo') === 'access') replayDemo(sid) }, [sid, q])
 
   // what is given in map coordinates (an outdoor path, a pin on the roof) is the map's to draw, not the building's
-  const overlays = useMemo(() => doc.overlays.filter((o) => !o.sid || o.sid === sid).map((o) => o.overlay)
+  const only = opts?.tools?.join('\n')
+  const overlays = useMemo(() => doc.overlays.filter((o) => (!o.sid || o.sid === sid) && (only == null || only.split('\n').includes(o.tool))).map((o) => o.overlay)
     .map((o) => (o.kind === 'pins' ? { ...o, pins: o.pins.filter((p) => !('geo' in p.anchor)) } : o))
-    .filter((o) => !(o.kind === 'route' && o.floor === 'geo') && !(o.kind === 'pins' && !o.pins.length)), [doc.overlays, sid])
+    .filter((o) => !(o.kind === 'route' && o.floor === 'geo') && !(o.kind === 'pins' && !o.pins.length)), [doc.overlays, sid, only])
   const cam = doc.camera && 'sid' in doc.camera.anchor && doc.camera.anchor.sid === sid ? doc.camera.anchor : null
   const kept = doc.shortlist.some((s) => s.sid === sid)
   // Where the camera is told to look: its floor comes up, and a panorama anchor means "stand there and look that way".
@@ -84,6 +87,8 @@ export function useBuildingView(sid: string) {
   useEffect(() => {
     if (!plan || !cam) return
     const floor = anchorFloor(plan, cam)
+    const keep = linked.current; linked.current = false
+    if (keep) { setLook((v) => ({ ...v, floor: floor && plan.floors.length > 1 && v.mode !== 'pano' ? floor : v.floor })); return }
     setLook((v) => ('pano' in cam ? { ...v, mode: 'pano', pano: cam.pano } : { ...v, mode: v.mode === 'pano' || v.mode === 'splat' ? 'dollhouse' : v.mode, floor: floor && plan.floors.length > 1 ? floor : v.floor }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [camKey, plan])
@@ -110,6 +115,8 @@ export function useBuildingView(sid: string) {
     setMode: (m: Mode) => setLook((v) => ({ ...v, mode: m, pano: m === 'pano' ? v.pano ?? plan?.panos[0]?.id : v.pano })),
     /** The whole view (floor, cut, pull-apart, wipe, measures) for a skin that draws its own scene controls. */
     view: look, setView: setLook,
+    /** Frame the whole building again in the current mode, after a close-up on a finding. */
+    stepBack: () => setLook((v) => ({ ...v, fit: (v.fit ?? 0) + 1 })),
     /** Spread on <Scene>, inside <SceneBoundary key={sceneKey}>. Null until the plan has loaded. */
     sceneProps, sceneKey: `${sid}:${tries}`,
     /** The overlays for this scan in the scan's frame: the same list the scene gets, for a skin's own plan drawing. */

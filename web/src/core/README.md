@@ -87,8 +87,8 @@ userOp(op)                                       // the person changes the works
 | `questions` | `{ id, text, kind: 'choice' \| 'number' \| 'text', options?, unit?, answer?, hint? }` | a form; `answer == null` is open; offer `hint` |
 | `tools` | `ToolRef { id, title, code?, summary?, reason, coverage?, by }` | the dock, with why each is here and who added it |
 | `plan` | `PlanStep { id, label, status: 'pending' \| 'active' \| 'done' }` | the agent's plan, live |
-| `runs` | `Run { id, tool, label, step?, status: 'running' \| 'done' \| 'failed', ms?, summary?, stale? }` | tool calls under their plan step (`step` is a `PlanStep.id`); a running run's `summary` is its latest progress line |
-| `panels` | `Panel { id, tool, title, scope?, sid?, run?, blocks }` | one panel each, built from the twelve blocks |
+| `runs` | `Run { id, tool, label, sid?, place?, step?, status: 'running' \| 'done' \| 'failed', ms?, summary?, stale? }`; `sid` is the scan it is about | tool calls under their plan step (`step` is a `PlanStep.id`); a running run's `summary` is its latest progress line |
+| `panels` | `Panel { id, tool, title, role?, scope?, sid?, run?, blocks }`; `role` is `'tool'` (also when missing), `'summary'` (the agent's closing note), `'ranking'` or `'note'` | one panel each, built from the twelve blocks |
 | `findings` | `Finding { id, title, status, detail?, anchor, source, media? } & { tool, run? }` | evidence; `anchor` is where it is in the building or on the map |
 | `overlays` | `{ id, tool, sid?, overlay }` | drawn in the scene (core does this) and on the map (you do this, from `useMapModel().geo`) |
 | `prefs` | `Pref { key, label, value, from, by }` | "what I have learned", each with an undo |
@@ -101,7 +101,7 @@ userOp(op)                                       // the person changes the works
 |---|---|
 | `VerdictHeader` | `status`, `text` |
 | `MetricRow` | `metrics: Metric[]` (at most 4): `label`, `value` (null is "not measured"), `unit`, `source` |
-| `CheckList` | `checks: Check[]`, worst first: `rule`, `measured`, `threshold`, `unit`, `status`, `standard?`, `findings` (ids; clicking a check focuses the first with an anchor) |
+| `CheckList` | `checks: Check[]`, worst first: `rule`, `measured`, `threshold`, `unit`, `status`, `standard?`, `kind?`, `findings` (ids; clicking a check focuses the first with an anchor). `kind: 'claim'` means `threshold` is what a record or listing says, not a limit: set it as "record says / scan measures" |
 | `EvidenceStrip` | `findings: string[]` (ids into `doc.findings`); a finding's panorama picture is `panoFace(...)` of its `media` ref, `"<sid>/<pano>/<face>"` |
 | `RankedTable` | `columns` (`id`, `label`, `unit?`, `better`), `rows` (`label`, `status?`, `anchor?`, `values`) **in rank order: keep it until the person sorts** |
 | `MiniChart` | `title`, `unit`, `bars` (`label`, `value`, `status?`), `mark?`, `source` |
@@ -132,6 +132,7 @@ userOp({ op: 'tool.disable', id })
 userOp({ op: 'pref.set', key, label?, value, unit?, from? })      // value: null forgets it (the undo in "learned")
 userOp({ op: 'shortlist.add', item: { sid, name, address } }) / ({ op: 'shortlist.remove', sid })
 focusFinding(finding) / focusAnchor(anchor)                       // look at this: camera.focus
+focusFinding(finding, { stay: true })                             // the same, without leaving the place (below)
 ```
 
 The store applies the op at once and core tells the server. You do not call the server.
@@ -163,6 +164,9 @@ also after a reload. Design the running state so that minutes of it look intende
 
 **The view follows the agent.** When the agent focuses a finding and `follow` is on, core navigates to its scan (or
 to the map for a map anchor) and sets `?f`. You see a new route and a new `doc.camera`. How the move looks is yours.
+The person's own focus does the same, unless you pass `{ stay: true }`: then `doc.camera` and `?f` change and the
+place does not (a roof or dock finding looked at from its own scan's page). A link that carries `?f` opens on that
+finding, and a link that carries `?v` keeps that mode, whatever camera the workspace comes back with.
 
 **Notices.** What core has to say outside the workspace (the server did not answer, a tool needs an answer first)
 arrives through `onNotice((n: Notice) => …)`: `{ kind: 'info' | 'error', title, description? }`. Register once in
@@ -201,10 +205,12 @@ rows with `lat`, `lon`, `why` and `values`; `fetchMeasureFields()` lists what ca
 ## One building
 
 ```tsx
-const v = useBuildingView(sid)            // sid from useRoute()
+const v = useBuildingView(sid)            // sid from useRoute(). useBuildingView(sid, { tools: ['flood_rehearsal'] })
+                                          // draws only those tools' overlays (the result on top); missing is all
 v.plan, v.error, v.retry                  // the ScanPlan; a sentence when it did not load
 v.modes, v.mode, v.setMode(m)             // 'dollhouse' | 'plan' | 'pano' | 'splat'; only the modes this scan has
 v.view, v.setView                         // the whole scene view, for your own controls (below)
+v.stepBack()                              // frame the whole building again, after a close-up on a finding
 v.kept, v.toggleKeep                      // the shortlist
 v.overlays                                // this scan's overlays, for a plan drawing of your own
 
@@ -268,6 +274,7 @@ any ancestor rule for it. The defaults are in `src/scene/tokens.css` under `:whe
 | `--scene-stage` | behind the building |
 | `--scene-paper` | wall faces, label chips, control backgrounds |
 | `--scene-ink`, `--scene-ink-2`, `--scene-hairline` | cut faces of walls, linework, text |
+| `--scene-grid` | the ground's 1 m and 5 m lines and the shade round the footprint; unset, it is `--scene-ink` |
 | `--scene-accent` | selection, routes, the current position |
 | `--scene-glass`, `--scene-water` | windows, the water overlay |
 | `--scene-ramp-lo`, `--scene-ramp-hi` | the lens ramp, low to high |
@@ -277,11 +284,12 @@ any ancestor rule for it. The defaults are in `src/scene/tokens.css` under `:whe
 
 Colours the 3D renderer reads (stage, paper, ink, accent, glass, water, ramp, status) must be 6-digit hex, and they
 are read when the scene mounts. A look with a light and a dark scheme remounts the scene on change (a different
-`key`). The scene's own class names start with `th-`; do not rely on any other detail of its DOM.
+`key`). The scene's own class names start with `th-`; do not rely on any other detail of its DOM, with one exception you
+may use: the pin of the focused finding is `.th-pin[aria-current="true"]`.
 
 **Pictures and records of a building**: `fetchPlan(sid)`, `panoFace(sid, pano, face)` (cube face 1 to 4 are the
 sides), `panoEquirect(sid, pano)`, `floorplanImage(sid, floor)`, `orthoImage(lat, lon, size_m)`, `fetchRecord(sid)`
-(the CoStar or listing record), `fetchDrone(sid)` and `droneImage(sid, name)`, `fetchScans(filter)`. `anchorFloor(plan,
+(the CoStar or listing record), `fetchDrone(sid)` and `droneImage(sid, name, width?)`, `fetchScans(filter)`. `anchorFloor(plan,
 anchor)` tells you which floor an anchor is on.
 
 ## Minimum to be a complete skin

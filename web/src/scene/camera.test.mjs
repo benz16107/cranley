@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { azOfBearing, bearingOfAz, freeRect, lookAngles } from './engine/camera.ts'
+import { anchorKey } from './model.ts'
 
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} is not ${b}`)
 // where the rig looks, in the scan frame: from the camera's position (at azimuth az around the target) back to the target
@@ -30,4 +31,10 @@ test('a panorama look is yaw counter-clockwise from +x and pitch up', () => {
   near(d[0], 1); near(d[1], 0); near(d[2], 0)
   a = lookAngles({ yaw_deg: 90, pitch_deg: 30 }); d = lookDir(a.az, a.pol)
   near(d[0], 0); near(d[1], Math.cos(Math.PI / 6)); near(d[2], 0.5)
+})
+
+test('an anchor is the same place with or without its scan id, in any key order', () => {
+  assert.equal(anchorKey({ sid: 's1', opening: 'o1' }), anchorKey({ opening: 'o1' }))
+  assert.equal(anchorKey({ pano: 'p', yaw_deg: 10, pitch_deg: 0 }), anchorKey({ pitch_deg: 0, sid: 'x', yaw_deg: 10, pano: 'p' }))
+  assert.notEqual(anchorKey({ opening: 'o1' }), anchorKey({ room: 'o1' }))
 })

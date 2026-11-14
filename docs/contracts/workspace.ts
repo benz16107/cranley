@@ -289,6 +289,10 @@ export interface Check {
   status: "pass" | "warn" | "fail" | "unknown";
   standard?: string | null;
   findings?: string[];
+  /**
+   * claim: `threshold` is what a record or a listing says, not a limit to meet
+   */
+  kind?: "limit" | "claim";
 }
 /**
  * This interface was referenced by `WorkspaceContract`'s JSON-Schema

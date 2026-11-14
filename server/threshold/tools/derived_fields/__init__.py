@@ -225,7 +225,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                                        f"{rec_txt}", anchor=p["anchor"], source=src, media=p["media"]))
         checks.append(Check(id=p["field"], rule=p["label"], measured=_num(p["value"]), threshold=_num(p["record"]),
                             unit=p["unit"] or "", status="warn" if state == "differs" else "pass",
-                            standard=p["record_path"], findings=[fid]))
+                            standard=p["record_path"], findings=[fid], kind="claim"))
         if _num(p["value"]) is not None and not isinstance(p["value"], bool):
             metrics.append(Metric(id=p["field"], label=p["label"], value=_num(p["value"]), unit=p["unit"] or "", source=src))
     new = sum(1 for p in props if _agree(p) == "new")

@@ -42,7 +42,7 @@ export function apply(doc: Doc, op: Op): Doc {
       overlays: d.overlays.filter((o) => o.tool !== op.id),
       layers: d.layers.filter((l) => l.tool !== op.id),
     }
-    case 'run.start': return { ...d, runs: upsert(d.runs, { id: op.id, tool: op.tool, label: op.label, step: op.step, status: 'running' as const }, (r) => r.id) }
+    case 'run.start': return { ...d, runs: upsert(d.runs, { id: op.id, tool: op.tool, label: op.label, step: op.step, sid: op.sid, status: 'running' as const }, (r) => r.id) }
     case 'run.finish': return { ...d, runs: d.runs.map((r) => (r.id === op.id ? { ...r, status: op.status ?? 'done', ms: op.ms, summary: op.summary } : r)) }
     case 'finding.add': return { ...d, findings: upsert(d.findings, { ...op.finding, tool: op.tool, run: op.run }, (f) => f.id) }
     case 'layer.upsert': return { ...d, layers: upsert(d.layers, op.layer, (l) => l.id) }
@@ -52,7 +52,7 @@ export function apply(doc: Doc, op: Op): Doc {
       return { ...d, overlays: upsert(d.overlays, { id: op.id, tool: op.tool, sid: op.sid, overlay: op.overlay }, (o) => o.id) }
     }
     case 'panel.upsert': return { ...d, panels: upsert(d.panels, cleanPanel(op.panel), (p) => p.id) }
-    case 'camera.focus': return { ...d, camera: { anchor: op.anchor, finding: op.finding, by: op.by } }
+    case 'camera.focus': return { ...d, camera: { anchor: op.anchor, finding: op.finding, by: op.by, stay: op.stay } }
     case 'plan.set': return { ...d, plan: op.steps }
     case 'pref.set': {
       const old = d.prefs.find((p) => p.key === op.key)

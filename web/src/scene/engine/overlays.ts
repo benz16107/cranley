@@ -6,7 +6,7 @@ import { LineGeometry } from 'three/addons/lines/LineGeometry.js'
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js'
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js'
 import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js'
-import { anchorPoint, centroid, fmtM, openingSpan, sightBlocked, statusColor, wallBoxes, waterDepth, type Model, type RGB } from '../model.ts'
+import { anchorPoint, centroid, fmtM, openingSpan, sightBlocked, statusColor, wallBoxes, waterDepth, type Model, type RGB, anchorKey } from '../model.ts'
 import type { Tokens } from '../tokens.ts'
 import type { Overlay, Pick, Status, Vec3 } from '../types.ts'
 import type { Dollhouse } from './dollhouse.ts'
@@ -133,7 +133,7 @@ export class Overlays3D {
             id: `pin${oi}.${p.id}`, pos: [at.point[0], at.point[1], at.point[2] + lift], floor: at.floor, skipWall: 'wall' in p.anchor ? p.anchor.wall : 'opening' in p.anchor ? m.openingById.get(p.anchor.opening)?.wall : undefined,
             make: () => {
               const el = h('button', `th-pin${pins.length > 8 ? ' th-pin-compact' : ''}`, h('span', 'th-pin-mark', h('span', '', String(i + 1))), h('span', 'th-pin-label', p.label))
-              el.dataset.status = p.status; el.setAttribute('aria-label', `${i + 1}. ${p.label} (${p.status})`)
+              el.dataset.status = p.status; el.dataset.at = anchorKey(p.anchor); el.setAttribute('aria-label', `${i + 1}. ${p.label} (${p.status})`)
               el.addEventListener('click', (e) => { e.stopPropagation(); this.onPick({ kind: 'pin', id: p.id }) })
               return el
             },

@@ -40,6 +40,8 @@ export type Metric = { id: string; label: string; value: number | null; unit: st
 export type Check = {
   id: string; rule: string; measured: number | null; threshold: number | null; unit: string; status: Status
   standard?: string | null; findings: string[]
+  /** 'claim': `threshold` is what a record or a listing says, not a limit to meet. Missing means 'limit'. */
+  kind?: 'limit' | 'claim'
 }
 export type Media = { kind: 'pano' | 'ortho' | 'drone'; ref: string; box?: [number, number, number, number] | null }
 export type Finding = { id: string; title: string; status: Status; detail?: string; anchor: Anchor | null; source: Source; media?: Media[] }
@@ -81,8 +83,12 @@ export type BlockType = Block['type']
 export type Brief = { text: string; facts: { id: string; label: string; value?: string }[]; /** what the person needs that no tool does, said to them */ limits?: string[] }
 export type Question = { id: string; text: string; kind: 'choice' | 'number' | 'text'; options?: string[]; unit?: string; pref?: string; tool?: string; answer?: string | number; /** a value to offer: the tool's default, or what the person already said */ hint?: string | number }
 export type ToolRef = { id: string; title: string; code?: string; summary?: string; reason: string; coverage?: string; by: By }
-export type Run = { id: string; tool: string; label: string; step?: string; status: 'running' | 'done' | 'failed'; ms?: number; summary?: string; stale?: boolean }
-export type Panel = { id: string; tool: string; title: string; scope?: string; sid?: string; run?: string; blocks: Block[] }
+export type Run = { id: string; tool: string; label: string; step?: string; status: 'running' | 'done' | 'failed'; ms?: number; summary?: string; stale?: boolean
+  /** The scan the run is about; or, for a run on a place with no scan, the place. */
+  sid?: string; place?: { property_id?: number | null; address?: string | null; geo?: [number, number] | null } }
+export type Panel = { id: string; tool: string; title: string; scope?: string; sid?: string; run?: string; blocks: Block[]
+  /** What the panel is: a tool's result (also when missing), the agent's closing summary, a ranked comparison, or a note the agent composed. */
+  role?: 'tool' | 'summary' | 'ranking' | 'note' }
 export type PlanStep = { id: string; label: string; status: 'pending' | 'active' | 'done' }
 /** A learned item: what it is, the event it came from, and the value to go back to. */
 export type Pref = { key: string; label: string; value: number | string | boolean; unit?: string; from: string; prev?: number | string | boolean; by: By; at: number }
@@ -102,7 +108,7 @@ export type Doc = {
   plan: PlanStep[]
   prefs: Pref[]
   shortlist: ShortlistItem[]
-  camera: { anchor: Anchor; finding?: string; by: By } | null
+  camera: { anchor: Anchor; finding?: string; by: By; stay?: boolean } | null
   log: Op[]
 }
 
@@ -114,13 +120,13 @@ export type Op = Meta & (
   | { op: 'question.answer'; id: string; answer: string | number }
   | { op: 'tool.enable'; tool: Omit<ToolRef, 'by'> }
   | { op: 'tool.disable'; id: string }
-  | { op: 'run.start'; id: string; tool: string; label: string; step?: string }
+  | { op: 'run.start'; id: string; tool: string; label: string; step?: string; sid?: string }
   | { op: 'run.finish'; id: string; status?: 'done' | 'failed'; ms?: number; summary?: string }
   | { op: 'finding.add'; tool: string; finding: Finding }
   | { op: 'layer.upsert'; layer: Layer }
   | { op: 'overlay.upsert'; id: string; tool: string; sid?: string; overlay: Overlay | null }
   | { op: 'panel.upsert'; panel: Panel }
-  | { op: 'camera.focus'; anchor: Anchor; finding?: string }
+  | { op: 'camera.focus'; anchor: Anchor; finding?: string; /** look at it without leaving the current place (a map anchor on a scan's page) */ stay?: boolean }
   | { op: 'plan.set'; steps: PlanStep[] }
   | { op: 'pref.set'; key: string; label?: string; value: number | string | boolean | null; unit?: string; from?: string }
   | { op: 'shortlist.add'; item: ShortlistItem }

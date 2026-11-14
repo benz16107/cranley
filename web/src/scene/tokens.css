@@ -11,6 +11,7 @@
   --scene-paper: #f7f4ed;      /* wall faces, label chips */
   --scene-ink: #20242b;        /* cut faces of walls, linework, text */
   --scene-ink-2: #5d636b;      /* secondary text */
+  /* --scene-grid: the ground's 1 m and 5 m lines and the shade round the footprint. Unset, it is --scene-ink. */
   --scene-hairline: rgb(32 36 43 / 0.16);
   --scene-accent: #2447d6;     /* the one accent: selection, routes, the current scan position. Cool, because interiors are warm */
   --scene-glass: #cdd8dc;

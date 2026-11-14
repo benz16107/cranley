@@ -143,7 +143,7 @@ export async function playAccess(opts: { sids?: string[]; city?: Need['city']; q
     for (const t of tries) {
       if (!alive()) return
       const id = `probe:${t.sids[0]}`, t1 = performance.now()
-      say({ op: 'run.start', id, tool: 'access', label: t.b.address.split(',')[0], step: 's1' })
+      say({ op: 'run.start', id, tool: 'access', label: t.b.address.split(',')[0], step: 's1', sid: t.sids[0] })
       const ok = await fetchPlan(t.sids[0]).then(hasDoors, () => false)
       await wait(260 * pace)
       say({ op: 'run.finish', id, ms: performance.now() - t1, summary: ok ? 'Has a wall outline with doorways' : 'No wall outline, so nothing to measure' })
@@ -164,7 +164,7 @@ export async function playAccess(opts: { sids?: string[]; city?: Need['city']; q
     if (!alive()) return
     const id = `read:${sid}`, t1 = performance.now()
     const name = home?.scans.find((x) => x.sid === sid)?.name ?? sid
-    say({ op: 'run.start', id, tool: 'access', label: name, step: 's2' })
+    say({ op: 'run.start', id, tool: 'access', label: name, step: 's2', sid })
     try {
       const plan = await fetchPlan(sid)
       plans.push(plan)
@@ -181,7 +181,7 @@ export async function playAccess(opts: { sids?: string[]; city?: Need['city']; q
   const results: { plan: ScanPlan; r: ToolResult }[] = []
   for (const plan of plans) {
     const id = `audit:${plan.sid}`, t = performance.now()
-    say({ op: 'run.start', id, tool: 'access', label: plan.name, step: 's3' })
+    say({ op: 'run.start', id, tool: 'access', label: plan.name, step: 's3', sid: plan.sid })
     const r = accessAudit(plan, prefs)
     results.push({ plan, r })
     await wait(500 * pace)

@@ -51,7 +51,7 @@ def check_and_finding(tool: str, sid: str, c: dict) -> tuple[T.Check, T.Finding]
     check = T.Check(id=c["key"], rule=f"{c['label']}, {ORIGIN.get(c['claim']['origin'], c['claim']['origin'])} vs "
                                       f"{'scan' if c['layer'] == 'matterport' else 'aerial' if c['layer'] == 'vexcel' else 'panoramas'}",
                     measured=_num(c["measured"]["value"]), threshold=_num(c["claim"]["value"]),
-                    unit=unit.replace("ft2", "ft²"), status=status, standard=c["claim"]["path"], findings=[fid])
+                    unit=unit.replace("ft2", "ft²"), status=status, standard=c["claim"]["path"], findings=[fid], kind="claim")
     finding = T.Finding(id=fid, title=f"{c['label']} {TITLE[c['verdict']]}", status=status, detail=detail,
                         anchor=anchor(sid, c), source=source(c, f"Verdict: {c['verdict']}"),
                         media=c.get("media") or [])

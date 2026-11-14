@@ -93,7 +93,7 @@ export function toDoc(ws: J, learned: J[], manifests: Map<string, Manifest>, nam
     questions: ((ws.questions ?? []) as J[]).map(toQuestion),
     tools: ((ws.tools ?? []) as J[]).filter((t) => t.enabled !== false).map((t): ToolRef => ({ id: t.id, title: title(t.id), summary: manifests.get(t.id)?.summary, reason: t.reason ?? '',
       coverage: t.status === 'planned' ? 'Planned, not built yet' : undefined, by: t.by === 'user' ? 'user' : 'agent' })),
-    runs: ((ws.runs ?? []) as J[]).map((r) => ({ id: r.id, tool: r.tool, step: r.plan_step ?? undefined, stale: !!r.stale,
+    runs: ((ws.runs ?? []) as J[]).map((r) => ({ id: r.id, tool: r.tool, step: r.plan_step ?? undefined, stale: !!r.stale, sid: r.sid ?? undefined, place: r.place ?? undefined,
       label: [title(r.tool), r.sid ? names(r.sid)?.name ?? r.sid : placeLabel(r.place)].filter(Boolean).join(' · '),
       status: r.status === 'running' ? 'running' : r.status === 'error' ? 'failed' : 'done',
       ms: r.started && r.finished ? (r.finished - r.started) * 1000 : undefined,
@@ -103,7 +103,9 @@ export function toDoc(ws: J, learned: J[], manifests: Map<string, Manifest>, nam
     overlays: ((ws.overlays ?? []) as J[]).filter((o) => o.visible !== false).map((o) => ({ id: o.id, tool: o.tool ?? '', sid: o.sid ?? undefined, overlay: o.overlay })),
     panels: ((ws.panels ?? []) as J[]).map((p): Panel => {
       const sid = runs.get(p.run)?.sid ?? (p.blocks as J[] | undefined)?.find((b) => b.type === 'FloorPlanMini')?.sid
-      return { id: p.id, tool: p.tool ?? 'agent', title: p.title, scope: sid ? names(sid)?.name : undefined, sid: sid ?? undefined, run: p.run ?? undefined, blocks: toBlocks(p, runs, ws, names) }
+      const id = String(p.id)
+      const role = id === 'agent:summary' ? 'summary' : id === 'agent:ranked' || id.startsWith('compare:') ? 'ranking' : id.startsWith('agent:') || id.startsWith('custom:') ? 'note' : 'tool'
+      return { id: p.id, tool: p.tool ?? 'agent', title: p.title, scope: sid ? names(sid)?.name : undefined, sid: sid ?? undefined, run: p.run ?? undefined, role, blocks: toBlocks(p, runs, ws, names) }
     }),
     plan: ((ws.plan ?? []) as J[]).map((s) => ({ id: s.id, label: s.text, status: s.status === 'completed' ? 'done' : s.status === 'in_progress' ? 'active' : 'pending' })),
     prefs: learned.map((l) => ({ key: l.key, label: l.text, value: '', from: l.by === 'user' ? 'You set this' : 'Learned from what you did', by: l.by === 'agent' ? 'agent' : 'user', at: (l.at ?? 0) * 1000 })),

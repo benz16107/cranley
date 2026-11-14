@@ -82,6 +82,8 @@ export interface View {
   /** Dollhouse and splat: a slow turn about the target in degrees per second (positive is counter-clockwise seen
       from above). 0 stops it; leaving it out keeps the splat's own slow drift. A drag stops it until it changes. */
   orbit?: number
+  /** Change this number to frame the whole building again in the current mode (after a close-up on a finding). */
+  fit?: number
 }
 
 /** What onCamera reports: the camera in the same units as `pose` and `fov`, and where `view.focus` is on screen. */

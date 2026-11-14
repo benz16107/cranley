@@ -60,6 +60,7 @@ useWorkspace.subscribe((s, before) => {
   const cam = s.doc.camera
   if (cam === before.doc.camera || !cam || (cam.by === 'agent' && !s.follow)) return
   const a = cam.anchor
+  if (cam.stay) { setQuery({ f: cam.finding }); return } // look at it from here: the place does not change
   if ('geo' in a) {
     const near = nearestBuilding(useBuildings.getState().all, a.geo)
     navigate('/map', { b: near?.id, city: near?.metro ?? undefined }, { keep: true })

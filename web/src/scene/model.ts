@@ -175,6 +175,9 @@ export function wallBoxes(m: Model): Box[] {
 }
 
 /** World position (scan frame, before floors are pulled apart) and floor index for an anchor. */
+/** An anchor as a string that is the same for the same place, whichever scan id it carries or leaves out. */
+export const anchorKey = (a: object) => JSON.stringify(Object.entries(a).filter(([k]) => k !== 'sid').sort(([x], [y]) => (x < y ? -1 : 1)))
+
 export function anchorPoint(m: Model, a: Anchor): { point: Vec3; floor: number } | null {
   const fz = (id: string | null | undefined) => m.floorOf.get(id ?? '') ?? 0
   if ('point' in a) {

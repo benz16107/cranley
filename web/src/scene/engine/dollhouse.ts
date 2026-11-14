@@ -191,7 +191,7 @@ export class Dollhouse {
     this.ground = new THREE.Mesh(new THREE.PlaneGeometry(r * 6, r * 6), new THREE.ShaderMaterial({
       vertexShader: 'varying vec3 vW; void main(){ vW = (modelMatrix * vec4(position,1.0)).xyz; gl_Position = projectionMatrix * viewMatrix * vec4(vW,1.0); }',
       fragmentShader: GROUND_FRAG, transparent: true, depthWrite: false,
-      uniforms: { uInk: this.uniforms.uInk, uCentre: { value: new THREE.Vector2((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2) }, uRadius: { value: r }, uReveal: this.uniforms.uReveal,
+      uniforms: { uInk: { value: new THREE.Vector3(...tok.grid) }, uCentre: { value: new THREE.Vector2((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2) }, uRadius: { value: r }, uReveal: this.uniforms.uReveal,
         uBox: { value: new THREE.Vector4((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2, (b.maxX - b.minX) / 2, (b.maxY - b.minY) / 2) } },
     }))
     this.ground.position.set((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2, -0.03)

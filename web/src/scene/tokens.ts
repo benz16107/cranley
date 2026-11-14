@@ -1,6 +1,6 @@
 import type { Palette, RGB } from './model.ts'
 
-export interface Tokens extends Palette { stage: RGB; paper: RGB; ink: RGB; glass: RGB; water: RGB }
+export interface Tokens extends Palette { stage: RGB; paper: RGB; ink: RGB; glass: RGB; water: RGB; grid: RGB }
 
 const FALLBACK: Record<string, string> = {
   stage: '#e7e4dc', paper: '#f7f4ed', ink: '#20242b', accent: '#2447d6', glass: '#cdd8dc', water: '#3a7d92',
@@ -17,8 +17,10 @@ export function readTokens(el: Element): Tokens {
     const h = /^#[0-9a-f]{6}$/i.test(v) ? v : FALLBACK[name]
     return [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255) as RGB
   }
+  // the ground's grid and the shade round the footprint follow ink unless a look sets --scene-grid
+  const grid = /^#[0-9a-f]{6}$/i.test(css.getPropertyValue('--scene-grid').trim()) ? get('grid') : get('ink')
   return {
-    stage: get('stage'), paper: get('paper'), ink: get('ink'), accent: get('accent'), glass: get('glass'), water: get('water'),
+    grid, stage: get('stage'), paper: get('paper'), ink: get('ink'), accent: get('accent'), glass: get('glass'), water: get('water'),
     rampLo: get('ramp-lo'), rampHi: get('ramp-hi'), pass: get('pass'), warn: get('warn'), fail: get('fail'), unknown: get('unknown'),
   }
 }

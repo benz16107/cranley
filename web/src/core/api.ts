@@ -42,7 +42,7 @@ export const fetchScans = (filter: { q?: string; address?: string; city?: string
 export const fetchRecord = (sid: string) => getJson<Record<string, unknown>>(`/api/scan/${sid}/record`)
 /** Drone photos of a scan's building, with position and gimbal angles; each `name` loads from droneImage. */
 export const fetchDrone = (sid: string, n = 60) => getJson<Record<string, unknown>>(`/api/scan/${sid}/drone?n=${n}`)
-export const droneImage = (sid: string, name: string) => `/api/scan/${sid}/drone/${encodeURIComponent(name)}`
+export const droneImage = (sid: string, name: string, w?: number) => `/api/scan/${sid}/drone/${encodeURIComponent(name)}${w ? `?w=${w}` : ''}`
 
 export type MeasureField = { label: string; unit: string; kind: string; description: string }
 export type MeasureHit = { sid: string; name: string; kind: string; city: string; address: string | null; lat: number | null; lon: number | null; score: number; why: string[]; values: Record<string, number | string | null> }

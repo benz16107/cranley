@@ -1,6 +1,6 @@
 // One canvas, one camera, four views. The engine owns three.js; React (BuildingScene.tsx) only hands it props.
 import * as THREE from 'three'
-import { buildModel, centroid, isKnownOverlay, resolveStyles, STUB, type Model } from '../model.ts'
+import { anchorKey, buildModel, centroid, isKnownOverlay, resolveStyles, STUB, type Model } from '../model.ts'
 import { useSceneLink } from '../store.ts'
 import { readTokens, type Tokens } from '../tokens.ts'
 import type { Anchor, CameraInfo, Mode, Overlay, Pano, Pick, ScanPlan, Vec3, View } from '../types.ts'
@@ -122,6 +122,7 @@ export class Engine {
     this.overlays = overlays.filter(isKnownOverlay) // Contract 4: unknown kinds are ignored
     this.overlayLabels = this.overlays3d.set(this.overlays, !!this.view.measures, this.eye())
     this.labels.sync([...this.roomLabels, ...this.overlayLabels])
+    this.markCurrent()
     this.applyStyles()
     this.invalidate()
   }
@@ -154,7 +155,22 @@ export class Engine {
     this.pano.setWipe(next.wipe ?? null, this.w * this.renderer.getPixelRatio())
     if (!!next.measures !== !!prev.measures) this.setOverlays(this.overlays)
     if (next.focus && JSON.stringify(next.focus) !== JSON.stringify(prev.focus)) this.focusOn(next.focus)
+    if (differs(next.focus, prev.focus)) this.markCurrent()
+    if (next.fit !== prev.fit && next.fit != null && next.mode === prev.mode) this.stepBack()
     this.pushState(); this.invalidate()
+  }
+
+  /** The pin of the focused finding says so (aria-current), so a look can mark it and tie things to it. */
+  private markCurrent() {
+    const k = this.view.focus ? anchorKey(this.view.focus) : ''
+    this.labels.root.querySelectorAll<HTMLElement>('.th-pin').forEach((el) => { if (el.dataset.at === k) el.setAttribute('aria-current', 'true'); else el.removeAttribute('aria-current') })
+  }
+  /** Back to the whole building in the current mode. */
+  private stepBack() {
+    const mode = this.view.mode, rig = this.rig
+    if (mode === 'dollhouse') rig.flyTo(this.withPose({ ...this.dollPose(), az: rig.goal.az }), 900)
+    else if (mode === 'plan') rig.flyTo(this.planPose(), 800)
+    else if (mode === 'splat') rig.flyTo(this.withPose({ target: this.splat.centre.clone(), dist: this.splatDist() }), 900)
   }
 
   /** Where the viewer stands when inside a panorama; null in every other view. */
