@@ -57,5 +57,8 @@
   {"id": "car-search", "brief": "Find houses in Houston whose garage fits two F-150s.", "persona": ["car_owner"], "must": [["garage_fit"]], "never": ["fire_preplan"]},
   {"id": "boat-driveway", "brief": "Can I park my boat trailer off the street at this house?", "persona": ["rv_boat_owner"], "must": [["driveway_fit"]], "never": ["fire_preplan"]},
   {"id": "van-ramp", "brief": "I drive a wheelchair van with a side ramp. Does this garage leave room for the ramp?", "persona": ["wheelchair_van_owner"], "must": [["garage_fit"]], "never": ["fire_preplan"]},
-  {"id": "garage-gym", "brief": "I want to put a squat rack in the garage. Is the ceiling high enough to press overhead?", "persona": ["home_gym_builder"], "must": [["garage_fit"]], "never": ["fire_preplan"]}
+  {"id": "garage-gym", "brief": "I want to put a squat rack in the garage. Is the ceiling high enough to press overhead?", "persona": ["home_gym_builder"], "must": [["garage_fit"]], "never": ["fire_preplan"]},
+  {"id": "plants-office-room", "brief": "Which room in this house gets the most sun for my plants, and where should my desk go so the screen has no glare?", "persona": ["room_chooser"], "must": [["sun_rooms"]], "never": ["fire_preplan"]},
+  {"id": "solar-payback", "brief": "Would solar panels on my roof pay for themselves, and how many would fit?", "persona": ["solar_homeowner"], "must": [["solar_roof"]], "never": ["flood_rehearsal"]},
+  {"id": "la-defensible-space", "brief": "After the LA fires I want to know what to clear around my house and whether I'm in a fire hazard zone.", "persona": ["la_fire_homeowner"], "must": [["wildfire_space"]], "never": ["flood_rehearsal"]}
 ]

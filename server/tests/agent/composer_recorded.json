@@ -1447,5 +1447,69 @@
     "reason": "This estimates daylight per room so you can tell which areas will work well for desks as the team grows."
    }
   ]
+ },
+ "After the LA fires I want to know what to clear around my house and whether I'm in a fire hazard zone.": {
+  "cannot": [],
+  "persona": "la_fire_homeowner",
+  "stated": [],
+  "summary": "An LA homeowner after the fires who wants to know what to clear around the house and whether it sits in a fire hazard zone.",
+  "tools": [
+   {
+    "id": "wildfire_space",
+    "reason": "This shows the vegetation in each defensible-space zone around your house, what to clear first, and your CAL FIRE hazard zone."
+   },
+   {
+    "id": "roof_facts",
+    "reason": "This reads your roof material and the trees hanging over it, which matter for embers reaching your house."
+   },
+   {
+    "id": "fire_preplan",
+    "reason": "This puts together what firefighters would need to know about your property, including the route in."
+   }
+  ]
+ },
+ "Which room in this house gets the most sun for my plants, and where should my desk go so the screen has no glare?": {
+  "cannot": [
+   "None of these tools can show exactly where along a wall to put the desk or which way to turn the screen to avoid glare; they show sun and window direction for each room, and you choose the spot."
+  ],
+  "persona": "room_chooser",
+  "stated": [],
+  "summary": "Someone choosing rooms in their house: the sunniest spot for plants and a glare-free place for a desk.",
+  "tools": [
+   {
+    "id": "sun_rooms",
+    "reason": "You'll see the hours of direct sun in each room across the seasons, with trees and neighbours counted, and which room is best for plants and for a home office."
+   },
+   {
+    "id": "daylight",
+    "reason": "You'll see each room's windows, glass area and which way it faces, so you can place the desk where daylight doesn't hit the screen directly."
+   },
+   {
+    "id": "window_check",
+    "reason": "Pointing your phone out of a window confirms which way the room really faces, so the sun hours you rely on are right."
+   }
+  ]
+ },
+ "Would solar panels on my roof pay for themselves, and how many would fit?": {
+  "cannot": [
+   "Nothing here gets installer quotes or checks which local incentives and utility rates apply to you."
+  ],
+  "persona": "solar_homeowner",
+  "stated": [],
+  "summary": "A homeowner wondering how many solar panels fit on their roof and whether they would pay for themselves.",
+  "tools": [
+   {
+    "id": "solar_roof",
+    "reason": "This works out how much of your roof can carry panels after setbacks and shade, how many fit, what they would make in a year and the payback."
+   },
+   {
+    "id": "roof_facts",
+    "reason": "This reads your roof's material, condition, shape and the trees over it from the aerial photo, so you know whether the roof is ready for panels."
+   },
+   {
+    "id": "sun_rooms",
+    "reason": "This shows how neighbours and trees shade your house through the year, which helps you judge the shade on the roof."
+   }
+  ]
  }
 }
