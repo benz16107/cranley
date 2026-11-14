@@ -86,6 +86,9 @@ const START: Record<string, { first?: string[]; values?: Record<string, string |
   noise_level: { first: ['readings'] },
   slope_check: { first: ['reading_deg', 'mode'] },
   where_am_i: { first: ['geo'] },
+  // the vehicle brings its own size: the measurements are there to overrule it, under More settings
+  garage_fit: { first: ['vehicle', 'count'] },
+  driveway_fit: { first: ['vehicle'] },
 }
 const SKIP = new Set(['scan', 'place', 'scans', 'opening', 'points', 'points_from', 'near', 'within_km'])
 const KIND: Record<string, Field['kind']> = { capture: 'capture', criteria: 'criteria', readings: 'reading', geo: 'point', room: 'room', fire_room: 'room' }
