@@ -18,7 +18,7 @@ def client(ms, monkeypatch):
 
 
 def test_files_store_answers_501(monkeypatch):
-    monkeypatch.delenv("THRESHOLD_STORE", raising=False)
+    monkeypatch.setenv("THRESHOLD_STORE", "files")  # not delenv: the data folder's .env may say mongo
     assert TestClient(app).get("/api/history/search?profile=x").status_code == 501
 
 

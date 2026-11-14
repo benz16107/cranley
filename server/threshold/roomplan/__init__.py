@@ -64,12 +64,18 @@ def _tag(v) -> str | None:
     return v if isinstance(v, str) else None
 
 
-def _pose(t: list) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
-    """Position and local x axis, in ScanPlan axes (before the z shift), from a column-major 4x4."""
+def _matrix(t) -> list[float]:
+    """A column-major 4x4 as 16 numbers, flat or nested."""
     if isinstance(t, list) and len(t) == 4 and all(isinstance(c, list) for c in t):
         t = [v for c in t for v in c]
     if not isinstance(t, list) or len(t) != 16:
         raise ExportError("a transform is not 16 numbers")
+    return [float(v) for v in t]
+
+
+def _pose(t: list) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
+    """Position and local x axis, in ScanPlan axes (before the z shift), from a column-major 4x4."""
+    t = _matrix(t)
     to_plan = lambda X, Y, Z: (X, -Z, Y)  # noqa: E731
     return to_plan(t[12], t[13], t[14]), to_plan(t[0], t[1], t[2])
 
@@ -127,7 +133,21 @@ def _seg_dist(p, a, b) -> tuple[float, float]:
     return math.dist(p, (a[0] + t * dx, a[1] + t * dy)), t
 
 
-def convert(export: dict, sid: str, name: str | None = None, *, kind: str | None = None, address: str | None = None,
+MAX_WALLS = 1500  # a whole house is under 200; converting is quadratic in walls
+
+
+def convert(export: dict, sid: str, *args, **kwargs) -> dict:
+    """One RoomPlan export to a ScanPlan (see _convert). Any malformed field is an ExportError, never a crash."""
+    from shapely.errors import ShapelyError
+    try:
+        return _convert(export, sid, *args, **kwargs)
+    except ExportError:
+        raise
+    except (AttributeError, IndexError, KeyError, TypeError, ValueError, ShapelyError) as e:
+        raise ExportError(f"the export is malformed ({type(e).__name__}); send RoomPlan's own JSON unchanged") from e
+
+
+def _convert(export: dict, sid: str, name: str | None = None, *, kind: str | None = None, address: str | None = None,
             city: str | None = None, geo: dict | None = None, created: str | None = None, notes: str | None = None) -> dict:
     """One RoomPlan export to a ScanPlan. `geo` is the phone's reading at the scan: {lat, lon, altitude,
     heading_deg (compass, of camera_forward), camera_forward: [x, y] and camera_position: [x, y] in RoomPlan's
@@ -137,6 +157,8 @@ def convert(export: dict, sid: str, name: str | None = None, *, kind: str | None
     s = _surfaces(export)
     if not s["walls"]:
         raise ExportError("the export has no walls: scan at least one room to the end")
+    if len(s["walls"]) > MAX_WALLS:
+        raise ExportError(f"the export has more than {MAX_WALLS} walls")
 
     def read(item: dict) -> dict:
         (x, y, z), (ax, ay, _az) = _pose(item.get("transform"))
@@ -297,7 +319,7 @@ def _floor_faces(floors: list[dict], story: int) -> list[Polygon]:
     for f in floors:
         if int(f.get("story") or 0) != story or len(f.get("polygonCorners") or []) < 3:
             continue
-        t = f["transform"]
+        t = _matrix(f.get("transform"))
         pts = []
         for x, y, z in (c[:3] for c in f["polygonCorners"]):
             X = t[0] * x + t[4] * y + t[8] * z + t[12]

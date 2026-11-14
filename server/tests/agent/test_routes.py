@@ -82,3 +82,58 @@ def test_a_slow_tool_run_answers_early_and_finishes_in_the_background(tmp_path, 
     quick = c.post(f"/api/tools/room_census/run?workspace={wid}&wait=5", json={"scan": "t1"}).json()
     assert quick["verdict"] and "status" not in quick  # a run that finishes inside the wait answers as it always did
 
+
+
+def test_a_failed_turn_never_shows_a_database_address(tmp_path, monkeypatch):
+    from pymongo.errors import ServerSelectionTimeoutError
+
+    from threshold.api import agent as api
+    monkeypatch.setattr(workspace, "STORE", tmp_path)
+
+    def boom(*a, **k):
+        raise ServerSelectionTimeoutError("cluster0-shard-00-00.abcde.mongodb.net:27017: timed out")
+    monkeypatch.setattr(api, "turn", boom)
+    events = TestClient(app).post("/api/agent/turn", json={"text": "x"}).text
+    assert "event: error" in events and "ServerSelectionTimeoutError" in events and "mongodb.net" not in events
+
+
+def test_a_rejected_op_in_a_list_says_how_many_were_applied(tmp_path, monkeypatch):
+    monkeypatch.setattr(workspace, "STORE", tmp_path)
+    c = TestClient(app)
+    wid = c.post("/api/workspace").json()["doc"]["id"]
+    r = c.post(f"/api/workspace/{wid}/ops", json=[{"op": "tool.enable", "tool": "door_widths"}, {"op": "nonsense"}])
+    assert r.status_code == 422 and "the 1 before it were applied" in r.json()["detail"]
+
+
+def test_equirect_refuses_a_view_that_walks_out_of_the_cache():
+    c = TestClient(app)
+    assert c.get("/api/scan/AAAAAAAAAAA/pano/p1/equirect.jpg", params={"view": "../../../../tmp"}).status_code == 404
+
+
+def test_live_resumes_after_the_last_event_id(tmp_path, monkeypatch):
+    import json
+    monkeypatch.setattr(workspace, "STORE", tmp_path)
+    c = TestClient(app)
+    wid = c.post("/api/workspace").json()["doc"]["id"]
+    c.post(f"/api/workspace/{wid}/ops", json=[{"op": "tool.enable", "tool": "door_widths"}, {"op": "shortlist.add", "sid": "t1"}])
+    with c.stream("GET", f"/api/workspace/{wid}/live?after=0", headers={"Last-Event-ID": "1"}) as r:
+        lines = []
+        for line in r.iter_lines():
+            lines.append(line)
+            if line.startswith("data:") and '"seq"' in line:
+                break
+    assert "id: 2" in lines and json.loads(lines[-1][5:])["seq"] == 2   # op 1 is not sent again
+
+
+def test_a_run_a_restart_cut_off_ends_as_an_error(tmp_path, monkeypatch):
+    from threshold.agent.workspace import Run, RunStart
+    from threshold.api import agent as api
+    monkeypatch.setattr(workspace, "STORE", tmp_path)
+    c = TestClient(app)
+    wid = c.post("/api/workspace").json()["doc"]["id"]
+    s = api.session(wid)
+    s.submit(RunStart(record=Run(id="run_old", tool="door_widths", started=1.0), run="run_old"), by="system")
+    s.submit(RunStart(record=Run(id="run_new", tool="door_widths", started=__import__("time").time()), run="run_new"), by="system")
+    runs = {r["id"]: r for r in c.get(f"/api/workspace/{wid}").json()["doc"]["runs"]}
+    assert runs["run_old"]["status"] == "error" and "stopped" in runs["run_old"]["error"]
+    assert runs["run_new"]["status"] == "running"

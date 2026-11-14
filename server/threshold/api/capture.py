@@ -25,6 +25,7 @@ from __future__ import annotations
 import asyncio
 import concurrent.futures
 import logging
+import threading
 from typing import Any
 
 from fastapi import APIRouter, Body, HTTPException, Query, Request
@@ -45,7 +46,9 @@ _jobs: dict[str, list[concurrent.futures.Future]] = {}
 RUNNABLE = {*apply.PHONE_TOOLS, *(t for t, _ in AERIAL_ONLY), "flood_rehearsal"}
 PHONE_TURN = {"model_calls": 16, "tool_runs": 10, "parallel": 3}  # a turn started from a phone is a small one
 # identity: the gzip middleware leaves a response alone when it names an encoding, and Range needs the raw bytes
-RAW = {"Content-Encoding": "identity", "Cache-Control": "private, max-age=3600"}
+RAW = {"Content-Encoding": "identity", "Cache-Control": "private, max-age=3600", "X-Content-Type-Options": "nosniff"}
+_start = threading.Lock()  # busy() then submit, as one step: a double tap must not start two turns
+log = logging.getLogger("threshold.phone")
 
 
 def paired(token: str) -> Session:
@@ -60,8 +63,29 @@ def busy(ws: str) -> bool:
     return bool(_jobs[ws])
 
 
-def background(ws: str, fn, *args) -> None:
-    _jobs.setdefault(ws, []).append(_work.submit(fn, *args))
+def _report(job: concurrent.futures.Future) -> None:
+    if not job.cancelled() and job.exception() is not None:
+        log.error("phone job failed", exc_info=job.exception())
+
+
+def background(ws: str, fn, *args) -> concurrent.futures.Future:
+    job = _work.submit(fn, *args)
+    job.add_done_callback(_report)  # nobody reads the result of a turn; a failure must still reach the log
+    _jobs.setdefault(ws, []).append(job)
+    return job
+
+
+def known(s: Session, sid) -> str | None:
+    """A scan id the phone sent, checked against the index before it joins the workspace."""
+    if sid is None:
+        return None
+    try:
+        if not isinstance(sid, str) or len(sid) > 40:
+            raise LookupError
+        apply.plans_of(s)(sid)
+    except Exception:  # noqa: BLE001 - whatever stops the plan loading, the phone cannot use this scan
+        raise HTTPException(404, "That scan is not in the index.") from None
+    return sid
 
 
 def phone_view(s: Session) -> dict:
@@ -126,8 +150,9 @@ def workspace_captures(id: str) -> list[dict]:
 
 
 @router.post("/phone/start")
-def phone_start(profile: str = Body("phone", embed=True, max_length=40)) -> dict:
-    s = attach(Session.create(profile))
+def phone_start() -> dict:
+    # always the phone profile: anyone may call this, so it must not open or teach the desktop's learned profile
+    s = attach(Session.create("phone"))
     with _lock:
         _sessions[s.base.id] = s
     return pair.issue(s.base.id, hours=72)
@@ -185,11 +210,7 @@ def phone_locate(token: str, lat: float = Body(...), lon: float = Body(...), acc
 @router.post("/phone/{token}/place")
 def phone_place(token: str, sid: str = Body(..., embed=True, max_length=40)) -> dict:
     s = paired(token)
-    try:
-        apply.plans_of(s)(sid)
-    except Exception:  # noqa: BLE001
-        raise HTTPException(404, "That scan is not in the index.") from None
-    apply.in_scope(s, sid)
+    apply.in_scope(s, known(s, sid))
     return phone_view(s)
 
 
@@ -197,10 +218,12 @@ def phone_place(token: str, sid: str = Body(..., embed=True, max_length=40)) -> 
 def phone_brief(token: str, text: str | None = Body(None, max_length=2000), sid: str | None = Body(None)) -> dict:
     """Start (or continue) an agent turn in the background. The phone reads the view until `busy` is false."""
     s = paired(token)
-    if busy(s.base.id):
-        raise HTTPException(409, "The agent is still working on the last thing you asked.")
-    apply.in_scope(s, sid)  # added to the workspace's buildings; handing it to the turn would replace them
-    background(s.base.id, turn, s, text, None, None, None, None, Budget(**PHONE_TURN))
+    known(s, sid)
+    with _start:
+        if busy(s.base.id):
+            raise HTTPException(409, "The agent is still working on the last thing you asked.")
+        apply.in_scope(s, sid)  # added to the workspace's buildings; handing it to the turn would replace them
+        background(s.base.id, turn, s, text, None, None, None, None, Budget(**PHONE_TURN))
     return {"status": "running"}
 
 
@@ -220,16 +243,21 @@ def phone_run(token: str, tool: str, inputs: dict[str, Any] = Body(default={})) 
     s = paired(token)
     if tool not in RUNNABLE:
         raise HTTPException(403, "The phone link cannot run that tool.")
+    cap = inputs.get("capture")  # a tool reads only this visit's own captures
+    if cap is not None and (not isinstance(cap, str) or cap not in {c["id"] for c in store.listing(s.base.id)}):
+        raise HTTPException(404, "That capture is not part of this visit.")
     place = inputs.get("place")
-    if isinstance(place, dict) and place.get("geo"):  # an aerial tool at the phone's fix: the fix joins the workspace
-        from ..agent.workspace import BriefSet, Scope
-        from ..tools import Place
-        sc, p = s.doc.brief.scope, Place.model_validate(place)
-        if not any(x.key() == p.key() for x in sc.places):
-            s.submit(BriefSet(scope=Scope(sids=sc.sids, address=sc.address, places=[*sc.places, p])), by="user")
-    apply.in_scope(s, inputs.get("scan"))
-    job = _work.submit(apply.run, s, tool, inputs)
-    _jobs.setdefault(s.base.id, []).append(job)
+    try:
+        if isinstance(place, dict) and place.get("geo"):  # an aerial tool at the phone's fix: the fix joins the workspace
+            from ..agent.workspace import BriefSet, Scope
+            from ..tools import Place
+            sc, p = s.doc.brief.scope, Place.model_validate(place)
+            if not any(x.key() == p.key() for x in sc.places):
+                s.submit(BriefSet(scope=Scope(sids=sc.sids, address=sc.address, places=[*sc.places, p])), by="user")
+        apply.in_scope(s, known(s, inputs.get("scan")))
+    except (ValidationError, Rejected) as e:
+        raise HTTPException(422, f"Bad place or scan: {str(e)[:300]}") from None
+    job = background(s.base.id, apply.run, s, tool, inputs)
     try:
         out, res = job.result(timeout=4)
     except concurrent.futures.TimeoutError:

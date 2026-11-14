@@ -3,8 +3,10 @@ from __future__ import annotations
 
 import concurrent.futures
 import json
+import logging
 import queue
 import threading
+import time
 from typing import Any
 
 from fastapi import APIRouter, Body, HTTPException, Query
@@ -15,7 +17,7 @@ from ..agent import prefs
 from ..agent.budget import Budget
 from ..agent.catalog import catalog
 from ..agent.investigator import Investigation, attach, turn
-from ..agent.workspace import Rejected, Session
+from ..agent.workspace import Rejected, RunFinish, Session
 from ..tools import Place, ToolError, run_tool
 
 router = APIRouter(prefix="/api")
@@ -25,6 +27,7 @@ _background = concurrent.futures.ThreadPoolExecutor(max_workers=4, thread_name_p
 # workspace id -> run id -> its background job. A run reads "done" before its findings, panel and camera are written
 # (each op is stored as it is emitted), so the view names the runs still writing in `busy`.
 _jobs: dict[str, dict[str, concurrent.futures.Future]] = {}
+ORPHAN_S = 3600  # no tool runs this long (a smoke simulation takes minutes), so a run still open is one a restart cut off
 
 
 def session(id: str) -> Session:
@@ -36,6 +39,11 @@ def session(id: str) -> Session:
                 raise HTTPException(404, str(e)) from None
         s = _sessions[id]
     s.sync()  # another server process may have appended (MongoDB store); a no-op for files
+    for r in [r for r in s.doc.runs if r.status == "running" and (r.started or 0) < time.time() - ORPHAN_S]:
+        try:
+            s.submit(RunFinish(id=r.id, status="error", error="The server stopped while this ran. Run it again."), by="system")
+        except Rejected:
+            pass
     return s
 
 
@@ -99,6 +107,17 @@ class TurnIn(BaseModel):
     budget: BudgetIn | None = None
 
 
+QUIET = ("pymongo", "bson", "pg8000", "httpx", "httpcore", "anthropic", "langchain_anthropic", "openai")
+
+
+def public_error(e: Exception) -> str:
+    """What a client may read about a failure. Database and HTTP client errors name hosts (the Atlas cluster's address,
+    an upstream URL), so those stay in the server's log."""
+    if type(e).__module__.split(".")[0] in QUIET:
+        return f"{type(e).__name__}: a database or upstream call failed; the server log has the details"
+    return f"{type(e).__name__}: {e}"
+
+
 def _sse(event: str, data: Any) -> str:
     return f"event: {event}\ndata: {json.dumps(data, default=str)}\n\n"
 
@@ -122,7 +141,8 @@ def agent_turn(body: TurnIn) -> StreamingResponse:
             q.put(("done", turn(s, body.text, body.sids, places=[p.model_dump(exclude_none=True) for p in body.places]
                                 if body.places else None, budget=b)))
         except Exception as e:  # the stream must end with a reason, whatever failed
-            q.put(("error", {"message": f"{type(e).__name__}: {e}"}))
+            logging.getLogger("threshold.agent").exception("agent turn on %s failed", s.base.id)
+            q.put(("error", {"message": public_error(e)}))
 
     def stream():
         s.listeners.append(listener)
@@ -157,12 +177,12 @@ def workspace_get(id: str, log: bool = False) -> dict:
 def workspace_ops(id: str, ops: dict | list[dict] = Body(...)) -> dict:
     """User ops, one or a list, in the same vocabulary as the agent's. `by` is forced to "user"."""
     s = session(id)
-    entries = []
-    try:
-        for op in ops if isinstance(ops, list) else [ops]:
+    entries, ops = [], ops if isinstance(ops, list) else [ops]
+    for i, op in enumerate(ops):
+        try:
             entries += s.submit(op, by="user")
-    except Rejected as e:
-        raise HTTPException(422, str(e)) from None
+        except Rejected as e:  # the ops before it are stored: say so, or a retry applies them twice
+            raise HTTPException(422, f"{e} (op {i + 1} of {len(ops)}; the {i} before it were applied)" if i else str(e)) from None
     return {"applied": [e.model_dump(mode="json", by_alias=True) for e in entries], **view(s)}
 
 
