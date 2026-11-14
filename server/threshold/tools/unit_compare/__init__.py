@@ -191,9 +191,11 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                 f"ft² a month ({best['area_m2'] * FT2:,.0f} ft²).")
     else:
         text = f"{len(rows)} spaces compared by measured area; the record has no rent for them. Largest: {best['name']}." if best else "No units."
+    if len(rows) == 1:
+        text = f"Only {best['name']} is scanned in this property, so there is nothing to compare it with."
     short = [c for c in checks if c.status == "warn"]
     if short:
-        text += f" {len(short)} measure under 90% of their listed size."
+        text += f" {len(short)} measure{'s' if len(short) == 1 else ''} under 90% of {'its' if len(short) == 1 else 'their'} listed size."
     if any(not r["walls"] for r in rows):
         text += " Some units have no wall graph: their areas are Matterport room sizes and their doors and windows are not measured."
     return ToolResult(scope=ScansScope(sids=[r["sid"] for r in rows]), verdict=Verdict(status="warn" if short else "pass", text=text),
