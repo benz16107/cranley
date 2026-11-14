@@ -1,5 +1,6 @@
-"""MongoDB store tests run against MONGODB_URI (the local Atlas deployment) in a throwaway database, dropped after.
-They skip when no database answers. Scan places are made up; no sponsor data."""
+"""MongoDB store tests run against MONGODB_TEST_URI (the local Atlas deployment in Docker), never MONGODB_URI (the
+Atlas cluster: 3 search indexes at most on the free tier, shared data), in a throwaway database dropped after.
+They skip when no test database answers. Scan places are made up; no sponsor data."""
 import uuid
 
 import pytest
@@ -16,15 +17,18 @@ PLACES = {  # sid -> made-up place (two near each other, one across town)
 @pytest.fixture(scope="session")
 def mongo_store():
     pytest.importorskip("pymongo")
-    uri = env().get("MONGODB_URI")
+    uri = env().get("MONGODB_TEST_URI")
     if not uri:
-        pytest.skip("MONGODB_URI is not set")
+        pytest.skip("MONGODB_TEST_URI is not set")
+    from threshold.store import is_local
+    if not is_local(uri):
+        pytest.fail("MONGODB_TEST_URI must name a local deployment, not a cluster")
     from pymongo import MongoClient
     from pymongo.errors import PyMongoError
     try:
         MongoClient(uri, serverSelectionTimeoutMS=2000).admin.command("ping")
     except PyMongoError:
-        pytest.skip("no MongoDB answers at MONGODB_URI")
+        pytest.skip("no MongoDB answers at MONGODB_TEST_URI")
     from threshold.store.mongo import MongoStore
     s = MongoStore(uri, f"threshold_test_{uuid.uuid4().hex[:8]}", where=PLACES.get)
     yield s

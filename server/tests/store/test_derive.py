@@ -45,3 +45,10 @@ def test_shortlist_points(tmp_path):
     rows = {r["sid"]: r for r in derive.shortlist(doc(tmp_path), PLACES.get)}
     assert rows["t1"]["location"] == {"type": "Point", "coordinates": [-95.37, 29.76]}
     assert "location" not in rows["zz"]  # unknown place: kept, without a point
+
+
+def test_only_this_machine_counts_as_local():
+    from threshold.store import is_local
+    assert is_local("mongodb://u:p@127.0.0.1:27027/?directConnection=true") and is_local("mongodb://localhost")
+    assert not is_local("mongodb+srv://u:p@threshold.abc.mongodb.net/")
+    assert not is_local("mongodb://u:p@127.0.0.1:27027,db.example.com:27017/")

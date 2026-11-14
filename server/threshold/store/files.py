@@ -19,7 +19,7 @@ class FileStore:
         return json.loads(f.read_text())
 
     def since(self, id: str, seq: int) -> list[dict]:
-        return [e for e in self.load(id)["log"] if e["seq"] > seq]
+        return []  # one process owns the files (see save), so nothing is newer than its own copy
 
     def save(self, meta: dict, log: list, new_from: int, doc) -> None:
         # shortcut: no conflict check between processes; one server owns the files. THRESHOLD_STORE=mongo when several write.

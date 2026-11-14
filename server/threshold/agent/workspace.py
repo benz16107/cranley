@@ -684,11 +684,11 @@ TRIES = 8  # attempts when another writer keeps appending first
 def pick_store(root=None, store=None):
     """The store a session uses: the one given; files under `root`; else MongoDB when THRESHOLD_STORE=mongo; else
     files under STORE."""
-    from ..store import FileStore, mongo, use_mongo
+    from ..store import FileStore, connect, use_mongo
     if store is not None:
         return store
     if root is None and use_mongo():
-        return mongo()
+        return connect()
     return FileStore(root or STORE)
 
 

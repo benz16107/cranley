@@ -13,10 +13,10 @@ router = APIRouter(prefix="/api/history")
 
 
 def mongo_store():
-    from ..store import mongo, use_mongo
+    from ..store import connect, use_mongo
     if not use_mongo():
         raise HTTPException(501, "Past work needs the MongoDB store (THRESHOLD_STORE=mongo)")
-    return mongo()
+    return connect()
 
 
 def point(near: str | None) -> tuple[float | None, float | None]:

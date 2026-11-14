@@ -55,8 +55,10 @@ def _now() -> dt.datetime:
 
 class MongoStore:
     def __init__(self, uri: str, db: str = "threshold", where: derive.Where = derive.scan_place):
+        from . import is_local
         self.client = MongoClient(uri, appname="threshold", tz_aware=True, serverSelectionTimeoutMS=5000)
         self.db = self.client[db]
+        self.target = f"{'local' if is_local(uri) else 'atlas'}:{db}"  # names the deployment without its address
         for name in ("ops", "workspaces", "prefs", "history", "memories", "shortlist", "shares"):
             setattr(self, name, self.db[name])
         self.where = where
@@ -303,7 +305,7 @@ class MongoStore:
     # ---- housekeeping ----
 
     def status(self) -> dict:
-        return {"database": self.db.name, "vector_mode": self.vector_mode,
+        return {"target": self.target, "vector_mode": self.vector_mode,
                 "counts": {c: self.db[c].estimated_document_count() for c in sorted(self.db.list_collection_names())},
                 "search_indexes": {n: (self._index(n, c) or {}).get("status")
                                    for n, c in (("history", self.history), ("memory", self.memories))}}

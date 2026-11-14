@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import functools
+from urllib.parse import urlsplit
 
 from ..config import env
 from .files import FileStore
@@ -19,12 +20,20 @@ class Conflict(RuntimeError):
     """Another writer appended to the workspace first; reload and try again."""
 
 
+def is_local(uri: str) -> bool:
+    """True when every host in the URI is this machine (the Docker deployment), false for a cluster."""
+    if uri.startswith("mongodb+srv://"):
+        return False
+    hosts = urlsplit(uri).netloc.rsplit("@", 1)[-1].split(",")
+    return all(h.rsplit(":", 1)[0].strip("[]") in ("localhost", "127.0.0.1", "::1") for h in hosts)
+
+
 def use_mongo() -> bool:
     return env().get("THRESHOLD_STORE", "files").lower() == "mongo"
 
 
 @functools.cache
-def mongo(uri: str | None = None, db: str | None = None):
+def connect(uri: str | None = None, db: str | None = None):
     from .mongo import MongoStore
     e = env()
     uri = uri or e.get("MONGODB_URI")
@@ -33,7 +42,9 @@ def mongo(uri: str | None = None, db: str | None = None):
     return MongoStore(uri, db or e.get("MONGODB_DB", "threshold"))
 
 
-MIN_SCORE = 0.82  # (1 + cos) / 2 with bge-small: related needs scored 0.85-0.88 on the 11 real workspaces, unrelated 0.75-0.79
+# Recall cut-offs by how memories are embedded; the score is (1 + cos) / 2.
+# local, bge-small: related needs scored 0.85-0.88 on the real workspaces, unrelated 0.75-0.79.
+MIN_SCORE = {"local": 0.82, "auto": 0.82}
 
 
 def recall_lines(store, text: str | None, persona: str | None = None, exclude: str | None = None, k: int = 3) -> list[str]:
@@ -43,9 +54,9 @@ def recall_lines(store, text: str | None, persona: str | None = None, exclude: s
         return []
     from .derive import lines
     try:
-        return lines(store.recall(text, persona=persona, exclude=exclude, k=k, min_score=MIN_SCORE))
+        return lines(store.recall(text, persona=persona, exclude=exclude, k=k, min_score=MIN_SCORE[store.vector_mode]))
     except Exception:
         return []
 
 
-__all__ = ["Conflict", "FileStore", "mongo", "recall_lines", "use_mongo"]
+__all__ = ["Conflict", "FileStore", "connect", "is_local", "recall_lines", "use_mongo"]

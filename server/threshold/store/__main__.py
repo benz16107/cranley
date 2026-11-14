@@ -3,14 +3,18 @@
   setup     create collections and indexes (search and vector indexes too) and wait until they answer
   migrate   copy every workspace and profile from the JSON files into MongoDB (skips ones already there)
   status    counts, search index states, how memories are embedded
-  drop_all  delete the whole database: run after the event (CoStar's terms require deleting derived data)
+  drop_all --target <kind>:<database>
+            delete the whole database: run after the event (CoStar's terms require deleting derived data). The target
+            must name the deployment: atlas:threshold for the cluster at MONGODB_URI, local:threshold for Docker.
+
+  --local   use MONGODB_TEST_URI (the local deployment) instead of MONGODB_URI. The connection string is never printed.
 """
 from __future__ import annotations
 
 import json
 import sys
 
-from . import FileStore, mongo
+from . import FileStore, connect
 
 
 def main(argv: list[str]) -> int:
@@ -18,7 +22,14 @@ def main(argv: list[str]) -> int:
     if cmd not in ("setup", "migrate", "status", "drop_all"):
         print(__doc__)
         return 2
-    m = mongo()
+    if "--local" in argv:
+        from ..config import env
+        if not env().get("MONGODB_TEST_URI"):
+            print("MONGODB_TEST_URI is not set")
+            return 2
+        m = connect(env()["MONGODB_TEST_URI"])
+    else:
+        m = connect()
     if cmd == "setup":
         print("ready" if m.wait_ready() else "search indexes still building", json.dumps(m.status(), indent=1))
     elif cmd == "status":
@@ -38,8 +49,9 @@ def main(argv: list[str]) -> int:
                                      for p in files.profile(f.stem)})
         print(f"migrated {done} workspaces", json.dumps(m.status()["counts"]))
     elif cmd == "drop_all":
-        if "--yes" not in argv:
-            print(f"This deletes database {m.db.name!r} at the configured MONGODB_URI. Run again with --yes.")
+        target = argv[argv.index("--target") + 1] if "--target" in argv[:-1] else None
+        if target != m.target:
+            print(f"Refusing: this would delete {m.target}. Run again with --target {m.target} to confirm.")
             return 1
         print("dropped", json.dumps(m.drop_all()))
     return 0
