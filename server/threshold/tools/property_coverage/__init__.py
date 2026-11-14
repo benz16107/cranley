@@ -48,7 +48,8 @@ def _beds_baths(name: str) -> tuple[float | None, float | None]:
 
 
 @tool(id="property_coverage", title="Property coverage",
-      summary="Which floor plans and shared spaces of a property have a scan, and which none covers.",
+      summary="For whoever manages or researches a whole property: which of its floor plans and shared spaces have "
+              "a scan, and which none covers.",
       model_description="For one property (place with property_id), list its floor plans and common areas and which "
                         "have a scan. Use before or after investigating a whole property, to say what no scan covers.",
       requires=[{"layer": "costar.property"}, {"layer": "matterport.index"}],

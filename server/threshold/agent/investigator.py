@@ -641,7 +641,7 @@ def turn(session: Session, text: str | None = None, sids: list[str] | None = Non
     if sids or places:
         session.submit(BriefSet(by="user", run=t, scope=Scope(sids=sids or sc.sids, address=sc.address,
                                                              places=[Place.model_validate(p) for p in places] if places else sc.places)))
-    if text and not session.doc.brief.persona:
+    if text and not (session.doc.brief.persona or session.doc.brief.summary):  # not composed yet
         for op in compose(text, session.doc, composer or Claude(), run=t):
             try:
                 session.submit(op)
