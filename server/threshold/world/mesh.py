@@ -27,11 +27,13 @@ ATLAS = 4096
 CLASSES = (4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1024)  # a cell side, in texels
 PAD = 3                 # a cell is its triangle's legs plus this: half a texel at each end and a gap between its two triangles
 MAX_DENSITY = 140.0     # texels per metre when the atlas has room
+BIG = 512               # no cell side is longer than this: a few wall-sized triangles would otherwise take the whole
+                        # atlas and drag every small one (the furniture, the fittings) down to their density
 VOXEL = 0.08            # metres; the occupancy grid that decides whether a panorama sees a triangle
 MAX_RANGE = 10.0        # a panorama further than this does not colour a triangle
 MIN_COS = 0.2           # nor one that sees it at a flatter angle than this
 NADIR_COS = 0.9         # nor, by choice, one standing right over it: Matterport blurs the tripod out of each panorama
-BAKE_VERSION = 3
+BAKE_VERSION = 5
 CANDIDATES = 6
 MARGIN = 1.0            # metres of mesh kept outside the plan's walls (the rest is the garden seen through windows)
 NEUTRAL = (204, 200, 192)
@@ -64,9 +66,11 @@ def parse_obj(data: bytes) -> tuple[np.ndarray, np.ndarray]:
 
 
 def trim(V: np.ndarray, F: np.ndarray, plan: dict) -> np.ndarray:
-    """Triangles within MARGIN of the plan's walls and rooms, and no higher than its tallest ceiling."""
+    """Triangles within MARGIN of the plan's walls and rooms, and no higher than its tallest ceiling. The garden a
+    scan picks up from its outdoor positions goes: it is scraps, and the surroundings are drawn from better data.
+    A scan with no walls or room outlines is boxed by its panorama positions instead."""
     pts = [p for w in plan["walls"] for p in (w["a"], w["b"])] + [p for r in plan["rooms"] for p in r["polygon"]] \
-        + [p["position"][:2] for p in plan["panos"]]
+        or [p["position"][:2] for p in plan["panos"]]
     if not pts:
         return F
     lo, hi = np.min(pts, 0) - MARGIN, np.max(pts, 0) + MARGIN
@@ -126,8 +130,8 @@ def layout(V: np.ndarray, F: np.ndarray, atlas: int = ATLAS) -> dict:
     sizes = np.array(CLASSES)
     density = MAX_DENSITY
     while True:
-        kw = np.minimum(np.searchsorted(sizes, la * density), len(sizes) - 1)
-        kh = np.minimum(np.searchsorted(sizes, lb * density), len(sizes) - 1)
+        kw = np.minimum(np.searchsorted(sizes, la * density), CLASSES.index(BIG))
+        kh = np.minimum(np.searchsorted(sizes, lb * density), CLASSES.index(BIG))
         x = np.zeros(len(F), np.int32); y = np.zeros(len(F), np.int32); slot = np.zeros(len(F), np.int8)
         cx = cy = row_h = 0
         for h in np.unique(kh)[::-1]:          # tallest cells first; cells of one height share rows
@@ -159,7 +163,8 @@ def layout(V: np.ndarray, F: np.ndarray, atlas: int = ATLAS) -> dict:
     px = np.where(slot[:, None, None] == 0, lower, upper) + np.stack([x, y], 1)[:, None, :]
     uv = px / atlas
     uv[..., 1] = 1 - uv[..., 1]  # texel rows count down, texture v counts up
-    return {"kw": kw, "kh": kh, "x": x, "y": y, "slot": slot, "uv": uv.astype(np.float32), "density": density}
+    each = np.minimum(W / np.maximum(la, 1e-6), H / np.maximum(lb, 1e-6))  # what each triangle got, texels per metre
+    return {"kw": kw, "kh": kh, "x": x, "y": y, "slot": slot, "uv": uv.astype(np.float32), "density": density, "each": each}
 
 
 def cell_texels(kw: int, kh: int) -> tuple[tuple, tuple]:
@@ -294,7 +299,7 @@ def paint(atlas: np.ndarray, V: np.ndarray, F: np.ndarray, lay: dict, faces: np.
         P = (T[:, None, 0] + u1[None, :, None] * (T[:, None, 1] - T[:, None, 0])
              + u2[None, :, None] * (T[:, None, 2] - T[:, None, 0])).reshape(-1, 3)
         d = (P - cam) @ rot  # scan frame to the panorama's own frame: R transposed, written for row vectors
-        want = 3 * lay["density"] * np.linalg.norm(d, axis=1)  # face size at which a photo pixel matches a texel
+        want = 3 * np.repeat(lay["each"][ids], len(px)) * np.linalg.norm(d, axis=1)  # face size at which a photo pixel matches a texel
         level = np.clip(np.searchsorted(sizes, want), 0, len(cubes) - 1)
         col = np.zeros((len(P), 3), np.uint8)
         for i, cube in enumerate(cubes[::-1]):
@@ -351,7 +356,7 @@ def geometry(sid: str) -> bytes:
         V, F, lay, plan = prepared(sid)
         return pack(V, F, lay["uv"], floor_of(V, F, plan))
     with one_flight(f"mesh:{sid}"):
-        return cached(cache_path("mesh", sid, "mesh3.bin"), make)
+        return cached(cache_path("mesh", sid, "mesh5.bin"), make)
 
 
 def bake(sid: str, progress=lambda done, total: None) -> dict:

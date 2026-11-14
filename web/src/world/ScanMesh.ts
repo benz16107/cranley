@@ -78,7 +78,7 @@ export class ScanMesh {
     this.status = 'loading'; this.onChange()
     try {
       // v is the file layout's number: the answer is cached for a day, so a new layout needs a new address
-      const buf = await fetch(`${this.api}/api/world/${this.sid}/mesh?v=3`).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`mesh ${r.status}`))))
+      const buf = await fetch(`${this.api}/api/world/${this.sid}/mesh?v=5`).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`mesh ${r.status}`))))
       if (this.gone) return
       const head = new DataView(buf)
       if (new TextDecoder().decode(buf.slice(0, 4)) !== 'THM2') throw new Error('not a mesh')
