@@ -1,0 +1,20 @@
+{
+  "id": "retail_site_selector",
+  "title": "Retail site selector",
+  "who": "Picks a chain's next store: parking, the road it faces, co-tenants, walk-in trade and rent.",
+  "tools": [
+    "site_scorecard",
+    "retail_site",
+    "market_comps",
+    "parking_count"
+  ],
+  "thresholds": {
+    "site.profile": "retail",
+    "site.parking_ratio_min": 4,
+    "site.transit_max_m": 800
+  },
+  "layout": {
+    "view": "map",
+    "lead_tool": "site_scorecard"
+  }
+}
