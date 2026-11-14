@@ -8,7 +8,10 @@
     "room_census",
     "path_to_water"
   ],
-  "thresholds": {},
+  "thresholds": {
+    "access.door_width_m": 0.815,
+    "access.door_standard": "ADA 2010 §404.2.3, 32 in clear (strollers and evacuation cribs)"
+  },
   "layout": {
     "view": "plan",
     "lead_tool": "daycare_capacity"

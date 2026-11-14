@@ -238,7 +238,11 @@ class Investigation:
                 "findings": [{"id": f.id, "status": f.status, "title": f.title} for f in
                              sorted(shown, key=lambda f: RANK[f.status])[:8]],
                 "more_findings": max(0, len(shown) - 8), "hidden_because_rejected": len(result.findings) - len(shown),
-                "inputs_from_preferences": used}
+                # the person's own answers and edits apart from the persona's defaults, so the model never calls
+                # an answer the person just gave a "saved setting"
+                "inputs_the_person_gave": {k: v for k, v in used.items() if v in self.s.doc.prefs or v in self.s.doc.brief.facts},
+                "inputs_from_persona_defaults": {k: v for k, v in used.items()
+                                                 if v not in self.s.doc.prefs and v not in self.s.doc.brief.facts}}
 
     def compare(self) -> None:
         """When several buildings ran the same tool, one RankedTable compares them."""
