@@ -1,0 +1,15 @@
+{
+  "id": "la_fire_homeowner",
+  "title": "LA homeowner after the fires",
+  "who": "Lives in Los Angeles after the January 2025 fires and wants to know what to clear round the house, whether the roof is fire rated, and how far the fire station is.",
+  "tools": [
+    "wildfire_space",
+    "roof_facts",
+    "fire_preplan"
+  ],
+  "thresholds": {},
+  "layout": {
+    "view": "map",
+    "lead_tool": "wildfire_space"
+  }
+}

@@ -175,6 +175,8 @@ class BoxOverlay(Strict):
     yaw_deg: float = 0
     label: str
     status: Status
+    model: str | None = Field(None, description="Model class the scene draws stretched to exactly this box, such as "
+                                                 "vehicle/pickup or furniture/sofa; none draws the box alone")
 
 
 Overlay = Annotated[LensOverlay | RuleOverlay | PinsOverlay | RouteOverlay | WaterOverlay | BoxOverlay,

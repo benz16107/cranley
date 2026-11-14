@@ -1,0 +1,22 @@
+{
+  "id": "office_relocation",
+  "title": "Office relocation lead",
+  "who": "Moves a company's office: commutes for the team, size for the headcount, rent, transit and access.",
+  "tools": [
+    "site_scorecard",
+    "commute_fit",
+    "market_comps",
+    "office_fit",
+    "step_free_route"
+  ],
+  "thresholds": {
+    "site.profile": "office",
+    "site.parking_ratio_min": 3,
+    "site.transit_max_m": 800,
+    "commute.long_min": 45
+  },
+  "layout": {
+    "view": "map",
+    "lead_tool": "site_scorecard"
+  }
+}

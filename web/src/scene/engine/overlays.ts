@@ -11,6 +11,7 @@ import type { Tokens } from '../tokens.ts'
 import type { Overlay, Pick, Status, Vec3 } from '../types.ts'
 import type { Dollhouse } from './dollhouse.ts'
 import { h, type LabelSpec } from './labels.ts'
+import { modelGeometry, modelMaterial } from './models.ts'
 
 type Of<K extends string> = Extract<Overlay, { kind: K }>
 
@@ -30,6 +31,9 @@ const WATER_FRAG = /* glsl */ `
 export class Overlays3D {
   group = new THREE.Group()
   private made: THREE.Object3D[] = []
+  private models: THREE.InstancedMesh[] = [] // their geometry is shared and cached, so it is never disposed with them
+  /** A model a box asked for has arrived: the engine sets the overlays again. */
+  onModels = () => {}
   private water: THREE.Mesh
   private waterOn = { cur: 0, goal: 0 }
   private waterLines = new THREE.Group() // rides at the water level
@@ -76,6 +80,9 @@ export class Overlays3D {
     const { m, tok, doll } = this
     for (const o of this.made) { o.removeFromParent(); const mesh = o as THREE.Mesh; mesh.geometry?.dispose(); (mesh.material as THREE.Material)?.dispose() }
     this.made = []
+    for (const im of this.models) { im.removeFromParent(); im.dispose() }
+    this.models = []
+    const stand: Record<string, { geo: THREE.BufferGeometry; floor: number; at: THREE.Matrix4[]; tint: THREE.Color[] }> = {} // one instanced mesh per model and floor
     const labels: LabelSpec[] = []
     const chip = (cls: string, status: Status | null, ...kids: (string | HTMLElement)[]) => { const el = h('div', `th-chip ${cls}`, ...kids); if (status) el.dataset.status = status; return el }
     let waterLevel: number | null = null
@@ -120,15 +127,29 @@ export class Overlays3D {
         const at = anchorPoint(m, { point: b.center })!, g = doll.floorGroups[at.floor], col = statusColor(b.status, tok)
         const holder = new THREE.Group()
         holder.position.set(b.center[0], b.center[1], b.center[2] - m.floorZ[at.floor]); holder.rotation.z = ((b.yaw_deg ?? 0) * Math.PI) / 180
+        // With a model, the model is the object and the box stays as a faint outline of exactly what was measured.
+        const shape = typeof b.model === 'string' ? modelGeometry(b.model, this.onModels) : null
+        const foot = !!shape && !!b.quiet && b.status === 'pass' // a placed piece with nothing wrong: its outline on the floor is enough
         const geo = new THREE.BoxGeometry(b.size[0], b.size[1], b.size[2])
-        const fill = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.2, depthWrite: false }))
-        fill.material.color.setRGB(col[0], col[1], col[2], THREE.SRGBColorSpace); fill.renderOrder = 6
-        const edges = new THREE.EdgesGeometry(geo)
-        const pts = Array.from(edges.getAttribute('position').array); edges.dispose()
-        holder.add(fill, this.line(pts, tok.paper, 5, { segments: true, opacity: 0.9, order: 7 }), this.line(pts, col, 2, { segments: true, order: 8 }))
+        const fill = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ transparent: true, opacity: foot ? 0 : shape ? 0.07 : 0.2, depthWrite: false }))
+        fill.material.color.setRGB(col[0], col[1], col[2], THREE.SRGBColorSpace); fill.renderOrder = 6; fill.visible = !foot
+        const edges = new THREE.EdgesGeometry(geo), hx = b.size[0] / 2, hy = b.size[1] / 2, z = 0.02 - b.size[2] / 2
+        const pts = foot ? [-hx, -hy, z, hx, -hy, z, hx, -hy, z, hx, hy, z, hx, hy, z, -hx, hy, z, -hx, hy, z, -hx, -hy, z] : Array.from(edges.getAttribute('position').array)
+        edges.dispose()
+        holder.add(fill, this.line(pts, tok.paper, shape ? 3.5 : 5, { segments: true, opacity: shape ? 0.7 : 0.9, order: 7 }), this.line(pts, col, shape ? 1.5 : 2, { segments: true, order: 8 }))
+        if (shape) {
+          holder.scale.set(b.size[0], b.size[1], b.size[2]); holder.updateMatrix(); holder.scale.set(1, 1, 1)
+          const s = (stand[`${b.model}|${at.floor}`] ??= { geo: shape, floor: at.floor, at: [], tint: [] })
+          s.at.push(holder.matrix.clone()); s.tint.push(new THREE.Color(...tok.paper).lerp(new THREE.Color(col[0], col[1], col[2]), b.status === 'pass' ? 0 : 0.3)) // colour only where something needs a look; the outline still says pass
+        }
         g.add(holder); this.made.push(holder, ...holder.children)
         const dims = `${b.size[0].toFixed(2)} × ${b.size[1].toFixed(2)} × ${b.size[2].toFixed(2)} m`
-        labels.push({ id: `box${oi}.${b.label ?? ''}.${b.status}.${b.size.join('x')}`, pos: [b.center[0], b.center[1], b.center[2] + b.size[2] / 2 + 0.12], floor: at.floor, make: () => chip('th-chip-box', b.status, h('span', 'th-chip-text', b.label ?? 'Object'), h('span', 'th-num', dims)) })
+        if (!b.quiet) labels.push({ id: `box${oi}.${b.label ?? ''}.${b.status}.${b.size.join('x')}`, pos: [b.center[0], b.center[1], b.center[2] + b.size[2] / 2 + 0.12], floor: at.floor, make: () => chip('th-chip-box', b.status, h('span', 'th-chip-text', b.label ?? 'Object'), h('span', 'th-num', dims)) })
+      } else if (ov.kind === 'marks') { // the scene's own, never a tool's: dimension lines and zones round a placed piece (furnish.ts)
+        const k = ov as unknown as { floor: number; id: string; lines: { points: Vec3[]; status: Status }[]; chips: { point: Vec3; text: string; status: Status }[] }
+        const g = doll.floorGroups[k.floor], fz = m.floorZ[k.floor]
+        for (const l of k.lines) this.cased(g, l.points.flatMap((q) => [q[0], q[1], q[2] - fz]), statusColor(l.status, tok), 2)
+        k.chips.forEach((c, i) => labels.push({ id: `mark.${k.id}.${i}.${c.text}.${c.status}`, pos: c.point, floor: k.floor, make: () => chip('th-chip-measure', c.status === 'unknown' ? null : c.status, h('span', 'th-num', c.text)) }))
       } else if (ov.kind === 'pins') {
         const pins = (ov as Of<'pins'>).pins ?? []
         pins.forEach((p, i) => {
@@ -152,6 +173,13 @@ export class Overlays3D {
         })
       }
     })
+
+    for (const s of Object.values(stand)) {
+      const im = new THREE.InstancedMesh(s.geo, modelMaterial, s.at.length)
+      s.at.forEach((mat, i) => { im.setMatrixAt(i, mat); im.setColorAt(i, s.tint[i]) })
+      im.renderOrder = 6 // with the boxes: after the floor and the panorama, before the outlines
+      doll.floorGroups[s.floor].add(im); this.models.push(im)
+    }
 
     if (measures) {
       const lines: number[][] = m.plan.floors.map(() => [])

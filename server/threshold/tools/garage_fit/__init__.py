@@ -16,7 +16,7 @@ from ..types import BoxOverlay
 from .._access import fmt
 from . import geom
 from .park import Dims, analyse, things
-from .vehicles import THINGS, VEHICLES
+from .vehicles import THING_MODEL, THINGS, VEHICLES, model_of
 
 IN = 0.0254
 GEO = Source(layer="matterport", method="geometry", confidence="medium",
@@ -178,10 +178,10 @@ def run(ctx, inputs: Inputs) -> ToolResult:
 
 
 def _box(f, u: float, v: float, w: float, l: float, h: float, z0: float, label: str, status: str,
-         yaw_extra: float = 0.0) -> BoxOverlay:
+         model: str | None = None) -> BoxOverlay:
     c = f.back(u + w / 2, v + l / 2)
     return BoxOverlay(center=(round(c[0], 3), round(c[1], 3), round(z0 + h / 2, 3)), size=(round(l, 3), round(w, 3),
-                      round(h, 3)), yaw_deg=round(f.yaw_deg + yaw_extra, 1), label=label, status=status)
+                      round(h, 3)), yaw_deg=round(f.yaw_deg, 1), label=label, status=status, model=model)
 
 
 def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base: list) -> ToolResult:
@@ -281,7 +281,7 @@ def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base
                                         status=st, source=src, anchor=PointAnchor(sid=sid, point=(centre[0], centre[1], z0 + 1.0)),
                                         detail=", ".join(f"{s} {fmt(c[s])}" for s in ("left", "right", "front") if c.get(s) is not None)
                                         + f" clear; doors need {fmt(lv_need)} beside the body."))
-            overlays.append(_box(f, u, v, d.width, d.length, d.height, z0, tag, st))
+            overlays.append(_box(f, u, v, d.width, d.length, d.height, z0, tag, st, model_of(inputs.vehicle)))
     # extras
     for t in things(a, d, list(inputs.uses)):
         k, spot = t["id"], t["spot"]
@@ -301,13 +301,15 @@ def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base
                             measured=None, threshold=None, unit="", status=st))
         if spot:
             (cu, cv), yaw, (sl, sw) = geom.corners_center(spot)
+            if k in THING_MODEL and sl < sw:  # a model's length runs along the box's first side
+                sl, sw, yaw = sw, sl, yaw + 90
             c = f.back(cu, cv)
             hgt = t["height"] if k != "ev_charger" else 0.45
             zc = z0 + (1.2 if k == "ev_charger" else hgt / 2)
             size = (0.35, 0.2, 0.45) if k == "ev_charger" else (round(sl, 2), round(sw, 2), hgt)
             overlays.append(BoxOverlay(center=(round(c[0], 3), round(c[1], 3), round(zc, 3)), size=size,
                                        yaw_deg=round(f.scan_yaw(yaw), 1), label=lab,
-                                       status="pass" if extra_ok else "warn"))
+                                       status="pass" if extra_ok else "warn", model=THING_MODEL.get(k)))
     for o in a["survey"]["obstacles"]:
         findings.append(Finding(id=f"garage_fit:{sid}:object:{o['id']}", title=f"In the garage: {o['label'].lower()}",
                                 status="unknown", source=Source(layer="matterport", method="geometry",

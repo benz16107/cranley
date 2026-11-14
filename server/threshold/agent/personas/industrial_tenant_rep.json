@@ -1,0 +1,23 @@
+{
+  "id": "industrial_tenant_rep",
+  "title": "Industrial tenant rep",
+  "who": "Finds a distribution warehouse for a client: clear height, docks, truck court, highways, rent against comps.",
+  "tools": [
+    "site_scorecard",
+    "industrial_fit",
+    "market_comps",
+    "truck_access",
+    "loading_docks"
+  ],
+  "thresholds": {
+    "site.profile": "industrial",
+    "site.clear_height_min_ft": 28,
+    "site.docks_min": 4,
+    "site.highway_max_km": 3,
+    "site.flood": "prefer_outside"
+  },
+  "layout": {
+    "view": "map",
+    "lead_tool": "site_scorecard"
+  }
+}

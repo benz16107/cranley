@@ -93,6 +93,22 @@ VEHICLES: dict[str, Vehicle] = {
     "class_a_rv": Vehicle("Class A motorhome, 35 ft", "rv", 10.70, 2.59, 2.90, 3.96, 0.85),
 }
 
+# The 3D model (web/public/models/<class>.glb) the scene stretches to a vehicle's exact box. One per kind, with the
+# few whose outline differs named singly. A kind with no model (a golf cart) is drawn as the plain box.
+_KIND_MODEL = {"car": "vehicle/sedan", "suv": "vehicle/suv", "pickup": "vehicle/pickup", "van": "vehicle/minivan",
+               "motorcycle": "vehicle/motorcycle", "rv": "vehicle/rv", "trailer": "vehicle/camper-trailer"}
+_ID_MODEL = {"mini_cooper": "vehicle/hatchback", "ford_mustang": "vehicle/coupe", "chevy_corvette": "vehicle/coupe",
+             "porsche_911": "vehicle/coupe", "mazda_mx5": "vehicle/coupe", "ford_transit_low": "vehicle/van",
+             "sprinter_high": "vehicle/van", "class_b_rv": "vehicle/van", "motorcycle_sport": "vehicle/motorcycle-sport",
+             "utility_trailer": "vehicle/trailer", "boat_20ft": "vehicle/boat-trailer", "jet_ski": "vehicle/boat-trailer"}
+# extras whose box is the thing itself; a workbench's or a rack's box is the floor it needs, so it stays a box
+THING_MODEL = {"motorcycle": "vehicle/motorcycle", "bikes": "vehicle/bicycles"}
+
+
+def model_of(vehicle: str) -> str | None:
+    return _ID_MODEL.get(vehicle) or _KIND_MODEL.get(VEHICLES[vehicle].kind)
+
+
 # other things people keep in a garage, as floor footprints (length, depth, height) in metres
 THINGS = {
     "workbench": ((1.83, 0.61, 0.91), "6 ft workbench, 24 in deep, plus 0.75 m to stand at it"),

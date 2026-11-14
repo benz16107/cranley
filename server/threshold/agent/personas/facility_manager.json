@@ -1,0 +1,20 @@
+{
+  "id": "facility_manager",
+  "title": "Facility manager",
+  "who": "Audits the building the business already occupies: access, ways out, life safety, cleaning and what to fix first.",
+  "tools": [
+    "facility_audit",
+    "door_widths",
+    "egress_routes",
+    "bathroom_clearance",
+    "takeoff_bid"
+  ],
+  "thresholds": {
+    "access.door_width_m": 0.813,
+    "bid.trade": "cleaning"
+  },
+  "layout": {
+    "view": "plan",
+    "lead_tool": "facility_audit"
+  }
+}

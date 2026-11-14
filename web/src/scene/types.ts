@@ -48,8 +48,32 @@ export type Overlay =
   | { kind: 'pins'; pins: { id: string; anchor: Anchor; label: string; status: Status }[] }
   | { kind: 'route'; floor: string; points: Vec3[]; chokes: { point: Vec3; width: number; status: Status }[]; label?: string }
   | { kind: 'water'; level_m: number; datum: 'scan_z' }
-  | { kind: 'box'; center: Vec3; size: Vec3; yaw_deg: number; label?: string; status: Status }
+  /** `model`: a class under public/models ("vehicle/pickup", "furniture/sofa") drawn stretched to exactly this box;
+      the box stays as a faint outline, and is all that is drawn when the model is missing. */
+  | { kind: 'box'; center: Vec3; size: Vec3; yaw_deg: number; label?: string; status: Status; model?: string | null; quiet?: boolean }
   | { kind: string; [key: string]: unknown } // unknown kinds are ignored by every renderer
+
+/** A piece of furniture a person is trying out. `center` is the middle of its box in scan coordinates, so its z is the
+    floor's plus half its height; null asks the scene to stand it in the room the camera is looking at. */
+export interface Placed { id: string; label: string; model?: string | null; size: Vec3; center: Vec3 | null; yaw_deg: number }
+/** What one placed piece touches or blocks, measured on the plan in the browser. Lengths in metres. */
+export interface FurnishCheck {
+  id: string; status: Status; room: string | null
+  through: boolean                                                         // it stands in a wall
+  sides: Record<'front' | 'back' | 'left' | 'right', number | null>        // from each side straight out to the wall face it meets; null: none near
+  doors: string[]                                                          // doorways whose swing it stands in
+  turning: { before: number; after: number; need: number; blocked: boolean } | null // largest clear circle in its room, empty and furnished
+}
+/** Furniture placement in the 3D view: the scene draws `items`, lets a person drag them on the floor, and reports. */
+export interface Furnish {
+  items: Placed[]
+  selected?: string | null
+  /** A piece was dropped after a drag, turned or removed from the keyboard, or a new one was given its place. */
+  onChange: (items: Placed[]) => void
+  onSelect?: (id: string | null) => void
+  /** The checks for every piece, again on each frame of a drag. */
+  onReport?: (checks: FurnishCheck[]) => void
+}
 
 export type Mode = 'dollhouse' | 'plan' | 'pano' | 'splat'
 export interface View {
