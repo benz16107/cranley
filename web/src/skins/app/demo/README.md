@@ -50,10 +50,10 @@ Every step may have:
 | `do` | fields | what it does |
 |---|---|---|
 | `open` | `sid` (a scan), or `page`: `home`, `explore`, `investigations`, `investigation` (the open one), `buildings`, `insights`, `tools`, `settings`; `params` for the address | goes there |
-| `ask` | `text`; `sid` to ask about one scan, `sids` for several; `answer: false` to leave the agent's questions open; `approve: false` to leave its approval cards for a `click` step | one agent turn, waited to its end. Questions with an answer on offer take it (as "Use the defaults" does); approvals are run |
-| `answer` | `approve` | answers the open questions with their defaults and starts the investigation |
+| `ask` | `text`; `sid` to ask about one scan, `sids` for several; `answers` (a word of the question: the answer, e.g. `{ "seat": 20, "hours": 12 }`); `answer: false` to leave the agent's questions open; `approve: false` to leave its approval cards for a `click` step | one agent turn, waited to its end. Each question the agent asks takes the matching `answers` entry, else the answer on offer (as "Use the defaults" does), else the first choice; a number question with none of those stops the step. Approvals are run |
+| `answer` | `answers`, `approve` | answers the open questions with their defaults and starts the investigation |
 | `tool` | `tool`, `inputs`, `sid` (default: the scan in view), `open: false` to leave its result closed | runs one tool into the investigation and opens its result |
-| `click` | `label`, `all: true` for every match, `within` (a CSS selector) | presses the page's own button whose label, title or text is `label` (exact first, then the start of it), waiting up to `timeout` for it to appear. Outlined for a moment so the audience sees it. Examples: `Tour`, `Flood`, `Fire`, `Photoreal`, `On its site`, `Run it`, `Download report` |
+| `click` | `label`, `all: true` for every match, `within` (a CSS selector) | presses the page's own button whose label, title or text is `label` (exact first, then the start of it), waiting up to `timeout` for it to appear. Outlined for a moment so the audience sees it. Examples: `Play` then `Tour` (a menu: one click opens it, the next picks), `Run it`, `Download report` then `Everything in this investigation` |
 | `type` | `into` (a CSS selector), `text` | types into a field |
 | `focus` | `finding`: `first`, `worst`, an index or an id; `tool` to pick from one tool's findings | points the camera at a finding |
 | `agent` | `open: false` to close | opens the agent panel |

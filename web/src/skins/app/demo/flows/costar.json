@@ -11,7 +11,8 @@
       "else": { "do": "tool", "tool": "listing_claims", "say": "The agent is offline, so the claim check runs as a tool." } },
     { "do": "focus", "finding": "worst", "say": "Where the record and the scan disagree, the camera goes to the room.", "hold": 4000 },
     { "do": "agent", "open": false, "hold": 300 },
-    { "do": "click", "label": "Tour", "say": "The tour walks through every finding on this scan.", "hold": 2000 },
+    { "do": "click", "label": "Play", "say": "The tour walks through every finding on this scan.", "hold": 700 },
+    { "do": "click", "label": "Tour", "hold": 2000 },
     { "do": "wait", "ms": 16000, "say": "Each stop is a finding, measured from the scan, with its source." }
   ]
 }

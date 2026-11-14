@@ -176,6 +176,7 @@ async function answerAll(my: number, s: Step, ms: number) {
   for (const q of open) {
     const hit = given.find(([k]) => q.text.toLowerCase().includes(k.toLowerCase()))
     if (hit) userOp({ op: 'question.answer', id: q.id, answer: hit[1] })
+    else if (q.hint == null && q.options?.length) userOp({ op: 'question.answer', id: q.id, answer: q.options[0] }) // a choice: the first
     else if (q.hint == null) throw new Error(`The agent asked “${q.text}” and the flow has no answer for it (add it to "answers")`)
   }
   await investigate()
