@@ -12,15 +12,19 @@ import statistics
 
 import numpy as np
 
+from ..geometry._plan import floor_z as _floor_z
 from . import projection as pj
 
 DEFAULT_HEIGHT_M = 2.5
 
 
 def floor_z(plan: dict, floor: str | None) -> float:
-    """Floor elevation in the scan frame. Panoramas sit at camera height above their floor and the lowest
-    floor is at z = 0 in every fixture we checked, so a floor is its panoramas' median z minus the lowest
-    floor's median z (assumes one camera height per scan)."""
+    """Floor elevation in the scan frame. Where the floor has doorways, the geometry engine's level (median sill,
+    absolute scan z): scans whose origin sits on an upper floor have their lowest floor well below z = 0
+    (<address>: -3.25 m). Otherwise its panoramas' median z minus the lowest floor's median z."""
+    if any(o["floor"] == floor and o["type"] != "window" and o.get("sill") is not None
+           for o in plan.get("openings") or []):
+        return _floor_z(plan)[floor]
     zs: dict[str, list[float]] = {}
     for p in plan["panos"]:
         zs.setdefault(p["floor"], []).append(p["position"][2])
@@ -46,7 +50,7 @@ def _segments(plan: dict, room: dict | None, floor: str | None) -> list[tuple[np
 def _in_opening(p: np.ndarray, ops: list[dict], z0: float) -> bool:
     for o in ops:
         along = np.linalg.norm(p[:2] - np.array(o["center"], float))
-        lo = z0 + (o.get("sill") or 0.0)
+        lo = o["sill"] if o.get("sill") is not None else z0  # sills are absolute scan z (Contract 1)
         if along <= o["width"] / 2 and lo <= p[2] <= lo + (o.get("height") or 2.0):
             return True
     return False

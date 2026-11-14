@@ -1,0 +1,15 @@
+{
+  "id": "emergency_manager",
+  "title": "Emergency manager or caseworker before a storm",
+  "who": "Has a storm coming and a household to advise: how deep the water gets inside, what to move first, and what the people there can finish in the hours left.",
+  "tools": [
+    "storm_plan",
+    "flood_rehearsal",
+    "valuables_height"
+  ],
+  "thresholds": {},
+  "layout": {
+    "view": "scene",
+    "lead_tool": "storm_plan"
+  }
+}

@@ -118,6 +118,38 @@ def floor_z(plan: dict) -> dict[str, float]:
     return out
 
 
+STEP_MIN_M, STEP_MAX_M = 0.06, 0.8  # a room this much off its floor's level is a step (sunken garage), not noise
+
+
+def room_floor_z(plan: dict) -> dict[str, float]:
+    """Floor level per room in scan z. A room sits at its floor's level unless its own panoramas stand lower or
+    higher by a step, confirmed by one of its doorways having a sill on the same side (a garage two steps down:
+    panoramas 0.15 m low and the door to the house with a sill 0.17 m below the floor). Needs two panoramas."""
+    fz = floor_z(plan)
+    pz: dict[str, list[float]] = {}
+    for p in plan.get("panos") or []:
+        if p.get("room"):
+            pz.setdefault(p["room"], []).append(p["position"][2])
+    by_floor: dict[str, list[float]] = {}
+    for r in plan.get("rooms") or []:
+        if r.get("walls"):
+            by_floor.setdefault(r["floor"], []).extend(pz.get(r["id"], []))
+    cam = {f: statistics.median(v) for f, v in by_floor.items() if v}
+    out = {}
+    for r in plan.get("rooms") or []:
+        z0 = fz.get(r["floor"], 0.0)
+        out[r["id"]] = z0
+        mine = pz.get(r["id"], [])
+        if len(mine) < 2 or r["floor"] not in cam or not r.get("walls"):
+            continue
+        step = statistics.median(mine) - cam[r["floor"]]
+        sills = [o["sill"] - z0 for o in plan.get("openings") or []
+                 if r["id"] in (o.get("rooms") or []) and o["type"] != "window" and o.get("sill") is not None]
+        if STEP_MIN_M <= abs(step) <= STEP_MAX_M and any(s * step > 0 and abs(s) >= STEP_MIN_M / 2 for s in sills):
+            out[r["id"]] = z0 + step
+    return out
+
+
 def default_ceiling(plan: dict) -> float | None:
     hs = [r["height"] for r in plan.get("rooms") or [] if r.get("height")]
     return statistics.median(hs) if hs else None
