@@ -5,6 +5,7 @@ The agent and the user change a workspace only through `Session.submit(op)`. The
 """
 from __future__ import annotations
 
+import fcntl
 import json
 import re
 import threading
@@ -252,6 +253,8 @@ class Pref(Strict):
     value: Any
     reason: str = Field("", description="The event it came from, said to the person")
     cause: int | None = Field(None, description="Log seq of the op it was learned from")
+    because: str | None = Field(None, description="Key of the preference it was derived from (a label correction "
+                                                  "that spread); forgetting that one forgets this")
     by: By = "user"
     at: float | None = None
 
@@ -382,6 +385,7 @@ class PrefSet(OpBase):
     value: Any = Field(description="null removes the preference")
     reason: str = ""
     cause: int | None = None
+    because: str | None = None
 
 
 class ShortlistAdd(OpBase):
@@ -474,9 +478,11 @@ def apply(doc: Workspace, op: BaseModel, at: float | None = None) -> Workspace:
             if op.value is None:
                 d.prefs.pop(op.key, None)
             else:
-                d.prefs[op.key] = Pref(key=op.key, value=op.value, reason=op.reason, cause=op.cause, by=op.by, at=at)
+                d.prefs[op.key] = Pref(key=op.key, value=op.value, reason=op.reason, cause=op.cause,
+                                       because=op.because, by=op.by, at=at)
+            label_sid = op.key.split(".")[1] if op.key.startswith(("label.", "doubt.")) and op.key.count(".") >= 2 else None
             for r in d.runs:
-                if r.status == "done" and op.key in r.inputs_from.values():
+                if r.status == "done" and (op.key in r.inputs_from.values() or (label_sid and r.sid == label_sid)):
                     r.stale = True
         case ShortlistAdd():
             _upsert(d.shortlist, ShortlistItem(sid=op.sid, note=op.note, by=op.by), key="sid")
@@ -606,13 +612,19 @@ def clean(doc: Workspace, raw: dict | BaseModel, plans: Callable[[str], dict], t
 
 # ---- Log, undo, persistence ----
 
-def replay(base: Workspace, log: list[LogEntry]) -> Workspace:
-    undone = {e.undo for e in log if e.undo is not None}
+def undone_seqs(log: list[LogEntry], upto: int | None = None) -> set[int]:
+    """Seqs undone by the log (up to entry `upto`), with everything learned from them."""
+    undone = {e.undo for e in log if e.undo is not None and (upto is None or e.seq <= upto)}
     changed = True
     while changed:  # an undone op takes the preferences learned from it along
         before = len(undone)
         undone |= {e.seq for e in log if e.cause in undone}
         changed = len(undone) != before
+    return undone
+
+
+def replay(base: Workspace, log: list[LogEntry]) -> Workspace:
+    undone = undone_seqs(log)
     doc = base
     for e in log:
         if e.op is not None and e.seq not in undone:
@@ -638,6 +650,7 @@ class Session:
         self.plans: Callable[[str], dict] | None = None  # set by the agent; used to check anchors
         self.tools: set[str] | None = None
         self.sites: Callable | None = None  # place resolver for tools; None means the default (scan index, CoStar)
+        self.siblings: Callable[[str], list[str]] | None = None  # sid -> scans of the same property
 
     # persistence
     @property
@@ -650,11 +663,38 @@ class Session:
         tmp.write_text(json.dumps({"id": self.base.id, "profile": self.base.profile, "created": self.base.created,
                                    "log": [e.model_dump(mode="json", by_alias=True) for e in self.log]}))
         tmp.replace(self.path)
-        # shortcut: the profile is this workspace's prefs, last write wins; two live workspaces on one profile
-        # overwrite each other. Merge by key with timestamps when there are real users.
+        self.save_profile()
+
+    def touched(self) -> dict[str, float]:
+        """Preference key -> when this workspace last changed it (a pref.set, or an undo that removed one)."""
+        out: dict[str, float] = {}
+        by_seq = {e.seq: e for e in self.log}
+        for e in self.log:
+            if isinstance(e.op, PrefSet):
+                out[e.op.key] = max(out.get(e.op.key, 0), e.at)
+            if e.undo is not None:
+                for seq in undone_seqs(self.log, e.seq) - undone_seqs(self.log, e.seq - 1):
+                    if isinstance(getattr(by_seq.get(seq), "op", None), PrefSet):
+                        out[by_seq[seq].op.key] = max(out.get(by_seq[seq].op.key, 0), e.at)
+        return out
+
+    def save_profile(self) -> None:
+        """Merge this workspace's preferences into its profile key by key: a key this workspace changed is written
+        unless another workspace on the profile changed it later. A removed key stays as a dated deletion, so an
+        older copy elsewhere cannot bring it back."""
         prof = self.root / "profiles" / f"{self.base.profile}.json"
         prof.parent.mkdir(exist_ok=True)
-        prof.write_text(json.dumps({k: v.model_dump(mode="json") for k, v in self.doc.prefs.items()}))
+        with open(prof.with_suffix(".lock"), "w") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)  # other processes and threads on the same profile wait here
+            data = json.loads(prof.read_text()) if prof.exists() else {}
+            for key, at in self.touched().items():
+                if (data.get(key) or {}).get("at", 0) > at:
+                    continue
+                p = self.doc.prefs.get(key)
+                data[key] = {**p.model_dump(mode="json"), "at": at} if p else {"key": key, "value": None, "at": at}
+            tmp = prof.with_suffix(".tmp")
+            tmp.write_text(json.dumps(data))
+            tmp.replace(prof)
 
     @classmethod
     def load(cls, id: str, root=None) -> Session:
@@ -670,8 +710,9 @@ class Session:
         s = cls(new_id("ws"), profile, root=root)
         prof = s.root / "profiles" / f"{profile}.json"
         for p in (json.loads(prof.read_text()).values() if prof.exists() else []):
-            s.submit(PrefSet(by="system", key=p["key"], value=p["value"],
-                             reason=p.get("reason") or "From an earlier session"))
+            if p.get("value") is not None:  # a dated deletion
+                s.submit(PrefSet(by="system", key=p["key"], value=p["value"], because=p.get("because"),
+                                 reason=p.get("reason") or "From an earlier session"))
         s.save()
         return s
 
@@ -703,7 +744,7 @@ class Session:
             before = self.doc
             entries = [self._append(parsed, cause=cause)]
             if parsed.by == "user":
-                for learned in prefs.derive(before, parsed):
+                for learned in prefs.derive(before, parsed, self.plans, self.siblings):
                     entries.append(self._append(learned, cause=entries[0].seq))
             self.save()
             return entries

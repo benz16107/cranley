@@ -68,3 +68,63 @@ def test_rerun_retires_findings_it_no_longer_reports(session):
     session.submit({"op": "pref.set", "key": "access.door_width_m", "value": 0.6}, by="user")
     second = inv.run("door_widths", {"scan": "t1"})["run"]
     assert {f.superseded_by for f in session.doc.findings} == {second}
+
+
+def _three_bedrooms(sid):
+    from .conftest import make_plan
+    p = make_plan(sid)
+    p["rooms"].append({**p["rooms"][0], "id": "r5", "area": 30.0})  # a second, bigger Bedroom
+    return p
+
+
+def test_label_correction_spreads_to_siblings_and_marks_doubts(tmp_path):
+    ps = {"u1": _three_bedrooms("u1"), "u2": _three_bedrooms("u2"), "u3": _three_bedrooms("u3")}
+    s = attach(Session.create(root=tmp_path), ps.__getitem__)
+    s.siblings = lambda sid: [x for x in ps if x != sid]
+    s.submit(BriefSet(by="user", scope=Scope(sids=list(ps)), persona="wheelchair_user"))
+    s.submit(ToolEnable(tool="room_census"))
+    run = Investigation(s).run("room_census", {"scan": "u2"})["run"]
+    entries = s.submit({"op": "pref.set", "key": "label.u1.r1", "value": "Office"}, by="user")
+    spread = {e.op.key: e.op for e in entries[1:]}
+    assert all(e.cause == entries[0].seq for e in entries[1:])
+    assert spread["label.u2.r1"].value == "Office" and spread["label.u3.r1"].value == "Office"  # same label, same size
+    assert spread["doubt.u1.r5"].value == {"label": "Bedroom", "because": "label.u1.r1"}      # same scan, other bedroom
+    assert "label.u2.r5" not in spread and "you corrected the same room (r1) in scan u1" in spread["label.u2.r1"].reason
+    assert next(r for r in s.doc.runs if r.id == run).stale                                   # u2 was re-labelled
+    view = prefs.with_labels(s.plans, s.doc)
+    r1, r5 = view("u2")["rooms"][0], view("u1")["rooms"][-1]
+    assert (r1["label"], r1["label_confidence"]) == ("Office", 0.7) and r5["label_doubt"] == "label.u1.r1"
+    assert next(i for i in prefs.learned(s.doc) if i["key"] == "label.u3.r1")["because"] == "label.u1.r1"
+    s.submit({"op": "pref.set", "key": "label.u3.r1", "value": None}, by="user")  # undo one spread label alone
+    assert "label.u3.r1" not in s.doc.prefs and "label.u2.r1" in s.doc.prefs
+    s.submit({"op": "pref.set", "key": "label.u1.r1", "value": None}, by="user")  # forget the correction: all of it goes
+    assert not [k for k in s.doc.prefs if k.startswith(("label.", "doubt."))]
+
+
+def test_undoing_a_correction_undoes_its_spread(tmp_path):
+    ps = {"u1": _three_bedrooms("u1"), "u2": _three_bedrooms("u2")}
+    s = attach(Session.create(root=tmp_path), ps.__getitem__)
+    s.siblings = lambda sid: [x for x in ps if x != sid]
+    s.submit(BriefSet(by="user", scope=Scope(sids=list(ps))))
+    s.submit({"op": "pref.set", "key": "label.u1.r1", "value": "Office"}, by="user")
+    assert "label.u2.r1" in s.doc.prefs
+    s.undo()
+    assert not [k for k in s.doc.prefs if k.startswith(("label.", "doubt."))]
+
+
+def test_two_workspaces_on_one_profile_keep_each_others_preferences(tmp_path):
+    a, b = Session.create(root=tmp_path), Session.create(root=tmp_path)
+    a.submit({"op": "pref.set", "key": "access.door_width_m", "value": 0.9}, by="user")
+    b.submit({"op": "pref.set", "key": "space.min_height_m", "value": 2.2}, by="user")
+    a.submit({"op": "tool.disable", "tool": "room_census"}, by="user")  # a saves again, without b's key
+    c = Session.create(root=tmp_path)
+    assert c.doc.prefs["access.door_width_m"].value == 0.9 and c.doc.prefs["space.min_height_m"].value == 2.2
+    b.submit({"op": "pref.set", "key": "access.door_width_m", "value": 0.8}, by="user")  # later edit wins
+    a.submit({"op": "shortlist.add", "sid": "t1"}, by="user")                          # an older copy does not
+    assert Session.create(root=tmp_path).doc.prefs["access.door_width_m"].value == 0.8
+    b.submit({"op": "pref.set", "key": "space.min_height_m", "value": None}, by="user")  # a deletion sticks
+    a.submit({"op": "shortlist.remove", "sid": "t1"}, by="user")
+    d = Session.create(root=tmp_path)
+    assert "space.min_height_m" not in d.doc.prefs and "tool.off.room_census" in d.doc.prefs
+    a.undo(next(e.seq for e in a.log if e.op and e.op.op == "tool.disable"))  # undoing tool.disable in a removes what it taught from the profile too
+    assert "tool.off.room_census" not in Session.create(root=tmp_path).doc.prefs

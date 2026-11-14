@@ -2084,6 +2084,18 @@
           "default": null,
           "description": "Log seq of the op it was learned from"
         },
+        "because": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Key of the preference it was derived from (a label correction that spread); forgetting that one forgets this"
+        },
         "by": {
           "default": "user",
           "enum": [
@@ -2155,6 +2167,17 @@
           "anyOf": [
             {
               "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "because": {
+          "anyOf": [
+            {
+              "type": "string"
             },
             {
               "type": "null"

@@ -830,6 +830,10 @@ export interface Pref {
    * Log seq of the op it was learned from
    */
   cause?: number | null;
+  /**
+   * Key of the preference it was derived from (a label correction that spread); forgetting that one forgets this
+   */
+  because?: string | null;
   by?: "agent" | "user" | "system";
   at?: number | null;
 }
@@ -1080,6 +1084,7 @@ export interface PrefSet {
   };
   reason?: string;
   cause?: number | null;
+  because?: string | null;
 }
 /**
  * This interface was referenced by `WorkspaceContract`'s JSON-Schema

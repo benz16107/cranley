@@ -95,7 +95,18 @@ def attach(session: Session, plans: Callable[[str], dict] = default_plan) -> Ses
     """Give a session what the validator needs: a plan loader and the tool ids that exist."""
     session.plans = plans
     session.tools = set(catalog())
+    session.siblings = session.siblings or sibling_scans
     return session
+
+
+def sibling_scans(sid: str) -> list[str]:
+    """Other scans of the same CoStar property, for corrections that spread."""
+    from ..sources import costar
+    try:
+        pid = costar.property_id_of(sid)
+        return [s for s in costar.scans_of_property(pid) if s != sid] if pid else []
+    except Exception:
+        return []
 
 
 def panel_for(m, run: Run, overlay_ids: list[str]) -> Panel:
