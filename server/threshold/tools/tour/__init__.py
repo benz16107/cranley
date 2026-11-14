@@ -155,8 +155,8 @@ def build(plan: dict, question: str | None, evidence: list[Evidence], max_stops:
             and (e.tool or "") != "tour" and not e.id.startswith("tour:")]
     best: dict[str, Evidence] = {}
     score = lambda e: (RANK[e.status] * 2 + relevance(question, e), len(e.detail))
-    for e in here:   # one stop per place: the worst finding there
-        key = str(sorted((k, str(v)) for k, v in e.anchor.items() if k != "sid"))
+    for e in here:   # one stop per place from each tool: the worst finding it has there
+        key = (e.tool or "") + str(sorted((k, str(v)) for k, v in e.anchor.items() if k != "sid"))
         if key not in best or score(e) > score(best[key]):
             best[key] = e
     ranked = sorted(best.values(), key=score, reverse=True)

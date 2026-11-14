@@ -21,6 +21,7 @@ export class TourShow implements Player {
   private playing = false; private seekN = -1; private voice = true
   private spoken = false; private said = false; private heard = false // asked to speak; finished speaking; the browser did start speaking
   private key = ''
+  private opening = false // the establishing shot is still on screen: the first flight waits for it
 
   private ctx: ShowCtx
   constructor(ctx: ShowCtx) { this.ctx = ctx }
@@ -42,8 +43,8 @@ export class TourShow implements Player {
   private open() {
     const p = this.ctx.home(), rig = this.ctx.rig
     this.ctx.setView({ mode: 'dollhouse', floor: null })
-    rig.flyTo({ target: p.target, az: p.az + 0.7, pol: 0.6, dist: this.ctx.aerial() ? 240 : p.dist * 2.2, fov: p.fov }, 900)
-    this.go(0)
+    rig.flyTo({ target: p.target, az: p.az + 0.7, pol: 0.62, dist: this.ctx.aerial() ? 230 : p.dist * 2.2, fov: p.fov }, 1300)
+    this.go(0); this.opening = true
   }
 
   private go(i: number) {
@@ -64,7 +65,7 @@ export class TourShow implements Player {
     let pos: Vec3 | null = null, floor = 0
     if (a && 'pano' in a) {
       const p = m.plan.panos.find((q) => q.id === a.pano), yaw = (a.yaw_deg * Math.PI) / 180, pitch = (a.pitch_deg * Math.PI) / 180
-      if (p) { pos = [p.position[0] + 2.2 * Math.cos(pitch) * Math.cos(yaw), p.position[1] + 2.2 * Math.cos(pitch) * Math.sin(yaw), p.position[2] + 2.2 * Math.sin(pitch)]; floor = m.floorOf.get(p.floor ?? '') ?? 0 }
+      if (p) { pos = [p.position[0] + Math.cos(pitch) * Math.cos(yaw), p.position[1] + Math.cos(pitch) * Math.sin(yaw), p.position[2] + Math.sin(pitch)]; floor = m.floorOf.get(p.floor ?? '') ?? 0 }
     } else if (a) { const at = anchorPoint(m, a); if (at) { pos = at.point; floor = at.floor } }
     this.labels = pos ? [{ id: `tour.${s.id}`, pos, floor, make: () => { const el = h('div', 'th-chip th-chip-tour', h('span', 'th-chip-text', s.title)); el.dataset.status = s.status; return el } }] : []
     this.ctx.relabel()
@@ -106,7 +107,8 @@ export class TourShow implements Player {
     if (!this.playing || this.i < 0 || this.phase === 'idle') return false
     const rig = this.ctx.rig, s = this.stops[this.i]
     this.t += dt
-    if (this.phase === 'settle' && this.t > SETTLE_S) { this.fly(); this.phase = 'fly'; this.t = 0 }
+    // the tour opens over the street and holds there for a moment before it comes down to the first stop
+    if (this.phase === 'settle' && this.t > SETTLE_S && !(this.opening && (rig.moving || this.t < 2.4))) { this.opening = false; this.fly(); this.phase = 'fly'; this.t = 0 }
     else if (this.phase === 'fly') {
       // the line starts as the camera closes in, not after it has stopped: it reads as one move
       if (this.t > 0.7 && !this.spoken) this.say()
