@@ -76,5 +76,5 @@ def test_the_default_fire_room_is_one_whose_smoke_reaches_a_bedroom():
                                ("b", 14, 0, 17, 4, "Bedroom")], doors=[("fam", "b", 0.8), ("lr", None, 0.9)])
     comp, _ = sc.compartments(p)
     beds = {comp["b"]}
-    pick = sc._pick_fire(p, None, lambda r: bool(sc.reachable(p, comp, comp[r["id"]]) & beds))
+    pick = sc._pick_fire(p, None, lambda r: len(sc.reachable(p, comp, comp[r["id"]]) & beds))
     assert pick["id"] == "fam" and sc._pick_fire(p, None)["id"] == "lr"

@@ -76,9 +76,9 @@ def cfast_bin() -> str | None:
     return p if p and os.path.exists(p) else None
 
 
-def _pick_fire(plan: dict, want: str | None, reaches=lambda r: True) -> dict | None:
-    """The named room, else the largest living room, family room or kitchen; `reaches(room)` prefers one whose smoke
-    can reach a bedroom (a multi-storey scan often has no stairs to carry it from a downstairs living room)."""
+def _pick_fire(plan: dict, want: str | None, reaches=lambda r: 1) -> dict | None:
+    """The named room, else a living room, family room or kitchen: the one whose smoke reaches the most bedrooms
+    (`reaches(room)` counts them; a multi-storey scan often has no stairs between floors), then the largest."""
     rooms = [r for r in live_rooms(plan) if polygons(plan).get(r["id"]) is not None]
     if want:
         hit = next((r for r in rooms if r["id"] == want), None) or \
@@ -86,11 +86,11 @@ def _pick_fire(plan: dict, want: str | None, reaches=lambda r: True) -> dict | N
         if hit is None:
             raise ToolError(f"No room '{want}' in this scan. Rooms: " + ", ".join(sorted({name(r) for r in rooms})))
         return hit
-    for keep in (reaches, lambda r: True):
+    for keep in (reaches, lambda r: 1):
         for label in ("Living Room", "Family Room", "Kitchen"):
-            hit = [r for r in rooms if r.get("label") == label and keep(r)]
+            hit = [(n, r) for r in rooms if r.get("label") == label and (n := keep(r))]
             if hit:
-                return max(hit, key=lambda r: polygons(plan)[r["id"]].area)
+                return max(hit, key=lambda x: (x[0], polygons(plan)[x[1]["id"]].area))[1]
     return max(rooms, key=lambda r: polygons(plan)[r["id"]].area, default=None)
 
 
@@ -340,7 +340,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     comp0, _ = compartments(plan)
     bed_comps = {comp0[r["id"]] for r in beds if r["id"] in comp0}
     fire = _pick_fire(plan, inputs.fire_room,
-                      lambda r: r["id"] in comp0 and bool(reachable(plan, comp0, comp0[r["id"]]) & bed_comps))
+                      lambda r: len(reachable(plan, comp0, comp0[r["id"]]) & bed_comps) if r["id"] in comp0 else 0)
     plain = _pick_fire(plan, inputs.fire_room)
     multi = len({r["floor"] for r in live_rooms(plan)}) > 1
     where = lambda r: f"{name(r)} ({floor_label(plan, r['floor'])})" if multi else name(r)  # noqa: E731
