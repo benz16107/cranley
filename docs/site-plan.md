@@ -29,7 +29,7 @@ a screenshot of the map with scan markers, even a blurred one. When in doubt, le
 3. **How it works.** Four steps with one visual each: say the need; the agent composes the tools; it checks buildings
    in parallel and asks before expensive steps; you see the evidence and take the report. Then the rule: every number
    from a calculation, with a diagram of a number's path (geometry to result object to screen, model off to the side).
-4. **Tools by persona.** A grid of the 48 personas grouped (getting around, safety, home life, business, research),
+4. **Tools by persona.** A grid of the 50 personas grouped (getting around, safety, home life, business, research),
    each with its tools named. Text only, or icons drawn for us.
 5. **The ecosystem.** Web app, phone companion, iPhone LiDAR app, PDF report, MCP server and CLI, the two databases.
    One diagram.

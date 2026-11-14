@@ -24,13 +24,13 @@ The information to answer "will this work for me" exists: laser scans of the int
 ## What it does
 
 1. **You say what you need.** "I use a wheelchair, 81 cm wide. Find a one-bedroom in Houston I can get into and use the bathroom."
-2. **The agent composes the workspace.** It picks the tools from more than 70 (step-free route, door widths, turning space, bathroom clearance), asks only for what is missing, and shows its plan.
+2. **The agent composes the workspace.** It picks the tools from more than 75 (step-free route, door widths, turning space, bathroom clearance), asks only for what is missing, and shows its plan.
 3. **It checks many buildings at once.** One subagent per building, in parallel, each lane visible. Expensive steps (a fire simulation, a vision read of every panorama) wait for your yes.
 4. **You see the evidence.** A ranked table, the route drawn through the photoreal building, the narrow door in red, the panorama that shows it, and the source and reliability of every number.
 5. **You can change the building.** "Widen this door": the renovate tool edits the plan, re-runs the checks and prices the work.
 6. **You take it with you.** A PDF report with numbered fixes and a list of what was not checked.
 
-The same workspace works for 48 kinds of user. A Houston homeowner watches Hurricane Harvey's measured water levels rise through their own house and gets the list of what to carry upstairs first. A fire captain gets a pre-plan with search routes and a smoke simulation run through NIST's CFAST model on the measured rooms. A car owner learns whether two trucks fit the garage. An office tenant tests whether the team fits, room by room, and a tenant rep ranks candidate sites on a weighted scorecard with market comps.
+The same workspace works for 50 kinds of user. A Houston homeowner watches Hurricane Harvey's measured water levels rise through their own house and gets the list of what to carry upstairs first. A fire captain gets a pre-plan with search routes and a smoke simulation run through NIST's CFAST model on the measured rooms. A car owner learns whether two trucks fit the garage. An office tenant tests whether the team fits, room by room, and a tenant rep ranks candidate sites on a weighted scorecard with market comps.
 
 ## What makes it different
 
@@ -38,6 +38,7 @@ The same workspace works for 48 kinds of user. A Houston homeowner watches Hurri
 - **Your own building.** The iPhone app scans a room with LiDAR (Apple RoomPlan) and converts it to the same plan format, so every geometry tool runs on a space that is in no dataset.
 - **Photoreal 3D we built ourselves.** The scanned mesh baked with its own panoramas, interior Gaussian splats we trained, set in the 3D city with a cut-away, one continuous view from the street into the room.
 - **Physics, not pictures.** CFAST for smoke. USGS high-water marks for floods.
+- **The building in its city.** One continuous view from the map through the aerial and the 3D city into the room, with 66 map layers around it (flood zones, Harvey high-water marks, hydrants, zoning, permits, transit, live weather), each labelled with its source and fetch date.
 - **Search by what is measured inside.** "One-floor houses with three bedrooms and every door at least 81 cm" is one query.
 - **Any agent can use it.** Every tool is also an MCP tool and a `threshold` CLI command, so Claude Code can ask "will an F-150 fit in this garage" and answer from the result.
 - **Honest by construction.** Each number carries its layer, its method and a high, medium or low label. A scan that cannot answer gets an "unknown" verdict with the reason.

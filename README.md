@@ -17,7 +17,7 @@ Matterport interior scans, Vexcel aerial imagery and CoStar records, plus your o
 ## What it does
 
 1. You say what you need, in plain words.
-2. A composer picks tools from more than 70 and asks only for missing inputs (your chair's width, your truck).
+2. A composer picks tools from more than 75 and asks only for missing inputs (your chair's width, your truck).
 3. An investigator agent plans, checks many buildings at once (one subagent each, shown live), and waits for your yes
    before expensive steps such as a fire simulation.
 4. The workspace shows a ranked table, the route drawn through the 3D building, the failing door in red, the photo that
