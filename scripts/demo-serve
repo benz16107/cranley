@@ -22,6 +22,57 @@ from starlette.staticfiles import StaticFiles  # noqa: E402
 from threshold.api.app import app  # noqa: E402
 
 
+def offline_guard() -> None:
+    """No network must cost nothing. Every outbound HTTP request is logged (host and path, never the query, which can
+    hold a key), so a cache miss shows in serve.log; while the internet is unreachable it fails at once instead of
+    waiting on DNS and timeouts. The data sources retry a dropped connection five times with backoff (~31 s per miss
+    offline); here once. Checked again every 15 s, so Wi-Fi coming or going mid-demo is noticed."""
+    import socket
+    import threading
+    import time
+
+    import httpx
+
+    from threshold.sources import upstream
+
+    upstream.send.__kwdefaults__["retries"] = 1
+    state = {"at": 0.0, "up": True}
+    lock = threading.Lock()
+
+    def up() -> bool:
+        with lock:
+            if time.time() - state["at"] > 15:
+                try:
+                    socket.create_connection(("1.1.1.1", 443), timeout=2).close()
+                    state["up"] = True
+                except OSError:
+                    state["up"] = False
+                state["at"] = time.time()
+            return state["up"]
+
+    def guard(request) -> None:
+        host = request.url.host or ""
+        if host in ("127.0.0.1", "localhost", "::1"):
+            return
+        online = up()
+        print(f"demo-serve: outbound {request.method} {host}{request.url.path[:90]} ({'online' if online else 'offline, refused'})",
+              file=sys.stderr, flush=True)
+        if not online:
+            raise httpx.ConnectError(f"offline: {host} not tried", request=request)
+
+    sync, asyn = httpx.HTTPTransport.handle_request, httpx.AsyncHTTPTransport.handle_async_request
+
+    def handle(self, request):
+        guard(request)
+        return sync(self, request)
+
+    async def handle_async(self, request):
+        guard(request)
+        return await asyn(self, request)
+
+    httpx.HTTPTransport.handle_request, httpx.AsyncHTTPTransport.handle_async_request = handle, handle_async
+
+
 class Spa(StaticFiles):
     async def get_response(self, path, scope):
         try:
@@ -39,6 +90,7 @@ def main():
     o = a.parse_args()
     if not (pathlib.Path(o.dist) / "index.html").exists():
         sys.exit(f"demo-serve: no build at {o.dist} (scripts/demo-sync copies one)")
+    offline_guard()
     app.mount("/", Spa(directory=o.dist, html=True), name="web")
     uvicorn.run(app, host="127.0.0.1", port=o.port, log_level="warning")
 
