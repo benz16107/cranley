@@ -201,24 +201,31 @@ def run(plan: dict, inputs: FloodInputs, steps, **drone) -> dict:
     runs = {k: water(plan, v) for k, v in levels.items()}
     steps("Water levels in the scan: " + ", ".join(f"{k} {v - ref_z:+.2f} m from the entry floor" for k, v in levels.items()))
     rooms = {}
+    walled = {r["id"]: r.get("walls") for r in plan["rooms"]}
     if runs["mid"]["available"]:
         for k, w in runs.items():
             for r in w["rooms"]:
                 x = rooms.setdefault(r["room"], {"room": r["room"], "label": r["label"], "floor": r["floor"],
-                                                 "floor_z": r["floor_z"], "step_m": r.get("step_m", 0.0)})
+                                                 "floor_z": r["floor_z"], "step_m": r.get("step_m", 0.0),
+                                                 "walled": bool(walled.get(r["room"]))})
                 x[f"depth_{k}"] = r["depth"]
                 x[f"floor_area_{k}"] = r["wetted_floor_area"]
                 x[f"wall_area_{k}"] = r["wetted_wall_area"]
                 if k == "mid":
                     x.update(via=r["via"], floods_at=r["floods_at"], openings=r["openings_overtopped"])
-    return {"site": site, "floor": floor, "scenario": scen, "scenario_fallback": fallback, "ref_z": ref_z,
+    return {"walls": bool(plan.get("walls")), "site": site, "floor": floor, "scenario": scen, "scenario_fallback": fallback, "ref_z": ref_z,
             "entry_door": door, "levels": levels, "runs": runs, "rooms": rooms,
             "kind": inputs.scenario if fallback is None else "depth",
             "label": SCENARIO_TEXT[inputs.scenario if fallback is None else "depth"].format(d=scen["depth_m"])}
 
 
+def indoor(flood: dict) -> list[dict]:
+    """Rooms of the house: not voids, and in a scan with walls, not the wall-less yard and porch captures."""
+    return [r for r in flood["rooms"].values() if (r["label"] or "") != "Void" and (r["walled"] or not flood["walls"])]
+
+
 def wet_rooms(flood: dict, k: str) -> list[dict]:
-    return [r for r in flood["rooms"].values() if r.get(f"depth_{k}", 0) > 0 and (r["label"] or "") != "Void"]
+    return [r for r in indoor(flood) if r.get(f"depth_{k}", 0) > 0]
 
 
 def room_depth_at(flood: dict, room: str | None, k: str) -> float:

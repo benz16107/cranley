@@ -23,7 +23,7 @@ from .. import (
 )
 from ..types import GeoAnchor, Media, WaterOverlay
 from . import public
-from .scenario import FloodInputs, check_plan, wet_rooms
+from .scenario import FloodInputs, check_plan, indoor, wet_rooms
 from .scenario import run as flood_run
 
 GEO = Source(layer="matterport", method="simulation", confidence="medium",
@@ -100,7 +100,7 @@ def result(sid: str, plan: dict, inputs: Inputs, flood: dict) -> ToolResult:
     f, sc, lv, ref = flood["floor"], flood["scenario"], flood["levels"], flood["ref_z"]
     walls = bool(plan.get("walls"))
     mid_run = flood["runs"]["mid"]
-    rooms = [r for r in flood["rooms"].values() if (r["label"] or "") != "Void"]
+    rooms = indoor(flood)
     wet = {k: wet_rooms(flood, k) for k in ("lo", "mid", "hi")}
     n_lo, n_mid, n_hi = (len(wet[k]) for k in ("lo", "mid", "hi"))
     entry = {k: max(0.0, lv[k] - ref) for k in lv}
