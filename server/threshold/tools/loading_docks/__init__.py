@@ -132,12 +132,16 @@ def vision_count(s, direction: str, size_m: float) -> dict | None:
 
 
 def inside_count(ctx, sid: str) -> dict | None:
-    from ...vision.reader import find_objects
+    from ...vision.reader import find_objects, room_panos
     plan = ctx.plan(sid)
-    if not plan.get("panos"):
+    big = sorted((r for r in plan["rooms"] if room_panos(plan, r)), key=lambda r: -(r.get("area") or 0))[:4]
+    if not big:
         return None
-    found = find_objects(plan, labels=["loading dock door", "roll-up door"], max_panos=4)
-    return {"found": found, "dock": sum(f["label"] == "loading dock door" for f in found),
+    # the largest rooms: a warehouse floor, not the front offices
+    found = find_objects(plan, labels=["loading dock door", "roll-up door"], panos=[room_panos(plan, r)[0]["id"] for r in big])
+    return {"found": found, "rooms": len(big), "largest_m2": big[0].get("area") or 0,
+            "scanned_m2": sum(r.get("area") or 0 for r in plan["rooms"]),
+            "dock": sum(f["label"] == "loading dock door" for f in found),
             "rollup": sum(f["label"] == "roll-up door" for f in found)}
 
 
@@ -272,6 +276,13 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                                        f"{rec_drive if rec_drive is not None else 'no'} drive-in bays. Seen from the air: {best}. "
                                        "Doors under a canopy, behind a parked trailer or on an interior dock are not visible."))
     ins = sv.get("inside")
+    if ins and not ins["found"]:
+        fa = metres(sv["footprint"], s.lat).area
+        findings.append(Finding(id=f"loading_docks:{k}:inside", title="No truck doors in the scan", status="unknown",
+                                anchor=geo(*sv["center"]), source=Source(layer="model", method="vision", confidence="low",
+                                                                         note="Vision model on the 4 largest rooms' panoramas"),
+                                detail=f"None seen in the {ins['rooms']} largest rooms (largest {ins['largest_m2']:.0f} m2). The scan "
+                                       f"covers {ins['scanned_m2']:.0f} m2 of a {fa:.0f} m2 footprint, so it may show only the offices."))
     if ins and ins["found"]:
         for f in ins["found"]:
             findings.append(Finding.model_validate({**f["finding"], "id": f"loading_docks:{k}:inside:{f['finding']['id']}",
