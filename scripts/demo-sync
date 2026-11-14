@@ -11,8 +11,9 @@ What goes:
   and its Python environment synced while there is network;
 - the web build (`web/dist`, built here) so the laptop needs no Node;
 - data: exactly the files listed in $THRESHOLD_DATA_DIR/demo/manifest.txt (every file under the data folder the
-  server opened while the six flows played, from `strace`), plus the recorded model answers (demo/llm/). rsync
-  copies only what changed, so a second run is quick;
+  server opened while the six flows played, from `strace`), the recorded model answers (demo/llm/), and the whole
+  cache of each scan a flow names in its "vars" (panoramas, meshes, splats: off-script clicks on those buildings work
+  too; --lean leaves them out). rsync copies only what changed, so a second run is quick;
 - a .env with only the keys the server reads for these flows: the model key and the endpoint it sits behind,
   Matterport and Vexcel for anything not cached, LangSmith for traces. No database URLs or console logins: the
   laptop keeps workspaces in files and the facts database falls back.
@@ -60,10 +61,25 @@ def from_trace(trace: pathlib.Path) -> list[str]:
     return sorted(seen)
 
 
-def listing() -> list[str]:
+SID = re.compile(r"^(?:[A-Za-z0-9]{11}|u_[0-9a-f]{12})$")
+
+
+def flow_sids() -> set[str]:
+    """The scans the flows name in their vars: their whole caches go too, so the building can be explored off-script."""
+    import json
+    out: set[str] = set()
+    for f in (ROOT / "web" / "src" / "skins" / "app" / "demo" / "flows").glob("*.json"):
+        out |= {v for v in (json.loads(f.read_text()).get("vars") or {}).values() if isinstance(v, str) and SID.match(v)}
+    return out
+
+
+def listing(lean: bool = False) -> list[str]:
     files = [l for l in MANIFEST.read_text().splitlines() if l and (DATA / l).is_file()] if MANIFEST.exists() else []
     llm = [str(p.relative_to(DATA)) for p in (DATA / "demo" / "llm").glob("*.json")]
-    return sorted(set(files) | set(llm))
+    whole = [] if lean else [str(p.relative_to(DATA)) for sid in flow_sids()
+                             for d in DATA.glob(f"cache/*/{sid}*")  # splat/<sid>/ is training input; the trace has what is served
+                             for p in ([d] if d.is_file() else d.rglob("*")) if p.is_file() and not SKIP.search(str(p.relative_to(DATA)))]
+    return sorted(set(files) | set(llm) | set(whole))
 
 
 def size(files: list[str]) -> int:
@@ -94,6 +110,7 @@ def main():
     a.add_argument("--host", default=HOST)
     a.add_argument("--dry-run", action="store_true")
     a.add_argument("--no-code", action="store_true", help="leave the laptop's code and web build as they are")
+    a.add_argument("--lean", action="store_true", help="only the traced files, not the flow buildings' whole caches")
     o = a.parse_args()
 
     if o.trace:
@@ -102,7 +119,7 @@ def main():
         MANIFEST.parent.mkdir(parents=True, exist_ok=True)
         MANIFEST.write_text("\n".join(sorted(old | set(new))) + "\n")  # traces add up: each run may touch more
         print(f"manifest: {len(new)} files in this trace, {len(old | set(new))} in all")
-    files = listing()
+    files = listing(o.lean)
     if not files:
         sys.exit("demo-sync: the data list is empty; play the flows on a traced server and pass --trace")
     print(f"data: {len(files)} files, {human(size(files))}")
