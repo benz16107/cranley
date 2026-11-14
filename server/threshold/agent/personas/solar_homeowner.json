@@ -1,0 +1,14 @@
+{
+  "id": "solar_homeowner",
+  "title": "Homeowner considering solar",
+  "who": "Wants to know how much of the roof can carry panels, what they would make in a year and how long they take to pay back.",
+  "tools": [
+    "solar_roof",
+    "roof_facts"
+  ],
+  "thresholds": {},
+  "layout": {
+    "view": "map",
+    "lead_tool": "solar_roof"
+  }
+}

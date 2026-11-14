@@ -19,6 +19,7 @@ LAYERS = (("SRA", "FHSZSRA_23_3", "State Responsibility Area zones, effective 20
           ("LRA", "FHSALRA25_v1_All", "Local Responsibility Area zones recommended by the State Fire Marshal, 2025"))
 VIEWER = "https://experience.arcgis.com/experience/5065c998b4b0462f9ec3c6c226c610a9"
 GAP_S = 1.0
+CLASSES = ("Moderate", "High", "Very High")
 _lock, _last = threading.Lock(), [0.0]
 
 
@@ -53,7 +54,7 @@ def zone(lat: float, lon: float) -> dict:
         for resp, layer, note in LAYERS:
             hits = _query(layer, lat, lon)
             best = max(hits, key=lambda a: a.get("FHSZ") or 0, default=None)
-            if best and best.get("FHSZ_Description"):
+            if best and best.get("FHSZ_Description") in CLASSES:  # "NonWildland" polygons sit outside the zones
                 return {"available": True, "zone": best["FHSZ_Description"], "responsibility": resp, "layer": layer,
                         "note": f"CAL FIRE {note}; check the parcel on {VIEWER}"}
     except (httpx.HTTPError, RuntimeError, ValueError) as e:

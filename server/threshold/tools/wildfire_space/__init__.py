@@ -208,7 +208,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                   f"over {z['area_m2']:.0f} m²" + (f" of the parcel ({z['on_parcel_pct']:.0f}% of the zone is yours)" if land is not None else "")
                   + "." + (f" Most canopy on the {z['side']} side." if z["side"] else "")
                   + (f" Beyond your property line the zone is {z['outside_canopy_pct']:.0f}% canopy: a talk with the neighbour."
-                     if z["outside_canopy_pct"] else "")
+                     if (z["outside_canopy_pct"] or 0) > LIMITS[key]["canopy"][0] else "")
                   + (f" Vexcel's own estimate of tree cover here: {vx:.0f}%." if isinstance(vx, (int, float)) else ""))
         todo = {"zone0": f"clear the {what} within 5 ft of the walls" + (f", starting on the {z['side']} side" if z["side"] else "")
                 + "; nothing that burns belongs here, including wood mulch",

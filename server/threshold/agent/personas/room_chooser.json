@@ -1,0 +1,16 @@
+{
+  "id": "room_chooser",
+  "title": "Plant lover or home office worker choosing a room",
+  "who": "Wants to know which room gets the most sun for plants, which gives daylight without screen glare for a desk, and which bedroom stays cool in summer.",
+  "tools": [
+    "sun_rooms",
+    "daylight",
+    "window_check",
+    "office_fit"
+  ],
+  "thresholds": {},
+  "layout": {
+    "view": "plan",
+    "lead_tool": "sun_rooms"
+  }
+}

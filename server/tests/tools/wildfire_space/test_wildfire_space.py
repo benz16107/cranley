@@ -73,3 +73,11 @@ def test_zone_limits():
     assert wf.judge("zone0", {"canopy_pct": 0, "veg_pct": 30}) == "fail"
     assert wf.judge("zone1", {"canopy_pct": 35, "veg_pct": 40}) == "warn"
     assert wf.judge("zone2", {"canopy_pct": 10, "veg_pct": 10}) == "pass"
+
+
+def test_nonwildland_is_outside_the_zones(monkeypatch):
+    from threshold.tools.wildfire_space import calfire
+    monkeypatch.setattr(calfire, "_query", lambda layer, lat, lon: [{"SRA": "LRA", "FHSZ": 0, "FHSZ_Description": "NonWildland"}])
+    assert calfire.zone(34.0, -118.3)["zone"] is None
+    monkeypatch.setattr(calfire, "_query", lambda layer, lat, lon: [{"SRA": "LRA", "FHSZ": 3, "FHSZ_Description": "Very High"}])
+    assert calfire.zone(34.0, -118.3)["zone"] == "Very High"
