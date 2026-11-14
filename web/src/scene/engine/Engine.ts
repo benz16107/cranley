@@ -12,10 +12,16 @@ import { azOfBearing, bearingOfAz, freeRect, lookAngles } from './camera.ts'
 import { PanoView } from './pano.ts'
 import { easeInOut, reducedMotion, Rig } from './rig.ts'
 import { SplatView } from './splat.ts'
+import { ScanMesh } from '../../world/ScanMesh.ts'
+import { WorldView } from '../../world/WorldView.ts'
 
 export interface SceneState {
   mode: Mode; loading: boolean; pano: string | null; hasEmpty: boolean; noWalls: boolean
   splat: { status: SplatView['status']; progress: number; splats: number; total: number }
+  /** The surroundings: what they are drawn from, how sure the placement is, and when the pictures were taken. */
+  world: { status: WorldView['status']; kind: WorldView['kind']; placed: boolean; note: string; capture: string; credit: string }
+  /** The scanned mesh and its colour atlas (baked on first use; `progress` is 0..1 while baking). */
+  scan: { status: ScanMesh['status']; colour: ScanMesh['colour']; progress: number }
 }
 /** Per-frame facts the React layer applies straight to the DOM (no re-render): the plan transform and the view cone. */
 export interface FrameInfo {
@@ -34,6 +40,9 @@ export interface EngineOpts {
 }
 
 const DOLL_FOV = 32, PLAN_FOV = 14, PANO_FOV = 76, PANO_FOV_MIN = 34, PANO_FOV_MAX = 96, SPLAT_DIST = 58
+const AERIAL_MAX_DIST = 560 // metres: far enough to see the block, near enough that the fetched tiles stay few
+const SPLAT_CLEAR_M = 34    // the drone capture is good to about here; the surroundings take over beyond it
+const smooth = (a: number, b: number, x: number) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t) }
 const RAD = Math.PI / 180
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 const differs = (a: unknown, b: unknown) => JSON.stringify(a ?? null) !== JSON.stringify(b ?? null)
@@ -50,6 +59,9 @@ export class Engine {
   private overlays3d: Overlays3D
   private pano: PanoView
   private splat: SplatView
+  private world: WorldView
+  private scan: ScanMesh
+  private tour = 0 // the step of the flight in from above that is playing; 0 is none
   private overlays: Overlay[] = []
   private overlayLabels: LabelSpec[] = []
   private roomLabels: LabelSpec[]
@@ -93,7 +105,13 @@ export class Engine {
       if (this.view.mode === 'splat' && this.splat.splats && !this.splatAimed) { this.splatAimed = true; this.rig.flyTo({ target: this.splat.centre.clone() }, 700) } // flyTo keeps the orbit distance; a nudge would freeze the move mid-way
       this.invalidate(); this.pushState()
     }
-    this.scene.add(this.pano.group, this.doll.group, this.overlays3d.group, this.splat.group)
+    const b = this.model.bounds, layerChanged = () => { this.invalidate(); this.pushState() }
+    this.world = new WorldView(this.renderer, opts.api, plan.sid, this.tokens.stage,
+      this.model.plan.rooms.filter((r) => r.polygon.length > 2).map((r) => r.polygon), [(b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2], this.radius())
+    this.world.onChange = layerChanged
+    this.scan = new ScanMesh(opts.api, plan.sid, this.tokens)
+    this.scan.onChange = layerChanged
+    this.scene.add(this.world.group, this.pano.group, this.doll.group, this.scan.group, this.overlays3d.group, this.splat.group)
 
     this.labels = new Labels(this.model)
     el.appendChild(this.labels.root)
@@ -124,7 +142,42 @@ export class Engine {
     this.labels.sync([...this.roomLabels, ...this.overlayLabels])
     this.markCurrent()
     this.applyStyles()
+    this.world.setMute(this.overlays.length ? 0.4 : 0) // a result on the building: the surroundings step back
     this.invalidate()
+  }
+
+  private get aerial() { const v = this.view; return v.env === 'aerial' && (v.mode === 'dollhouse' || v.mode === 'splat') }
+  /** What is drawn besides the model (surroundings, scanned mesh) and how the model itself is drawn. */
+  private applyLayers(prev: View | null) {
+    const v = this.view, aerial = this.aerial, rig = this.rig, R = this.radius()
+    const scan = v.surface === 'scan' && v.mode === 'dollhouse'
+    this.doll.setSurface(scan ? 'scan' : 'model')
+    this.doll.setXray(v.style === 'xray' && !scan)
+    this.doll.setGround(!aerial)
+    if (v.mode === 'dollhouse') rig.limits.maxDist = aerial ? AERIAL_MAX_DIST : R * 9
+    if (v.mode === 'splat') rig.limits.maxDist = aerial ? AERIAL_MAX_DIST : 160
+    const was = !!prev && prev.env === 'aerial' && (prev.mode === 'dollhouse' || prev.mode === 'splat')
+    if (prev && aerial !== was && v.mode === prev.mode) { // step back to take the surroundings in, or return to the building
+      if (v.mode === 'dollhouse') rig.flyTo(this.withPose(aerial ? { ...this.dollPose(), dist: Math.max(this.dollPose().dist * 1.7, 70), pol: 1.02, az: rig.goal.az } : { ...this.dollPose(), az: rig.goal.az }), 1100)
+      else rig.flyTo({ dist: aerial ? 120 : this.splatDist() }, 1100)
+    }
+    if (prev && v.tour != null && v.tour !== prev.tour) this.startTour()
+  }
+
+  /** The flight in: up over the neighbourhood, down to the building, then into a room. Any touch stops it. */
+  private startTour() {
+    if (this.view.mode !== 'dollhouse') return
+    const p = this.dollPose()
+    this.rig.flyTo({ target: p.target, az: this.rig.pose.az + 0.5, pol: 0.62, dist: this.aerial ? 330 : p.dist * 2.4, fov: DOLL_FOV }, 1300)
+    this.tour = 1
+  }
+  private stepTour() {
+    const p = this.dollPose(), rig = this.rig
+    if (this.tour === 1) { rig.flyTo({ ...p, az: rig.pose.az - 1.35, pol: 0.98, dist: p.dist * 0.92 }, 3600); this.tour = 2; return }
+    this.tour = 0
+    const c = this.centre(), off = (q: Pano) => Math.hypot(q.position[0] - c.x, q.position[1] - c.y)
+    const inside = this.model.plan.panos.filter((q) => q.room).sort((a, b) => off(a) - off(b))[0] ?? this.nearestPano(c.x, c.y) // a position in a room, not on the path outside
+    if (inside) this.opts.onViewChange({ ...this.view, mode: 'pano', pano: inside.id })
   }
 
   setView(next: View) {
@@ -157,6 +210,9 @@ export class Engine {
     if (next.focus && JSON.stringify(next.focus) !== JSON.stringify(prev.focus)) this.focusOn(next.focus)
     if (differs(next.focus, prev.focus)) this.markCurrent()
     if (next.fit !== prev.fit && next.fit != null && next.mode === prev.mode) this.stepBack()
+    const top = floorIdx ?? m.floorZ.length - 1 // the scanned mesh is cut at one height: the cut above the highest floor shown
+    this.scan.setCut(next.cut == null && floorIdx === null ? 1e6 : m.floorZ[top] + Math.min(next.cut ?? 99, m.floorH[top] + 0.25))
+    this.applyLayers(prev)
     this.pushState(); this.invalidate()
   }
 
@@ -316,6 +372,9 @@ export class Engine {
       mode: this.view.mode, loading: this.loading > 0 || (this.view.mode === 'splat' && this.splat.status === 'loading'), pano: this.pano.current?.id ?? null,
       hasEmpty: this.pano.hasEmpty, noWalls: !this.model.hasWalls,
       splat: { status: this.splat.status, progress: Math.round(this.splat.progress * 50) / 50, splats: this.splat.splats, total: this.splat.total },
+      world: { status: this.world.status, kind: this.world.kind, placed: !!this.world.site?.georef?.verified, note: this.world.site?.georef?.note ?? this.world.site?.note ?? '',
+        capture: (this.world.kind === 'city mesh' && this.world.site?.tiles3d?.capture?.[0]) || '', credit: (this.world.kind === 'city mesh' && this.world.site?.tiles3d?.copyright) || '' },
+      scan: { status: this.scan.status, colour: this.scan.colour, progress: Math.round(this.scan.progress * 20) / 20 },
     }
     const key = JSON.stringify(s)
     if (key !== this.stateKey) { this.stateKey = key; this.opts.onState(s) }
@@ -338,6 +397,24 @@ export class Engine {
     else if (this.drift && mode === 'splat' && !this.rig.moving) this.rig.goal.az += dt * 0.05
     let moving = this.rig.update(dt)
     const flying = this.rig.moving
+    if (this.tour && !flying) this.stepTour()
+    // In real surroundings the building is whole from far off and opens as the camera comes in: the roof of the city
+    // mesh dissolves and the model rises in the gap. A splat brings its own ground, so the surroundings clear a disc.
+    const aerial = this.aerial, scanOn = this.view.surface === 'scan' && mode === 'dollhouse'
+    let open = 1
+    if (aerial) {
+      const near = this.dollPose().dist * 1.9
+      open = mode === 'splat' ? 1 : 1 - smooth(near, near * 1.8, this.rig.pose.dist)
+      this.world.setHole(open, mode === 'splat' ? SPLAT_CLEAR_M : 0)
+      const cam = this.rig.camera, far = Math.min(cam.far, this.rig.pose.dist + 900)
+      if (far !== cam.far) { cam.far = far; cam.updateProjectionMatrix() }
+    }
+    const present = mode === 'splat' ? (this.view.style === 'xray' ? 1 : 0) : open > 0.5 ? 1 : 0
+    this.doll.anim.reveal.goal = present
+    this.world.show(aerial); this.scan.show(scanOn && present === 1)
+    this.scan.setWater(this.doll.anim.water.cur)
+    if (this.world.update(dt)) moving = true
+    if (this.scan.update(dt)) moving = true
     if (this.off.t < 1) { // the picture's centre eases into the free rectangle
       const o = this.off; o.t = Math.min(1, o.t + dt / 0.4)
       const k = easeInOut(o.t); o.cur = [o.from[0] + (o.to[0] - o.from[0]) * k, o.from[1] + (o.to[1] - o.from[1]) * k]
@@ -436,7 +513,7 @@ export class Engine {
       if ((e.target as HTMLElement).closest('[data-scene-ui]')) return // rulers, sliders and pins handle themselves
       this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
       this.drag = { moved: 0, t: performance.now(), vx: 0, vy: 0, last: performance.now(), button: e.button }
-      this.drift = false; this.orbiting = false
+      this.drift = false; this.orbiting = false; this.tour = 0
     }
     const onMove = (e: PointerEvent) => {
       const prev = this.pointers.get(e.pointerId)
@@ -481,7 +558,7 @@ export class Engine {
     }
     const onWheel = (e: WheelEvent) => {
       if ((e.target as HTMLElement).closest('[data-scene-ui]')) return
-      e.preventDefault(); this.drift = false; this.orbiting = false
+      e.preventDefault(); this.drift = false; this.orbiting = false; this.tour = 0
       const mode = this.view.mode, k = Math.exp(e.deltaY * 0.0014)
       if (mode === 'pano') { rig.nudge((g) => (g.fov += e.deltaY * 0.035)); return }
       if (mode === 'plan') { // keep the point under the pointer still
@@ -530,7 +607,7 @@ export class Engine {
 
   dispose() {
     cancelAnimationFrame(this.raf); this.unsub(); this.ro.disconnect(); this.listeners.abort()
-    this.doll.dispose(); this.pano.dispose(); this.splat.dispose()
+    this.doll.dispose(); this.pano.dispose(); this.splat.dispose(); this.world.dispose(); this.scan.dispose()
     this.renderer.dispose(); this.renderer.domElement.remove(); this.labels.root.remove()
   }
 }

@@ -15,7 +15,7 @@ const STYLE_GLSL = /* glsl */ `
   uniform sampler2D uStyle;
   uniform float uFloorZ[${MAX_FLOORS}];
   uniform float uFloorShow[${MAX_FLOORS}];
-  uniform float uCut, uMaxH, uReveal, uWater, uOccluder;
+  uniform float uCut, uMaxH, uReveal, uWater, uOccluder, uXray, uLift;
   uniform vec3 uPaper, uInk, uGlass, uStage, uWaterCol;
   vec4 styleA(float e) { return texelFetch(uStyle, ivec2(int(e + 0.5), 0), 0); } // tint rgb, tint amount
   vec4 styleB(float e) { return texelFetch(uStyle, ivec2(int(e + 0.5), 1), 0); } // wash, height, alpha
@@ -55,14 +55,14 @@ const WALL_FRAG = /* glsl */ `
       float w = fwidth(vW.z) * 1.2 + 0.006;
       col = mix(col, vec3(1.0), (1.0 - smoothstep(w * 0.5, w, abs(d))) * 0.85);
     }
-    gl_FragColor = vec4(col, 1.0);
+    gl_FragColor = vec4(col, mix(1.0, cap ? 0.92 : 0.16, uXray)); // x-ray: glass faces, inked cut lines
   }`
 
 const FLOOR_VERT = /* glsl */ `
   varying vec3 vW; uniform float uFloorIdx;
   ${STYLE_GLSL}
   void main() {
-    vec3 p = position; p.z += uFloorZ[int(uFloorIdx + 0.5)]; vW = p;
+    vec3 p = position; p.z += uFloorZ[int(uFloorIdx + 0.5)] + uLift; vW = p;
     gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0);
   }`
 
@@ -175,7 +175,7 @@ export class Dollhouse {
       uStyle: { value: this.styleTex }, uFloorZ: { value: new Float32Array(MAX_FLOORS) }, uFloorShow: { value: new Float32Array(MAX_FLOORS).fill(1) },
       uCut: { value: 99 }, uMaxH: { value: m.maxH }, uReveal: { value: 1 }, uWater: { value: -1000 }, uOccluder: { value: 0 },
       uPaper: v3(tok.paper), uInk: v3(tok.ink), uGlass: v3(tok.glass), uStage: v3(tok.stage), uWaterCol: v3(tok.water), uAccent: v3(tok.accent),
-      uPano: { value: 0 },
+      uPano: { value: 0 }, uXray: { value: 0 }, uLift: { value: 0 },
     }
     for (let f = 0; f < nF; f++) { const g = new THREE.Group(); this.floorGroups.push(g); this.group.add(g) }
 
@@ -377,12 +377,25 @@ export class Dollhouse {
   setFloorShown(shown: (floorIdx: number) => boolean) { this.showAnim.forEach((a, i) => (a.goal = shown(i) ? 1 : 0)) }
   setSize(w: number, h: number) { this.lineRes.set(w, h) }
 
+  private look = { pano: false, scan: false, xray: false, ground: true }
   /** Panorama mode: walls only write depth, floors show lens colour only, rings mark where you can walk. */
-  setPanoMode(on: boolean) {
-    this.uniforms.uOccluder.value = on ? 1 : 0; this.uniforms.uPano.value = on ? 1 : 0
-    ;(this.walls.material as THREE.ShaderMaterial).colorWrite = !on
-    for (const f of this.floors) { const mat = f.material as THREE.ShaderMaterial; mat.uniforms.uPanoTint.value = on ? 1 : 0; mat.depthWrite = !on }
-    this.ground.visible = !on
+  setPanoMode(on: boolean) { if (on !== this.look.pano) { this.look.pano = on; this.syncLook() } }
+  /** 'scan': the scanned mesh is drawn instead, so the walls go and the floors keep only their lens and rule colour,
+      laid just over the mesh's own floor. */
+  setSurface(s: 'model' | 'scan') { if ((s === 'scan') !== this.look.scan) { this.look.scan = s === 'scan'; this.syncLook() } }
+  /** Walls as glass. */
+  setXray(on: boolean) { if (on !== this.look.xray) { this.look.xray = on; this.syncLook() } }
+  /** The grid and the shade round the footprint. Off when real ground is drawn. */
+  setGround(on: boolean) { if (on !== this.look.ground) { this.look.ground = on; this.syncLook() } }
+  private syncLook() {
+    const { pano, scan, xray, ground } = this.look, tintOnly = pano || scan, wm = this.walls.material as THREE.ShaderMaterial
+    this.uniforms.uOccluder.value = pano ? 1 : 0; this.uniforms.uPano.value = pano ? 1 : 0
+    this.uniforms.uXray.value = xray && !pano ? 1 : 0; this.uniforms.uLift.value = scan && !pano ? 0.04 : 0
+    this.walls.visible = pano || !scan // inside a panorama the walls still hide what is behind them
+    wm.colorWrite = !pano; wm.transparent = xray && !pano; wm.depthWrite = !wm.transparent; wm.needsUpdate = true
+    for (const f of this.floors) { const mat = f.material as THREE.ShaderMaterial; mat.uniforms.uPanoTint.value = tintOnly ? 1 : 0; mat.depthWrite = !tintOnly }
+    this.ground.visible = !pano && ground
+    this.onChange()
   }
 
   floorZ(f: number) { return (this.uniforms.uFloorZ.value as Float32Array)[f] ?? 0 }
