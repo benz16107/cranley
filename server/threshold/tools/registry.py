@@ -33,12 +33,16 @@ def field(default: Any = ..., *, ask: str | None = None, pref: str | None = None
 
 
 def default_plan(sid: str) -> dict:
-    """A ScanPlan: the fixture copy if there is one (no network), else the data workstream's cached loader."""
-    f = DATA / "fixtures" / "scanplan" / f"{sid}.json"
-    if f.exists():
-        return json.loads(f.read_text())
+    """A ScanPlan from the data workstream's cached loader (current normalizer, with `quality`). The fixture copy,
+    which an older normalizer wrote, is the fallback when the loader cannot reach the scan."""
     from ..sources import matterport
-    return matterport.plan(sid)
+    f = DATA / "fixtures" / "scanplan" / f"{sid}.json"
+    try:
+        return matterport.plan(sid)
+    except Exception:
+        if f.exists():
+            return json.loads(f.read_text())
+        raise
 
 
 @dataclass
