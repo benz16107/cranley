@@ -284,9 +284,11 @@ def rules(p: Pet, E: dict, k: str) -> list[tuple]:
             1, "", "pass" if c else "warn", None, f"pet_fit:{k}:crate", "" if c else "no clear spot for a crate in the living rooms or bedrooms")
     if p.kind == "cat" and "crates" in E:
         lt = E.get("litter")
-        add("litter", "A litter box spot away from food", round(lt["food_m"], 2) if lt and lt.get("food_m") is not None else (1 if lt else 0),
-            home.LITTER_FROM_FOOD_M if lt and lt.get("food_m") is not None else 1, "m" if lt and lt.get("food_m") is not None else "",
-            "pass" if lt else "warn", None, f"pet_fit:{k}:litter", "" if lt else "no litter box spot 3 m or more from the kitchen")
+        fm = lt.get("food_m") if lt else None
+        st_ = "warn" if not lt or (fm is not None and fm < home.LITTER_FROM_FOOD_M) else "pass"
+        add("litter", "A litter box spot away from food", round(fm, 2) if fm is not None else (1 if lt else 0),
+            home.LITTER_FROM_FOOD_M if fm is not None else 1, "m" if fm is not None else "", st_, None, f"pet_fit:{k}:litter",
+            "" if st_ == "pass" else f"the best litter box spot is {fm:.1f} m from the kitchen" if lt else "no litter box spot clear of doors")
     # falls
     fall = E.get("fall")
     if p.kind == "cat" and (fall or E.get("apartment")):
@@ -420,7 +422,7 @@ def evidence(E: dict, k: str, sid: str | None) -> tuple[list, list, list]:
                                 label="Pen" if key == "pen" else f"Crate ({key} dog)", status="pass"))
     lt = E.get("litter")
     if lt:
-        F.append(Finding(id=f"pet_fit:{k}:litter", title="Litter box spot", status="pass", anchor=RoomAnchor(sid=sid, room=lt["room"]),
+        F.append(Finding(id=f"pet_fit:{k}:litter", title="Litter box spot", status="pass" if (lt.get("food_m") or 99) >= home.LITTER_FROM_FOOD_M else "warn", anchor=RoomAnchor(sid=sid, room=lt["room"]),
                          source=GEO, detail=f"In the {lt['label'].lower()}" + (f", {lt['food_m']:.1f} m from the kitchen or dining room."
                                                                              if lt.get("food_m") is not None else ", on a floor with no kitchen.")))
         O.append(BoxOverlay(center=lt["center"], size=lt["size"], yaw_deg=round(lt["yaw_deg"], 1), label="Litter box", status="pass"))

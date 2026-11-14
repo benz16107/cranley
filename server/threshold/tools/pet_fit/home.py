@@ -109,7 +109,7 @@ def litter_spot(plan: dict) -> dict | None:
     def far(r, box):
         c = Point((box[0][0] + box[2][0]) / 2, (box[0][1] + box[2][1]) / 2)
         return all(fl != r["floor"] or p.distance(c) >= LITTER_FROM_FOOD_M for fl, p in food)
-    s = _spot(plan, LITTER_ROOMS, LITTER, far)
+    s = _spot(plan, LITTER_ROOMS, LITTER, far) or _spot(plan, LITTER_ROOMS, LITTER)  # else the best spot, flagged by the rule
     if s:
         c = Point(s["center"][:2])
         same = [p.distance(c) for fl, p in food if fl == s["floor"]]
