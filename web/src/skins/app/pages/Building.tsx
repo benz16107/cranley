@@ -230,6 +230,11 @@ export function Building({ sid }: { sid: string }) {
   const on = pick ?? (inView && drawn.includes(inView.tool) ? [inView.tool] : [])
   const v = useBuildingView(sid, on.length === drawn.length ? undefined : { tools: on })
   const b = useBuildings((s) => s.all.find((x) => x.scans.some((y) => y.sid === sid)))
+  // This look's starting view of a scan: walls cut at 1.4 m, so the rooms, their photographed floors and the pins on
+  // them show from outside (whole walls hide all three). A cut the person then sets, "full" included, stays.
+  // The frame keeps the building left of the scene's cut control. Its negative edges say the ground may run off that
+  // side: with no frame the scene's fit crops a room in a narrow picture, with a plain one the building sits small.
+  useEffect(() => { v.setView((x) => ({ ...x, cut: x.cut === undefined ? 1.4 : x.cut, frame: { top: -20, right: 20, bottom: -20, left: -100 } })) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [picked, setTab] = useState<string | null>(null)
   const tab = picked ?? (panels.length ? 'results' : 'overview') // until the person picks: results when there are any
 

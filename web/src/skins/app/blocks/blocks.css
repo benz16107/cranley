@@ -4,6 +4,9 @@
 .panel[data-open='true'] > header { border-bottom: 1px solid var(--rule); }
 .panel > header h3 { flex: 1; font-size: var(--text-sm); font-weight: 600; }
 .panel .fold { display: grid; place-items: center; width: 24px; height: 28px; color: var(--ink-3); border-radius: var(--r-1); flex: none; }
+/* the whole header row folds and unfolds, not only the chevron */
+.panel .fold::after { content: ''; position: absolute; inset: 0; }
+@media (hover: hover) and (pointer: fine) { .panel > header:has(.fold:hover) { background: var(--pane-2); } }
 @media (hover: hover) and (pointer: fine) { .panel .fold:hover { color: var(--ink); background: var(--pane-2); } }
 .panel > :not(header) { border-bottom: 1px solid var(--rule); }
 .panel > :last-child { border-bottom: 0; }
