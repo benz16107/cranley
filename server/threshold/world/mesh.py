@@ -31,7 +31,7 @@ VOXEL = 0.08            # metres; the occupancy grid that decides whether a pano
 MAX_RANGE = 10.0        # a panorama further than this does not colour a triangle
 MIN_COS = 0.2           # nor one that sees it at a flatter angle than this
 NADIR_COS = 0.9         # nor, by choice, one standing right over it: Matterport blurs the tripod out of each panorama
-BAKE_VERSION = 2
+BAKE_VERSION = 3
 CANDIDATES = 6
 MARGIN = 1.0            # metres of mesh kept outside the plan's walls (the rest is the garden seen through windows)
 NEUTRAL = (204, 200, 192)
@@ -74,6 +74,26 @@ def trim(V: np.ndarray, F: np.ndarray, plan: dict) -> np.ndarray:
     c = V[F].mean(1)
     keep = (c[:, 0] > lo[0]) & (c[:, 0] < hi[0]) & (c[:, 1] > lo[1]) & (c[:, 1] < hi[1]) & (c[:, 2] < top) & (c[:, 2] > -1.0)
     return F[keep]
+
+
+def without_specks(F: np.ndarray, share: float = 0.01, least: int = 150) -> np.ndarray:
+    """The triangles of every connected piece that is not a speck. A scan leaves scraps of tree and roof floating
+    beside the building; a piece with under 1% of the triangles (and under 150) is one of those."""
+    parent = np.arange(int(F.max()) + 1) if len(F) else np.arange(0)
+
+    def find(i: int) -> int:
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    for a, b, c in F.tolist():
+        ra, rb, rc = find(a), find(b), find(c)
+        parent[rb] = ra
+        parent[rc] = ra
+    root = np.array([find(i) for i in F[:, 0].tolist()])
+    _, piece, count = np.unique(root, return_inverse=True, return_counts=True)
+    return F[count[piece] >= min(least, share * len(F))]
 
 
 def face_frames(V: np.ndarray, F: np.ndarray) -> np.ndarray:
@@ -297,7 +317,7 @@ def pano_cubes(sid: str, pano: str) -> list[np.ndarray]:
 def prepared(sid: str) -> tuple[np.ndarray, np.ndarray, dict, dict]:
     plan = mp.plan(sid)
     V, F = parse_obj(obj_bytes(sid))
-    F = trim(V, F, plan)
+    F = without_specks(trim(V, F, plan))
     cams = np.array([p["position"] for p in plan["panos"]], np.float32).reshape(-1, 3)
     if len(cams):
         F = facing_in(V, F, cams)
@@ -331,7 +351,7 @@ def geometry(sid: str) -> bytes:
         V, F, lay, plan = prepared(sid)
         return pack(V, F, lay["uv"], floor_of(V, F, plan))
     with one_flight(f"mesh:{sid}"):
-        return cached(cache_path("mesh", sid, "mesh2.bin"), make)
+        return cached(cache_path("mesh", sid, "mesh3.bin"), make)
 
 
 def bake(sid: str, progress=lambda done, total: None) -> dict:

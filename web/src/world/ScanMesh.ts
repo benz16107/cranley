@@ -78,7 +78,7 @@ export class ScanMesh {
     this.status = 'loading'; this.onChange()
     try {
       // v is the file layout's number: the answer is cached for a day, so a new layout needs a new address
-      const buf = await fetch(`${this.api}/api/world/${this.sid}/mesh?v=2`).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`mesh ${r.status}`))))
+      const buf = await fetch(`${this.api}/api/world/${this.sid}/mesh?v=3`).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`mesh ${r.status}`))))
       if (this.gone) return
       const head = new DataView(buf)
       if (new TextDecoder().decode(buf.slice(0, 4)) !== 'THM2') throw new Error('not a mesh')
@@ -105,7 +105,8 @@ export class ScanMesh {
     const st = await fetch(`${this.api}/api/world/${this.sid}/mesh/status`).then((r) => r.json()).catch(() => ({ state: 'failed' }))
     if (this.gone) return
     if (st.state === 'ready') {
-      new THREE.TextureLoader().load(`${this.api}/api/world/${this.sid}/mesh/atlas.jpg`, (t) => {
+      // the atlas only fits the mesh it was baked for, and both are cached for a day: name the bake in the address
+      new THREE.TextureLoader().load(`${this.api}/api/world/${this.sid}/mesh/atlas.jpg?v=${st.version}-${st.triangles}`, (t) => {
         // every triangle has its own cell in the atlas, so smaller mip levels would mix neighbours that are not neighbours
         t.colorSpace = THREE.NoColorSpace; t.generateMipmaps = false; t.minFilter = t.magFilter = THREE.LinearFilter
         if (this.gone) { t.dispose(); return }

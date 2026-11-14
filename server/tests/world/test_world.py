@@ -97,3 +97,12 @@ def test_best_shift_and_align_recover_a_known_move():
     out = splatfit.align(moved, dsm)
     assert abs(out["rot_deg"] - 5.0) <= 0.5 and np.allclose(out["t"][:2], (6.0, -4.0), atol=1.0) and out["verified"]
     assert abs(out["t"][2] - 1.5) < 0.2
+
+
+def test_specks_are_dropped_and_real_pieces_kept():
+    V, F = _room()
+    big = np.concatenate([F + 8 * i for i in range(40)])       # forty rooms: 480 triangles, each room its own piece of 12
+    joined = np.concatenate([big, np.array([[i * 8, (i + 1) * 8, (i + 1) * 8 + 1] for i in range(39)])])  # stitched into one piece
+    speck = np.array([[900, 901, 902]])
+    kept = mesh.without_specks(np.concatenate([joined, speck]))
+    assert len(kept) == len(joined) and 900 not in kept
