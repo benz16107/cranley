@@ -10,7 +10,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from .. import (Action, Assumption, Check, Finding, Metric, OpeningAnchor, PointAnchor, RoomAnchor, RuleOverlay,
+from .. import (Action, ToolError, Assumption, Check, Finding, Metric, OpeningAnchor, PointAnchor, RoomAnchor, RuleOverlay,
                 ScanScope, Source, ToolResult, Verdict, field, tool)
 from ..types import BoxOverlay
 from .._access import fmt
@@ -101,11 +101,11 @@ def assumptions(inputs: Inputs, d: Dims) -> list[Assumption]:
                        "not record take room too", value=True)]
 
 
-def no_garage(ctx, plan: dict, sid: str, scope, base: list) -> ToolResult:
+def no_garage(ctx, sid: str, scope, base: list) -> ToolResult:
     """Say plainly there is no garage in the scan, and what the aerial photos show, if the scan has a location."""
     text = ("This scan has no garage: no room is labelled Garage or Carport, and no ground-floor room has a door wide "
             "enough for a car.")
-    findings, metrics = [], []
+    metrics = []
     try:
         from ...aerial import detect as aerial_detect
         from .._site import Where, locate
@@ -127,7 +127,7 @@ def no_garage(ctx, plan: dict, sid: str, scope, base: list) -> ToolResult:
             text += " The aerial photos show no garage door or driveway either."
     except Exception as e:  # noqa: BLE001  no location (a phone scan) or Vexcel down: the scan answer stands alone
         text += " The aerial photos could not be checked: " + (str(e).split(".")[0][:120] or type(e).__name__) + "."
-    return ToolResult(scope=scope, verdict=Verdict(status="unknown", text=text), metrics=metrics, findings=findings,
+    return ToolResult(scope=scope, verdict=Verdict(status="unknown", text=text), metrics=metrics,
                       assumptions=base, actions=[Action(id="driveway", label="Check the driveway instead",
                                                         tool="driveway_fit", inputs={"scan": sid})])
 
@@ -160,13 +160,15 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     gs = geom.find_garages(plan)
     if inputs.room:
         r = next((r for r in plan.get("rooms") or [] if r["id"] == inputs.room), None)
-        gs = [{"room": r, "how": "chosen"}] if r else gs
+        if r is None:
+            raise ToolError(f"No room {inputs.room!r} in this scan; leave `room` empty to use the garage found.")
+        gs = [{"room": r, "how": "chosen"}]
     if not gs:
-        return no_garage(ctx, plan, sid, scope, base)
+        return no_garage(ctx, sid, scope, base)
     g = gs[0]
     room = g["room"]
     ctx.step(f"Garage: {room.get('label') or 'unlabelled room'} of {room.get('area') or 0:.0f} m2 "
-             f"({'its label' if g['how'] == 'label' else 'a ground-floor room with a car-wide door'})")
+             f"({ {'label': 'its label', 'chosen': 'the room you chose'}.get(g['how'], 'a ground-floor room with a car-wide door')})")
     a = analyse(plan, g, d, inputs.count)
     if a is None:
         return ToolResult(scope=scope, assumptions=base, verdict=Verdict(status="unknown", text=(
@@ -175,7 +177,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     return result(sid, plan, g, a, d, inputs, base)
 
 
-def _box(a: dict, f, u: float, v: float, w: float, l: float, h: float, z0: float, label: str, status: str,
+def _box(f, u: float, v: float, w: float, l: float, h: float, z0: float, label: str, status: str,
          yaw_extra: float = 0.0) -> BoxOverlay:
     c = f.back(u + w / 2, v + l / 2)
     return BoxOverlay(center=(round(c[0], 3), round(c[1], 3), round(z0 + h / 2, 3)), size=(round(l, 3), round(w, 3),
@@ -185,7 +187,7 @@ def _box(a: dict, f, u: float, v: float, w: float, l: float, h: float, z0: float
 def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base: list) -> ToolResult:
     room, f, z0 = g["room"], a["frame"], a["survey"]["z"]
     rid = room["id"]
-    src = GEO if g["how"] == "label" else GEO_LOW
+    src = GEO_LOW if g["how"] == "wide door" else GEO
     checks, findings, overlays = [], [], [RuleOverlay(select={"rooms": [rid]}, style="highlight")]
     name = short(d)
     n = a["n"]
@@ -216,8 +218,9 @@ def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base
     # headroom
     dh, measured = a["door_height"], a["door_height_measured"]
     hst = judge_h(round(dh - d.height, 3))
-    if not measured and (hst == "fail" or hst == "pass" and dh - d.height < 0.25):
-        hst = "warn"  # compared with an assumed door: never a firm answer either way unless far from it
+    if not measured and hst == "pass" and dh - d.height < 0.25 or \
+            not measured and hst == "fail" and d.height + geom.HEIGHT_TIGHT_M <= geom.TALLEST_DOOR_H:
+        hst = "warn"  # an assumed door: a firm answer only when far from it (taller than an 8 ft door fails)
     fid = f"garage_fit:{sid}:door_height"
     checks.append(Check(id="door_height", rule=f"Headroom under the garage door for the {name}"
                         + (" (lift and roof load included)" if inputs.lift_in or inputs.roof_load_m else ""),
@@ -237,6 +240,8 @@ def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base
     ceil = a["ceiling"]
     if ceil:
         cst = judge_h(round(ceil - d.height, 3))
+        if not a["ceiling_measured"] and cst == "fail":
+            cst = "warn"  # the home's typical ceiling stands in; garages are often taller
         checks.append(Check(id="ceiling", rule="Ceiling over the parked vehicle", measured=round(ceil, 3),
                             threshold=round(d.height + geom.HEIGHT_FITS_M, 3), unit="m", status=cst,
                             standard=None if a["ceiling_measured"] else "The garage has no height in the scan: the "
@@ -276,7 +281,7 @@ def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base
                                         status=st, source=src, anchor=PointAnchor(sid=sid, point=(centre[0], centre[1], z0 + 1.0)),
                                         detail=", ".join(f"{s} {fmt(c[s])}" for s in ("left", "right", "front") if c.get(s) is not None)
                                         + f" clear; doors need {fmt(lv_need)} beside the body."))
-            overlays.append(_box(a, f, u, v, d.width, d.length, d.height, z0, tag, st))
+            overlays.append(_box(f, u, v, d.width, d.length, d.height, z0, tag, st))
     # extras
     for t in things(a, d, list(inputs.uses)):
         k, spot = t["id"], t["spot"]
@@ -311,7 +316,8 @@ def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base
                                 detail=f"{fmt(o['size'][0])} x {fmt(o['size'][1])}; its floor is left out of the parking space."))
     # verdict
     fits, tight = a["fits"], a["tight"]
-    statuses = [c.status for c in checks if c.id in ("door_width", "door_height", "ceiling")] + [a["status"]]
+    statuses = [c.status for c in checks if c.id in ("door_width", "door_height", "ceiling")] + [a["status"]] \
+        if n else [c.status for c in checks if c.id.startswith(("room.", "gym."))]
     status = "fail" if "fail" in statuses else "warn" if "warn" in statuses else "pass"
     many = lambda k: f"{WORD.get(k, k)} {name}{'s' if k > 1 else ''}"
     if n == 0:
@@ -326,16 +332,20 @@ def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base
         text += "." if inputs.count is not None or fits == tight else f" ({fits} with doors fully open, {tight} tight)."
     why = {"door_width": " The garage door is narrow for it: fold the mirrors.",
            "door_height": " Headroom under the garage door is tight." if measured else
-           (" It would not clear a standard 7 ft garage door, and the scan did not measure this one: measure it."
+           (" It is taller than even an 8 ft garage door; the scan did not measure this one."
+            if d.height + geom.HEIGHT_TIGHT_M > geom.TALLEST_DOOR_H else
+            " It would not clear a standard 7 ft garage door, and the scan did not measure this one: measure it."
             if dh < d.height + geom.HEIGHT_TIGHT_M else
             " The scan did not measure the garage door's height: check it against the vehicle."),
-           "ceiling": " The ceiling is low for it."}
+           "ceiling": " The ceiling is low for it." if a["ceiling_measured"] else
+           " The garage has no ceiling height in the scan, and the home's typical ceiling is low for it: measure it."}
     for c in checks:
         if c.id in why and c.status in ("warn", "fail") and n:
-            text += why[c.id] if c.status == "warn" or c.id == "door_height" and not measured else \
+            text += why[c.id] if c.status == "warn" or c.id == "door_height" and not measured or \
+                c.id == "ceiling" and not a["ceiling_measured"] else \
                 {"door_width": " The garage door is too narrow for it.", "door_height": " It does not clear the garage door.",
                  "ceiling": " It does not clear the ceiling."}[c.id]
-    if g["how"] != "label":
+    if g["how"] == "wide door":
         text += " The room is unlabelled; it was taken for the garage because of its car-wide door."
     side_vals = [x for c in a["clear"] for x in (c.get("left"), c.get("right")) if x is not None]
     metrics = [Metric(id="fit_count", label=f"{name}s with doors open", value=fits, unit="", source=src),

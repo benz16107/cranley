@@ -12,6 +12,7 @@ import sys
 
 from . import geom
 
+CAR_M = 4.6  # a small car's length plus a little: a garage shallower than this is parked across
 FIELDS = {
     "garage_width": ("Garage inside width", "m", "num", "Across the garage halfway in, at the inner wall faces"),
     "garage_depth": ("Garage inside depth", "m", "num", "From the vehicle door (or a wall) to the back wall"),
@@ -27,7 +28,10 @@ def garage_measures(plan: dict) -> dict:
     s = geom.survey(plan, gs[0]["room"]) if gs else None
     if s is None:
         return out
-    size = geom.size_in(s["frames"][0].geom(s["clear"]), s["doors"])
+    sizes = [geom.size_in(f.geom(s["clear"]), s["doors"]) for f in s["frames"]]
+    # no recorded door: two frames square to the walls. Width is across the parking side: the wider way, unless that
+    # leaves less than a car's length of depth
+    size = max(sizes, key=lambda z: ((z["depth"] or 0) >= CAR_M, z["width"] or 0))
     hs = [d["height"] for d in s["doors"] if d["measured"]]
     r3 = lambda v: None if v is None else round(v, 3)
     out.update(garage_width=r3(size["width"]), garage_depth=r3(size["depth"]),
@@ -46,7 +50,8 @@ def backfill(path=None) -> dict:
     for k in FIELDS:
         if k not in have:
             con.execute(f"ALTER TABLE measures ADD COLUMN {k} REAL")
-    sids = [r[0] for r in con.execute("SELECT sid FROM measures WHERE garages > 0 AND error IS NULL")]
+    # every scan: find_garages also takes Carports and unlabelled rooms with a car-wide door
+    sids = [r[0] for r in con.execute("SELECT sid FROM measures WHERE error IS NULL")]
     done = 0
     for sid in sids:
         plan = cached_plan(sid)
@@ -56,7 +61,7 @@ def backfill(path=None) -> dict:
         con.execute(f"UPDATE measures SET {', '.join(f'{k} = ?' for k in FIELDS)} WHERE sid = ?", [*m.values(), sid])
         done += m["garage_width"] is not None
     con.commit()
-    return {"garage_scans": len(sids), "measured": done}
+    return {"scans": len(sids), "garages_measured": done}
 
 
 if __name__ == "__main__":

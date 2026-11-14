@@ -113,8 +113,7 @@ def measure(plan: dict) -> dict:
     if areas:
         a, big = max(areas, key=lambda x: x[0])
         out["largest_room_area"], out["largest_room_label"] = round(a, 2) or None, big.get("label")
-    if out["garages"] or not q.get("labels"):
-        out.update(garage_measures(plan))
+    out.update(garage_measures(plan))
     hs = [r["height"] for r in rs if r.get("height")]
     if hs:
         out.update(ceiling_median=round(statistics.median(hs), 3), ceiling_min=round(min(hs), 3),

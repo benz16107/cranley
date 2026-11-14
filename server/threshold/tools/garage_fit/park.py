@@ -80,15 +80,12 @@ def analyse(plan: dict, garage: dict, d: Dims, want: int | None) -> dict | None:
     size = geom.size_in(best["raw"], doors)  # measured on the floor itself, not the 2 mm search allowance
     door_h, door_measured = geom.door_limit(doors)
     ceil = s["ceiling"]
-    tops = [x for x in (door_h, ceil["value"]) if x]
-    head = min(tops) if tops else None
     return {"survey": s, "frame": f, "region": region, "doors": doors, "fits": best["fits"], "tight": best["tight"],
             "n": n, "status": status, "cars": cars, "which": which,
             "clear": geom.clearances(best["raw"], cars, d.width, d.length) if cars else [],
             "width": size["width"], "depth": size["depth"], "door_line": size["door_line"],
             "door_width": max((x["width"] for x in doors), default=None), "door_height": door_h,
-            "door_height_measured": door_measured, "ceiling": ceil["value"], "ceiling_measured": ceil["measured"],
-            "headroom": round(head - d.height, 3) if head else None}
+            "door_height_measured": door_measured, "ceiling": ceil["value"], "ceiling_measured": ceil["measured"]}
 
 
 def things(a: dict, d: Dims, uses: list[str]) -> list[dict]:

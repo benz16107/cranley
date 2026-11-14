@@ -172,7 +172,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                     measured=round(width, 2) if width else None, threshold=round(need_w, 2), unit="m", status=st_w,
                     standard="Vehicle width plus 0.3 m")]
     status = "fail" if "fail" in (st_l, st_w) else "warn" if "warn" in (st_l, st_w) or st_w == "unknown" else "pass"
-    short = name.split(",")[0].split(" (")[0]
+    short = name.split(",")[0].split(" (")[0]  # garage_fit.short() takes its Dims; this is the same cut
     text = (f"The driveway is about {length:.0f} m long and {width:.1f} m wide: room for {cars} car{'s' if cars != 1 else ''}"
             if width else f"The driveway is about {length:.0f} m long (width not measured): room for {rows} car{'s' if rows != 1 else ''} in a line")
     text += {"pass": f", and the {short.lower() if short[0].islower() else short} fits off the street.",

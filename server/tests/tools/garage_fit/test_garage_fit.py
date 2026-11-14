@@ -126,3 +126,25 @@ def test_no_garage_says_so():
 def test_unlabelled_room_with_a_car_wide_door_counts():
     r = run(garage_plan(label=None), vehicle="toyota_camry", count=1)
     assert r.verdict.status == "pass" and "unlabelled" in r.verdict.text
+
+
+def test_a_low_gym_ceiling_fails_the_verdict():
+    p = garage_plan()
+    p["rooms"][0]["height"] = 2.2
+    r = run(p, count=0, uses=["squat_rack"])
+    assert check(r, "gym.ceiling").status == "fail" and r.verdict.status == "fail"
+
+
+def test_a_motorhome_fails_even_an_unmeasured_door():
+    r = run(garage_plan(door_h=2.03), vehicle="class_a_rv", count=1)
+    assert check(r, "door_height").status == "fail" and "8 ft" in r.verdict.text
+
+
+def test_a_chosen_room_is_named_and_a_wrong_id_is_an_error():
+    import pytest
+
+    from threshold.tools import ToolError
+    r = run(garage_plan(), room="G", vehicle="toyota_camry", count=1)
+    assert "unlabelled" not in r.verdict.text
+    with pytest.raises(ToolError):
+        run(garage_plan(), room="nope")

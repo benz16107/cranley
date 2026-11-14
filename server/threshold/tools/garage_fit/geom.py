@@ -21,6 +21,7 @@ CANDIDATE_DOOR_M = 2.2     # in an unlabelled room, a one-sided opening this wid
 CANDIDATE_AREA_M2 = 15.0
 DEFAULT_DOOR_H = 2.03      # Matterport records this when it did not measure a door (117 of 188 garage doors)
 STANDARD_DOOR_H = 2.13     # 7 ft, the usual US garage door
+TALLEST_DOOR_H = 2.44      # 8 ft, the tallest common house garage door (RV garages are built to order)
 REAR_M, REAR_TIGHT_M = 0.15, 0.05  # bumper to the inside of the door line: the door closes in the opening
 FRONT_FITS_M, FRONT_TIGHT_M = 0.60, 0.05  # room ahead of the bumper: walk round / parked to the tennis ball
 SQUEEZE_M = 0.45           # beside the body: a person squeezes out of a half-open door
@@ -277,18 +278,10 @@ def free_spot(region, taken, size: tuple[float, float]):
     return None
 
 
-
-
-
-
 def door_limit(doors: list[dict]) -> tuple[float, bool]:
     """Lowest vehicle-door height and whether it was measured; the usual 7 ft door when none was."""
     hs = [d["height"] for d in doors if d["measured"]]
     return (min(hs), True) if hs else (STANDARD_DOOR_H, False)
-
-
-
-
 
 
 def corners_center(corners) -> tuple[tuple[float, float], float, tuple[float, float]]:
