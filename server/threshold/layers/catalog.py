@@ -259,18 +259,30 @@ def _fetch(layer: str, box: tuple[float, float, float, float], city: str, coarse
     return _collection(layer, [t for t in (_tidy(layer, f) for f in feats) if t], cut)
 
 
-def _cached(path: Path, make) -> bytes:
-    try:
-        return path.read_bytes()
-    except FileNotFoundError:
-        pass
-    with one_flight(str(path)):
+def _cached(path: Path, make, ttl_s: float | None = None) -> bytes:
+    """The file at `path`, made once and kept. With `ttl_s` (a live layer: `extra={"ttl_s": 600}`) a file older than
+    that is made again; if the source is down then, the last answer is served, since an hour-old map beats none."""
+    def fresh() -> bytes | None:
         try:
+            if ttl_s and time.time() - path.stat().st_mtime > ttl_s:
+                return None
             return path.read_bytes()
         except FileNotFoundError:
-            data = make()
-            write_atomic(path, data)
+            return None
+
+    if (data := fresh()) is not None:
+        return data
+    with one_flight(str(path)):
+        if (data := fresh()) is not None:  # someone else made it while this call waited
             return data
+        try:
+            data = make()
+        except Exception:
+            if path.exists():
+                return path.read_bytes()
+            raise
+        write_atomic(path, data)
+        return data
 
 
 def city_geojson(layer: str, city: str) -> bytes:
@@ -285,7 +297,7 @@ def city_geojson(layer: str, city: str) -> bytes:
         if layer in OTHER:
             return _collection(layer, *OTHER[layer](city))
         return _fetch(layer, CITIES[city], city, coarse=L.coarse)
-    return _cached(DIR / layer / f"{city}.json", make)
+    return _cached(DIR / layer / f"{city}.json", make, L.extra.get("ttl_s"))
 
 
 def tile_box(z: int, x: int, y: int) -> tuple[float, float, float, float]:
@@ -308,7 +320,7 @@ def tile_geojson(layer: str, z: int, x: int, y: int) -> bytes:
     city = city_of(box)
     if city is None or city not in L.cities:
         return _collection(layer, [], False)
-    return _cached(DIR / layer / str(z) / f"{x}_{y}.json", lambda: _fetch(layer, box, city))
+    return _cached(DIR / layer / str(z) / f"{x}_{y}.json", lambda: _fetch(layer, box, city), L.extra.get("ttl_s"))
 
 
 def fetched(layer: str, city: str) -> str:

@@ -58,3 +58,25 @@ def test_a_source_module_adds_a_layer_with_its_own_fetcher(monkeypatch, tmp_path
     assert row["hue"] == "--tool-3" and row["legend"]["unit"] == "dB" and row["fetched"]
     groups = [r["group"] for r in catalog.catalogue("hou")]
     assert groups == sorted(groups, key=catalog.GROUPS.index)  # the list comes out in the order of the sections
+
+
+def test_a_live_layer_is_fetched_again_when_its_file_is_old_and_keeps_its_last_answer_if_the_source_is_down(tmp_path):
+    import os
+    import time
+    f, calls = tmp_path / "live" / "hou.json", []
+
+    def make():
+        calls.append(1)
+        return b"answer %d" % len(calls)
+
+    assert catalog._cached(f, make, 600) == b"answer 1" and catalog._cached(f, make, 600) == b"answer 1"  # young: kept
+    old = time.time() - 700
+    os.utime(f, (old, old))
+    assert catalog._cached(f, make, 600) == b"answer 2"  # past its lifetime: made again
+    assert catalog._cached(f, make) == b"answer 2" and len(calls) == 2  # no lifetime: a file is kept for good
+    os.utime(f, (old, old))
+
+    def down():
+        raise OSError("the source is down")
+
+    assert catalog._cached(f, down, 600) == b"answer 2"  # old, and the source fails: the last answer stands

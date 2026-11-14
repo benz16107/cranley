@@ -62,11 +62,17 @@ def city3d(lat: float | None = None, lon: float | None = None, sid: str | None =
     return _call(aerial.patch, lat, lon)
 
 
+def _keep(layer: str, seconds: int) -> dict:
+    """How long a browser may keep a layer's answer: no longer than the layer's own lifetime, for a live one."""
+    ttl = (catalog.BY_ID[layer].extra.get("ttl_s") if layer in catalog.BY_ID else None) or seconds
+    return {"Cache-Control": f"max-age={int(min(ttl, seconds))}"}
+
+
 @router.get("/{layer}/geojson")
 def city_geojson(layer: str, city: str = "hou") -> Response:
-    return Response(_call(catalog.city_geojson, layer, city), media_type="application/geo+json", headers=HOUR)
+    return Response(_call(catalog.city_geojson, layer, city), media_type="application/geo+json", headers=_keep(layer, 3600))
 
 
 @router.get("/{layer}/tile/{z}/{x}/{y}")
 def tile_geojson(layer: str, z: int, x: int, y: int) -> Response:
-    return Response(_call(catalog.tile_geojson, layer, z, x, y), media_type="application/geo+json", headers=DAY)
+    return Response(_call(catalog.tile_geojson, layer, z, x, y), media_type="application/geo+json", headers=_keep(layer, 86400))

@@ -29,6 +29,8 @@ An entry (`Layer`):
     extra                {"hue": "--tool-2"} a design token for its colour (else a neutral);
                          {"legend": {"title", "unit", "stops": [[level, label], ...]}} for an area coloured by level;
                          {"tile_maxzoom": 12} the finest zoom a raster's own tiles exist at
+                         {"ttl_s": 600} a live layer: its file is fetched again once it is this many seconds old
+                         (and the last answer is kept if the source is down then)
 
 Everything starts switched off (`on=False`). Stay well under ten requests a second to any source and never loop over
 a city tile by tile at import time: a layer is fetched when someone looks at it.
