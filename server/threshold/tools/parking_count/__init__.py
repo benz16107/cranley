@@ -243,13 +243,13 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         ps.append(pin(f"accessible_{i}", *d["anchor"]["geo"], "accessible", "pass"))
     if not n:
         status = "unknown"
-        text = (f"No marked stalls could be counted; {len(cars)} cars were parked on {capture(s)}"
+        text = (f"No marked stalls could be counted; {len(cars)} car{' was' if len(cars) == 1 else 's were'} parked on {capture(s)}"
                 + (f" and the paved lot could hold about {estimate}" if estimate else "")
                 + (f"; the record says {rec_spaces}." if rec_spaces is not None else "."))
     else:
         status = "warn" if any(ch.status == "warn" for ch in checks) else "pass"
         part = f" on {len(tiles)} of {len(candidates)} lot tiles (the busiest)" if len(candidates) > len(tiles) else ""
-        text = (f"About {n} marked stalls counted from above{part}, {len(cars)} cars parked on {capture(s)}"
+        text = (f"About {n} marked stalls counted from above{part}, {len(cars)} car{'' if len(cars) == 1 else 's'} parked on {capture(s)}"
                 + (f"; the record says {rec_spaces}." if rec_spaces is not None else "; no CoStar parking figure to compare."))
     if fp is not None and rba is None and n:
         rba_ft2 = metres(fp, lat0).area * FT2_PER_M2
