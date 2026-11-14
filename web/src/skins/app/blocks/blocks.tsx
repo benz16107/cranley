@@ -7,6 +7,7 @@ import { fetchPlan, focusAnchor, focusFinding, navigate, panoFace, runAction, us
 import { Icon, RunState, SourceChip, St, StatusGlyph, ToolKey } from '../design/ui.tsx'
 import { dur, num as fmt } from '../lib/format.ts'
 import { PlanDrawing } from '../shell/PlanDrawing.tsx'
+import { oneSource, splitChecks } from '../lib/source.ts'
 
 /* The twelve panel blocks, set at the density of a work tool. A panel is only ever built from these.
    Numbers arrive in the block's data from a tool result and are printed as they are; no text is parsed. */
@@ -20,16 +21,21 @@ function VerdictHeader({ b }: { b: Extract<Block, { type: 'VerdictHeader' }> }) 
 }
 
 function MetricRow({ b }: { b: Extract<Block, { type: 'MetricRow' }> }) {
+  // values that all came from one place say so once, under the row, not once each
+  const one = oneSource(b.metrics.map((m) => m.source))
   return (
-    <dl className="b-metrics">
-      {b.metrics.map((m) => (
-        <div key={m.id}>
-          <dt title={m.label}>{m.label}</dt>
-          <dd>{m.value == null ? <span className="nil hatch" title="Not measured" /> : <b className="num">{fmt(m.value)}</b>}{m.value != null && m.unit && <small>{m.unit}</small>}</dd>
-          <SourceChip source={m.source} />
-        </div>
-      ))}
-    </dl>
+    <>
+      <dl className="b-metrics">
+        {b.metrics.map((m) => (
+          <div key={m.id}>
+            <dt title={m.label}>{m.label}</dt>
+            <dd>{m.value == null ? <span className="nil hatch" title="Not measured" /> : <b className="num">{fmt(m.value)}</b>}{m.value != null && m.unit && <small>{m.unit}</small>}</dd>
+            {!one && <SourceChip source={m.source} />}
+          </div>
+        ))}
+      </dl>
+      {one && <p className="b-from"><SourceChip source={b.metrics[0].source} /></p>}
+    </>
   )
 }
 
@@ -47,12 +53,13 @@ function Gauge({ measured, threshold, status }: { measured: number; threshold: n
 function CheckList({ b, ctx }: { b: Extract<Block, { type: 'CheckList' }>; ctx: Ctx }) {
   const current = ctx.doc.camera?.finding
   const onSite = b.checks.filter((c) => c.site).length
-  return (
-    <>
-    {/* the verdict above is the tool's sentence from the scan; a check the phone has since settled says so itself */}
-    {onSite > 0 && <p className="b-sitenote"><Icon name="camera" size={13} /><span>{onSite === 1 ? 'One check was' : `${onSite} checks were`} settled on site with the phone after this ran. The summary above is still the scan’s.</span></p>}
+  // What needs the person's attention stays in view. What passed, or could not be measured, is one line to unfold.
+  const { shown, folded, summary } = splitChecks(b.checks)
+  const [more, setMore] = useState(false)
+  const held = !!current && folded.some((c) => c.findings.includes(current)) // the finding in view is in the fold: open it
+  const rows = (list: typeof b.checks) => (
     <ul className="b-checks">
-      {b.checks.map((c) => {
+      {list.map((c) => {
         const finding = ctx.doc.findings.find((f) => c.findings.includes(f.id))
         const on = !!current && c.findings.includes(current)
         return (
@@ -72,6 +79,18 @@ function CheckList({ b, ctx }: { b: Extract<Block, { type: 'CheckList' }>; ctx: 
         )
       })}
     </ul>
+  )
+  return (
+    <>
+    {/* the verdict above is the tool's sentence from the scan; a check the phone has since settled says so itself */}
+    {onSite > 0 && <p className="b-sitenote"><Icon name="camera" size={13} /><span>{onSite === 1 ? 'One check was' : `${onSite} checks were`} settled on site with the phone after this ran. The summary above is still the scan’s.</span></p>}
+    {shown.length > 0 && rows(shown)}
+    {folded.length > 0 && (
+      <details className="b-fold" open={more || held} onToggle={(e) => setMore(e.currentTarget.open)}>
+        <summary><Icon name="right" size={11} />{summary}</summary>
+        {rows(folded)}
+      </details>
+    )}
     </>
   )
 }
@@ -244,13 +263,18 @@ function AssumptionEdit({ a }: { a: { id: string; label: string; value: number; 
   )
 }
 
+/** How the tool got there, step by step, with its queries and timings: for whoever wants to check the working. */
 function StepLog({ b }: { b: Extract<Block, { type: 'StepLog' }> }) {
+  if (!b.steps.length) return null
   return (
-    <ol className="b-steps">
-      {b.steps.map((s, i) => (
-        <li key={s.id}><span className="n">{i + 1}</span><span>{s.label}{s.detail && <small>{s.detail}</small>}</span>{s.ms != null && <span className="num t">{dur(s.ms)}</span>}</li>
-      ))}
-    </ol>
+    <details className="b-fold">
+      <summary><Icon name="right" size={11} />How this was worked out</summary>
+      <ol className="b-steps">
+        {b.steps.map((s, i) => (
+          <li key={s.id}><span className="n">{i + 1}</span><span>{s.label}{s.detail && <small>{s.detail}</small>}</span>{s.ms != null && <span className="num t">{dur(s.ms)}</span>}</li>
+        ))}
+      </ol>
+    </details>
   )
 }
 
@@ -299,9 +323,9 @@ export function PanelView({ panel, bare = false, folded = false, open: held, onO
         <button className="fold" aria-expanded={open} aria-label={open ? `Fold ${panel.title}` : `Unfold ${panel.title}`} onClick={() => setOpen(!open)}><Icon name={open ? 'down' : 'right'} size={12} /></button>
         {panel.role && panel.role !== 'tool' ? <span className="chip">{panel.role === 'summary' ? 'Summary' : panel.role === 'ranking' ? 'Ranking' : 'Note'}</span> : <ToolKey id={panel.tool} title={tool?.title ?? panel.title} />}
         <h3 id={id} className="trunc">{panel.title}</h3>
+        {/* the verdict shows on the row when it is folded; unfolded, it is the first thing inside */}
         {!open && verdict && <St status={verdict.status} />}
         {run?.status === 'running' && <RunState state="running" />}
-        {run?.ms != null && open && <span className="num muted">{dur(run.ms)}</span>}
       </header>
       {open && body}
     </section>
