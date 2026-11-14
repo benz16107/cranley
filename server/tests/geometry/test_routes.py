@@ -61,3 +61,9 @@ def test_implausible_door_is_a_data_error_not_a_fail(plan):
     assert rt["narrowest"]["opening"] != "AB"
     rc = {r["room"]: r for r in reach(plan, 0.6)["rooms"]}
     assert rc["B"]["result"] == "measure on site" and rc["B"]["data_error"] == "AB"
+
+
+def test_reach_max_step_blocks_a_high_sill(plan):
+    # BC has a 0.2 m sill; the floor level is the median sill (0), so a 2 cm robot step stops there
+    assert {r["room"]: r["connected"] for r in reach(plan, 0.5, max_step=0.02)["rooms"]}["C"] is False
+    assert {r["room"]: r["connected"] for r in reach(plan, 0.5, max_step=0.25)["rooms"]}["C"] is True

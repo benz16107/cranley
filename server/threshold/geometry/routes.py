@@ -384,20 +384,27 @@ def _mid_width(nav: _Nav, a, b) -> float | None:
     return float(cross_section(nav.segs, mid, np.array([[(b[0] - a[0]) / L, (b[1] - a[1]) / L]]))[0])
 
 
-def reach(plan: dict, min_width: float, start: str | None = None) -> dict:
+def reach(plan: dict, min_width: float, start: str | None = None, max_step: float | None = None) -> dict:
     """Which rooms a body `min_width` wide can reach from the entrances (or from room `start`).
 
     Each room gets the widest bottleneck over all paths from a start: the narrowest door on the best path.
     Judged with the scan tolerance: 'likely pass' (reachable), 'measure on site', 'likely fail'. A doorway with
     an implausible width (a data error) does not limit the path; rooms reached through one are 'measure on site'
-    and name it in `data_error`. Corridor
+    and name it in `data_error`. With `max_step`, a doorway whose sill is more than that above or below its
+    storey's floor level cannot be crossed (a robot's climbable step). Corridor
     pinches inside rooms are not part of this; use `route` for one path's full clearance profile."""
     g = _graph(plan)
     if not g["available"]:
         return g
-    starts = [start] if start else sorted({e["room"] for e in g["entrances"]})
+    fz = floor_z(plan) if max_step is not None else {}
+
+    def stepped(link) -> bool:
+        return max_step is not None and link.get("sill") is not None and \
+            abs(link["sill"] - fz.get(link["floor"], 0.0)) > max_step
+
+    starts = [start] if start else sorted({e["room"] for e in g["entrances"] if not stepped(e)})
     note = None
-    if not starts:
+    if not starts and not g["entrances"]:  # (entrances that all have too high a step leave nothing reachable)
         biggest = max((n for n in g["nodes"] if not n["void"]), key=lambda n: n["area"] or 0, default=None)
         if biggest is None:
             return unavailable("No entrance and no rooms to start from.")
@@ -407,7 +414,7 @@ def reach(plan: dict, min_width: float, start: str | None = None) -> dict:
     suspect: dict[str, str | None] = {}  # the implausible link on the best path, if any
     heap = []
     for s in starts:
-        ent = [clear_width(e) for e in g["entrances"] if e["room"] == s] if not start else [math.inf]
+        ent = [clear_width(e) for e in g["entrances"] if e["room"] == s and not stepped(e)] if not start else [math.inf]
         w0 = max([w for w in ent if w is not None], default=math.inf)
         if w0 > best.get(s, -1):
             best[s], via[s], suspect[s] = w0, None, None
@@ -418,6 +425,8 @@ def reach(plan: dict, min_width: float, start: str | None = None) -> dict:
         if -nw < best[u]:
             continue
         for v, link in adj.get(u, ()):
+            if stepped(link):
+                continue
             cw, bad = clear_width(link), implausible(link)
             w = -nw if bad else min(-nw, cw if cw is not None else 0.0)  # a data error does not limit the width
             if w > best.get(v, -1):
