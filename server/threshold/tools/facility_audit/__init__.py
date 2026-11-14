@@ -18,6 +18,8 @@ from .. import Check, Finding, Metric, ScanScope, Source, ToolResult, Verdict, f
 FT2_PER_M2 = 10.7639
 SF_PER_OCCUPANT = 150  # IBC 2021 Table 1004.5, business areas, gross
 TWO_EXITS_ABOVE = 49   # IBC 2021 Table 1006.2.1: Group B spaces with more than 49 occupants need two exits
+TRAVEL_SPRINKLERED_M = 91.4
+TRAVEL_M = 61.0        # IBC 2021 Table 1017.2: exit access travel distance, Group B without sprinklers, 200 ft (300 ft with)
 BOOK = Source(layer="model", method="simulation", confidence="low",
               note="What-if cost book: national averages from cost guides, not a quote, no local labour rate")
 AREA = Source(layer="matterport", method="geometry", confidence="high", note="Sum of room areas on the scan")
@@ -48,6 +50,11 @@ def fixes_for(doors: ToolResult | None, baths: ToolResult | None, egress: ToolRe
                 out.append({"priority": 1, "area": "egress", "title": "Widen the widest way out to a full exit width", "qty": 1,
                             "unit_cost": cost, "total": cost, "source": src,
                             "why": f"Widest doorway out is {c.measured:.2f} m against {c.threshold:.2f} m"})
+            if c.id.startswith("length:") and c.status in ("warn", "fail") and c.measured is not None:
+                out.append({"priority": 1, "area": "egress", "title": "Way out longer than the travel distance limit", "qty": 1,
+                            "unit_cost": None, "total": None, "source": "No price: confirm sprinklers (300 ft allowed) or add an exit",
+                            "why": f"{c.measured:.0f} m to an entrance against {c.threshold:.0f} m (200 ft, IBC 2021 Table 1017.2, "
+                                   "Group B without sprinklers)", "measured": c.measured})
             if c.id.startswith("pinch:") and c.status == "fail":
                 out.append({"priority": 1, "area": "egress", "title": "Clear or widen a narrow hallway on a way out", "qty": 1,
                             "unit_cost": None, "total": None, "source": "No price in the cost book: get a quote",
@@ -118,7 +125,10 @@ def run(ctx, i: Inputs) -> ToolResult:
             return None
     doors = sub("door_widths", {"min_width_m": i.door_width_m})
     baths = sub("bathroom_clearance", {"door_width_m": max(i.door_width_m, 0.815), "read_panoramas": i.read_panoramas})
-    egress = sub("egress_routes", {"min_width_m": i.door_width_m})
+    egress = sub("egress_routes", {"min_width_m": i.door_width_m, "long_route_m": TRAVEL_M})
+    if egress:  # the hose stretch is the fire crew's question, not the occupant's
+        egress = egress.model_copy(update={"checks": [c for c in egress.checks if c.id != "hose"],
+                                           "findings": [f for f in egress.findings if "hose" not in f.id.lower() and "Hose" not in f.title]})
     clean = sub("takeoff_bid", {"trade": "cleaning", "label_with_vision": i.read_panoramas}) if i.cleaning else None
     try:
         seen = seen_counts(plan, i.read_panoramas)
@@ -162,12 +172,24 @@ def run(ctx, i: Inputs) -> ToolResult:
                                 anchor=None, source=BOOK, detail="The panoramas were not read in this run."))
 
     fixes = fixes_for(doors, baths, egress, i.door_width_m)
+    if seen is not None:
+        for f in fixes:
+            if f["title"].startswith("Way out longer") and seen["sprinkler head"] and f["measured"] <= TRAVEL_SPRINKLERED_M:
+                f.update(priority=3, area="life safety", title="Confirm the building is fully sprinklered",
+                         source="Sprinkler heads were seen, so the 300 ft limit likely applies",
+                         why=f["why"] + f"; within 300 ft ({TRAVEL_SPRINKLERED_M:.0f} m) if the whole building is sprinklered")
+        fixes.sort(key=lambda f: (f["priority"], -(f["total"] or 0)))
+        for k in ("exit sign", "fire extinguisher"):
+            if not seen[k]:
+                fixes.append({"priority": 3, "area": "life safety", "title": f"Confirm {k}s on site", "qty": 1, "unit_cost": None,
+                              "total": None, "source": "Not seen on the photos; a walk-through costs nothing",
+                              "why": f"No {k} seen on the panoramas"})
     total = sum(f["total"] or 0 for f in fixes)
     quote = [f for f in fixes if f["total"] is None]
     for n, f in enumerate(fixes, start=1):
         fid = f"facility_audit:{sid}:fix_{n}"
-        findings.insert(n - 1, Finding(id=fid, title=f"Fix {n} ({'life safety' if f['priority'] == 1 else 'access'}): {f['title']}",
-                                       status="fail" if f["priority"] == 1 else "warn", anchor=None, source=BOOK,
+        findings.insert(n - 1, Finding(id=fid, title=f"Fix {n} ({f['area']}): {f['title']}",
+                                       status="fail" if f["priority"] == 1 else "warn" if f["priority"] == 2 else "unknown", anchor=None, source=BOOK,
                                        detail=f"{f['why']}. " + (f"{f['qty']} x ${f['unit_cost']:,.0f} = ${f['total']:,.0f} ({f['source']})."
                                                                 if f["total"] is not None else f"{f['qty']} to do. {f['source']}.")))
         if f["total"] is not None:
@@ -181,7 +203,7 @@ def run(ctx, i: Inputs) -> ToolResult:
     status = "fail" if any(f["priority"] == 1 for f in fixes) or any(c.status == "fail" for c in checks if c.id == "exits_for_load") \
         else "warn" if fixes or any(c.status == "warn" for c in checks) else "pass"
     text = (f"{len(fixes)} fixes found" + (f", ${total:,.0f} priced (low reliability)" if total else "") +
-            (f", {len(quote)} need a quote" if quote else "") + f"; occupant load {occupants} at 150 ft² a person.") if fixes else \
+            (f", {len(quote)} unpriced (confirm on site or get a quote)" if quote else "") + f"; occupant load {occupants} at 150 ft² a person.") if fixes else \
         f"No door, restroom or way-out fixes found by the scan checks; occupant load {occupants} at 150 ft² a person."
     if clean and "monthly_price" in {x.id for x in clean.metrics}:
         text += f" Cleaning about ${next(x.value for x in clean.metrics if x.id == 'monthly_price'):,.0f} a month."

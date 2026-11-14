@@ -90,9 +90,10 @@ class Inputs(BaseModel):
                              pref="site.profile")
     candidates: list[Place] = field([], max_length=10, description="Buildings to compare (scans, CoStar properties, "
                                                                    "addresses or points); empty to find candidates")
-    near: Place | None = field(None, description="With no candidates: search CoStar properties for lease around here")
-    search_km: float = field(25, ge=1, le=80, unit="km", description="Search radius around `near`")
-    city: Literal["Houston", "Los Angeles"] | None = field(None, description="With no candidates and no `near`: search this city")
+    place: Place | None = field(None, source="selection.place", description="With no candidates: this building and the "
+                                                                           "CoStar properties for lease around it")
+    search_km: float = field(25, ge=1, le=80, unit="km", description="Search radius around `place`")
+    city: Literal["Houston", "Los Angeles"] | None = field(None, description="With no candidates and no place: search this city")
     max_candidates: int = field(5, ge=2, le=10, description="How many candidates a search keeps")
     size_min_sf: float | None = field(None, pref="site.size_min_sf", unit="ft²", gt=0, description="Smallest space that works")
     size_max_sf: float | None = field(None, pref="site.size_max_sf", unit="ft²", gt=0, description="Largest space wanted")
@@ -484,7 +485,7 @@ def evaluate(ctx, c: Cand, i: Inputs, req: dict, weights: dict, must: list[str],
                         "flex), requirements (size range or headcount, budget per ft², docks, clear height, parking ratio, "
                         "step-free entrance, highway and transit distance, flood tolerance, employee home zips) and "
                         "optional weights; give 2 to 10 candidates (scans, CoStar properties, addresses, points) or none to "
-                        "search CoStar listings near a place or in Houston or Los Angeles. Returns a ranked table, per-"
+                        "search CoStar listings around the selected place (it is included) or in Houston or Los Angeles. Returns a ranked table, per-"
                         "criterion checks with evidence and source, and deal-breakers. `deep` also runs industrial_fit or "
                         "retail_site on each candidate.",
       personas=["industrial_tenant_rep", "retail_site_selector", "office_relocation", "commercial_underwriter",
@@ -528,10 +529,11 @@ def run(ctx, i: Inputs) -> ToolResult:
         cands = [candidate(ctx, p) for p in i.candidates]
         how = f"{len(cands)} candidates given"
     else:
-        origin = None
-        if i.near:
-            s = ctx.site(i.near)
+        origin, here = None, None
+        if i.place:
+            s = ctx.site(i.place)
             origin = (s.lat, s.lon) if s.lat is not None else None
+            here = kit.row(s.property_id)
         if not origin and not i.city:
             raise ToolError("Give candidate buildings, or a place or a city (Houston or Los Angeles) to search.")
         try:
@@ -539,6 +541,8 @@ def run(ctx, i: Inputs) -> ToolResult:
         except LookupError as e:
             raise ToolError(f"The CoStar kit is not on this server, so there is nothing to search: {e}") from None
         found = search(i, req, origin, pool)
+        if here and here.get("type_id") in kit.PROFILE_TYPES[i.profile] and here["id"] not in {x["id"] for x in found}:
+            found = [here] + found[:i.max_candidates - 1]  # the selected building is always one of the candidates
         if len(found) < 2:
             return ToolResult(scope=ScansScope(sids=[]), verdict=Verdict(
                 status="unknown", text=f"The CoStar kit has {len(found)} {i.profile} propert{'y' if len(found) == 1 else 'ies'} "
