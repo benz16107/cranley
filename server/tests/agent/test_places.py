@@ -83,7 +83,7 @@ def test_consider_adds_places_and_scans(ws):
     inv = Investigation(ws)
     out = inv.consider(scans=["t1", "nope"], addresses=["1 Main St", "Nowhere"], points=[[-95.0, 29.0]])
     assert "t1" in ws.doc.brief.scope.sids and "a1-main-st" in out["places"] and "g-95.00000,29.00000" in out["places"]
-    assert len(out["problems"]) == 2
+    assert len(out["problems"]) == 2 and out["new_scans_can_answer"]["t1"] == {"walls": True, "doorways": True, "room_labels": True}
 
 
 def test_fan_out_is_bounded_and_aggregates(ws):

@@ -307,9 +307,24 @@ class Investigation:
                 have.add(p.key())
             except ToolError as e:
                 problems.append(str(e))
-        if len(sids) != len(sc.sids) or len(places) != len(sc.places):
+        new = [s for s in sids if s not in sc.sids]
+        if new or len(places) != len(sc.places):
             self.emit(BriefSet(scope=Scope(sids=sids, address=sc.address, places=places)))
-        return {"scans_in_workspace": len(sids), "places": [p.key() for p in places], "problems": problems}
+        with ThreadPoolExecutor(max_workers=self.budget.parallel) as ex:
+            can = dict(zip(new, ex.map(self.can_answer, new)))
+        return {"scans_in_workspace": len(sids), "places": [p.key() for p in places], "problems": problems,
+                "new_scans_can_answer": can}
+
+    def can_answer(self, sid: str) -> dict:
+        """What a scan's plan holds, so the agent can swap a candidate that cannot answer: walls, doorways, labels."""
+        try:
+            p = self.s.plans(sid)
+        except Exception as e:
+            return {"error": f"plan unavailable: {type(e).__name__}"}
+        q = p.get("quality") or {}
+        has = p.get("has") or {}
+        return {"walls": q.get("walls", bool(p.get("walls"))), "doorways": q.get("openings", bool(has.get("openings"))),
+                "room_labels": q.get("labels", bool(has.get("room_labels")))}
 
     def scans_of(self, property_id: int) -> list[dict]:
         return ToolContext(sites=self.s.sites or default_site).site(Place(property_id=property_id)).scans
@@ -599,7 +614,8 @@ findings and camera in their workspace, not your words.
 1. First call write_todos with a short plan. Mark steps in_progress before and completed after.
 2. If no buildings are given, find them: find_properties for record facts (city, type, units, elevators, rent,
    tenants), find_scans for scans (city, kind, address, drone capture, empty-room view), find_by_measure when present.
-   Pick at most five candidates that fit the person, then call consider with them.
+   Pick at most five candidates that fit the person, then call consider with them. consider says what each new scan's
+   plan holds; if one cannot answer the person's need (no doorways for a door question), swap it for another once.
 3. For each candidate unit or house, call task with subagent_type "building", naming the scan id and what to check.
    For a whole property (many scans: units, lobby, gym), use subagent_type "property" with the property id. Several
    task calls in one message run in parallel.
