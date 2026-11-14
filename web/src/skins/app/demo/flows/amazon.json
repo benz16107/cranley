@@ -1,0 +1,15 @@
+{
+  "id": "amazon",
+  "track": "Amazon",
+  "title": "A phone scan becomes a PDF report",
+  "about": "A room scanned with a phone, measured, and printed as a report.",
+  "vars": { "building": "u_c1d91541d0fd" },
+  "steps": [
+    { "do": "open", "sid": "$building", "say": "This plan came from a phone: a RoomPlan scan sent to the server.", "hold": 3500 },
+    { "do": "tool", "tool": "door_widths", "say": "Every doorway in the phone scan, measured against the clear width a wheelchair needs.", "hold": 4000 },
+    { "do": "tool", "tool": "turning_space", "say": "Then the turning space in each room.", "hold": 4000,
+      "else": { "do": "tool", "tool": "room_census", "say": "Then a census of the rooms." } },
+    { "do": "open", "page": "investigation", "say": "The investigation holds every run and finding.", "hold": 2500 },
+    { "do": "click", "label": "Download report", "say": "One click prints it as the PDF a landlord or contractor keeps.", "hold": 6000 }
+  ]
+}

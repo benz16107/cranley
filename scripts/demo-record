@@ -1,0 +1,84 @@
+#!/usr/bin/env node
+/* Play demo flows in a real browser: warm everything they touch, check each one ends in time, and keep a video.
+
+   usage: demo-record [--url http://127.0.0.1:5361/app] [--cdp http://127.0.0.1:9371] [--out DIR] [flow ...]
+
+   Needs a Chrome with remote debugging (on linuxbox, the real-GPU headless one; see the memory
+   `playwright-software-gl`), started by this script on --cdp's port when none answers there. playwright-core comes
+   from $PLAYWRIGHT_CORE or the npx cache. Each flow gets a fresh browser context (nothing remembered), plays from
+   `?play=<id>`, and writes <out>/<id>.webm and a line in <out>/report.json: seconds taken, steps skipped and why. */
+const { execSync, spawn } = require('node:child_process')
+const fs = require('node:fs')
+const path = require('node:path')
+const os = require('node:os')
+
+const args = process.argv.slice(2)
+const opt = (k, d) => { const i = args.indexOf(k); if (i < 0) return d; const v = args[i + 1]; args.splice(i, 2); return v }
+const url = opt('--url', 'http://127.0.0.1:5361/app')
+const cdp = opt('--cdp', 'http://127.0.0.1:9371')
+const data = process.env.THRESHOLD_DATA_DIR || '~/Code/hackathons/hackprinceton26-data'
+const out = opt('--out', path.join(data, 'shots', 'demo'))
+const limit = Number(opt('--limit', '180')) * 1000
+const only = args
+
+function core() {
+  if (process.env.PLAYWRIGHT_CORE) return require(process.env.PLAYWRIGHT_CORE)
+  const npx = path.join(os.homedir(), '.npm', '_npx')
+  for (const d of fs.existsSync(npx) ? fs.readdirSync(npx) : []) {
+    const p = path.join(npx, d, 'node_modules', 'playwright-core')
+    if (fs.existsSync(p)) return require(p)
+  }
+  throw new Error('playwright-core not found: set PLAYWRIGHT_CORE or run `npx playwright-core --version` once')
+}
+
+async function chrome() {
+  const up = await fetch(`${cdp}/json/version`).then((r) => r.ok, () => false)
+  if (up) return null
+  const port = new URL(cdp).port
+  const bin = ['google-chrome', 'chromium', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'].find((b) => { try { execSync(`command -v "${b}" || test -x "${b}"`, { stdio: 'ignore' }); return true } catch { return false } })
+  const p = spawn(bin, ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${fs.mkdtempSync(path.join(os.tmpdir(), 'demo-chrome-'))}`,
+    '--ignore-gpu-blocklist', '--enable-gpu', '--use-angle=gl-egl', '--enable-speech-dispatcher', '--autoplay-policy=no-user-gesture-required'], { stdio: 'ignore', detached: true })
+  for (let i = 0; i < 40; i++) { await new Promise((r) => setTimeout(r, 250)); if (await fetch(`${cdp}/json/version`).then((r) => r.ok, () => false)) return p }
+  throw new Error('Chrome did not start')
+}
+
+;(async () => {
+  fs.mkdirSync(out, { recursive: true })
+  const started = await chrome()
+  const browser = await core().chromium.connectOverCDP(cdp)
+  const reportFile = path.join(out, 'report.json')
+  const report = fs.existsSync(reportFile) ? JSON.parse(fs.readFileSync(reportFile, 'utf8')) : {}
+  // the flow ids come from the page itself, so a new JSON file is picked up with no change here
+  const probe = await browser.newContext()
+  const p0 = await probe.newPage()
+  await p0.goto(url)
+  const ids = (await p0.waitForFunction(() => window.thresholdDemo?.flows, null, { timeout: 30000 }).then((h) => h.jsonValue())).filter((id) => !only.length || only.includes(id))
+  await probe.close()
+  for (const id of ids) {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, recordVideo: { dir: out, size: { width: 1440, height: 900 } } })
+    await ctx.addInitScript(() => { try { localStorage.setItem('threshold.firstrun', 'done'); localStorage.setItem('threshold.app.run', '0') } catch {} })
+    const page = await ctx.newPage()
+    const errors = []
+    page.on('pageerror', (e) => errors.push(String(e.message).slice(0, 200)))
+    const t0 = Date.now()
+    await page.goto(`${url}?play=${id}`)
+    const notes = []
+    let state = null
+    while (Date.now() - t0 < limit) {
+      await new Promise((r) => setTimeout(r, 1000))
+      state = await page.evaluate(() => { const s = window.thresholdDemo?.state(); return s && { i: s.i, done: s.done, note: s.note, say: s.say, flow: !!s.flow } }).catch(() => null)
+      if (state?.note && notes.at(-1) !== `${state.i + 1}: ${state.note}`) notes.push(`${state.i + 1}: ${state.note}`)
+      if (state?.done) break
+    }
+    const secs = Math.round((Date.now() - t0) / 1000)
+    await page.waitForTimeout(1500)
+    const videos = ctx.pages().map((p) => p.video()) // the flow's window first, then any second window it opened
+    await ctx.close()
+    for (const [n, v] of videos.entries()) if (v) fs.renameSync(await v.path(), path.join(out, `${id}${n ? `-${n + 1}` : ''}.webm`))
+    report[id] = { done: !!state?.done, seconds: secs, skipped: notes, errors, at: new Date().toISOString(), url }
+    console.log(`${id}: ${state?.done ? 'done' : 'NOT DONE'} in ${secs} s${notes.length ? `; ${notes.join(' | ')}` : ''}${errors.length ? `; page errors: ${errors.length}` : ''}`)
+    fs.writeFileSync(reportFile, JSON.stringify(report, null, 2))
+  }
+  await browser.close().catch(() => {})
+  if (started) process.kill(-started.pid)
+})().catch((e) => { console.error(e); process.exit(1) })

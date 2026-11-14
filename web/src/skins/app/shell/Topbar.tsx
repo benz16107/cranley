@@ -4,6 +4,7 @@ import { Icon, IconBtn } from '../design/ui.tsx'
 import { go, usePlace } from '../lib/place.ts'
 import { leaveShared, useSeen } from '../lib/pending.ts'
 import { useIsPhone, useUi } from './store.ts'
+import { DemoMenu } from '../demo/DemoMenu.tsx'
 
 type Crumb = { label: string; to?: () => void }
 const TITLE = { home: 'Home', explore: 'Explore', investigations: 'Investigations', buildings: 'Buildings', insights: 'Insights', tools: 'Tools', settings: 'Settings' } as const
@@ -42,6 +43,7 @@ export function Topbar({ actions }: { actions?: ReactNode }) {
       {actions}
       {/* a read-only link says so on every page, with the way out */}
       {shared && <span className="readonly"><Icon name="eye" size={13} /><span>Read-only link</span><button type="button" className="btn sm" onClick={leaveShared}>Leave</button></span>}
+      <DemoMenu />
       <button type="button" className="find" onClick={() => useUi.setState({ menu: 'all' })} aria-label="Search buildings, tools and pages">
         <Icon name="search" size={14} /><span className="grow">Search buildings, tools, pages</span><span className="kbd">Ctrl K</span>
       </button>

@@ -1,0 +1,16 @@
+{
+  "id": "peri",
+  "track": "Peri",
+  "title": "A business checks an office and keeps the report",
+  "about": "A 20-person studio asks whether an office suits them.",
+  "vars": { "building": "<scan-id>", "brief": "We're a 20-person design studio. Will this office fit us, and what would we have to fix?" },
+  "steps": [
+    { "do": "open", "sid": "$building", "say": "An office scan in Houston.", "hold": 2500 },
+    { "do": "agent", "open": true, "hold": 300 },
+    { "do": "ask", "text": "$brief", "say": "The agent chooses office tools for the brief and runs them on the scan.",
+      "else": { "do": "tool", "tool": "office_fit", "inputs": { "headcount": 20 }, "say": "The agent is offline, so office fit runs as a tool." } },
+    { "do": "agent", "open": false, "hold": 300 },
+    { "do": "open", "page": "investigation", "say": "Everything it found, in one investigation.", "hold": 3000 },
+    { "do": "click", "label": "Download report", "say": "The business keeps it as a PDF, every number with its source.", "hold": 6000 }
+  ]
+}

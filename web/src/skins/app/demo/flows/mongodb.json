@@ -1,0 +1,20 @@
+{
+  "id": "mongodb",
+  "track": "MongoDB",
+  "title": "Live sync between two windows, then search past work",
+  "about": "One workspace open in two windows, then the agent recalls earlier work.",
+  "vars": { "building": "<scan-id>" },
+  "steps": [
+    { "do": "open", "sid": "$building", "say": "A Houston house before a storm.", "hold": 1500 },
+    { "do": "tool", "tool": "flood_rehearsal", "inputs": { "depth_m": 0.5 }, "say": "A first run puts the workspace in MongoDB.", "hold": 2000 },
+    { "do": "share", "say": "A read-only link opens the same workspace in a second window.", "hold": 3000,
+      "else": { "do": "window", "url": "here", "say": "No share links on the file store: the same workspace in a second window." } },
+    { "do": "tool", "tool": "storm_plan", "inputs": { "depth_m": 0.5, "hours_left": 12, "adults": 2 }, "say": "A run here arrives in the other window as it happens: a change stream.", "hold": 4000 },
+    { "do": "new", "say": "Next day, a new investigation.", "hold": 1000 },
+    { "do": "agent", "open": true, "hold": 300 },
+    { "do": "ask", "text": "What did I find about flooding before? Pick up where I left off.", "timeout": 100000,
+      "say": "The agent searches this person's past workspaces with Atlas Search.",
+      "else": { "do": "say", "say": "Past work needs the MongoDB store; this server keeps workspaces in files." } },
+    { "do": "wait", "ms": 5000 }
+  ]
+}
