@@ -16,7 +16,8 @@ import httpx
 
 from ...config import CACHE
 
-URL = "https://overpass-api.de/api/interpreter"
+URLS = ("https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter",
+        "https://overpass.kumi.systems/api/interpreter")  # the main server returns 502s under load; mirrors next
 AGENT = "threshold-hackprinceton/0.1 (site tools; contact benz16107@gmail.com)"
 GAP_S = 1.5
 TRUCK_HEIGHT_M = 4.11  # 13 ft 6 in, the usual US limit for a van trailer
@@ -29,13 +30,25 @@ def _query(q: str) -> dict:
     f = CACHE / "osm" / f"{hashlib.sha256(q.encode()).hexdigest()[:24]}.json"
     if f.exists():
         return json.loads(f.read_text())
-    with _lock:
-        wait = _last[0] + GAP_S - time.monotonic()
-        if wait > 0:
-            time.sleep(wait)
-        _last[0] = time.monotonic()
-    r = httpx.post(URL, data={"data": q}, headers={"User-Agent": AGENT}, timeout=90)
-    r.raise_for_status()
+    err = None
+    for url in URLS:
+        for attempt in range(2):
+            with _lock:
+                wait = _last[0] + GAP_S * (1 + 2 * attempt) - time.monotonic()
+                if wait > 0:
+                    time.sleep(wait)
+                _last[0] = time.monotonic()
+            try:
+                r = httpx.post(url, data={"data": q}, headers={"User-Agent": AGENT}, timeout=90)
+                r.raise_for_status()
+                r.json()
+                break
+            except (httpx.HTTPError, ValueError) as e:
+                err, r = e, None
+        if r is not None:
+            break
+    if r is None:
+        raise RuntimeError(f"Overpass unavailable: {err}")
     f.parent.mkdir(parents=True, exist_ok=True)
     f.write_bytes(r.content)
     return r.json()
