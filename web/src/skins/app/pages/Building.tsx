@@ -264,9 +264,10 @@ export function Building({ sid }: { sid: string }) {
   useEffect(() => {
     if (!showCompare) return
     setPick(['renovate']) // both sides mark the same edits
-    v.setView((x) => ({ ...x, surface: 'model', env: 'studio', frame: { top: -20, right: 20, bottom: -20, left: 20 } }))
+    v.setView((x) => ({ ...x, surface: 'model', env: 'studio', measures: true, frame: { top: -20, right: 20, bottom: -20, left: 20 } }))
     if (v.mode !== 'dollhouse' && v.mode !== 'plan') v.setMode('dollhouse')
-    return () => { setPick(null); v.setView((x) => ({ ...x, frame: { top: -20, right: 20, bottom: -20, left: -100 } })) }
+    const t = setTimeout(v.stepBack, 400) // the scene is half as wide now: frame the building again
+    return () => { clearTimeout(t); setPick(null); v.stepBack(); v.setView((x) => ({ ...x, measures: false, frame: { top: -20, right: 20, bottom: -20, left: -100 } })) }
   }, [showCompare]) // eslint-disable-line react-hooks/exhaustive-deps
   const [picked, setTab] = useState<string | null>(null)
   const tab = picked ?? (panels.length ? 'results' : 'overview') // until the person picks: results when there are any
@@ -390,7 +391,7 @@ export function Building({ sid }: { sid: string }) {
                       <Scene {...v.sceneProps} className="app-scene" switcher={false} prepare onState={onScene} onCamera={(c) => camera.current?.(c)} />
                     </SceneBoundary>
                   )
-                  return showCompare && wi.after ? <CompareScenes sid={sid} after={wi.after} cameraRef={camera}>{scene}</CompareScenes> : scene
+                  return showCompare && wi.after ? <CompareScenes sid={sid} after={wi.after} mode={v.mode} cameraRef={camera}>{scene}</CompareScenes> : scene
                 })()}
               </Suspense>
             )}

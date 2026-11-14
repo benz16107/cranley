@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import {
   Scene, SceneBoundary, runTool, useBuildingView, useWorkspace,
-  type Block, type SceneCamera, type ScanPlan,
+  type Block, type SceneCamera, type SceneMode, type ScanPlan,
 } from '../../../core/index.ts'
 import { Icon, Menu, MenuBtn, RunState, SourceChip } from '../design/ui.tsx'
 import { useScheme } from '../shell/theme.ts'
@@ -104,7 +104,7 @@ export function WhatIfMenu({ sid, plan }: { sid: string; plan: ScanPlan }) {
 
 /** Now and after, side by side. `children` is the page's own scene of the building as it is; the renovated plan
     loads beside it, with the same edits highlighted, and follows the left camera. */
-export function CompareScenes({ sid, after, cameraRef, children }: { sid: string; after: string; cameraRef: React.MutableRefObject<((c: SceneCamera) => void) | null>; children: ReactNode }) {
+export function CompareScenes({ sid, after, mode, cameraRef, children }: { sid: string; after: string; mode: SceneMode; cameraRef: React.MutableRefObject<((c: SceneCamera) => void) | null>; children: ReactNode }) {
   const scheme = useScheme()
   const w = useWhatIf(sid)
   const a = useBuildingView(after, { tools: [] })
@@ -122,7 +122,11 @@ export function CompareScenes({ sid, after, cameraRef, children }: { sid: string
     }
     return () => { cameraRef.current = null }
   }) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { a.setView((x) => ({ ...x, cut: 1.4, surface: 'model', frame: { top: -20, right: 20, bottom: -20, left: 20 } })) }, [after]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { a.setView((x) => ({ ...x, cut: 1.4, surface: 'model', measures: true, frame: { top: -20, right: 20, bottom: -20, left: 20 } })) }, [after]) // eslint-disable-line react-hooks/exhaustive-deps
+  // the renovated plan has no panoramas or drone capture of its own: it shows the plan or the 3D model
+  useEffect(() => { a.setMode(mode === 'plan' ? 'plan' : 'dollhouse') }, [mode]) // eslint-disable-line react-hooks/exhaustive-deps
+  const loaded = !!a.sceneProps
+  useEffect(() => { if (!loaded) return; const t = setTimeout(a.stepBack, 400); return () => clearTimeout(t) }, [loaded]) // eslint-disable-line react-hooks/exhaustive-deps
   const pick = (id: string) => w.metrics.find((m) => m.id === id)
   const cost = pick('total_cost'), fixed = pick('fixed'), before = pick('failing_before'), left = pick('failing_after')
   return (
