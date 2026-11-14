@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Tabs } from '@base-ui/react/tabs'
 import {
-  Scene, SceneBoundary, fetchRecord, focusFinding, panoFace, runToolHere, useBuildingView, useBuildings, useWorkspace,
+  Scene, SceneBoundary, fetchRecord, focusFinding, panoFace, useBuildingView, useBuildings, useWorkspace,
   type Doc, type SceneMode, type ScanPlan, type Status,
 } from '../../../core/index.ts'
 import { PanelView } from '../blocks/blocks.tsx'
@@ -11,6 +11,7 @@ import { facts } from '../lib/pending.ts'
 import { go, goScan } from '../lib/place.ts'
 import { FAMILIES, useTools, type ToolInfo } from '../lib/tools.ts'
 import { useScheme } from '../shell/theme.ts'
+import { startTool } from '../shell/StartTool.tsx'
 import { useUi } from '../shell/store.ts'
 
 const MODES: { id: SceneMode; label: string; icon: IconName; none: string }[] = [
@@ -20,11 +21,12 @@ const MODES: { id: SceneMode; label: string; icon: IconName; none: string }[] = 
 const WORST: Record<Status, number> = { fail: 0, warn: 1, unknown: 2, pass: 3 }
 type F = Doc['findings'][number]
 
-/** A menu of every tool that runs on one scan: the investigation's own first, then by family. */
+/** A menu of every tool: the investigation's own first, then by family. One that needs more than this scan opens
+    its form (marked with an ellipsis), the rest run at once. */
 export function RunToolMenu({ sid, trigger }: { sid: string; trigger: React.ReactElement }) {
-  const tools = useTools().filter((t) => t.onScan && !t.planned)
+  const tools = useTools().filter((t) => !t.planned)
   const mine = useWorkspace((s) => s.doc.tools)
-  const item = (t: ToolInfo) => <Menu.Item key={t.id} onClick={() => runToolHere(t.id, sid)}><ToolKey id={t.id} title={t.title} />{t.title}{t.slow && <small>slow</small>}</Menu.Item>
+  const item = (t: ToolInfo) => <Menu.Item key={t.id} onClick={() => startTool(t, sid)}><ToolKey id={t.id} title={t.title} />{t.title}{t.form && '…'}{t.slow && <small>slow</small>}</Menu.Item>
   const own = tools.filter((t) => mine.some((m) => m.id === t.id))
   return (
     <MenuBtn align="end" trigger={trigger}>
@@ -41,7 +43,7 @@ export function RunToolMenu({ sid, trigger }: { sid: string; trigger: React.Reac
         )
       })}
       <hr />
-      <Menu.Item onClick={() => go('tools')}><Icon name="tool" />Browse the tool catalogue</Menu.Item>
+      <Menu.Item onClick={() => go('tools', { app_sid: sid })}><Icon name="tool" />Browse the tool catalogue</Menu.Item>
     </MenuBtn>
   )
 }
@@ -112,11 +114,11 @@ function Evidence({ findings }: { findings: F[] }) {
         return (
           <li key={f.id}>
             <button type="button" disabled={!f.anchor} aria-current={current === f.id || undefined} onClick={() => focusFinding(f, { stay: true })} title={f.anchor ? 'Show this in the building' : 'This finding has no place to show'}>
-              {m && b ? <img src={panoFace(a, b, c ? Number(c) : 1)} alt="" loading="lazy" width={72} height={54} onError={(e) => { e.currentTarget.style.visibility = 'hidden' }} /> : <span className="ph hatch" />}
+              {m && b && <img src={panoFace(a, b, c ? Number(c) : 1)} alt="" loading="lazy" width={72} height={54} onError={(e) => { e.currentTarget.style.display = 'none' }} />}
               <span className="grow">
                 <span className="t"><StatusGlyph status={f.status} />{f.title}</span>
                 {f.detail && <span className="s">{f.detail}</span>}
-                <span className="m"><span className="muted">{tools.find((t) => t.id === f.tool)?.title ?? f.tool}</span><SourceChip source={f.source} /></span>
+                <span className="m"><span className="muted">{tools.find((t) => t.id === f.tool)?.title ?? f.tool}</span><SourceChip source={f.source} plain /></span>
               </span>
             </button>
           </li>
@@ -224,9 +226,15 @@ export function Building({ sid }: { sid: string }) {
   // The result in view: the one the person opened, else the focused finding's, else the latest. null is "none open".
   const [chosen, setChosen] = useState<string | null | undefined>(undefined)
   const inView = chosen !== undefined ? panels.find((p) => p.id === chosen) ?? null : (focused && panels.findLast((p) => p.tool === focused)) || panels.at(-1) || null
-  const on = pick ?? (inView && drawn.includes(inView.tool) ? [inView.tool] : drawn)
+  // nothing open, or a result that draws nothing: the plain building. Every tool at once is the Overlays menu's "Show all".
+  const on = pick ?? (inView && drawn.includes(inView.tool) ? [inView.tool] : [])
   const v = useBuildingView(sid, on.length === drawn.length ? undefined : { tools: on })
   const b = useBuildings((s) => s.all.find((x) => x.scans.some((y) => y.sid === sid)))
+  // This look's starting view of a scan: walls cut at 1.4 m, so the rooms, their photographed floors and the pins on
+  // them show from outside (whole walls hide all three). A cut the person then sets, "full" included, stays.
+  // The frame keeps the building left of the scene's cut control. Its negative edges say the ground may run off that
+  // side: with no frame the scene's fit crops a room in a narrow picture, with a plain one the building sits small.
+  useEffect(() => { v.setView((x) => ({ ...x, cut: x.cut === undefined ? 1.4 : x.cut, frame: { top: -20, right: 20, bottom: -20, left: -100 } })) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [picked, setTab] = useState<string | null>(null)
   const tab = picked ?? (panels.length ? 'results' : 'overview') // until the person picks: results when there are any
 
@@ -235,6 +243,9 @@ export function Building({ sid }: { sid: string }) {
     return doc.findings.filter((f) => (f.anchor && 'sid' in f.anchor && f.anchor.sid === sid) || (f.run && mine.has(f.run))).sort((x, y) => WORST[x.status] - WORST[y.status])
   }, [doc.findings, runs, sid])
   const working = runs.filter((r) => r.status === 'running' && !panels.some((p) => p.run === r.id))
+  // a run that failed leaves no result: it stays listed here until the same tool runs again on this scan
+  const failed = runs.filter((r, i) => r.status === 'failed' && !runs.slice(i + 1).some((l) => l.tool === r.tool))
+  const catalogue = useTools()
 
   // A result that arrives while the person is on this scan is shown; so is the result of a focused finding.
   const count = panels.length, last = panels.at(-1)
@@ -251,6 +262,9 @@ export function Building({ sid }: { sid: string }) {
     // a tool the person ran: the server's camera closes in on its worst finding, so frame the whole building again
     if (mine) { const t = setTimeout(v.stepBack, 900); return () => clearTimeout(t) }
   }, [arrived]) // eslint-disable-line react-hooks/exhaustive-deps
+  // a run that fails while the person is here is shown too: its reason is on the Results tab
+  const fails = failed.length, hadFails = useRef(fails)
+  useEffect(() => { if (fails > hadFails.current && performance.now() - born.current > 2500) setTab('results'); hadFails.current = fails }, [fails])
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -274,7 +288,7 @@ export function Building({ sid }: { sid: string }) {
         <IconBtn icon="back" label="Back to the map" onClick={() => go('explore', { city: b?.metro ?? undefined, b: b?.id })} />
         <div className="ttl">
           <h2 className="trunc">{v.plan?.name ?? (v.error ? 'Scan not available' : <span className="sk" style={{ width: 180, display: 'inline-block' }} />)}</h2>
-          <p className="muted trunc">{v.plan ? [(v.plan.address ?? '').split(',')[0], v.plan.city, plural(v.plan.rooms.length, 'room'), plural(v.plan.floors.length, 'floor')].filter(Boolean).join(' · ') : ' '}</p>
+          <p className="muted trunc">{v.plan ? [(v.plan.address ?? '').split(',')[0], v.plan.city, plural(v.plan.rooms.length, 'room'), plural(v.plan.floors.length, 'floor')].filter((x) => x && x !== v.plan!.name).join(' · ') : ' '}</p>
         </div>
         {b && b.scans.length > 1 && (
           <div className="pager" role="group" aria-label="Scans at this address">
@@ -309,9 +323,9 @@ export function Building({ sid }: { sid: string }) {
           </div>
           <div className="scene-host">
             {v.error && fault(v.error)}
-            {!v.plan && !v.error && <div className="scene-state"><RunState state="running">Loading the plan</RunState></div>}
+            {!v.plan && !v.error && <div className="scene-state loading" role="status"><span className="sk" /><span className="sk" /><span className="muted small">Loading the plan</span></div>}
             {v.sceneProps && (
-              <Suspense fallback={<div className="scene-state"><RunState state="running">Loading the building view</RunState></div>}>
+              <Suspense fallback={<div className="scene-state loading" role="status"><span className="sk" /><span className="sk" /><span className="muted small">Loading the building view</span></div>}>
                 {/* keyed by scan and scheme: the scene builds its model for one plan and reads its colours when it mounts */}
                 <SceneBoundary key={`${v.sceneKey}:${scheme}`} fallback={fault('The building view stopped on this scan.')}>
                   <Scene {...v.sceneProps} className="app-scene" />
@@ -324,7 +338,7 @@ export function Building({ sid }: { sid: string }) {
         <Tabs.Root className="insp" value={tab} onValueChange={(t) => setTab(String(t))} aria-label="Inspector">
           <Tabs.List className="tabs">
             <Tabs.Tab value="overview">Overview</Tabs.Tab>
-            <Tabs.Tab value="results">Results{panels.length > 0 && <span className="count">{panels.length}</span>}{working.length > 0 && <i className="ring" />}</Tabs.Tab>
+            <Tabs.Tab value="results">Results{panels.length > 0 && <span className="count">{panels.length}</span>}{working.length > 0 && <i className="ring" />}{working.length === 0 && failed.length > 0 && <span className="faildot" role="img" aria-label={`${failed.length} failed`} />}</Tabs.Tab>
             <Tabs.Tab value="evidence">Evidence{findings.length > 0 && <span className="count">{findings.length}</span>}</Tabs.Tab>
             <Tabs.Tab value="record">Record</Tabs.Tab>
             <Tabs.Tab value="history">History{runs.length > 0 && <span className="count">{runs.length}</span>}</Tabs.Tab>
@@ -336,7 +350,16 @@ export function Building({ sid }: { sid: string }) {
           </Tabs.Panel>
           <Tabs.Panel value="results" className="insp-body scroll">
             {working.map((r) => <div key={r.id} className="b-loading working"><RunState state="running">{r.label.split(' · ')[0]}</RunState>{r.summary && <p className="muted small">{r.summary}</p>}<span className="sk" style={{ width: '64%' }} /></div>)}
-            {panels.length === 0 && working.length === 0 && (
+            {failed.map((r) => {
+              const t = catalogue.find((x) => x.id === r.tool)
+              return (
+                <div key={r.id} className="b-failed" role="status">
+                  <span className="row"><RunState state="failed">{t?.title ?? r.label.split(' · ')[0]} did not run</RunState><span className="grow" />{t && <button type="button" className="btn sm" onClick={() => startTool(t, sid, true)}>Try again</button>}</span>
+                  {r.summary && <p>{r.summary}</p>}
+                </div>
+              )
+            })}
+            {panels.length === 0 && working.length === 0 && failed.length === 0 && (
               <Empty icon="play" title="No results on this scan" action={<RunToolMenu sid={sid} trigger={<button type="button" className="btn solid">Run a tool<Icon name="down" size={11} /></button>} />}>
                 Pick a tool to measure this scan. Its result, checks and evidence appear here, and it draws on the building.
               </Empty>

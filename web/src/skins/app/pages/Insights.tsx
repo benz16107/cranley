@@ -5,6 +5,7 @@ import { Empty, Icon, RunState, SourceChip } from '../design/ui.tsx'
 import { int } from '../lib/format.ts'
 import { facts, type FloodLevel } from '../lib/pending.ts'
 import { familyOf } from '../lib/tools.ts'
+import { startTool } from '../shell/StartTool.tsx'
 
 /* City-level questions. The counts come from the server: search by measurement returns how many scans it looked at,
    how many could be answered, and how many match. Nothing is totalled here except rows of the building list. */
@@ -95,11 +96,13 @@ function Census() {
   const working = doc.runs.filter((r) => r.status === 'running' && familyOf(r.tool) === 'database')
   return (
     <section className="card">
-      <header><h2>Rollups from the facts database</h2><p className="grow">Listed against measured area by property type, accessible homes by zip code, typical door widths by city.</p></header>
-      <div className="body stack">
-        <p className="note"><Icon name="info" size={13} /><span>Not connected yet. The rollups exist on the server as the City census tool, which needs a choice of rollup that only the agent can give it today. When the agent runs it in the open investigation, its result is listed here.</span></p>
-        {working.map((r) => <RunState key={r.id} state="running">{r.label}{r.summary ? `: ${r.summary}` : ''}</RunState>)}
-      </div>
+      <header>
+        <h2>Rollups from the facts database</h2><p className="grow">Listed against measured area by property type, accessible homes by zip code, typical door widths by city.</p>
+        <button className="btn sm" onClick={() => startTool({ id: 'facts_query', form: true })}>Ask in SQL</button>
+        <button className="btn sm" onClick={() => startTool({ id: 'city_census', form: true })}><Icon name="play" size={11} />Run a rollup</button>
+      </header>
+      {working.length > 0 && <div className="body stack">{working.map((r) => <RunState key={r.id} state="running">{r.label}{r.summary ? `: ${r.summary}` : ''}</RunState>)}</div>}
+      {panels.length === 0 && working.length === 0 && <Empty icon="database" title="No rollup in this investigation yet" action={<button className="btn" onClick={() => startTool({ id: 'city_census', form: true })}>Run a rollup</button>}>A rollup counts one measured fact across every scanned building, by zip code, city or property type. Its result is kept here.</Empty>}
       {panels.map((p) => <PanelView key={p.id} panel={p} folded={panels.length > 1} />)}
     </section>
   )

@@ -97,12 +97,12 @@ export function Tasks({ view, sid, open, openTool }: { view: View; sid: string |
       </section>
       <p className="m-hint">Or open a building on the desktop and tap Phone there: scanning its code brings that workspace here, and everything you capture shows up on it as you go.</p>
       {view.questions.length > 0 ? <Questions qs={view.questions} /> : <Composer sid={null} placeholder="I use a wheelchair and I am looking at a one-bedroom in Houston" cta="Ask" />}
-      {working && <p className="m-note skeleton" aria-busy="true">{working}</p>}
+      {working && <p className="m-note m-working" aria-busy="true"><b>Working</b><span>{working}</span></p>}
     </>
   )
   return (
     <>
-      {working && <p className="m-note skeleton" aria-busy="true">{working}</p>}
+      {working && <p className="m-note m-working" aria-busy="true"><b>Working</b><span>{working}</span></p>}
       {view.questions.length > 0 && <Questions qs={view.questions} />}
       {GROUPS.map(([kind, label]) => { const g = todo.filter((t) => t.kind === kind); return g.length > 0 && <section key={kind} className="m-group"><h2 className="label">{label} · <span className="num">{g.length}</span></h2>{g.map((t) => <TaskRow key={t.id} t={t} open={open} />)}</section> })}
       {done.length > 0 && <section className="m-group"><h2 className="label">Done · <span className="num">{done.length}</span></h2>{done.map((t) => <TaskRow key={t.id} t={t} open={open} />)}</section>}
@@ -162,7 +162,7 @@ export function Header({ onPrivacy }: { onPrivacy: () => void }) {
         <select className="m-input m-building" aria-label="Building" value={sid ?? ''} onChange={(e) => choose(e.target.value)}>
           {view.buildings.map((x) => <option key={x.sid} value={x.sid}>{x.name}{x.address ? `, ${x.address}` : ''}</option>)}
         </select>
-      ) : b ? <p className="m-building"><b>{b.name}</b>{b.address && <span> {b.address}</span>}{!b.walls && <span className="m-flag"> no wall graph</span>}</p> : null}
+      ) : b ? <p className="m-building"><b>{b.name}</b>{b.address && <span> {b.address.startsWith(b.name) ? b.address.slice(b.name.length).replace(/^,\s*/, '') : b.address}</span>}{!b.walls && <span className="m-flag"> no wall graph</span>}</p> : null}
     </header>
   )
 }

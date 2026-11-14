@@ -269,6 +269,14 @@ export function runToolHere(tool: string, sid: string) {
   void playAccess({ sids: [sid], quick: true })
 }
 
+/** Run a tool with the inputs a person gave: on a scan, or on none for a tool that takes none (a city rollup, a
+    search, a reading typed in from the site). The run, its panel and a failure all arrive in the workspace. */
+export function runTool(tool: string, inputs: Record<string, unknown> = {}, sid: string | null = null): Promise<void> {
+  if (server.isLive()) return server.runTool(tool, sid, inputs)
+  notify(`${TOOLS[tool]?.title ?? tool} needs the agent server.`)
+  return Promise.resolve()
+}
+
 /** The one-line command bar. */
 export async function ask(text: string) {
   const sid = currentRoute().sid, known: string[] = server.serverDoc()?.brief?.scope?.sids ?? []

@@ -14,7 +14,7 @@ function useCrumbs(): Crumb[] {
   const doc = useWorkspace((s) => s.doc), seen = useSeen((s) => s.all)
   if (page === 'building') {
     const b = all.find((x) => x.scans.some((s) => s.sid === sid)), scan = b?.scans.find((s) => s.sid === sid)
-    return [{ label: 'Explore', to: () => go('explore', { city: b?.metro ?? undefined }) }, ...(b ? [{ label: b.address.split(',')[0], to: () => go('explore', { city: b.metro ?? undefined, b: b.id }) }] : []), { label: scan?.name ?? 'Scan' }]
+    return [{ label: 'Explore', to: () => go('explore', { city: b?.metro ?? undefined }) }, ...(b && b.address.split(',')[0] !== scan?.name ? [{ label: b.address.split(',')[0], to: () => go('explore', { city: b.metro ?? undefined, b: b.id }) }] : []), { label: scan?.name ?? 'Scan' }] // a house's scan is named by its address: say it once
   }
   if (page === 'investigation') return [{ label: 'Investigations', to: () => go('investigations') }, { label: (id === doc.id ? doc.brief?.text : seen[id ?? '']?.brief) || 'Untitled investigation' }]
   return [{ label: TITLE[page] }]

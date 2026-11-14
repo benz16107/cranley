@@ -33,11 +33,14 @@ export function Settings() {
         <Learned />
       </section>
       <section className="card">
-        <header><h2>Your data</h2></header>
+        <header><h2>Privacy and terms</h2></header>
         <div className="body stack">
+          <h3 className="label">Privacy</h3>
           <p>There is no sign-in. The open investigation is kept on the Threshold server under an id held in this browser, so a reload shows the same work. Anyone using this browser sees it.</p>
-          <p>What you type in a brief or to the agent is sent to the Threshold server and to the language model it uses. Tool results are also written to the project’s facts database. Building data comes from interior scans (Matterport), aerial surveys (Vexcel) and property records (CoStar), used under the event’s terms.</p>
-          <p className="muted">There are no terms of service or privacy policy yet. Do not put personal details in a brief beyond what the question needs.</p>
+          <p>What you type in a brief or to the agent is sent to the Threshold server and to the language model it uses. Tool results are also written to the project’s facts database. A paired phone sends only what you capture with it: photos, clips, readings and the position you allow. Do not put personal details in a brief beyond what the question needs.</p>
+          <h3 className="label">Terms of use</h3>
+          <p>Threshold is a prototype built at HackPrinceton in November 2026. Its measurements come from interior scans (Matterport), aerial surveys (Vexcel) and property records (CoStar), and they can be wrong: every result names its source and how sure it is. Check a result on site before you rely on it for a purchase, a lease, a safety decision or a claim of code compliance.</p>
+          <p>The building data belongs to those providers and is shown under the event’s terms, so do not copy it out of the app. The service is offered as it is, with no warranty.</p>
         </div>
         <div className="set"><div><b>Open investigation</b><p className="row"><span className="num">{id || 'none'}</span>{id && <Copy text={id} label="Copy the id" />}</p></div></div>
         <div className="set"><div><b>Investigations listed in this browser</b><p>{seen} listed. Clearing the list does not delete them from the server.</p></div><button className="btn" disabled={!seen} onClick={() => clear('threshold.app.investigations')}>Clear the list</button></div>
