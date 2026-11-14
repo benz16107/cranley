@@ -49,5 +49,6 @@
   {"id": "renter-claims", "brief": "I'm about to rent this apartment and want to check whether what the listing says is true.", "persona": ["renter_checking_claims", "renter_listing"], "must": [["listing_claims", "record_vs_reality"]]},
   {"id": "commercial-underwriter", "brief": "I price commercial property and need the roof, the dock doors and the parking at this warehouse set against the record.", "persona": ["commercial_underwriter", "insurance_underwriter"], "must": [["risk_sheet", "roof_facts"], ["loading_docks", "parking_count"]]},
   {"id": "daycare-operator", "brief": "I'm looking for a building to license as a child-care centre and need its capacity inside and outside.", "persona": ["daycare_operator"], "must": [["daycare_capacity"]]},
-  {"id": "pool-parent", "brief": "We have a toddler and a backyard pool, and I want to see every way she could reach the water.", "persona": ["pool_safety_parent"], "must": [["path_to_water"]]}
+  {"id": "pool-parent", "brief": "We have a toddler and a backyard pool, and I want to see every way she could reach the water.", "persona": ["pool_safety_parent"], "must": [["path_to_water"]]},
+  {"id": "emergency-manager", "brief": "I'm an emergency manager and a storm is two days out; I need to know what each household on this street should do first.", "persona": ["emergency_manager", "houston_homeowner_storm"], "must": [["storm_plan", "flood_rehearsal"]]}
 ]

@@ -686,6 +686,38 @@
    }
   ]
  },
+ "I'm an emergency manager and a storm is two days out; I need to know what each household on this street should do first.": {
+  "cannot": [
+   "Nothing here ranks every household on the street against each other to decide which to visit first; each house is planned one at a time.",
+   "No tool here supplies the storm-surge or street-flooding forecast, so you will need to bring that depth in yourself."
+  ],
+  "persona": "emergency_manager",
+  "stated": [
+   {
+    "key": "storm.hours_left",
+    "quote": "two days out"
+   }
+  ],
+  "summary": "An emergency manager with a storm two days out who needs to know what each household on the street should do first.",
+  "tools": [
+   {
+    "id": "storm_plan",
+    "reason": "You get an ordered first-things-first plan for each household (what to carry up, plywood, sandbags, shutoffs, generator spot) that fits the time left before landfall."
+   },
+   {
+    "id": "flood_rehearsal",
+    "reason": "You can see how deep water would get in each room of each house and which rooms flood first, so you know who is most exposed."
+   },
+   {
+    "id": "valuables_height",
+    "reason": "You can tell each household which belongings, appliances and utilities sit low in the rooms that flood, so they know what to move first."
+   },
+   {
+    "id": "roof_facts",
+    "reason": "You can spot homes with weak or damaged roofs or trees overhead that need wind preparation before anything else."
+   }
+  ]
+ },
  "I'm looking for a building to license as a child-care centre and need its capacity inside and outside.": {
   "cannot": [],
   "persona": "daycare_operator",

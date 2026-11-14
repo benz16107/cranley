@@ -299,7 +299,7 @@ def drone_threshold(sid: str, footprint_wkt: str | None, lat0: float, lon0: floa
         t = {"photo": p["name"], "door_visible": a["door_visible"], "kind": a["kind"], "confidence": a["confidence"]}
         trace["tried"].append(t)
         if not a["door_visible"] or a["kind"] == "none" or a["confidence"] == "low":
-            continue  # a low-confidence "door" was a raised patio under windows on <address>
+            continue  # a low-confidence "door" was a raised patio under windows
         k = full.width / DRONE_PX
         b = a["door"]
         dh = (b["y1"] - b["y0"]) * k
@@ -321,7 +321,7 @@ def drone_threshold(sid: str, footprint_wkt: str | None, lat0: float, lon0: floa
         apart = abs((gnd["x0"] + gnd["x1"]) / 2 - (thr["x0"] + thr["x1"]) / 2) / CROP_PX
         t["ground_offset"] = round(apart, 2)
         if not lines["ground_visible"] or apart > 0.25:
-            continue  # ground marked off to the side may lie on another wall at another distance (<address>)
+            continue  # ground marked off to the side may lie on another wall at another distance
         u = box[0] + (thr["x0"] + thr["x1"]) / 2 / cs
         v_thr = box[1] + (thr["y0"] + thr["y1"]) / 2 / cs
         v_gnd = box[1] + (gnd["y0"] + gnd["y1"]) / 2 / cs

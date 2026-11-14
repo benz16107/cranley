@@ -21,7 +21,7 @@ DEFAULT_HEIGHT_M = 2.5
 def floor_z(plan: dict, floor: str | None) -> float:
     """Floor elevation in the scan frame. Where the floor has doorways, the geometry engine's level (median sill,
     absolute scan z): scans whose origin sits on an upper floor have their lowest floor well below z = 0
-    (<address>: -3.25 m). Otherwise its panoramas' median z minus the lowest floor's median z."""
+    (seen on one house at -3.25 m). Otherwise its panoramas' median z minus the lowest floor's median z."""
     if any(o["floor"] == floor and o["type"] != "window" and o.get("sill") is not None
            for o in plan.get("openings") or []):
         return _floor_z(plan)[floor]
