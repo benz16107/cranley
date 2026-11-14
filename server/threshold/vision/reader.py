@@ -10,6 +10,7 @@ import math
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
+from shapely.geometry import Point, Polygon
 
 from ..sources import matterport as mp
 from . import locate as loc
@@ -49,9 +50,14 @@ def _describe(faces) -> str:
 
 
 def room_panos(plan: dict, room: dict) -> list[dict]:
-    """Panoramas standing in a room, the one nearest the room's centre first."""
-    ps = [p for p in plan["panos"] if p.get("room") == room["id"] and p.get("rotation")]
+    """Panoramas standing in a room, the one nearest the room's centre first. Matterport leaves `room` empty on
+    many panoramas in small commercial rooms (72 of 81 in the private offices of <scan-id>), so a panorama
+    with no room that stands inside the room's outline on the same floor counts too."""
     poly = room.get("polygon") or []
+    outline = Polygon(poly) if len(poly) >= 3 else None
+    ps = [p for p in plan["panos"] if p.get("rotation") and (
+        p.get("room") == room["id"] or (not p.get("room") and outline is not None and p.get("floor") == room.get("floor")
+                                        and outline.contains(Point(p["position"][:2]))))]
     if poly:
         c = np.mean(np.array(poly, float), axis=0)
         ps.sort(key=lambda p: float(np.hypot(p["position"][0] - c[0], p["position"][1] - c[1])))
