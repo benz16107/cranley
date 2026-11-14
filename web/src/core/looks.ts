@@ -15,3 +15,12 @@ export function splitPath(pathname: string): { look: LookId | null; place: strin
 }
 /** The URL of a place in a look. The front door of a look is `/<look>`. */
 export const pathIn = (look: LookId, place: string) => `/${look}${place === '/' ? '' : place}`
+
+/** The token of a read-only link, when the place is one: `/shared/<token>`, with anything after it. */
+export const sharedToken = (place: string): string | null => place.match(/^\/shared\/([A-Za-z0-9_-]{8,})(?:\/|$)/)?.[1] ?? null
+
+/** A path segment as text. A link with a broken escape (`%E0%A4%A`) is read as it stands: it must open the app at
+    "not found", not throw before anything is drawn. */
+export const decodeSegment = (s: string): string => { try { return decodeURIComponent(s) } catch { return s } }
+/** The scan a place names (`/scan/<sid>`), or null. */
+export const scanIn = (place: string): string | null => { const m = place.match(/^\/scan\/([^/]+)/); return m ? decodeSegment(m[1]) : null }

@@ -184,6 +184,14 @@
   /* a wide table scrolls inside its own frame; the page never scrolls sideways */
   .listpage .tbl, .tabbody .tbl { min-width: 640px; }
   .card > .tblwrap .tbl { min-width: 520px; }
+  /* the tool catalogue fits a phone: the tool and its two actions. What it does, needs and asks is in the row's detail. */
+  .listpage.tools .tbl { min-width: 0; }
+  .listpage.tools :is([data-col='family'], [data-col='does'], [data-col='needs'], [data-col='asks'], [data-col='speed']) { display: none; }
+  .listpage.tools th[data-col='tool'] { width: auto !important; }
+  .listpage.tools th[data-col='x'] { width: 156px !important; }
+  .listpage.tools td[data-col='x'] { padding-left: 0; }
+  /* the look switcher's tab sits on the bottom left edge of a phone: the table's count clears it */
+  .listpage > .tblwrap > .tblfoot { padding-bottom: 20px; min-height: 54px; }
   .stats { flex-wrap: wrap; }
   .stats > div { flex: 1 1 40%; border-top: 1px solid var(--rule); margin-top: -1px; }
   /* one row of filters that scrolls sideways inside itself */

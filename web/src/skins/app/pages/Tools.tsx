@@ -67,7 +67,7 @@ export function Tools() {
   ]
   const sel = tools.find((t) => t.id === open) ?? null
   return (
-    <div className="listpage">
+    <div className="listpage tools">
       <div className="bar">
         <label className="inset"><Icon name="search" size={13} /><input className="field" value={text} onChange={(e) => setText(e.target.value)} placeholder="Filter tools" aria-label="Filter tools by name or what they do" /></label>
         <Seg label="Family" value={fam} onChange={setFam} options={[{ id: 'all', label: `All ${tools.length}` }, { id: 'mine', label: `In this investigation ${mine.length}` }, ...FAMILIES.filter((f) => tools.some((t) => t.family === f.id)).map((f) => ({ id: f.id, label: f.label, icon: f.icon }))]} />

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { DEFAULT_LOOK, pathIn, splitPath } from './looks.ts'
+import { DEFAULT_LOOK, pathIn, scanIn, splitPath } from './looks.ts'
 
 /* Routing without a library: the URL is the state of the view, so every view is a link.
    The first path segment is the look (see looks.ts); the rest is the place, the same in every look:
@@ -17,8 +17,8 @@ function read(): Route {
   const key = pathname + search
   if (cached && (cached as Route & { key?: string }).key === key) return cached
   const { place } = splitPath(pathname)
-  const m = place.match(/^\/scan\/([^/]+)/)
-  cached = Object.assign({ path: m ? '/scan' : place === '/map' ? '/map' : '/', sid: m ? decodeURIComponent(m[1]) : null, q: new URLSearchParams(search) }, { key })
+  const sid = scanIn(place)
+  cached = Object.assign({ path: sid != null ? '/scan' : place === '/map' ? '/map' : '/', sid, q: new URLSearchParams(search) }, { key })
   return cached
 }
 const emit = () => listeners.forEach((l) => l())

@@ -1,8 +1,8 @@
 import { Fragment, type ReactNode } from 'react'
-import { useBuildings, useWorkspace } from '../../../core/index.ts'
+import { useBuildings, useCatalog, useWorkspace } from '../../../core/index.ts'
 import { Icon, IconBtn } from '../design/ui.tsx'
 import { go, usePlace } from '../lib/place.ts'
-import { useSeen } from '../lib/pending.ts'
+import { leaveShared, useSeen } from '../lib/pending.ts'
 import { useIsPhone, useUi } from './store.ts'
 
 type Crumb = { label: string; to?: () => void }
@@ -25,6 +25,7 @@ export function Topbar({ actions }: { actions?: ReactNode }) {
   const phone = useIsPhone()
   const run = useUi((s) => s.run), setRun = useUi((s) => s.setRun)
   const doc = useWorkspace((s) => s.doc)
+  const shared = useCatalog((s) => s.shared?.state === 'ready')
   const running = doc.runs.filter((r) => r.status === 'running').length, open = doc.questions.filter((q) => q.answer == null).length
   const working = running > 0 || doc.plan.some((s) => s.status === 'active')
   return (
@@ -39,6 +40,8 @@ export function Topbar({ actions }: { actions?: ReactNode }) {
         ))}
       </nav>
       {actions}
+      {/* a read-only link says so on every page, with the way out */}
+      {shared && <span className="readonly"><Icon name="eye" size={13} /><span>Read-only link</span><button type="button" className="btn sm" onClick={leaveShared}>Leave</button></span>}
       <button type="button" className="find" onClick={() => useUi.setState({ menu: 'all' })} aria-label="Search buildings, tools and pages">
         <Icon name="search" size={14} /><span className="grow">Search buildings, tools, pages</span><span className="kbd">Ctrl K</span>
       </button>

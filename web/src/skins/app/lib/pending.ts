@@ -47,6 +47,9 @@ useWorkspace.subscribe(({ doc: d }) => {
   try { localStorage.setItem(KEY, JSON.stringify(all)) } catch { /* private window: the list lasts for this visit */ }
 })
 
+/** Leave a read-only link for this browser's own work: the look's front door, loaded afresh. */
+export const leaveShared = () => window.location.assign(window.location.pathname.replace(/^(\/[^/]+).*/, '$1'))
+
 export function forgetSeen(id: string) {
   const all = { ...useSeen.getState().all }
   delete all[id]
