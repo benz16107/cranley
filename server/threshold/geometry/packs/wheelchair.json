@@ -4,19 +4,59 @@
   "summary": "Door widths, route widths, turning space and thresholds against the ADA 2010 Standards and the Fair Housing Act Design Manual.",
   "params": {},
   "rules": [
-    {"id": "door_clear_width", "measure": "door_clear_width", "threshold": 0.813, "unit": "m", "compare": "at_least", "severity": "required",
-     "text": "Every door into or between living spaces gives at least 32 in (813 mm) of clear width with the door open at 90 degrees. Closets and voids are left out.",
-     "standard": "ADA 2010 Standards 404.2.3; Fair Housing Act Design Manual, Requirement 3 (usable doors, nominal 32 in clear)"},
-    {"id": "route_width", "measure": "route_corridor_width", "threshold": 0.914, "unit": "m", "compare": "at_least", "severity": "required",
-     "targets": ["Bedroom", "Bathroom", "Kitchen", "Living Room", "Dining Room"],
-     "text": "The walking route from the entrance to each bedroom, bathroom, kitchen and living space is at least 36 in (914 mm) wide between walls.",
-     "standard": "ADA 2010 Standards 403.5.1; Fair Housing Act Design Manual, Requirement 4 (accessible route, 36 in)"},
-    {"id": "turning_space", "measure": "turning_diameter", "threshold": 1.525, "unit": "m", "compare": "at_least", "severity": "required",
-     "targets": ["Bathroom", "Kitchen", "Bedroom", "Living Room"],
-     "text": "Bathrooms, kitchens, bedrooms and living rooms hold a 60 in (1525 mm) turning circle in the empty room.",
-     "standard": "ADA 2010 Standards 304.3.1 (circular turning space)"},
-    {"id": "thresholds", "measure": "threshold_step", "threshold": 0.013, "unit": "m", "compare": "at_most", "severity": "required", "tolerance": 0.04,
-     "text": "No doorway has a change in level over 1/2 in (13 mm). Sill heights in the scan scatter by about 4 cm even on flat floors, so only larger steps show; small ones need a tape measure.",
-     "standard": "ADA 2010 Standards 404.2.5 and 303.3 (thresholds 1/2 in maximum, beveled above 1/4 in)"}
+    {
+      "id": "door_clear_width",
+      "measure": "door_clear_width",
+      "threshold": 0.815,
+      "unit": "m",
+      "compare": "at_least",
+      "severity": "required",
+      "text": "Every door into or between living spaces gives at least 32 in (815 mm) of clear width with the door open at 90 degrees. Closets and voids are left out.",
+      "standard": "ADA 2010 Standards 404.2.3 (32 in, 815 mm minimum); Fair Housing Act Design Manual, Requirement 3 (usable doors: a nominal 32 in clear, which HUD accepts from 31 5/8 in)"
+    },
+    {
+      "id": "route_width",
+      "measure": "route_corridor_width",
+      "threshold": 0.914,
+      "unit": "m",
+      "compare": "at_least",
+      "severity": "required",
+      "targets": [
+        "Bedroom",
+        "Bathroom",
+        "Kitchen",
+        "Living Room",
+        "Dining Room"
+      ],
+      "text": "The walking route from the entrance to each bedroom, bathroom, kitchen and living space is at least 36 in (914 mm) wide between walls.",
+      "standard": "ADA 2010 Standards 403.5.1 (36 in, 915 mm; may narrow to 32 in for 24 in at most); Fair Housing Act Design Manual, Requirement 4 (accessible route into and through the unit, 36 in)"
+    },
+    {
+      "id": "turning_space",
+      "measure": "turning_diameter",
+      "threshold": 1.525,
+      "unit": "m",
+      "compare": "at_least",
+      "severity": "required",
+      "targets": [
+        "Bathroom",
+        "Kitchen",
+        "Bedroom",
+        "Living Room"
+      ],
+      "text": "Bathrooms, kitchens, bedrooms and living rooms hold a 60 in (1525 mm) turning circle in the empty room.",
+      "standard": "ADA 2010 Standards 304.3.1 (circular turning space, 60 in, 1525 mm diameter minimum; 304.3.2 allows a T-shaped space instead)"
+    },
+    {
+      "id": "thresholds",
+      "measure": "threshold_step",
+      "threshold": 0.013,
+      "unit": "m",
+      "compare": "at_most",
+      "severity": "required",
+      "tolerance": 0.04,
+      "text": "No doorway has a change in level over 1/2 in (13 mm). Sill heights in the scan scatter by about 4 cm even on flat floors, so only larger steps show; small ones need a tape measure.",
+      "standard": "ADA 2010 Standards 404.2.5 (thresholds 1/2 in, 13 mm maximum) and 303.2 to 303.4 (1/4 in may be vertical, up to 1/2 in beveled at 1:2, more must be ramped)"
+    }
   ]
 }

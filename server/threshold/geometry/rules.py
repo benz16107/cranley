@@ -18,6 +18,7 @@ from ._plan import (
     clear_width,
     floor_z,
     geo_source,
+    implausible,
     judge,
     polygons,
     room_label,
@@ -81,8 +82,10 @@ def m_door_clear_width(plan, rule, params):
     if items is None:
         return None
     return [{"measured": clear_width(d), "anchor": {"opening": d["opening"]}, "label": f"Door, {names}",
-             "point": d["center"], "detail": f"Opening {d['width']:.2f} m in the wall, about {clear_width(d):.2f} m "
-                                            f"clear once a door is hung."}
+             "point": d["center"], "result": "measure on site" if implausible(d) else None,
+             "detail": f"The scan records {d['width'] * 100:.0f} cm, narrower than any door: a data error in the "
+                       f"wall graph, not a narrow door. Measure on site." if implausible(d) else
+                       f"Opening {d['width']:.2f} m in the wall, about {clear_width(d):.2f} m clear once a door is hung."}
             for d, names in items]
 
 

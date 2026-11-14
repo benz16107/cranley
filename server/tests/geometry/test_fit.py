@@ -44,3 +44,10 @@ def test_free_wall_runs_skip_openings(plan):
     lengths = sorted(round(r["length"], 2) for r in runs["runs"])
     assert lengths.count(1.35) == 2                                  # south wall either side of the window
     assert lengths.count(1.5) == 2                                   # east wall either side of door AB
+
+
+def test_corner_angle_generalises_the_right_angle():
+    assert corner_max_length(1.0, 1.2, 0.5, 90) == pytest.approx(corner_max_length(1.0, 1.2, 0.5), abs=1e-9)
+    # equal widths, no box width: the ladder is 2a / sin(phi/2)
+    assert corner_max_length(1.0, 1.0, 0.0, 45) == pytest.approx(2 / math.sin(math.radians(22.5)), rel=1e-3)
+    assert corner_max_length(1.0, 1.0, 0.4, 30) > corner_max_length(1.0, 1.0, 0.4, 60) > corner_max_length(1.0, 1.0, 0.4, 120)

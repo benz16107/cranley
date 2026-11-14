@@ -164,6 +164,15 @@ def clear_width(link: dict) -> float | None:
     return max(0.0, w - HUNG_DOOR_ALLOWANCE_M) if link.get("kind", link.get("type")) == "doorway" else w
 
 
+IMPLAUSIBLE_DOOR_M = 0.40  # narrower than any door a person walks through (stock doors start at 18 in, 457 mm)
+
+
+def implausible(link: dict) -> bool:
+    """A doorway or opening this narrow is a wall-graph error (seen down to 0 cm), not a narrow door."""
+    w = link.get("width")
+    return w is not None and w < IMPLAUSIBLE_DOOR_M and link.get("kind", link.get("type")) in ("doorway", "opening")
+
+
 def judge(measured: float | None, threshold: float, tol: float = SCAN_TOLERANCE_M, at_least: bool = True) -> str:
     """'likely pass', 'likely fail' or 'measure on site' when the value is within the tolerance of the limit."""
     if measured is None:
