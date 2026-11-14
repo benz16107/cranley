@@ -18,11 +18,16 @@ from pydantic import BaseModel, Field, ValidationError
 
 from ..config import DATA
 from .places import Site, default_site
-from .types import Manifest, Place, ScanScope, ToolResult
+from .types import Manifest, Place, PropertyScope, ScanScope, ScansScope, ToolResult, Verdict
 
 
 class ToolError(Exception):
     """Unknown tool, a planned tool, bad inputs, or missing data. The message is safe to show a person."""
+
+
+class NotApplicable(ToolError):
+    """The tool cannot answer for this building (a house is not an apartment community, a phone scan has no
+    listing). `run_tool` turns it into an "unknown" result whose verdict is the message, not an error."""
 
 
 def field(default: Any = ..., *, ask: str | None = None, pref: str | None = None, source: str | None = None,
@@ -122,7 +127,10 @@ def run_tool(tool_id: str, inputs: dict, ctx: ToolContext | None = None) -> Tool
     except ValidationError as e:
         raise ToolError(f"Bad inputs for {tool_id}: " + "; ".join(
             f"{'.'.join(map(str, x['loc']))}: {x['msg']}" for x in e.errors())) from None
-    result = t.handler(ctx or ToolContext(), parsed)
+    try:
+        result = t.handler(ctx or ToolContext(), parsed)
+    except NotApplicable as e:
+        result = ToolResult(scope=_scope(parsed.model_dump()), verdict=Verdict(status="unknown", text=str(e)))
     result.tool = tool_id
     result = ToolResult.model_validate(result.model_dump())  # re-check what the handler built
     from ..facts.record import record_result  # facts history (Tiger Data); a no-op without a database
@@ -130,4 +138,11 @@ def run_tool(tool_id: str, inputs: dict, ctx: ToolContext | None = None) -> Tool
     return result
 
 
-__all__ = ["Place", "ScanScope", "Site", "Tool", "ToolContext", "ToolError", "field", "load", "manifests", "run_tool", "tool"]
+def _scope(inputs: dict):
+    place = inputs.get("place") or {}
+    sid = inputs.get("scan") or place.get("scan")
+    pid = inputs.get("property_id") or inputs.get("property") or place.get("property_id")
+    return ScanScope(sid=sid) if sid else PropertyScope(property_id=pid) if pid else ScansScope(sids=inputs.get("scans") or [])
+
+
+__all__ = ["NotApplicable", "Place", "ScanScope", "Site", "Tool", "ToolContext", "ToolError", "field", "load", "manifests", "run_tool", "tool"]

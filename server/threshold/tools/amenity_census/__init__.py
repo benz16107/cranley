@@ -15,6 +15,7 @@ from .. import (
     Check,
     Finding,
     Metric,
+    NotApplicable,
     Pin,
     PinsOverlay,
     RoomAnchor,
@@ -190,7 +191,8 @@ def look_for(ctx, sid: str, am: str) -> dict | None:
 def run(ctx, inputs: Inputs) -> ToolResult:
     pid = inputs.property or (facts.property_id(inputs.scan) if inputs.scan else None)
     if not pid:
-        raise ToolError("Pick a scan that belongs to an apartment community in the CoStar kit, or give its property id.")
+        raise NotApplicable("This scan does not belong to an apartment community in the CoStar kit, so there are no shared "
+                            "amenities to count. Pick a scan of a community, or give its property id.")
     sids = costar.scans_of_property(pid)
     address = costar.joins()["property_address"].get(pid) or str(pid)
     names = {s: facts.scan_name(s) for s in sids}

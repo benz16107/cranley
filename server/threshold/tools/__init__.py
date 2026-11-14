@@ -1,7 +1,7 @@
 """Tools: a manifest plus a handler each. How to add one: tools/README.md."""
 
 from .places import Site
-from .registry import ToolContext, ToolError, field, load, manifests, run_tool, tool
+from .registry import NotApplicable, ToolContext, ToolError, field, load, manifests, run_tool, tool
 from .types import (
     Action,
     AddressScope,
@@ -42,6 +42,7 @@ __all__ = [
     "LensOverlay",
     "Manifest",
     "Metric",
+    "NotApplicable",
     "OpeningAnchor",
     "Pin",
     "PinsOverlay",

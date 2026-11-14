@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 from ...geometry import water
 from ...geometry._plan import room_floor_z
-from .. import ToolError, field
+from .. import NotApplicable, field
 from . import floor_height as fh
 from . import public
 
@@ -238,7 +238,7 @@ def room_depth_at(flood: dict, room: str | None, k: str) -> float:
 
 def check_plan(plan: dict) -> None:
     if not plan.get("rooms"):
-        raise ToolError("This scan has no rooms, so there is nothing to flood.")
+        raise NotApplicable("This scan has no rooms, so there is nothing to flood.")
 
 
 def _kind(sid: str) -> str | None:

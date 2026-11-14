@@ -27,6 +27,7 @@ from .. import (
     Legend,
     LensOverlay,
     Metric,
+    NotApplicable,
     RoomAnchor,
     ScanScope,
     Source,
@@ -219,10 +220,10 @@ def run_cfast(text: str) -> dict:
         try:
             r = subprocess.run([exe, "case.in"], cwd=d, capture_output=True, text=True, timeout=TIMEOUT_S)
         except subprocess.TimeoutExpired:
-            raise ToolError(f"CFAST did not finish within {TIMEOUT_S // 60} minutes: its solver slowed to tiny time "
+            raise NotApplicable(f"CFAST did not finish within {TIMEOUT_S // 60} minutes: its solver slowed to tiny time "
                             "steps on this plan") from None
         if "Normal exit" not in r.stdout + r.stderr:
-            raise ToolError(f"CFAST stopped early: {(r.stdout + r.stderr).strip()[-300:]}")
+            raise NotApplicable(f"CFAST stopped early, so no smoke timeline: {(r.stdout + r.stderr).strip()[-300:]}")
         done.touch()
     rows = list(csv.reader(out.open()))
     ids, comps = rows[0], rows[2]

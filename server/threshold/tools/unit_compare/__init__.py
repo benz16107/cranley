@@ -13,6 +13,7 @@ from .. import (
     Check,
     Finding,
     Metric,
+    NotApplicable,
     RoomAnchor,
     Source,
     ToolError,
@@ -113,7 +114,8 @@ def pick(inputs: Inputs) -> list[str]:
         return inputs.scans[:inputs.max_units]
     pid = inputs.property or (facts.property_id(inputs.scan) if inputs.scan else None)
     if not pid:
-        raise ToolError("Give two or more scans, a CoStar property id, or select a unit that belongs to a property in the kit.")
+        raise NotApplicable("This scan does not belong to a property in the kit, so there are no sibling units to "
+                            "compare. Give two or more scans, or a CoStar property id.")
     kind = facts.scan_kind(inputs.scan) if inputs.scan else "apartment_unit"
     same = [s for s in costar.scans_of_property(pid) if facts.scan_kind(s) == kind]
     if inputs.scan and inputs.scan in same:
