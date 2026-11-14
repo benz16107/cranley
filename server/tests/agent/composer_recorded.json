@@ -390,6 +390,38 @@
    }
   ]
  },
+ "I run facilities for our company; audit our office for accessibility and life safety and tell me what to fix first.": {
+  "cannot": [],
+  "persona": "facility_manager",
+  "stated": [],
+  "summary": "You run facilities for your company and want your office audited for accessibility and life safety, with a clear list of what to fix first.",
+  "tools": [
+   {
+    "id": "facility_audit",
+    "reason": "You get doors, restrooms, ways out, life-safety equipment and occupant load in one pass, ending in a prioritised fix list with rough costs."
+   },
+   {
+    "id": "door_widths",
+    "reason": "You see every doorway measured and the ones too narrow for a wheelchair flagged."
+   },
+   {
+    "id": "bathroom_clearance",
+    "reason": "You find out whether each restroom works for a wheelchair user and what blocks it."
+   },
+   {
+    "id": "egress_routes",
+    "reason": "You see the way out of every room, how far and how narrow, and which rooms have only one way out."
+   },
+   {
+    "id": "step_free_route",
+    "reason": "You check whether someone using a wheelchair can get from the entrance to each space without a step."
+   },
+   {
+    "id": "field_check",
+    "reason": "You get a list of what the scan could not settle so someone on site can confirm it before you spend money."
+   }
+  ]
+ },
  "I teach piano and I'm moving my studio; the grand piano has to get in and the room should be quiet.": {
   "cannot": [
    "None of these tools can tell you how quiet a room is or how much outside noise reaches it."
@@ -965,6 +997,34 @@
    }
   ]
  },
+ "My client runs 53 foot trailers and needs a distribution warehouse in Houston with 28 foot clear height and at least four docks; find and rank the options.": {
+  "cannot": [],
+  "persona": "industrial_tenant_rep",
+  "stated": [],
+  "summary": "A tenant rep finding a Houston distribution warehouse for a client running 53 foot trailers, needing 28 foot clear height and at least four docks, ranked.",
+  "tools": [
+   {
+    "id": "site_scorecard",
+    "reason": "You get the candidate warehouses ranked against your client's requirements, with deal-breakers like clear height under 28 feet or fewer than four docks flagged."
+   },
+   {
+    "id": "industrial_fit",
+    "reason": "You see each building's clear height, dock and drive-in doors, truck court, highway access and flood zone in one check."
+   },
+   {
+    "id": "loading_docks",
+    "reason": "You get the dock doors counted from the aerial views and set beside the CoStar record, so you know whether four docks are really there."
+   },
+   {
+    "id": "truck_access",
+    "reason": "You learn whether your client's 53 foot trailers can enter, turn and back to the docks at each site."
+   },
+   {
+    "id": "market_comps",
+    "reason": "You see where each option's asking rent sits against comparable Houston warehouses."
+   }
+  ]
+ },
  "My dad had a hip replacement and can't do stairs anymore.": {
   "cannot": [
    "Nothing here checks for grab bars, handrails, or slippery floors that matter for someone recovering from hip surgery."
@@ -1220,6 +1280,30 @@
    }
   ]
  },
+ "We're a coffee chain picking our next Los Angeles store; which of these sites has the parking and the neighbours we need?": {
+  "cannot": [],
+  "persona": "retail_site_selector",
+  "stated": [],
+  "summary": "A coffee chain choosing its next Los Angeles store, comparing candidate sites on parking and neighbouring businesses.",
+  "tools": [
+   {
+    "id": "site_scorecard",
+    "reason": "Ranks your candidate sites side by side against your requirements, with the deal-breakers and evidence for each."
+   },
+   {
+    "id": "retail_site",
+    "reason": "Shows each site's parking ratio, the road it faces, its anchors and neighbouring shops, and walk-in trade signals."
+   },
+   {
+    "id": "parking_count",
+    "reason": "Counts the stalls and parked cars at each site from the aerial photo and checks them against the record."
+   },
+   {
+    "id": "market_comps",
+    "reason": "Puts each site's asking rent beside comparable properties so you can weigh cost against fit."
+   }
+  ]
+ },
  "We're a robotics startup testing a robot vacuum in real homes and need the tight spots and door thresholds.": {
   "cannot": [
    "Nothing here measures the height of door thresholds or floor transitions your vacuum has to climb.",
@@ -1326,6 +1410,34 @@
    }
   ]
  },
+ "We're relocating our office in Houston and want to keep commutes short for the team.": {
+  "cannot": [],
+  "persona": "office_relocation",
+  "stated": [],
+  "summary": "A company relocating its Houston office that wants to keep the team's commutes short.",
+  "tools": [
+   {
+    "id": "commute_fit",
+    "reason": "You'll see estimated drive times from where your people live to each candidate office, including who would face a long commute and what transit is nearby."
+   },
+   {
+    "id": "site_scorecard",
+    "reason": "You can rank the candidate buildings against your requirements, with commute weighted as heavily as you like, and see the deal-breakers."
+   },
+   {
+    "id": "office_fit",
+    "reason": "You'll check whether your team fits each suite as built, with desks, offices and meeting rooms."
+   },
+   {
+    "id": "market_comps",
+    "reason": "You'll see how each building's asking rent compares with similar Houston offices."
+   },
+   {
+    "id": "step_free_route",
+    "reason": "You can confirm everyone on the team can get from the entrance to the rooms they need without steps."
+   }
+  ]
+ },
  "What changed in this building since the record was last updated?": {
   "cannot": [
    "Nothing here can tell you when a change happened or why, only that the current scan differs from the record."
@@ -1345,6 +1457,30 @@
    {
     "id": "property_coverage",
     "reason": "This shows which floor plans and shared spaces have a scan, so you know which parts of the building the comparison can actually speak to."
+   }
+  ]
+ },
+ "What do comparable warehouses rent for near this one, and is its asking rent above the market?": {
+  "cannot": [],
+  "persona": "industrial_tenant_rep",
+  "stated": [],
+  "summary": "Someone looking at a warehouse who wants to know what comparable warehouses nearby rent for and whether this one's asking rent is above market.",
+  "tools": [
+   {
+    "id": "market_comps",
+    "reason": "You get comparable warehouses from CoStar with their asking rents, and where this building's asking rent sits against them."
+   },
+   {
+    "id": "industrial_fit",
+    "reason": "You can see the clear height, doors, truck court and other features that explain why this warehouse might rent above or below its comps."
+   },
+   {
+    "id": "loading_docks",
+    "reason": "You can confirm the dock and drive-in door count, a big driver of warehouse rent, against what the record claims."
+   },
+   {
+    "id": "record_vs_reality",
+    "reason": "You can check that the size and facts in the record behind the asking rent match what was actually measured."
    }
   ]
  },
