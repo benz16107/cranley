@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Engine, type FrameInfo, type SceneState } from './engine/Engine.ts'
 import { FloorPlan, type FloorPlanHandle } from './FloorPlan.tsx'
 import { isKnownOverlay, type Model } from './model.ts'
+import { ShowPanel } from './show/ShowPanel.tsx'
+import type { ShowState } from './show/types.ts'
 import { useSceneLink } from './store.ts'
 import type { CameraInfo, Overlay, Pick, ScanPlan, View } from './types.ts'
 import { ViewSwitcher } from './ViewSwitcher.tsx'
@@ -20,6 +22,9 @@ export interface BuildingSceneProps {
   onCamera?: (c: CameraInfo) => void
   /** What the scene is doing: its mode, whether it is loading, and the drone capture's progress. */
   onState?: (s: SceneState) => void
+  /** What `view.show` is doing: its playhead, clock and the numbers on screen, whenever a step passes. For a look's
+      own transport (play, a time slider) in its toolbar. */
+  onShow?: (s: ShowState | null) => void
   /** Where /api lives. Empty means same origin. */
   api?: string
   className?: string
@@ -36,17 +41,20 @@ const NO_OVERLAYS: Overlay[] = []
 const DEFAULT_VIEW: View = { mode: 'dollhouse' }
 const niceLength = (m: number) => [0.5, 1, 2, 5, 10, 20, 50].find((v) => v >= m) ?? 100
 
-export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = DEFAULT_VIEW, onPick, onViewChange, onCamera, onState, api = '', className, switcher = true, prepare = false }: BuildingSceneProps) {
+export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = DEFAULT_VIEW, onPick, onViewChange, onCamera, onState, onShow, api = '', className, switcher = true, prepare = false }: BuildingSceneProps) {
   const host = useRef<HTMLDivElement>(null), engine = useRef<Engine | null>(null)
   const planLayer = useRef<HTMLDivElement>(null), planHandle = useRef<FloorPlanHandle>(null), insetHandle = useRef<FloorPlanHandle>(null)
   const scaleBar = useRef<HTMLDivElement>(null), scaleText = useRef<HTMLSpanElement>(null)
   const [state, setState] = useState<SceneState | null>(null)
+  const [show, setShow] = useState<ShowState | null>(null)
   const [model, setModel] = useState<Model | null>(null)
   const [view, setView] = useState(viewProp)
   const [seen, setSeen] = useState(viewProp)
   if (seen !== viewProp) { setSeen(viewProp); setView(viewProp) } // the outside can always say "look here"
-  const cb = useRef({ onPick, onViewChange, onCamera, onState })
-  useEffect(() => { cb.current = { onPick, onViewChange, onCamera, onState } })
+  const cb = useRef({ onPick, onViewChange, onCamera, onState, onShow })
+  useEffect(() => { cb.current = { onPick, onViewChange, onCamera, onState, onShow } })
+  const playing = view.show?.kind ?? null, shown = show && show.kind === playing ? show : null // a show that ended leaves nothing on screen
+  useEffect(() => { if (!playing) { setShow(null); cb.current.onShow?.(null) } }, [playing])
   const change = useCallback((v: View) => { setView(v); cb.current.onViewChange?.(v) }, [])
 
   useEffect(() => {
@@ -61,7 +69,7 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
       }
       insetHandle.current?.cone(f.look)
     }
-    const e = new Engine(host.current!, plan, { api, onPick: (p) => cb.current.onPick?.(p), onViewChange: change, onState: (st) => { setState(st); cb.current.onState?.(st) }, onFrame, onCamera: (c) => cb.current.onCamera?.(c), prepare })
+    const e = new Engine(host.current!, plan, { api, onPick: (p) => cb.current.onPick?.(p), onViewChange: change, onState: (st) => { setState(st); cb.current.onState?.(st) }, onFrame, onCamera: (c) => cb.current.onCamera?.(c), prepare, onShow: (sh) => { setShow(sh); cb.current.onShow?.(sh) } })
     engine.current = e; setModel(e.model)
     useSceneLink.setState({ hover: null, selected: null })
     return () => { e.dispose(); engine.current = null }
@@ -104,10 +112,12 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
         if ((view.surface ?? 'model') !== 'model' && mode === 'dollhouse' && state.interior.status !== 'ready' && state.interior.status !== 'loading') lines.push(s.status === 'loading' ? 'Loading the scanned mesh' : s.status === 'missing' ? 'This scan has no scanned mesh; showing the measured model.' : s.colour === 'baking' ? `Colouring the scanned mesh from its panoramas: ${Math.round(s.progress * 100)}%` : s.colour === 'none' && s.status === 'ready' ? 'The scanned mesh could not be coloured; showing its form.' : '')
         if (mode === 'splat' && view.env === 'aerial' && state.splat.splats) lines.unshift(`Drone capture: a sample, ${(state.splat.splats / 1e6).toFixed(2)}M of its ${(state.splat.total / 1e6).toFixed(1)}M Gaussians.`)
         const text = lines.filter(Boolean)
-        return <>{text.length > 0 && <p className="th-note th-note-layers">{text.map((t) => <span key={t}>{t}</span>)}</p>}{w.credit && view.env === 'aerial' && w.status === 'ready' && <span className="th-credit">© Vexcel Imaging, Microsoft</span>}</>
+        return <>{text.length > 0 && !shown && <p className="th-note th-note-layers">{text.map((t) => <span key={t}>{t}</span>)}</p>}{w.credit && view.env === 'aerial' && w.status === 'ready' && <span className="th-credit">© Vexcel Imaging, Microsoft</span>}</>
       })()}
 
-      {model && model.hasWalls && mode !== 'plan' && mode !== 'splat' && (
+      {shown && <ShowPanel state={shown} />}
+
+      {model && model.hasWalls && mode !== 'plan' && mode !== 'splat' && !shown && (
         <div className="th-inset" data-scene-ui>
           <FloorPlan plan={plan} model={model} overlays={overlays} floor={view.floor} compact pano={mode === 'pano' ? state?.pano : null} handle={insetHandle} onPick={pickFromPlan} />
         </div>

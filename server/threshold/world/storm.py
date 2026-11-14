@@ -137,6 +137,15 @@ def ground(plan: dict, lat: float, lon: float, ground_z: float) -> dict | None:
             "lowest_z": round(float(np.nanmin(np.where(covered, np.nan, z))), 2)}
 
 
+def _so_far(levels: list[float]) -> list[float]:
+    """The highest the water has stood up to each step: what got wet stays lost after the water falls."""
+    out, top = [], -math.inf
+    for v in levels:
+        top = max(top, v)
+        out.append(round(top, 3))
+    return out
+
+
 def _flood(plan: dict) -> dict:
     return flood_run(plan, FloodInputs(scan=plan["sid"], depth_m=0.0, scenario="harvey_2017"), lambda _t: None)
 
@@ -170,6 +179,7 @@ def timeline(plan: dict) -> dict:
         "time": g["time"], "tz_offset_h": -5,
         "level": [round(lv["mid"] - d, 3) for d in drop],
         "level_lo": [round(lv["lo"] - d, 3) for d in drop], "level_hi": [round(lv["hi"] - d, 3) for d in drop],
+        "high": _so_far([lv["mid"] - d for d in drop]),
         "outside_m": [round(max(0.0, lv["mid"] - d - ground_z), 2) for d in drop],
         "inside_m": [round(max(0.0, lv["mid"] - d - ref), 2) for d in drop],
         "rooms_wet": [sum(1 for r in rooms if r["floods_at"] is not None and lv["mid"] - d > max(r["floods_at"], r["floor_z"]))
@@ -229,11 +239,12 @@ def belongings(plan: dict) -> dict:
                       "fixture": bool(x.get("fixture", "label" in x)), "utility": "label" in x})
     items.sort(key=lambda i: i["wet_at"])
     priced = [i for i in items if i["cost_usd"] and not i["fixture"]]
-    loss = [[sum(i["cost_usd"][k] for i in priced if i["wet_at"] <= lvl) for k in (0, 1)] for lvl in tl["level"]]
+    loss = [[sum(i["cost_usd"][k] for i in priced if i["wet_at"] <= lvl) for k in (0, 1)] for lvl in tl["high"]]
     return {"sid": plan["sid"], "available": True, "items": items, "loss_usd": loss,
-            "wet_count": [sum(1 for i in items if i["wet_at"] <= lvl) for lvl in tl["level"]],
+            "wet_count": [sum(1 for i in items if i["wet_at"] <= lvl) for lvl in tl["high"]],
             "skipped_no_height": sum(1 for x in inv["items"] + inv["utilities"] if x["height_m"] is None),
             "source": {"confidence": "low",
                        "text": "Items and their cost classes are a vision model's reading of the furnished panoramas "
                                "(the listing's furniture, not the owner's). Heights come from the scan geometry. The "
-                               "dollar range sums the cost classes of belongings under water at that hour."}}
+                               "dollar range sums the cost classes of belongings the water has reached by that "
+                               "hour; what got wet stays counted after the water falls."}}

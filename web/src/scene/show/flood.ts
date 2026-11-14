@@ -10,7 +10,7 @@ import { fetchJson, type LossItem, type Player, type ShowCtx, type ShowSpec, typ
 
 interface Storm {
   available: boolean; reason?: string; event: string
-  time: number[]; tz_offset_h: number; level: number[]; outside_m: number[]; inside_m: number[]; rooms_wet: number[]
+  time: number[]; tz_offset_h: number; level: number[]; high: number[]; outside_m: number[]; inside_m: number[]; rooms_wet: number[]
   ground_z: number; floor_z: number; window: [number, number]
   ground: { n: number; rect: [number, number, number, number]; z0: number; range: number; b64: string } | null
   rooms: { id: string; label: string; floor_z: number; floods_at: number | null }[]
@@ -75,7 +75,7 @@ export class FloodShow implements Player {
     this.uniforms = {
       uGround: { value: null }, uRooms: { value: null }, uGroundRect: { value: new THREE.Vector4(0, 0, 1, 1) }, uRoomRect: { value: new THREE.Vector4(0, 0, 1, 1) },
       uCentre: { value: new THREE.Vector2(...c) }, uZ0: { value: 0 }, uZr: { value: 1 }, uLevel: { value: -1000 }, uTime: { value: 0 }, uHasGround: { value: 0 },
-      uFade: { value: REACH_M }, uCol: { value: new THREE.Vector3(...ctx.tokens.water) },
+      uFade: { value: REACH_M }, uCol: { value: new THREE.Vector3(...ctx.tokens.water) }, uHigh: { value: -1000 },
     }
     const geo = new THREE.PlaneGeometry(REACH_M * 2, REACH_M * 2), mat = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: this.uniforms, transparent: true, depthWrite: false, side: THREE.DoubleSide })
     this.water = new THREE.Mesh(geo, mat)
@@ -150,7 +150,7 @@ export class FloodShow implements Player {
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('aAt', new THREE.BufferAttribute(at, 1))
     const tok = this.ctx.tokens
     const mat = new THREE.ShaderMaterial({
-      uniforms: { uLevel: this.uniforms.uLevel, uWet: { value: new THREE.Vector3(...tok.fail) }, uDry: { value: new THREE.Vector3(...tok.paper) }, uInk: { value: new THREE.Vector3(...tok.ink) }, uPx: { value: Math.min(devicePixelRatio, 2) } },
+      uniforms: { uLevel: this.uniforms.uHigh, uWet: { value: new THREE.Vector3(...tok.fail) }, uDry: { value: new THREE.Vector3(...tok.paper) }, uInk: { value: new THREE.Vector3(...tok.ink) }, uPx: { value: Math.min(devicePixelRatio, 2) } },
       vertexShader: /* glsl */ `attribute float aAt; uniform float uLevel, uPx; varying float vWet;
         void main() { vWet = step(aAt, uLevel); gl_PointSize = (7.0 + 5.0 * vWet) * uPx; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
       fragmentShader: /* glsl */ `varying float vWet; uniform vec3 uWet, uDry, uInk;
@@ -202,6 +202,7 @@ export class FloodShow implements Player {
     const level = this.level()
     const moved = this.uniforms.uLevel.value !== level
     this.uniforms.uLevel.value = level
+    this.uniforms.uHigh.value = s.high[Math.min(Math.round(this.pos), s.window[1])] // a belonging the water reached stays marked after it falls
     w.cur = w.goal = level                                   // the walls' own tint and water line follow
     this.water.position.z = level; this.water.visible = true
     const i = Math.min(Math.round(this.pos), s.window[1])
