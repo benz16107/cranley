@@ -57,7 +57,7 @@ def _stamp() -> str:
 def table(city: str, kind: str) -> list[dict]:
     """One row per scanned home of this kind in the city: location, and what the kit says about pets, fences and
     pools. Built once from the kit (about 20 s) and kept on disk under cache/home_search/."""
-    f = CACHE / "home_search" / f"{city.lower().replace(' ', '_')}-{kind}-{_stamp()}.json"
+    f = CACHE / "home_search" / f"{city.lower().replace(' ', '_')}-{kind}-{_stamp()}-v2.json"
     if f.exists():
         return json.loads(f.read_text())
     rows = []
@@ -80,7 +80,7 @@ def table(city: str, kind: str) -> list[dict]:
                        cat=cat is not None, cat_rent=(cat or {}).get("rent"), path=apt["path"])
         else:
             lst = policy.listing(b)
-            row.update(listing=lst["has"], fenced=policy.fenced(lst), pool_listed=bool(lst["pool"]) and not any(
+            row.update(listing=bool(b.get("features")), fenced=policy.fenced(lst), pool_listed=bool(lst["pool"]) and not any(
                 "community" in x.lower() for x in lst["pool"]), pet_friendly=lst["pet_friendly"], no_pets=lst["no_pets"],
                 dog_park=bool(lst["dog_park"]))
         rows.append(row)
