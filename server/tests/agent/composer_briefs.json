@@ -44,5 +44,7 @@
   {"id": "aging-parent", "brief": "My mother is moving in with us and I need to know if this house is safe for an older person to get around.", "persona": ["aging_in_place_planner"], "must": [["aging_in_place", "stairs_count"]]},
   {"id": "robot-maker", "brief": "We design a wheeled home robot and want to know what share of real homes it can get around.", "persona": ["robot_maker"], "must": [["robot_fit"]]},
   {"id": "amenity-audit", "brief": "I audit apartment communities and need to check what this one really offers against what its listing says.", "persona": ["amenity_auditor"], "must": [["amenity_census"]]},
-  {"id": "cleaning-bid", "brief": "I run a janitorial company and need to price cleaning this office from the scan.", "persona": ["cleaning_bidder"], "must": [["takeoff_bid"]]}
+  {"id": "cleaning-bid", "brief": "I run a janitorial company and need to price cleaning this office from the scan.", "persona": ["cleaning_bidder"], "must": [["takeoff_bid"]]},
+  {"id": "research-audit", "brief": "I lead a research team that maintains property records and want to find which records disagree with the scans.", "persona": ["costar_research_lead"], "must": [["field_audit", "record_vs_reality"]]},
+  {"id": "renter-claims", "brief": "I'm about to rent this apartment and want to check whether what the listing says is true.", "persona": ["renter_checking_claims", "renter_listing"], "must": [["listing_claims", "record_vs_reality"]]}
 ]

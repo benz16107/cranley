@@ -189,6 +189,34 @@
    }
   ]
  },
+ "I lead a research team that maintains property records and want to find which records disagree with the scans.": {
+  "cannot": [],
+  "persona": "costar_research_lead",
+  "stated": [],
+  "summary": "You lead a research team maintaining property records and want to find which records disagree with the scans.",
+  "tools": [
+   {
+    "id": "field_audit",
+    "reason": "You can see, across many scans, which record fields disagree with what the scans measure, ranked with evidence."
+   },
+   {
+    "id": "record_vs_reality",
+    "reason": "You can drill into a single property and see each record fact beside what the scan and aerial photo measure."
+   },
+   {
+    "id": "derived_fields",
+    "reason": "You can find record fields a property lacks and get proposed values measured from the scan."
+   },
+   {
+    "id": "room_census",
+    "reason": "You can check the room types and sizes behind any disagreement, including rooms with no type."
+   },
+   {
+    "id": "property_coverage",
+    "reason": "You can see which floor plans and shared spaces have a scan, so you know where a record can be checked at all."
+   }
+  ]
+ },
  "I manage an apartment community and want to know how accessible our units are.": {
   "cannot": [],
   "persona": "apartment_manager",
@@ -571,6 +599,36 @@
    {
     "id": "daylight",
     "reason": "You can estimate how much natural light each room gets from its windows and orientation, which shapes where portraits will look best."
+   }
+  ]
+ },
+ "I'm about to rent this apartment and want to check whether what the listing says is true.": {
+  "cannot": [
+   "Nothing here can check claims the scan cannot see, such as included utilities, noise, pet rules or the condition of appliances."
+  ],
+  "persona": "renter_listing",
+  "stated": [],
+  "summary": "You're about to rent an apartment and want to know whether what the listing says matches the place itself.",
+  "tools": [
+   {
+    "id": "listing_claims",
+    "reason": "You can check each claim in the listing against the scan and see what the listing leaves out."
+   },
+   {
+    "id": "record_vs_reality",
+    "reason": "You can see each fact in the listing record set beside what the scan and aerial photo measure, with the evidence."
+   },
+   {
+    "id": "room_census",
+    "reason": "You can confirm which rooms the apartment really has and how big each one is."
+   },
+   {
+    "id": "daylight",
+    "reason": "You can see whether claims about light hold up: the windows, which way each room faces and its hours of direct sun."
+   },
+   {
+    "id": "storage_space",
+    "reason": "You can check how much closet and storage space there really is and whether any bedroom lacks a closet."
    }
   ]
  },

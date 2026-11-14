@@ -15,11 +15,18 @@ def test_per_room_counts_and_sun():
 
 
 def test_result_flags_dark_bedroom_and_hedges_direction():
-    r = run_tool("daylight", {"scan": "home1", "date": "2026-06-21"}, ToolContext(plans=lambda sid: make_home()))
+    def unchecked(sid):  # a scan whose placement was not verified against its footprint (plan.quality.georef)
+        p = make_home()
+        p["quality"]["georef"] = False
+        return p
+    r = run_tool("daylight", {"scan": "home1", "date": "2026-06-21"}, ToolContext(plans=unchecked))
     assert r.verdict.status == "warn"
     assert any(f.title == "Bedroom has no window" for f in r.findings)
     sunny = next(f for f in r.findings if f.title.startswith("Sunniest"))
     assert sunny.detail.startswith("If the scan's compass rotation is right") and sunny.source.confidence == "low"
+    checked = run_tool("daylight", {"scan": "home1", "date": "2026-06-21"}, ToolContext(plans=lambda sid: make_home()))
+    sunny = next(f for f in checked.findings if f.title.startswith("Sunniest"))
+    assert not sunny.detail.startswith("If") and sunny.source.confidence != "low"  # a verified scan states it plainly
     assert r.overlays[0].kind == "lens" and r.overlays[0].legend.unit == "h"
 
 
