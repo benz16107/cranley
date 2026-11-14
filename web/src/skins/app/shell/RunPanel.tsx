@@ -12,6 +12,7 @@ import { askHere } from '../lib/pending.ts'
 import { goScan } from '../lib/place.ts'
 import { newInvestigation } from './Sidebar.tsx'
 import { useUi } from './store.ts'
+import { ApprovalCard, isApproval, Lanes } from './AgentLive.tsx'
 
 const prefText = (p: Pick<Pref, 'value' | 'unit'>) => (typeof p.value === 'boolean' ? (p.value ? 'yes' : 'no') : `${p.value}${p.unit ? ' ' + p.unit : ''}`)
 
@@ -96,8 +97,8 @@ function Brief() {
       )}
       {open.length > 0 && !editing && (
         <div className="asks">
-          <header><h3>{open.length === 1 ? 'One question' : `${open.length} questions`} before the work can go on</h3></header>
-          {open.map((q) => <QuestionForm key={q.id} q={q} />)}
+          <header><h3>{open.every(isApproval) ? (open.length === 1 ? 'The agent is waiting for your approval' : `The agent is waiting for ${open.length} approvals`) : open.length === 1 ? 'One question' : `${open.length} questions`} before the work can go on</h3></header>
+          {open.map((q) => (isApproval(q) ? <ApprovalCard key={q.id} q={q} /> : <QuestionForm key={q.id} q={q} />))}
         </div>
       )}
       {doc.brief && doc.questions.length > 0 && !doc.plan.length && !editing && (
@@ -211,7 +212,7 @@ export function RunPanel({ onClose }: { onClose: () => void }) {
               <Tabs.Tab value="findings">Findings{doc.findings.length > 0 && <span className="count">{doc.findings.length}</span>}</Tabs.Tab>
               <Tabs.Tab value="learned">Learned{doc.prefs.length > 0 && <span className="count">{doc.prefs.length}</span>}</Tabs.Tab>
             </Tabs.List>
-            <Tabs.Panel value="plan"><Plan /></Tabs.Panel>
+            <Tabs.Panel value="plan"><Lanes /><Plan /></Tabs.Panel>
             <Tabs.Panel value="findings"><Findings /></Tabs.Panel>
             <Tabs.Panel value="learned"><Learned /></Tabs.Panel>
           </Tabs.Root>

@@ -67,6 +67,8 @@ def history(doc: dict, where: Where = scan_place) -> list[dict]:
     for s in doc.get("shortlist", []):
         out.append({**base, **place(s["sid"]), "_id": f"{ws}:s:{s['sid']}", "kind": "shortlist",
                     "title": "Shortlisted", "text": s.get("note") or ""})
+    for x in out:  # one field for meaning search: Atlas automated embedding embeds a single path
+        x["body"] = ". ".join(v for v in (x.get("title"), x.get("text"), x.get("reason")) if v)
     return out
 
 
@@ -116,3 +118,25 @@ def lines(memories: list[dict]) -> list[str]:
             parts.append("they set " + ", ".join(sorted(m["thresholds"])))
         out.append("- " + "; ".join(parts))
     return out
+
+
+def sensor(ws: str, cap: dict) -> dict | None:
+    """One time series measurement from a phone capture record: when, where and how it was taken, plus the reading's
+    numeric values. None for a record without a time."""
+    import datetime as dt
+    t = cap.get("taken") or cap.get("at")
+    if not t:
+        return None
+    fix = cap.get("fix") or {}
+    tilt = cap.get("tilt") or {}
+    values = {k: v for k, v in (cap.get("values") or {}).items() if isinstance(v, (int, float)) and not isinstance(v, bool)}
+    row = {"at": dt.datetime.fromtimestamp(float(t), dt.UTC),
+           "meta": {k: v for k, v in {"workspace": ws, "capture": cap["id"], "kind": cap.get("kind"), "tool": cap.get("tool"),
+                                      "task": cap.get("task"), "scan": cap.get("scan"), "room": cap.get("room"),
+                                      "device": cap.get("device")}.items() if v is not None},
+           "accuracy_m": fix.get("accuracy_m"), "altitude_m": fix.get("altitude_m"),
+           "altitude_accuracy_m": fix.get("altitude_accuracy_m"), "heading_deg": cap.get("heading_deg"),
+           "pitch_deg": tilt.get("pitch_deg"), "roll_deg": tilt.get("roll_deg"), "values": values}
+    if fix.get("lat") is not None:
+        row["location"] = {"type": "Point", "coordinates": [fix["lon"], fix["lat"]]}
+    return {k: v for k, v in row.items() if v not in (None, {})}

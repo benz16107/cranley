@@ -160,6 +160,7 @@ def _drop(c: pg8000.native.Connection) -> str:
                 raise
             time.sleep(1 + attempt)
     c.run("DROP TABLE IF EXISTS public.threshold_migrations")
+    c.run("DROP SCHEMA IF EXISTS ai CASCADE")  # the pgai vectorizer's catalog and queue (facts/vectorizer.py)
     if not c.run("SELECT 1 FROM pg_roles WHERE rolname = :r", r=READER):
         return "dropped the schema and the migration record"
     c.run(f"DROP OWNED BY {READER}")

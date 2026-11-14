@@ -19,11 +19,11 @@ class BudgetSpent(RuntimeError):
 
 @dataclass
 class Budget:
-    model_calls: int = 40   # hard cap for the whole turn
+    model_calls: int = 48   # hard cap for the whole turn
     tool_runs: int = 40
     parallel: int = 4       # scans run at once in a fan-out, and subagents at once
     main_calls: int = 14    # per-agent limits under the cap
-    subagent_calls: int = 6
+    subagent_calls: int = 8  # tools, plus reading and writing /memories/ and the case note
     property_calls: int = 8
     max_fan_out: int = 8    # scans one property fan-out may run
     calls: int = 0

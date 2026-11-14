@@ -11,4 +11,5 @@ def no_facts_database(monkeypatch):
     # tests/store builds its own store on MONGODB_TEST_URI (local only) and hands it to the routes itself.
     monkeypatch.setenv("THRESHOLD_STORE", "files")
     monkeypatch.setenv("MONGODB_URI", "")
+    monkeypatch.setenv("LANGSMITH_TRACING", "false")  # no traces from tests
     monkeypatch.setattr(db, "_down_until", 0.0)

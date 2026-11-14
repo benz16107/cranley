@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import pathlib
 import re
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -43,6 +44,8 @@ from .workspace import (
     PanelUpsert,
     PlanSet,
     PlanStep,
+    Question,
+    QuestionAsk,
     RankedColumn,
     RankedTable,
     Rejected,
@@ -63,6 +66,19 @@ from .workspace import (
 )
 
 RANK = {"fail": 0, "warn": 1, "unknown": 2, "pass": 3}
+SKILLS = pathlib.Path(__file__).parent / "skills"
+
+# Tool calls that wait for the person's yes: why each is worth asking about, said to them on the approval card.
+APPROVE = {
+    "smoke_clock": "it runs NIST's CFAST smoke model, which takes minutes per scan",
+    "room_labeller": "it reads every panorama with the vision model and writes new room labels into the plan",
+    "life_safety_census": "it reads every bedroom's ceiling panorama with the vision model",
+    "amenity_census": "it reads the panoramas of every amenity scan with the vision model",
+    "valuables_height": "it reads the panoramas of every room that floods with the vision model",
+    "run_on_property": "it runs one tool over many scans of a whole property, a few at a time",
+    "city_census": "it rolls up every measured building in the city",
+}
+RUN, SKIP, ALWAYS = "Run it", "Skip it", "Always run it here"
 
 
 SENTENCE_END = re.compile(r"(?<![0-9])[.!?](?=\s|$)")  # "1." of a list is not a sentence end
@@ -181,6 +197,8 @@ class Investigation:
         self.step: str | None = None  # the plan step in progress
         self.notes: list[str] = []
         self.files: dict[str, Any] = {}
+        self.asked: list[str] = []  # approval questions this turn is waiting on
+        self.grades: list[dict] = []  # the rubric grader's verdicts on the closing message
 
     def emit(self, op) -> bool:
         op.run = op.run or self.turn
@@ -569,6 +587,8 @@ class Investigation:
                                "notes, tools they removed, buildings they shortlisted). feedback \"rejected\" finds what "
                                "they turned down and why: skip those buildings, or check that reason first. kind: brief, "
                                "finding, note, tool_removed, shortlist. Never quote numbers from it."))
+        from . import mongo_mcp
+        out += mongo_mcp.tools(self.s.store, self.s.base.profile or "default", self.s.base.id)
         route = search.measures_route()
         if route:
             out.append(StructuredTool.from_function(
@@ -617,61 +637,176 @@ class Investigation:
     def history(self, text: str | None = None, kind: str | None = None, tool: str | None = None,
                 status: str | None = None, feedback: str | None = None, city: str | None = None) -> dict:
         """The person's past work across their workspaces."""
-        res = self.s.store.search(text, 12, profile=self.s.base.profile, kind=kind, tool=tool, status=status,
-                                  feedback=feedback, city=city)
-        keep = ("workspace", "kind", "sid", "address", "city", "tool", "status", "title", "feedback", "reason", "finding")
+        flt = dict(profile=self.s.base.profile, kind=kind, tool=tool, status=status, feedback=feedback, city=city)
+        res = self.s.store.search(text, 12, **flt)
+        hits = res["hits"]
+        if text and hasattr(self.s.store, "hybrid"):  # words and meaning, merged by $rankFusion
+            try:
+                hits = self.s.store.hybrid(text, 12, **flt)
+            except Exception:  # noqa: BLE001 - a refused embedding falls back to words alone
+                pass
+        keep = ("workspace", "kind", "sid", "address", "city", "tool", "status", "title", "feedback", "reason", "finding",
+                "matched_by")
         return {"total": res["total"], "facets": res["facets"],
                 "hits": [{**{k: h.get(k) for k in keep if h.get(k) is not None}, "here": h["workspace"] == self.s.base.id}
-                         for h in res["hits"]]}
+                         for h in hits]}
 
+    # ---- approvals before slow or expensive steps (deepagents human-in-the-loop) ----
+    def always_allowed(self, tool: str) -> bool:
+        """The person chose "Always run it here" for this tool in an earlier turn. Answers given to this turn's own
+        questions do not count: LangChain runs the predicate again on resume, and its answer must not change between
+        the pause and the resume (an "Always" here is a plain approval, see `decisions`)."""
+        return any(q.answer == ALWAYS and (a := q.input.get("x-approval") or {}).get("tool") == tool
+                   and a.get("turn") != self.turn for q in self.s.doc.questions)
+
+    def why_approve(self, call, state=None, runtime=None) -> str:
+        args = call.get("args") or {}
+        where = args.get("scan") or args.get("property_id") or (args.get("place") or {}).get("scan") or \
+            (args.get("place") or {}).get("property_id") or ""
+        m = catalog().get(call["name"])
+        title = m.title if m else call["name"].replace("_", " ")
+        return f"{title}{f' on {self.label(str(where))}' if where else ''}: {APPROVE[call['name']]}."
+
+    def interrupts(self) -> dict:
+        return {name: {"allowed_decisions": ["approve", "reject"], "description": self.why_approve,
+                       "when": lambda req, n=name: not self.always_allowed(n)} for name in APPROVE}
+
+    def ask_approvals(self, pending) -> list[str]:
+        """One question per paused tool call. The answer resumes the turn (see `turn`)."""
+        ids = []
+        for intr in pending:
+            for i, req in enumerate((intr.value or {}).get("action_requests", [])):
+                qid = f"approve:{self.turn}:{intr.id[:12]}:{i}"
+                self.emit(QuestionAsk(question=Question(
+                    id=qid, key=f"approval.{qid}", text=req.get("description") or f"Run {req['name']}?", tools=[req["name"]],
+                    input={"type": "string", "enum": [RUN, SKIP, ALWAYS],
+                           "x-approval": {"turn": self.turn, "interrupt": intr.id, "index": i, "tool": req["name"],
+                                          "spent": {"calls": self.budget.calls, "runs": self.budget.runs},
+                                          "args": {k: v for k, v in (req.get("args") or {}).items() if k in ("scan", "place", "property_id", "kinds")}}})))
+                ids.append(qid)
+        return ids
+
+    def decisions(self) -> dict:
+        """Resume values for this turn's answered approvals, keyed by interrupt id, decisions in request order."""
+        out: dict[str, list] = {}
+        for q in self.s.doc.questions:
+            a = q.input.get("x-approval") or {}
+            if a.get("turn") != self.turn or not q.answered:
+                continue
+            ok = q.answer in (RUN, ALWAYS)
+            out.setdefault(a["interrupt"], []).append((a["index"], {"type": "approve"} if ok else {
+                "type": "reject", "message": f"The person chose to skip {a['tool']} here. Do not call it again in this "
+                                             "turn; carry on with the other tools and say it was skipped."}))
+        return {k: {"decisions": [d for _, d in sorted(v, key=lambda x: x[0])]} for k, v in out.items()}
+
+    def graded(self, ev) -> None:
+        self.grades.append({"iteration": ev.get("iteration"), "result": ev.get("result"),
+                            "explanation": str(ev.get("explanation", ""))[:500]})  # a TypedDict: a plain dict
+
+    # ---- the agent ----
     def build(self, model=None):
-        from deepagents import create_deep_agent
+        from deepagents import FilesystemPermission, RubricMiddleware, create_deep_agent
+        from deepagents.backends import CompositeBackend, FilesystemBackend, StateBackend, StoreBackend
         from langchain.agents.middleware import ModelCallLimitMiddleware, TodoListMiddleware
 
+        from . import live
+        from .durable import saver_and_store
         from .llm import chat
         b = self.budget
+        ws = self.s.base.id
+        saver, store = saver_and_store(self.s.store)
+        profile = self.s.base.profile or "default"
+        # /memories/ outlives the turn (LangGraph store, MongoDB when workspaces are there), one folder per profile;
+        # /skills/ is the procedures shipped with the app, read only; anything else is this turn's scratch state
+        backend = CompositeBackend(default=StateBackend(), routes={
+            "/memories/": StoreBackend(store=store, namespace=lambda _rt: ("threshold", profile, "memories")),
+            "/skills/": FilesystemBackend(root_dir=SKILLS, virtual_mode=True)})
         tools = self.agent_tools()
         note = self.small_tools()[2]
         building = {"name": "building", "description": "Investigates one building (one scan id) with the ready tools.",
-                    "system_prompt": BUILDING, "tools": tools + [note],
-                    "middleware": [ModelCallLimitMiddleware(run_limit=b.subagent_calls)]}
+                    "system_prompt": BUILDING, "tools": tools + [note], "skills": ["/skills/"],
+                    "middleware": [ModelCallLimitMiddleware(run_limit=b.subagent_calls), live.Watch(ws, main=False)]}
         prop = {"name": "property", "description": "Investigates a whole property (CoStar property id) across its "
                                                    "scans: units, amenities, lobby. Say which tools and kinds of scan.",
                 "system_prompt": PROPERTY, "tools": self.property_tools() + [note],
-                "middleware": [ModelCallLimitMiddleware(run_limit=b.property_calls)]}
+                "middleware": [ModelCallLimitMiddleware(run_limit=b.property_calls), live.Watch(ws, main=False)]}
+        # a grader checks the closing message against RUBRIC before the turn ends (the real model only: tests script it)
+        grader = [] if model is not None else [RubricMiddleware(model=chat(1024), max_iterations=2, on_evaluation=self.graded)]
         return create_deep_agent(model=model or chat(2048), tools=self.small_tools() + self.search_tools(),
-                                 system_prompt=MAIN, subagents=[building, prop],
-                                 middleware=[TodoListMiddleware(), ModelCallLimitMiddleware(run_limit=b.main_calls)],
+                                 system_prompt=MAIN, subagents=[building, prop], skills=["/skills/"],
+                                 middleware=[TodoListMiddleware(), ModelCallLimitMiddleware(run_limit=b.main_calls),
+                                             live.Watch(ws, main=True), *grader],
+                                 backend=backend, store=store, checkpointer=saver, interrupt_on=self.interrupts(),
+                                 permissions=[FilesystemPermission(operations=["write"], paths=["/skills/**"], mode="deny")],
                                  name="investigator")
 
-    def go(self, request: str | None = None, model=None) -> str:
-        """Run one investigation turn. Returns the agent's closing sentence; `self.budget` says what it spent."""
+    def config(self) -> dict:
         d = self.s.doc
-        for t in d.tools:  # planned tools show as skipped instead of silently missing
-            if t.enabled and t.status == "planned" and not any(r.tool == t.id for r in d.runs):
-                self.run(t.id, {})
+        return {"callbacks": [self.budget.callback()], "max_concurrency": self.budget.parallel, "recursion_limit": 120,
+                "configurable": {"thread_id": f"{self.s.base.id}:{self.turn}"},
+                # LangSmith: one trace per turn, findable by workspace, persona and profile
+                "run_name": "investigation", "tags": ["threshold", d.brief.persona or "no-persona"],
+                "metadata": {"workspace": self.s.base.id, "turn": self.turn, "persona": d.brief.persona,
+                             "profile": self.s.base.profile}}
+
+    def paused(self) -> bool:
+        """This turn's thread is waiting for approvals: its latest checkpoint holds an interrupt write. Read from the
+        checkpointer directly, so checking costs one lookup, not an agent build."""
+        from .durable import saver_and_store
+        tup = saver_and_store(self.s.store)[0].get_tuple({"configurable": {"thread_id": f"{self.s.base.id}:{self.turn}"}})
+        return bool(tup) and any(w[1] == "__interrupt__" for w in (tup.pending_writes or []))
+
+    def go(self, request: str | None = None, model=None, resume: bool = False) -> str:
+        """Run one investigation turn, or resume one that paused for approvals. Returns the agent's closing sentence
+        ("" while it waits for approval); `self.budget` says what it spent."""
+        from langgraph.types import Command
+
+        from . import live
+        d = self.s.doc
+        if not resume:
+            for t in d.tools:  # planned tools show as skipped instead of silently missing
+                if t.enabled and t.status == "planned" and not any(r.tool == t.id for r in d.runs):
+                    self.run(t.id, {})
         agent = self.build(model)
         last = ""
-        config = {"callbacks": [self.budget.callback()], "max_concurrency": self.budget.parallel, "recursion_limit": 120}
+        config = self.config()
+        start = Command(resume=self.decisions()) if resume else \
+            {"messages": [{"role": "user", "content": self.prompt(request)}], "rubric": RUBRIC}
+        live.begin(self.s.base.id, self.turn, resumed=resume)
+        status = "stopped"
         try:
-            for chunk in agent.stream({"messages": [{"role": "user", "content": self.prompt(request)}]}, config,
-                                      stream_mode="updates", subgraphs=True, version="v2"):
+            for chunk in agent.stream(start, config, stream_mode="updates", subgraphs=True, version="v2"):
                 self.observe(chunk)
                 if not chunk.get("ns"):
                     for data in (chunk.get("data") or {}).values():
                         for msg in (data.get("messages") or []) if isinstance(data, dict) else []:
                             if getattr(msg, "type", "") == "ai" and not getattr(msg, "tool_calls", None) and msg.text:
                                 last = msg.text
+            pending = agent.get_state(config).interrupts
+            if pending:
+                self.asked = self.ask_approvals(pending)
+                status = "waiting"
+                return ""
+            status = "done"
         except BudgetSpent:
             last = last or "I stopped at this turn's budget; the results so far are in your workspace."
+        finally:
+            live.end(self.s.base.id, status)
         self.compare()
         if last and not self.emit(PanelUpsert(panel=Panel(id="agent:summary", title="Where to look first",
                                                           blocks=[Note(text=short(last))]))):
             last = ""
         (self.s.root / f"{self.s.base.id}.casefile.json").write_text(
-            json.dumps({"files": self.files, "budget": self.budget.report()}, default=str))
+            json.dumps({"files": self.files, "budget": self.budget.report(), "grades": self.grades}, default=str))
         return last
 
+
+RUBRIC = """The agent's final message to the person (its last message with no tool calls):
+1. Is at most three short sentences of plain text, with no lists.
+2. Contains no measurement, count, time, distance or money, in digits or in words (scan ids are allowed).
+3. Says that a check was skipped, missing or could not be done only when a tool result, a refused tool run or the
+   person's skip decision in the transcript says so; if tools ran and returned results, it does not say nothing ran.
+4. Names where the person should look first, unless no tool returned anything."""
 
 PLACE_HELP = ("Where to run: {\"scan\": id} or {\"property_id\": id} or {\"address\": text} or {\"geo\": [lon, lat]}. "
               "It must be in the workspace (consider adds it).")
@@ -698,14 +833,19 @@ findings and camera in their workspace, not your words.
 5. With two or more candidates, call rank once with all of them, best first, and one plain reason each. Shortlist the
    ones that meet the need, each with a short note. Call focus on the one finding that matters most.
 6. Use compose_panel only when no tool's panel answers a question the person asked.
-7. Finish with at most three short sentences, plain text, no lists and no numbers at all (no measurements, counts,
+7. Your skills (below) are procedures for common needs: when one matches, read its SKILL.md before you plan.
+   Some slow tools wait for the person's approval; if they skip one, carry on without it and say it was skipped.
+8. Finish with at most three short sentences, plain text, no lists and no numbers at all (no measurements, counts,
    times or money; the panels show every number a tool measured, so never say a tool gave none): what you found and
    where the person should look first. Say that something is missing or could not be checked only when a tool's summary says
    so. Stay inside the budget."""
 
 BUILDING = """You investigate one building (one scan id) for a person. Run each ready tool that serves their need on
 this scan, once each. Leave out inputs you were not told; the person's preferences fill them. If a tool reports
-missing inputs, do not guess them; say so in your reply. Write a short case note with write_file to
+missing inputs, do not guess them; say so in your reply. Your model calls are few, so batch: in your first message
+call read_file on /memories/buildings/<scan id>.md (what earlier investigations for this person learned about the
+building) together with every tool you will run, all at once. In one later message write that memory file again (at
+most five lines worth knowing next time, without measurements or finding ids) together with a short case note with write_file to
 /notes/<scan id>.md: which finding ids matter for this person and why, without measurements. Use note only if
 something needs explaining to the person. Reply in two lines: the finding ids that matter most, and why. Inputs a run lists under inputs_the_person_gave are the
 person's own answers; never call them saved settings or defaults."""
@@ -713,7 +853,8 @@ person's own answers; never call them saved settings or defaults."""
 PROPERTY = """You investigate one whole property (a CoStar property id) for a person. Call property_scans first. Then
 call run_on_property once per useful tool, choosing the kinds of scan that matter (units, amenities). Then call
 coverage to learn which floor plans and shared spaces no scan covers. Do not run tools one scan at a time. Write a
-short case note with write_file to /notes/p<property id>.md without measurements. Reply in three lines: the run ids
+short case note with write_file to /notes/p<property id>.md without measurements, and the same few lines, worth
+knowing next time, to /memories/properties/p<property id>.md (read it first if it exists). Reply in three lines: the run ids
 that matter, the scans that need attention, and what no scan covers."""
 
 
@@ -744,6 +885,30 @@ def turn(session: Session, text: str | None = None, sids: list[str] | None = Non
     sc = session.doc.brief.scope
     if not sc.sids and not sc.places and not session.doc.brief.text:
         return {"status": "needs_scope", "message": "Pick a building or say what you are looking for"}
+    resumed = resume_paused(session, agent_model, budget)
+    if resumed and (resumed["status"] != "done" or not text):
+        return resumed
     inv = Investigation(session, t, budget)
     summary = inv.go(text, agent_model)
+    if inv.asked:
+        return {"status": "approval", "questions": inv.asked, "budget": inv.budget.report()}
     return {"status": "done", "summary": summary, "budget": inv.budget.report()}
+
+
+def resume_paused(session: Session, agent_model=None, budget: Budget | None = None) -> dict | None:
+    """Carry on the turns that paused for approvals now answered (latest first), else None."""
+    turns = list(dict.fromkeys((q.input.get("x-approval") or {}).get("turn") for q in reversed(session.doc.questions)
+                               if q.answered and q.input.get("x-approval")))
+    for t in turns[:3]:  # each check builds the agent; older paused turns are left alone
+        inv = Investigation(session, t, budget)
+        if not inv.paused():
+            continue
+        spent = [(q.input.get("x-approval") or {}).get("spent") or {} for q in session.doc.questions
+                 if (q.input.get("x-approval") or {}).get("turn") == t]
+        inv.budget.calls = max([inv.budget.calls, *(x.get("calls", 0) for x in spent)])  # one cap across the pauses
+        inv.budget.runs = max([inv.budget.runs, *(x.get("runs", 0) for x in spent)])
+        summary = inv.go(model=agent_model, resume=True)
+        if inv.asked:
+            return {"status": "approval", "questions": inv.asked, "budget": inv.budget.report()}
+        return {"status": "done", "summary": summary, "budget": inv.budget.report(), "resumed": t}
+    return None

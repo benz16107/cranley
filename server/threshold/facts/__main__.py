@@ -28,7 +28,7 @@ from . import db
 
 def main(argv=None) -> int:
     a = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    a.add_argument("cmd", choices=["migrate", "load", "measures", "flood", "rooms", "compress", "stats", "bench", "ops", "drop_all"])
+    a.add_argument("cmd", choices=["migrate", "load", "measures", "flood", "rooms", "compress", "stats", "bench", "ops", "vectorize", "drop_all"])
     a.add_argument("--yes", action="store_true", help="confirm drop_all, or load on the cloud database")
     a.add_argument("--target", choices=sorted(db.TARGETS), help="drop_all: which database (required)")
     a.add_argument("--city", default="Houston")
@@ -70,6 +70,9 @@ def main(argv=None) -> int:
     elif args.cmd == "compress":
         from . import stats
         out = stats.compress()
+    elif args.cmd == "vectorize":
+        from . import vectorizer
+        out = vectorizer.install()
     elif args.cmd == "ops":
         from . import record
         out = record.backfill_ops()

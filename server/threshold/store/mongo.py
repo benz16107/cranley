@@ -16,6 +16,12 @@ Collections
               offers it, else the store embeds locally into `vector` (embed.py).
   shortlist   shortlisted scans with a GeoJSON `location` and a 2dsphere index.
   shares      read-only share links; a TTL index on `expires` deletes them when they lapse.
+  sensors     a time series collection of the phone's on-site readings (GPS fix, altitude, compass, tilt, the reading's
+              own values), one measurement per capture with its workspace, scan, room and tool as the meta field;
+              expires after 30 days. Filled from the capture records each time the workspace is saved.
+  agent_*     LangGraph checkpoints and the agents' long-term memory (agent/durable.py).
+
+The log has a $jsonSchema validator: an entry names its workspace, a positive seq, a time, and an op or an undo.
 
 Writes: the store inserts new log entries (several in one transaction), then replaces the snapshot if its seq is
 higher, then upserts the derived items that changed (content hash `h`). A duplicate (workspace, seq) raises
@@ -47,6 +53,15 @@ HISTORY_INDEX = {"mappings": {"dynamic": False, "fields": {
     **{f: {"type": "token"} for f in [*FACETS, "profile", "workspace", "persona", "sid"]},
     "at": {"type": "number"}}}}
 FILTERS = [{"type": "filter", "path": p} for p in ("persona", "profile", "workspace")]
+HISTORY_FILTERS = [{"type": "filter", "path": p} for p in ("profile", "workspace", "kind", "tool", "status", "city", "feedback")]
+SENSOR_TTL_S = 30 * 24 * 3600
+OPS_SCHEMA = {"$jsonSchema": {
+    "bsonType": "object", "required": ["workspace", "seq", "at"],
+    "properties": {"workspace": {"bsonType": "string", "minLength": 1}, "seq": {"bsonType": ["int", "long"], "minimum": 1},
+                   "at": {"bsonType": ["double", "int", "long"]}, "op": {"bsonType": ["object", "null"]},
+                   "undo": {"bsonType": ["int", "long", "null"]}, "cause": {"bsonType": ["int", "long", "null"]}},
+    "anyOf": [{"required": ["op"], "properties": {"op": {"bsonType": "object"}}},
+              {"required": ["undo"], "properties": {"undo": {"bsonType": ["int", "long"]}}}]}}
 RECALL_TTL = 60  # the free tier allowed about three query embeddings a minute (measured 2026-11-14)
 
 
@@ -62,14 +77,16 @@ class MongoStore:
     def __init__(self, uri: str, db: str = "threshold", where: derive.Where = derive.scan_place):
         from . import is_local
         self.client = MongoClient(uri, appname="threshold", tz_aware=True, serverSelectionTimeoutMS=5000)
+        self.uri = uri  # for the agent's MongoDB MCP server; never logged or returned
         self.db = self.client[db]
         self.target = f"{'local' if is_local(uri) else 'atlas'}:{db}"  # names the deployment without its address
-        for name in ("ops", "workspaces", "prefs", "history", "memories", "shortlist", "shares"):
+        for name in ("ops", "workspaces", "prefs", "history", "memories", "shortlist", "shares", "sensors"):
             setattr(self, name, self.db[name])
         self.where = where
         self._seen: dict[tuple[str, str], dict[str, str]] = {}  # (collection, workspace) -> {_id: content hash}
         self._lock = threading.Lock()
         self.vector_mode = "local"
+        self._capture_mtime: dict[str, int] = {}
         self._recalled: dict[tuple, tuple[float, list[dict]]] = {}  # shortcut: per process and unbounded; fine for one event
         self.setup()
 
@@ -85,32 +102,51 @@ class MongoStore:
         self.prefs.create_index("profile", name="profile")
         for c in (self.history, self.memories, self.shortlist):
             c.create_index("workspace", name="workspace")
+        # (sensors: the time series collection buckets by its meta field; no secondary index needed at this size)
         self.shortlist.create_index([("location", "2dsphere")], name="location")
         self.shortlist.create_index("profile", name="profile")
         self.shares.create_index("expires", expireAfterSeconds=0, name="expires")
         self.shares.create_index("workspace", name="workspace")
+        if "sensors" not in have:
+            self.db.create_collection("sensors", timeseries={"timeField": "at", "metaField": "meta", "granularity": "seconds"},
+                                      expireAfterSeconds=SENSOR_TTL_S)
+        try:
+            self.db.command("collMod", "ops", validator=OPS_SCHEMA, validationLevel="strict", validationAction="error")
+        except OperationFailure:  # a database user without collMod: the store works, unguarded
+            logging.getLogger("threshold.store").warning("could not set the ops validator")
         if not self._index("history", self.history):
             self.history.create_search_index(SearchIndexModel(HISTORY_INDEX, name="history"))
+        self.vector_mode = self._memory_index()
+        if not self._index("history_vector", self.history):  # meaning half of hybrid search over past work
+            self.history.create_search_index(SearchIndexModel(
+                {"fields": [self._vector_field("body"), *HISTORY_FILTERS]}, name="history_vector", type="vectorSearch"))
+
+    def _vector_field(self, path: str) -> dict:
+        if self.vector_mode == "auto":
+            return {"type": "autoEmbed", "path": path, "model": AUTO_MODEL, "modality": "text"}
+        from .embed import DIMS
+        return {"type": "vector", "path": "vector", "numDimensions": DIMS, "similarity": "cosine"}
+
+    def _memory_index(self) -> str:
+        """Create the memory index if missing; return how this deployment embeds ("auto" or "local")."""
         mem = self._index("memory", self.memories)
         if mem:
             fields = (mem.get("latestDefinition") or mem.get("definition") or {}).get("fields", [])
-            self.vector_mode = "auto" if any(f["type"] == "autoEmbed" for f in fields) else "local"
-            return
+            return "auto" if any(f["type"] == "autoEmbed" for f in fields) else "local"
         from ..config import env
         if env().get("THRESHOLD_EMBED") != "local":
             try:  # Atlas embeds the text with Voyage, at write and at query: no embedding key, no client model
                 self.memories.create_search_index(SearchIndexModel(
                     {"fields": [{"type": "autoEmbed", "path": "text", "model": AUTO_MODEL, "modality": "text"}, *FILTERS]},
                     name="memory", type="vectorSearch"))
-                self.vector_mode = "auto"
-                return
+                return "auto"
             except OperationFailure:
                 pass  # a local deployment without a Voyage key: embed here instead
         from .embed import DIMS
         self.memories.create_search_index(SearchIndexModel(
             {"fields": [{"type": "vector", "path": "vector", "numDimensions": DIMS, "similarity": "cosine"}, *FILTERS]},
             name="memory", type="vectorSearch"))
-        self.vector_mode = "local"
+        return "local"
 
     @staticmethod
     def _index(name: str, coll) -> dict | None:
@@ -120,7 +156,8 @@ class MongoStore:
         """Until both search indexes answer queries."""
         end = time.time() + timeout
         while time.time() < end:
-            idx = [self._index("history", self.history), self._index("memory", self.memories)]
+            idx = [self._index("history", self.history), self._index("memory", self.memories),
+                   self._index("history_vector", self.history)]
             if all(i and (i.get("queryable") or i.get("status") == "READY") for i in idx):
                 return True
             time.sleep(1)
@@ -188,12 +225,59 @@ class MongoStore:
 
     def derive(self, d: dict) -> None:
         ws = d["id"]
-        self._sync(self.history, ws, derive.history(d, self.where))
+        self._sync(self.history, ws, derive.history(d, self.where), vectors=self.vector_mode == "local", field="body")
         self._sync(self.shortlist, ws, derive.shortlist(d, self.where))
         m = derive.memory(d)
-        self._sync(self.memories, ws, [m] if m else [], vectors=self.vector_mode == "local")
+        self._sync(self.memories, ws, [m] if m else [], vectors=self.vector_mode == "local", field="text")
+        self.record_sensors(ws)
 
-    def _sync(self, coll, ws: str, docs: list[dict], vectors: bool = False) -> None:
+    # ---- phone sensors (time series) ----
+
+    def record_sensors(self, ws: str, captures: list[dict] | None = None) -> int:
+        """Insert the workspace's phone readings not stored yet. Time series collections take no unique index, so
+        the capture ids already stored are read once per workspace and remembered."""
+        if captures is None:
+            from ..capture import store as cap
+            d = cap.ROOT / ws
+            if not d.is_dir():
+                return 0
+            mtime = d.stat().st_mtime_ns  # a new capture adds files, which changes the folder's mtime
+            if self._capture_mtime.get(ws) == mtime:
+                return 0
+            self._capture_mtime[ws] = mtime
+            captures = cap.listing(ws)
+        with self._lock:
+            key = ("sensors", ws)
+            if key not in self._seen:
+                self._seen[key] = {c: "" for c in self.sensors.distinct("meta.capture", {"meta.workspace": ws})}
+            seen = self._seen[key]
+            rows = [derive.sensor(ws, c) for c in captures if c.get("id") and c["id"] not in seen]
+            rows = [r for r in rows if r]
+            if rows:
+                try:
+                    self.sensors.insert_many(rows, ordered=False)
+                except BulkWriteError:  # the good rows are stored; a bad one would fail again, so none are retried
+                    logging.getLogger("threshold.store").exception("workspace %s: some phone readings were refused", ws)
+                finally:
+                    seen.update({r["meta"]["capture"]: "" for r in rows})
+            return len(rows)
+
+    def sensor_series(self, ws: str, scan: str | None = None, every: str = "minute") -> list[dict]:
+        """The visit as a timeline: readings per `every` (second, minute, hour) and tool, with the mean GPS accuracy
+        and altitude, and the altitude change since the visit's first reading (a barometer-free floor height cue)."""
+        match = {"meta.workspace": ws, **({"meta.scan": scan} if scan else {})}
+        return list(self.sensors.aggregate([
+            {"$match": match},
+            {"$group": {"_id": {"t": {"$dateTrunc": {"date": "$at", "unit": every}}, "tool": "$meta.tool", "kind": "$meta.kind"},
+                        "readings": {"$sum": 1}, "accuracy_m": {"$avg": "$accuracy_m"},
+                        "altitude_m": {"$avg": "$altitude_m"}, "heading_deg": {"$avg": "$heading_deg"}}},
+            {"$sort": {"_id.t": 1}},
+            {"$setWindowFields": {"sortBy": {"_id.t": 1}, "output": {"first_altitude": {"$first": "$altitude_m", "window": {"documents": ["unbounded", "current"]}}}}},
+            {"$project": {"_id": 0, "at": "$_id.t", "tool": "$_id.tool", "kind": "$_id.kind", "readings": 1, "accuracy_m": 1,
+                          "altitude_m": 1, "heading_deg": 1,
+                          "altitude_change_m": {"$subtract": ["$altitude_m", "$first_altitude"]}}}]))
+
+    def _sync(self, coll, ws: str, docs: list[dict], vectors: bool = False, field: str = "text") -> None:
         """Write the items whose content changed and delete the ones that went away."""
         with self._lock:
             key = (coll.name, ws)
@@ -208,7 +292,7 @@ class MongoStore:
                 if seen.get(x["_id"]) != h:
                     if vectors:
                         from .embed import embed
-                        x["vector"] = list(embed(x["text"]))
+                        x["vector"] = list(embed(x[field] or " "))
                     reqs.append(ReplaceOne({"_id": x["_id"]}, {**x, "h": h}, upsert=True))
             gone = [i for i in seen if i not in want]
             if gone:
@@ -286,6 +370,43 @@ class MongoStore:
         return {"total": (meta.get("count") or {}).get("lowerBound", len(out["hits"])), "hits": out["hits"],
                 "facets": facets}
 
+    def hybrid(self, text: str, limit: int = 10, **filters) -> list[dict]:
+        """Past work matching `text` by words (Atlas Search, BM25) and by meaning (Vector Search), merged with
+        reciprocal rank fusion (`$rankFusion`): "wheelchair could not reach the toilet" finds a finding titled "Bathroom
+        door too narrow" that shares no word with it, and exact words still rank first. Same filters as `search`.
+        With automated embedding the query costs one Voyage call (about three a minute on the free tier):
+        EmbedLimit when refused."""
+        flt = {k: v for k, v in filters.items() if v not in (None, "")}
+        words = [{"$search": {"index": "history", "compound": {
+                    "must": [{"text": {"query": text, "path": SEARCH_FIELDS, "fuzzy": {"maxEdits": 1}}}],
+                    "filter": [{"equals": {"path": k, "value": v}} for k, v in flt.items()]}}},
+                 {"$limit": 30}]
+        vs = {"index": "history_vector", "numCandidates": 200, "limit": 30}
+        if self.vector_mode == "auto":
+            vs |= {"path": "body", "query": {"text": text}}
+        else:
+            from .embed import embed
+            vs |= {"path": "vector", "queryVector": list(embed(text))}
+        if flt:
+            vs["filter"] = flt
+        try:
+            rows = self.history.aggregate([
+                {"$rankFusion": {"input": {"pipelines": {"words": words, "meaning": [{"$vectorSearch": vs}]}},
+                                 "combination": {"weights": {"words": 1, "meaning": 1}}, "scoreDetails": True}},
+                {"$limit": max(1, min(limit, 50))},
+                {"$project": {"_id": 0, "h": 0, "vector": 0, "profile": 0, "body": 0, "score": {"$meta": "score"},
+                              "details": {"$meta": "scoreDetails"}}}])
+            out = []
+            for r in rows:
+                d = r.pop("details", {}) or {}
+                r["matched_by"] = sorted(x["inputPipelineName"] for x in d.get("details", []) if isinstance(x.get("rank"), int))
+                out.append(r)
+            return out
+        except OperationFailure as e:
+            if "rate limit" in str(e).lower():
+                raise EmbedLimit("Atlas embedding is rate limited; try again in a minute") from None
+            raise
+
     def recall(self, text: str, persona: str | None = None, exclude: str | None = None, k: int = 3,
                min_score: float = 0.0) -> list[dict]:
         """Past needs most like `text` (Atlas Vector Search), optionally only one persona's, best first. Answers are
@@ -336,7 +457,8 @@ class MongoStore:
         return {"target": self.target, "vector_mode": self.vector_mode,
                 "counts": {c: self.db[c].estimated_document_count() for c in sorted(self.db.list_collection_names())},
                 "search_indexes": {n: (self._index(n, c) or {}).get("status")
-                                   for n, c in (("history", self.history), ("memory", self.memories))}}
+                                   for n, c in (("history", self.history), ("memory", self.memories),
+                                                ("history_vector", self.history))}}
 
     def drop_all(self) -> dict:
         """Delete every workspace, log entry, preference, memory, shortlist and share link (CoStar's terms: derived

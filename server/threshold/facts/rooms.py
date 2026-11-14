@@ -144,17 +144,24 @@ def similar(query: str | None = None, *, like: tuple[str, str] | None = None, la
     `words` (0 to 1) blends in BM25 word matching on the descriptions (pg_textsearch). Returns rows and the SQL."""
     if not query and not like:
         raise ValueError("give a query or a room to match")
+    from . import vectorizer
     args: dict = {"lim": limit}
+    # the pgai vectorizer's column once its worker has filled it (embedded in the database), else the app's own
+    vcol, engine = (vectorizer.COLUMN, f"pgai vectorizer, {vectorizer.MODEL}") if vectorizer.ready() else ("embedding", EMBED_MODEL)
     if like:
-        r = db.rows("SELECT embedding::text AS v, description FROM room_text WHERE sid = :s AND room = :r",
+        r = db.rows(f"SELECT {vcol}::text AS v, description FROM room_text WHERE sid = :s AND room = :r AND {vcol} IS NOT NULL",
                     s=like[0], r=like[1])
         if not r:
             raise LookupError(f"room {like[1]} in {like[0]} has not been described yet")
         args["q"] = r[0]["v"]
         query = query or r[0]["description"]
     else:
-        args["q"] = vec(embed([query])[0])
-    where = ["t.embedding IS NOT NULL"]
+        try:
+            args["q"] = vec(vectorizer.embed_query(query) if vcol != "embedding" else embed([query])[0])
+        except OSError:  # Ollama is down: search with the app's embeddings
+            vcol, engine = "embedding", EMBED_MODEL
+            args["q"] = vec(embed([query])[0])
+    where = [f"t.{vcol} IS NOT NULL"]
     if label:
         where.append("t.labels && ARRAY[(SELECT id FROM room_type WHERE label ILIKE :label)]::smallint[]")
         args["label"] = label
@@ -171,9 +178,9 @@ def similar(query: str | None = None, *, like: tuple[str, str] | None = None, la
     cand = max(limit * 4, 40)
     args["cand"] = cand
     bm25 = ("ts_bm" if words > 0 else None)
-    sql = ("WITH near AS (SELECT t.sid, t.room, t.description, t.features, t.embedding <=> CAST(:q AS vector) AS dist "
+    sql = (f"WITH near AS (SELECT t.sid, t.room, t.description, t.features, t.{vcol} <=> CAST(:q AS vector) AS dist "
            "FROM room_text t JOIN room r USING (sid, room) JOIN scan s USING (sid) "
-           f"WHERE {' AND '.join(where)} ORDER BY t.embedding <=> CAST(:q AS vector) LIMIT :cand) "
+           f"WHERE {' AND '.join(where)} ORDER BY t.{vcol} <=> CAST(:q AS vector) LIMIT :cand) "
            "SELECT n.sid, n.room, r.label, r.area, r.turn_diameter, r.widest_door, r.windows, s.city, s.kind, s.name, "
            "n.description, n.features, round((1 - n.dist)::numeric, 3) AS similarity"
            + (", round((-(n.description <@> to_bm25query(:words_q, 'threshold.room_text_bm25')))::numeric, 3) AS bm25"
@@ -191,5 +198,5 @@ def similar(query: str | None = None, *, like: tuple[str, str] | None = None, la
         for r in rows:
             r["score"] = float(r["similarity"])
     rows.sort(key=lambda r: -r["score"])
-    return {"query": query, "rows": rows[:limit], "sql": sql, "ms": round((time.perf_counter() - t0) * 1000, 1),
+    return {"query": query, "rows": rows[:limit], "sql": sql, "engine": engine, "ms": round((time.perf_counter() - t0) * 1000, 1),
             "indexed": db.rows("SELECT count(*) AS n FROM room_text")[0]["n"]}

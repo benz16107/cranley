@@ -248,3 +248,20 @@ def test_guards_keep_destructive_commands_off_the_cloud(monkeypatch, capsys):
     assert cli.main(["load"]) == 1 and cli.main(["drop_all"]) == 1 and cli.main(["drop_all", "--target", "cloud"]) == 1
     assert cli.main(["drop_all", "--yes"]) == 1 and not called  # nothing ran without both the name and the yes
 
+
+
+def test_vectorizer_queues_changed_descriptions(schema):
+    """pgai's trigger queues every new or changed description for the worker; search waits until vectors exist."""
+    pytest.importorskip("pgai")
+    from threshold.facts import vectorizer
+    vectorizer.install()
+    sid, room = "vec_t", "K"
+    db.con().run("INSERT INTO scan (sid) VALUES (:s) ON CONFLICT DO NOTHING", s=sid)
+    db.con().run("INSERT INTO room (sid, room) VALUES (:s, :r) ON CONFLICT DO NOTHING", s=sid, r=room)
+    db.con().run("DELETE FROM room_text")
+    db.con().run("INSERT INTO room_text (sid, room, pano, description) VALUES (:s, :r, 'p', 'A sunny kitchen')", s=sid, r=room)
+    assert vectorizer.status()["pending"] == 1 and not vectorizer.ready()
+    c = db.con()
+    c.run("UPDATE room_text SET description = 'A dark kitchen' WHERE sid = :s AND room = :r", s=sid, r=room)
+    assert vectorizer.status()["pending"] >= 1
+    assert vectorizer.install()["vectorizer"] == vectorizer.NAME  # idempotent

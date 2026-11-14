@@ -206,3 +206,24 @@
 .guide .where dd { color: var(--ink-2); }
 .guide footer { display: flex; flex-wrap: wrap; gap: var(--s-2); padding: 4px 12px 12px; }
 @media (max-width: 760px) { .guide { left: var(--s-2); right: var(--s-2); bottom: 40px; width: auto; max-width: none; } }
+
+/* ---- approval before a slow step (AgentLive.tsx) ---- */
+.approval { border: 1px solid var(--accent); background: var(--accent-wash); border-radius: var(--r-2); padding: 10px; display: grid; gap: 10px; }
+.approval header { display: flex; align-items: flex-start; gap: 8px; }
+.approval header .grow { display: grid; gap: 2px; line-height: 1.35; }
+.approval header b { font-weight: 600; }
+.approval .why { color: var(--ink-2); font-size: var(--text-xs); }
+.approval[data-sent] { border-color: var(--rule-strong); background: var(--pane); }
+
+/* ---- the agents at work, one lane each (AgentLive.tsx) ---- */
+.lanes { border-bottom: 1px solid var(--rule); padding: 8px var(--s-4) 10px 10px; display: grid; gap: 6px; }
+.lanes header { display: flex; align-items: baseline; gap: 8px; }
+.lanes h3 { font-size: var(--text-xs); font-weight: 600; color: var(--ink-2); }
+.lanes ol { display: grid; gap: 4px; }
+.lane { border: 1px solid var(--rule); border-radius: var(--r-1); padding: 6px 8px; display: grid; gap: 4px; background: var(--pane); }
+.lane[data-status='running'] { border-color: var(--rule-strong); }
+.lane[data-status='waiting'] { border-color: var(--accent); }
+.lane .lh { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: var(--text-xs); }
+.lane .who { font-weight: 600; flex: none; }
+.lane .lt { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: var(--text-xs); color: var(--ink-2); }
+.lane[data-status='done'] .lh .grow { color: var(--ink-3); }
