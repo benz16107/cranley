@@ -163,7 +163,7 @@ def main():
         print(f"code: laptop at {commit[:8]}, web build copied")
 
     remote(f"mkdir -p {shlex.quote(DATA_L)}/demo")
-    sh(["rsync", "-a", "--files-from", str(lst), f"{DATA}/", f"{host}:{DATA_L}/"])
+    sh(["rsync", "-az", "--partial", "--files-from", str(lst), f"{DATA}/", f"{host}:{DATA_L}/"])  # resumable; the link may be a relay
     sh(["ssh", host, f"umask 077; cat > {shlex.quote(DATA_L)}/.env"], input=env_text())
     print(f"data: copied to {host}:{DATA_L} ({human(size(files))}); .env with {len(KEYS)} keys at most, no database logins")
     print("after judging, delete it:", f"ssh {host} rm -rf {DATA_L}")
