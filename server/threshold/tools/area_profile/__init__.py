@@ -54,6 +54,10 @@ def source(note: str, confidence: str = "medium") -> Source:
     return Source(layer="model", method="lookup", confidence=confidence, note=note)
 
 
+def amount(x, unit: str) -> str:
+    return f"${x:,}" if unit == "USD" else f"{x:g}%" if unit == "%" else f"{x:,} {unit}"
+
+
 def compare(key: str, tract, county) -> str:
     """'higher than the county' and the like, or '' when the two are within a tenth of each other."""
     if key not in SAY or tract is None or not county:
@@ -103,9 +107,8 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         words = compare(key, v, cv)
         if words:
             said.append(words)
-            amount = lambda x: f"${x:,}" if unit == "USD" else f"{x:g}%" if unit == "%" else f"{x:,} {unit}"
             findings.append(Finding(id=f"area_profile:{site.key}:{key}", title=words[0].upper() + words[1:], status="unknown",
-                                    detail=f"{label}: {amount(v)} in the tract, {amount(cv)} in {county}.",
+                                    detail=f"{label}: {amount(v, unit)} in the tract, {amount(cv, unit)} in {county}.",
                                     anchor=GeoAnchor(geo=(site.lon, site.lat)), source=src))
     moe = t.get("B19049_001M")
     if moe and moe > 0 and t.get("B19049_001E"):
