@@ -25,12 +25,12 @@ function starters(all: Building[]): (string | null)[] {
 }
 const TILT = [-3.5, 2.5, -1.5, 4, -2.5], LIFT = [0, 30, 6, 38, 12]
 
-function Starter({ need, sid, i }: { need: Need; sid: string | null; i: number }) {
+function Starter({ need, sid, i, onPick }: { need: Need; sid: string | null; i: number; onPick: () => void }) {
   const [plan, setPlan] = useState<ScanPlan | null>(null)
   useEffect(() => { let on = true; if (sid) fetchPlan(sid).then((p) => on && setPlan(p), () => {}); return () => { on = false } }, [sid])
   return (
     <li style={{ ['--tilt' as string]: `${TILT[i % 5]}deg`, ['--lift' as string]: `${LIFT[i % 5]}px`, ['--i' as string]: i }}>
-      <button className="mq-starter" onClick={() => void compose(need.sentence, need.id)}>
+      <button className="mq-starter" onClick={onPick}>
         <span className="mq-tag"><b>{need.who}</b>{need.need}</span>
         <span className="mq-paper sheet" data-wait={!plan || undefined}>{plan && <Plan plan={plan} px={230} />}</span>
         <span className="on mq-dim">{need.runsOn}</span>
@@ -50,9 +50,11 @@ export function Door() {
   useEffect(() => { if (all.length) setCount(all.length) }, [all.length])
   // When the work begins, go to the table where it shows, after a moment: long enough to see the sheets that were
   // laid out and why. The server can compose and start in one turn, with no question to stop on.
-  const planned = useRef(doc.plan.length)
+  // Only for a brief written in this visit: a saved workspace that loads with its plan already made stays put.
+  const planned = useRef(doc.plan.length), wrote = useRef(false)
+  const begin = (sentence: string, needId?: string) => { wrote.current = true; void compose(sentence, needId) }
   useEffect(() => {
-    const begun = !planned.current && doc.plan.length > 0
+    const begun = wrote.current && !planned.current && doc.plan.length > 0
     planned.current = doc.plan.length
     if (!begun) return
     const t = setTimeout(() => { if (currentRoute().path === '/') navigate('/map', {}, { keep: true }) }, 2800)
@@ -84,9 +86,9 @@ export function Door() {
           </ol>
         </section>
         {(doc.tools.length > 0 || doc.questions.length > 0) && <section className="mq-ticket mq-paper" aria-labelledby="ticket-h">
-          <h2 id="ticket-h" className="mq-caps">{doc.plan.length ? 'The agent has started' : doc.questions.length ? 'Before the work starts' : 'Ready when you are'}</h2>
+          <h2 id="ticket-h" className="mq-caps">{doc.plan.length ? (doc.plan.some((s) => s.status !== 'done') ? 'The agent has started' : 'The agent has finished') : doc.questions.length ? 'Before the work starts' : 'Ready when you are'}</h2>
           {doc.questions.map((q) => <QuestionForm key={q.id} q={q} />)}
-          {doc.plan.length > 0 ? <><p>{doc.plan.find((s) => s.status === 'active')?.label ?? doc.plan[0].label}</p><button className="mq-btn is-tape" onClick={() => navigate('/map', {}, { keep: true })}>Watch it on the table</button></> : (
+          {doc.plan.length > 0 ? <><p>{(doc.plan.find((s) => s.status === 'active') ?? doc.plan.at(-1)!).label}</p><button className="mq-btn is-tape" onClick={() => navigate('/map', {}, { keep: true })}>{doc.plan.some((s) => s.status !== 'done') ? 'Watch it on the table' : 'See it on the table'}</button></> : (
             <div className="go">
               <button className="mq-btn is-tape" disabled={open.length > 0 || !doc.tools.length} onClick={() => void investigate()}>{open.length ? `${open.length} left to answer` : 'Start the investigation'}</button>
               {open.length > 0 && <button className="mq-link" onClick={() => void investigate()}>Use the suggested answers</button>}
@@ -104,13 +106,13 @@ export function Door() {
         {state === 'error' ? <>The building list did not load. <button className="mq-link" onClick={reload}>Try again</button></>
           : <>buildings on the table<br /><span className="mq-dim"><span className="mq-num">{facts.scans.toLocaleString('en-US')}</span> scans inside them · <span className="mq-num">{facts.drone}</span> with a drone capture</span></>}
       </Big>
-      <form className="mq-ask" onSubmit={(e) => { e.preventDefault(); if (text.trim()) void compose(text.trim()) }}>
+      <form className="mq-ask" onSubmit={(e) => { e.preventDefault(); if (text.trim()) begin(text.trim()) }}>
         <label htmlFor="who" className="mq-caps">Who are you, and what do you need from a building?</label>
         <textarea id="who" className="mq-paper" rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder="I use a power wheelchair and I want a single-storey house near Clear Lake."
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit() } }} />
         <button className="mq-btn is-tape" disabled={!text.trim()}>Begin</button>
       </form>
-      <ul className="mq-starters">{NEEDS.map((n, i) => <Starter key={n.id} need={n} sid={sids[i]} i={i} />)}</ul>
+      <ul className="mq-starters">{NEEDS.map((n, i) => <Starter key={n.id} need={n} sid={sids[i]} i={i} onPick={() => begin(n.sentence, n.id)} />)}</ul>
       <p className="mq-foot mq-caps mq-dim">Five real floor plans from the scans. Pick one up, write your own line, or <button className="mq-link" onClick={() => navigate('/map')}>walk the table</button>.</p>
     </main>
   )

@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { Popover } from '@base-ui/react/popover'
 import { Switch } from '@base-ui/react/switch'
 import { answerPref, ask, compose, investigate, navigate, startOver, useWorkspace, userOp, type Pref, type Question, type Run } from '../../core/index.ts'
-import { Icon, ms, street } from './ui.tsx'
+import { ms, street } from './lib.ts'
+import { Icon } from './ui.tsx'
 
 /* The job ticket: what the person asked for and what the agent is doing about it. It lies at the near edge of the
    table. One line each for the brief and the step in hand; the rest is behind a press. */

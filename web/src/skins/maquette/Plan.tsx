@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { anchorFloor, type Anchor, type Overlay, type Pt, type ScanPlan, type Status } from '../../core/index.ts'
+import { anchorPoint } from './lib.ts'
 
 /* A floor plan as a sheet of paper on the table: rooms in card, walls in ink at their real thickness. A tool's
    overlays are drawn in the look's materials: the route is a strip of tape, water is blue acetate, a lens is pencil
@@ -8,18 +9,7 @@ import { anchorFloor, type Anchor, type Overlay, type Pt, type ScanPlan, type St
 type Of<K extends Overlay['kind']> = Extract<Overlay, { kind: K }>
 const flip = (p: readonly number[]): Pt => [p[0], -p[1]]
 const poly = (ps: readonly (readonly number[])[]) => ps.map((p) => flip(p).join(',')).join(' ')
-const mid = (ps: Pt[]): Pt => [ps.reduce((s, p) => s + p[0], 0) / ps.length, ps.reduce((s, p) => s + p[1], 0) / ps.length]
 
-/** Where an anchor is on the plan, in metres, or null (a map anchor, another scan, an id the plan lacks). */
-export function anchorPoint(plan: ScanPlan, a: Anchor | null | undefined): Pt | null {
-  if (!a || !('sid' in a) || a.sid !== plan.sid) return null
-  if ('point' in a) return [a.point[0], a.point[1]]
-  if ('opening' in a) return plan.openings.find((o) => o.id === a.opening)?.center ?? null
-  if ('room' in a) { const r = plan.rooms.find((x) => x.id === a.room); return r?.polygon.length ? mid(r.polygon) : null }
-  if ('wall' in a) { const w = plan.walls.find((x) => x.id === a.wall); return w ? mid([w.a, w.b]) : null }
-  const p = plan.panos.find((x) => x.id === a.pano)
-  return p ? [p.position[0], p.position[1]] : null
-}
 
 function Mark({ status, r }: { status: Status; r: number }) {
   const c = `var(--${status})`

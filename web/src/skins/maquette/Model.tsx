@@ -2,10 +2,10 @@ import { Suspense, useEffect, useMemo, useRef, useState, type RefObject } from '
 import { Slider } from '@base-ui/react/slider'
 import { Switch } from '@base-ui/react/switch'
 import { Scene, SceneBoundary, droneImage, fetchDrone, navigate, panoFace, useBuildingView, useRoute, useWorkspace, userOp, type Doc, type ScanPlan, type SceneMode, type SceneProps } from '../../core/index.ts'
-import { Photo, findingPhoto } from './blocks.tsx'
-import { anchorPoint } from './Plan.tsx'
+import { Photo } from './blocks.tsx'
+import { anchorPoint, findingPhoto, street } from './lib.ts'
 import { headline, lensOverlays, type useSheet } from './state.ts'
-import { Big, Glyph, Icon, Print, Src, street } from './ui.tsx'
+import { Big, Glyph, Icon, Print, Src } from './ui.tsx'
 import './scene.css'
 
 /* One building: a white card model cut open on the table. The sheet on top of the stack is a lens (only its tool's
@@ -23,10 +23,11 @@ function useThread(host: RefObject<HTMLElement | null>, from: RefObject<HTMLElem
   const line = useRef<SVGLineElement>(null)
   useEffect(() => {
     if (!label) return
+    const l = line.current
     let raf = 0, pin: HTMLElement | null = null
     const tick = () => {
       raf = requestAnimationFrame(tick)
-      const root = host.current, a = from.current, l = line.current
+      const root = host.current, a = from.current
       if (!root || !l) return
       if (!pin?.isConnected) {
         pin = [...root.querySelectorAll<HTMLElement>('.th-pin')].find((p) => p.getAttribute('aria-label')?.includes(`. ${label} (`)) ?? null
@@ -40,7 +41,7 @@ function useThread(host: RefObject<HTMLElement | null>, from: RefObject<HTMLElem
       l.setAttribute('x2', String(p.left + 9 - o.left)); l.setAttribute('y2', String(p.bottom - o.top)) // the tag's foot (scene.css)
     }
     raf = requestAnimationFrame(tick)
-    return () => { cancelAnimationFrame(raf); pin?.removeAttribute('data-mq-current'); if (line.current) line.current.style.opacity = '0' }
+    return () => { cancelAnimationFrame(raf); pin?.removeAttribute('data-mq-current'); if (l) l.style.opacity = '0' }
   }, [label]) // eslint-disable-line react-hooks/exhaustive-deps
   return line
 }

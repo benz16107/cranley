@@ -108,8 +108,7 @@
 .mq-filters { display: grid; gap: 2px; }
 .mq-filters > div { display: flex; flex-wrap: wrap; align-items: center; gap: 0 4px; margin-left: -4px; }
 .mq-filters .mq-link { margin-left: 10px; font-size: 11.5px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--print); }
-.mq-legend { position: absolute; z-index: 3; right: 24px; bottom: 12px; max-width: 250px; font-size: 10.5px; line-height: 1.6; letter-spacing: 0.12em; text-align: right; text-shadow: 0 1px 8px rgb(20 25 23 / 0.9); }
-.mq-app[data-sheet='open'] .mq-legend { right: calc(var(--sheet-w) + 52px); }
+.mq-legend { position: absolute; z-index: 3; left: var(--gutter); bottom: 7px; font-size: 9.5px; letter-spacing: 0.12em; white-space: nowrap; text-shadow: 0 1px 6px rgb(20 25 23 / 0.95); } /* under the ticket, clear of everything */
 .mq-measure { width: min(440px, calc(100vw - 32px)); max-width: none; }
 .mq-measure [data-busy] { color: var(--ink-2); }
 .mq-hits, .mq-index ul { max-height: 240px; overflow-y: auto; margin-inline: -8px; }
@@ -393,7 +392,11 @@ p.b-plan { aspect-ratio: auto; }
   .mq-big-c { margin-top: 12px; font-size: 11px; letter-spacing: 0.12em; }
   .mq-lead { gap: 10px; }
   .mq-find { order: 3; flex-basis: 100%; margin-left: 0; width: auto; }
-  .mq-city .mq-lead { top: 108px; } .mq-city .mq-big-n { font-size: 64px; }
+  /* on a phone the print over the map and the model sits on mat, edge to edge */
+  .mq-city .mq-print, .mq-model .mq-print { left: 0; right: 0; top: 0; margin: 0; padding: 8px 16px; background: rgb(44 53 50 / 0.92); text-shadow: none; }
+  .mq-city .mq-lead { left: 0; right: 0; top: 96px; max-width: none; padding: 10px 16px 8px; background: rgb(44 53 50 / 0.92); }
+  .mq-city .mq-big-n { font-size: 52px; text-shadow: none; } .mq-city .mq-big-c { margin-top: 6px; }
+  .mq-toggle { min-height: 30px; font-size: 10.5px; padding-right: 8px; }
   .mq-legend { display: none; }
   .mq-address { left: 16px; right: 16px; bottom: 122px; width: auto; max-height: 44vh; }
   .mq-address .body { grid-template-columns: 96px 1fr; }
@@ -408,11 +411,12 @@ p.b-plan { aspect-ratio: auto; }
   .mq-ticket { grid-column: 1; grid-row: auto; rotate: none; } .mq-laid li { width: 100%; rotate: none; }
 
   .mq-app[data-sheet='open'] .mq-model:not([data-inside]) .mq-stage, .mq-model:not([data-inside]) .mq-stage { left: 0; right: 0; -webkit-mask-image: none; mask-image: none; }
-  .mq-model .mq-big { top: 150px; } .mq-model .mq-big-n { font-size: 60px; }
-  .mq-look { top: 54px; left: 16px; right: 16px; justify-items: start; gap: 6px; }
+  .mq-model .mq-big { top: 196px; } .mq-model .mq-big-n { font-size: 48px; } .mq-model .mq-big-c { margin-top: 8px; padding: 6px 10px; }
+  .mq-model .mq-print .where { order: 3; flex-basis: 100%; }
+  .mq-look { top: 78px; left: 16px; right: 16px; justify-items: start; gap: 6px; }
   .mq-views { gap: 6px; } .mq-views button { width: 62px; height: 54px; } .mq-views button.is-print { width: 76px; height: 60px; } .mq-views .mq-photo { height: 34px; }
   .mq-viewtools { justify-content: flex-start; gap: 0 12px; font-size: 10px; } .mq-viewtools label > div:first-of-type { width: 84px; }
-  .mq-return { top: 150px; }
+  .mq-return { top: 196px; }
   .mq-trace { display: none; }
   .mq-found { left: 16px; right: 16px; bottom: 122px; width: auto; rotate: none; display: grid; grid-template-columns: 96px 1fr; gap: 0 10px; }
   .mq-found figcaption { padding-top: 0; } .mq-found p { display: none; }

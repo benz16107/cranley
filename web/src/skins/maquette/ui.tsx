@@ -2,10 +2,10 @@ import type { ReactNode } from 'react'
 import NumberFlow from '@number-flow/react'
 import { Popover } from '@base-ui/react/popover'
 import type { Source, Status } from '../../core/index.ts'
+import { STATUS_WORD } from './lib.ts'
 
 /* The small parts every screen of this look uses. Rules for them are in README.md. */
 
-export const STATUS_WORD: Record<Status, string> = { pass: 'Pass', warn: 'Caution', fail: 'Fail', unknown: 'Not measured' }
 
 /** Status is never colour alone: circle passes, triangle cautions, square fails, a dashed ring is not measured. */
 export function Glyph({ status, size = 11 }: { status: Status; size?: number }) {
@@ -46,12 +46,6 @@ export function Src({ source }: { source: Source }) {
   )
 }
 
-/** A number as it was given, with only as many digits as its size needs. Nothing is recomputed. */
-export const fmt = (v: number | null | undefined, digits?: number) =>
-  v == null ? 'not measured' : new Intl.NumberFormat('en', { maximumFractionDigits: digits ?? (Math.abs(v) >= 100 ? 0 : Math.abs(v) >= 10 ? 1 : 2) }).format(v)
-export const ms = (t: number) => (t < 1000 ? `${Math.round(t)} ms` : `${(t / 1000).toFixed(1)} s`)
-export const street = (address: string | null | undefined) => (address ?? '').split(',')[0]
-export const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 /* Icons: Phosphor regular (MIT), drawn with currentColor. Words do most of the work; these are the few marks. */
 const ICONS = {

@@ -10,7 +10,8 @@ import {
 } from '../../core/index.ts'
 import { Photo } from './blocks.tsx'
 import { block } from './state.ts'
-import { Big, Glyph, Icon, Print, Src, fmt, reduced, street } from './ui.tsx'
+import { fmt, reduced, street } from './lib.ts'
+import { Big, Glyph, Icon, Print, Src } from './ui.tsx'
 
 /* The city as a table of white blocks. Block height is the number of scans at the address. Where the agent has
    been there is a tag on a string; the building it is reading has a strip of tape; a path it drew outdoors is tape
@@ -24,7 +25,7 @@ const STATUS_RGB: Record<Status, [number, number, number]> = { pass: [26, 127, 8
 const WIDE = -0.5 // a pitched view shows less ground than a flat one at the same zoom
 /** The open part of the table: clear of what is printed at the left and the stack at the right; with an address
     card out, clear of that too, so the block it describes stands above it. */
-const pad = (card: boolean) => (window.innerWidth > 760 ? { left: 470, right: 240, top: 40, bottom: card ? 400 : 0 } : { left: 0, right: 0, top: 120, bottom: card ? 300 : 110 })
+const pad = (card: boolean) => (window.innerWidth > 760 ? { left: 470, right: document.querySelector('.mq-app[data-sheet]') ? 440 : 240, top: 40, bottom: card ? 400 : 0 } : { left: 0, right: 0, top: 300, bottom: card ? 300 : 110 })
 const KIND_LABEL: Record<Kind, string> = { home: 'House', apartment: 'Apartment', amenity: 'Shared room', office: 'Office', other: 'Other' }
 
 /* ---------- a thing tied to a place on the table: a tag on its string ---------- */

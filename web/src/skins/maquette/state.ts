@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { setQuery, useRoute, useWorkspace, type Block, type Doc, type Overlay, type Panel, type Status } from '../../core/index.ts'
-import { fmt } from './ui.tsx'
+import { fmt } from './lib.ts'
 
 /* View state of this look that is not the product's: which sheet is on top (?c_p), whether the stack is folded
    (?c_fold), and what the sheet on top puts on the model. Everything is read from the workspace document. */

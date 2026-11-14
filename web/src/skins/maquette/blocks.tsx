@@ -3,9 +3,10 @@ import NumberFlow from '@number-flow/react'
 import { Popover } from '@base-ui/react/popover'
 import { Slider } from '@base-ui/react/slider'
 import { Switch } from '@base-ui/react/switch'
-import { fetchPlan, focusAnchor, focusFinding, navigate, panoFace, runAction, useWorkspace, userOp, type Block, type Doc, type Finding, type Panel, type ScanPlan, type Status } from '../../core/index.ts'
+import { fetchPlan, focusAnchor, focusFinding, navigate, runAction, useWorkspace, userOp, type Block, type Doc, type Panel, type ScanPlan, type Status } from '../../core/index.ts'
 import { Plan } from './Plan.tsx'
-import { Glyph, Src, STATUS_WORD, fmt, ms } from './ui.tsx'
+import { STATUS_WORD, findingPhoto, fmt, ms } from './lib.ts'
+import { Glyph, Src } from './ui.tsx'
 
 /* The twelve blocks, as they are set on a sheet of paper. Each is built once. Numbers are printed as they arrive in
    the block; nothing is parsed out of text and nothing is recomputed. */
@@ -59,12 +60,6 @@ function Checks({ b, ctx }: { b: Of<'CheckList'>; ctx: Ctx }) {
   )
 }
 
-/** A finding's photograph. Contract 3: a panorama ref is "<sid>/<pano>/<face>"; the fixtures give the position alone. */
-export function findingPhoto(f: Finding): string | null {
-  const m = f.media?.find((x) => x.kind === 'pano'), sid = f.anchor && 'sid' in f.anchor ? f.anchor.sid : null
-  const [a, b, c] = m?.ref.split('/') ?? []
-  return m && b ? panoFace(a, b, c ? Number(c) : 1) : m && sid ? panoFace(sid, m.ref) : null
-}
 export function Photo({ src, alt = '' }: { src: string | null; alt?: string }) {
   const [state, set] = useState<'wait' | 'ok' | 'none'>('wait')
   useEffect(() => set('wait'), [src])
