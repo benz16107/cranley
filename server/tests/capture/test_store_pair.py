@@ -63,8 +63,16 @@ def test_pairing_tokens_expire_and_cannot_be_forged():
     assert "ws_abc" not in t["token"]                                 # the id is not readable in the link
     with pytest.raises(LookupError, match="expired"):
         pair.check(t["token"], now=1000.0 + 3601)
-    body, sig = t["token"].split(".")
-    other = pair.issue("ws_other", hours=1, now=1000.0)["token"].split(".")[0]
-    for forged in (other + "." + sig, body + "." + sig[:-2] + "AA", "garbage", body, ""):
+    tok, other = t["token"], pair.issue("ws_other", hours=1, now=1000.0)["token"]
+    flipped = tok[:20] + ("A" if tok[20] != "A" else "B") + tok[21:]
+    for forged in (other[:16] + tok[16:], flipped, tok[:-2], "garbage", "", "a.b"):
         with pytest.raises(LookupError):
             pair.check(forged, now=1000.0)
+
+
+def test_the_workspace_id_cannot_be_decoded_from_a_token():
+    import base64
+    tok = pair.issue("ws_secret1", hours=1)["token"]
+    raw = base64.urlsafe_b64decode(tok + "=" * (-len(tok) % 4))
+    assert b"ws_secret1" not in raw and b"secret1" not in raw
+    assert pair.issue("ws_secret1", hours=1)["token"] != tok             # a fresh nonce each time
