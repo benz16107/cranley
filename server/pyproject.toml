@@ -10,6 +10,7 @@ dependencies = [
   "numpy>=2.0",
   "shapely>=2.0",
   "pillow>=10.4",
+  "pyzipper>=0.4.0",
 ]
 
 [dependency-groups]
