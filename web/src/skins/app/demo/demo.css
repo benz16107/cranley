@@ -3,16 +3,15 @@
 .demo-item .grow { display: grid; gap: 1px; }
 
 .demo-cap {
-  position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 70;
-  width: min(680px, calc(100vw - 32px)); display: flex; align-items: center; gap: 12px;
+  position: fixed; right: 16px; bottom: 16px; z-index: 70; /* bottom right: the scene's own tour caption is bottom left */
+  width: min(440px, calc(100vw - 32px)); flex-wrap: wrap; display: flex; align-items: center; gap: 12px;
   padding: 10px 12px; background: var(--pane); color: var(--ink);
   border: 1px solid var(--rule-strong); border-radius: var(--r-2);
 }
-.demo-say { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.demo-say { flex: 1 1 100%; min-width: 0; display: grid; gap: 2px; }
 .demo-say p { margin: 0; font-size: var(--text-md); line-height: 1.4; text-wrap: pretty; }
 .demo-say .demo-note { font-size: var(--text-xs); color: var(--ink-2); }
-.demo-ctl { display: flex; align-items: center; gap: 6px; flex: none; font-size: var(--text-xs); }
-@media (max-width: 760px) { .demo-cap { flex-direction: column; align-items: stretch; } .demo-ctl { justify-content: flex-end; } }
+.demo-ctl { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex: 1; font-size: var(--text-xs); }
 
 /* what the flow just pressed */
 .demo-hit { outline: 2px solid var(--accent) !important; outline-offset: 2px; }
