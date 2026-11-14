@@ -91,6 +91,9 @@ def locate(ctx, w: Where) -> Site:
     if w.lat is None or w.lon is None:
         raise ToolError("Give a scan, a CoStar property id, or a latitude and longitude.")
     pid = nearest_property(w.lat, w.lon)
+    a = (property_record(pid) or {}).get("primaryAddress") or {}
+    if pid and (a.get("latitude") is None or dist_m((a["longitude"], a["latitude"]), (w.lon, w.lat)) > 35):
+        pid = None  # warehouses stand side by side: a record geocoded farther off is likely the neighbour's
     return Site(w.lat, w.lon, None, pid, address_of(property_record(pid)) if pid else None, "point")
 
 
