@@ -22,3 +22,10 @@ def test_aggregate_starts_with_the_scope_and_refuses_other_collections():
             guard("aggregate", {"collection": "history", "pipeline": [bad]}, "d", "p", "w")
     with pytest.raises(ValueError):
         guard("find", {"collection": "ops"}, "d", "p", "w")  # the log holds every workspace id
+
+
+def test_find_and_count_refuse_server_side_code():
+    for tool, key in (("find", "filter"), ("count", "query")):
+        for bad in ({"$where": "sleep(1000)"}, {"$expr": {"$function": {"body": "x", "args": [], "lang": "js"}}}):
+            with pytest.raises(ValueError):
+                guard(tool, {"collection": "history", key: bad}, "d", "p", "w")

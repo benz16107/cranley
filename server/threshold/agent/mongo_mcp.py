@@ -34,6 +34,7 @@ BANNED = ("$lookup", "$unionWith", "$graphLookup", "$out", "$merge", "$documents
           "$planCacheStats", "$listSearchIndexes", "$changeStream", "$function", "$accumulator", "$where")
 HIDDEN = {"h": 0, "vector": 0}
 _lock = threading.Lock()
+_down_until = 0.0
 
 
 def _free_port() -> int:
@@ -83,14 +84,13 @@ def guard(tool: str, args: dict, db: str, profile: str, workspace: str) -> dict:
     coll = args.get("collection")
     if coll not in SCOPE:
         raise ValueError(f"collection must be one of {', '.join(SCOPE)}")
+    bad = next((b for b in BANNED if f'"{b}"' in json.dumps(args)), None)
+    if bad:  # $where, $function and stages that read other collections, in a filter as much as in a pipeline
+        raise ValueError(f"{bad} is not allowed here")
     scope = {SCOPE[coll]: profile if SCOPE[coll] == "profile" else workspace}
     out = {"connectionId": "preconfigured", "database": db, "collection": coll}  # the server's own connection
     if tool == "aggregate":
         pipeline = args.get("pipeline") or []
-        text = json.dumps(pipeline)
-        bad = next((b for b in BANNED if f'"{b}"' in text), None)
-        if bad:
-            raise ValueError(f"{bad} is not allowed here")
         out["pipeline"] = [{"$match": scope}, *pipeline, {"$project": HIDDEN}, {"$limit": 50}]
     else:
         key = "filter" if tool == "find" else "query"
@@ -110,10 +110,14 @@ def tools(store, profile: str, workspace: str) -> list:
         return []
     from langchain_core.tools import StructuredTool
     from pydantic import Field, create_model
+    global _down_until
+    if time.time() < _down_until:
+        return []
     try:
         with _lock:
             remote = _mcp_tools(_server(store.uri))
-    except Exception:  # noqa: BLE001 - the agent works without it
+    except Exception:  # noqa: BLE001 - the agent works without it; do not try again for a while
+        _down_until = time.time() + 300
         return []
     db = store.db.name
 
@@ -123,7 +127,10 @@ def tools(store, profile: str, workspace: str) -> list:
                 args = guard(name, kw, db, profile, workspace)
             except ValueError as e:
                 return f"refused: {e}"
-            res = asyncio.run(remote[name].ainvoke(args))
+            try:
+                res = asyncio.run(remote[name].ainvoke(args))
+            except Exception as e:  # noqa: BLE001 - a bad stage or a dead server: tell the model, keep the turn
+                return f"error: {type(e).__name__}: {str(e)[:300]}"
             return res if isinstance(res, str) else json.dumps(res, default=str)[:12000]
         return call
 

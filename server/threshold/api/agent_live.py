@@ -3,6 +3,7 @@ it was asked, the tool it is running, waiting for an approval, done) as server-s
 each time something changes. The agent panel shows it beside the plan."""
 from __future__ import annotations
 
+import asyncio
 import json
 import queue
 
@@ -15,16 +16,22 @@ router = APIRouter(prefix="/api")
 
 
 @router.get("/agent/{workspace}/live")
-def agent_live(workspace: str) -> StreamingResponse:
-    def stream():
+async def agent_live(workspace: str) -> StreamingResponse:
+    async def stream():  # async and polling, so an open panel holds no threadpool worker
         q = live.subscribe(workspace)
+        idle = 0.0
         try:
             while True:
                 try:
-                    snap = q.get(timeout=15)
+                    snap = q.get_nowait()
                 except queue.Empty:
-                    yield ": keep-alive\n\n"  # notices a closed client and keeps proxies from timing out
+                    await asyncio.sleep(0.25)
+                    idle += 0.25
+                    if idle >= 15:  # notices a closed client and keeps proxies from timing out
+                        idle = 0.0
+                        yield ": keep-alive\n\n"
                     continue
+                idle = 0.0
                 yield f"event: lanes\ndata: {json.dumps(snap, default=str)}\n\n"
         finally:
             live.unsubscribe(workspace, q)

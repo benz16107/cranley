@@ -653,9 +653,11 @@ class Investigation:
 
     # ---- approvals before slow or expensive steps (deepagents human-in-the-loop) ----
     def always_allowed(self, tool: str) -> bool:
-        """The person chose "Always run it here" for this tool in this workspace."""
-        return any(q.answer == ALWAYS and (q.input.get("x-approval") or {}).get("tool") == tool
-                   for q in self.s.doc.questions)
+        """The person chose "Always run it here" for this tool in an earlier turn. Answers given to this turn's own
+        questions do not count: LangChain runs the predicate again on resume, and its answer must not change between
+        the pause and the resume (an "Always" here is a plain approval, see `decisions`)."""
+        return any(q.answer == ALWAYS and (a := q.input.get("x-approval") or {}).get("tool") == tool
+                   and a.get("turn") != self.turn for q in self.s.doc.questions)
 
     def why_approve(self, call, state=None, runtime=None) -> str:
         args = call.get("args") or {}
@@ -679,6 +681,7 @@ class Investigation:
                     id=qid, key=f"approval.{qid}", text=req.get("description") or f"Run {req['name']}?", tools=[req["name"]],
                     input={"type": "string", "enum": [RUN, SKIP, ALWAYS],
                            "x-approval": {"turn": self.turn, "interrupt": intr.id, "index": i, "tool": req["name"],
+                                          "spent": {"calls": self.budget.calls, "runs": self.budget.runs},
                                           "args": {k: v for k, v in (req.get("args") or {}).items() if k in ("scan", "place", "property_id", "kinds")}}})))
                 ids.append(qid)
         return ids
@@ -746,9 +749,12 @@ class Investigation:
                 "metadata": {"workspace": self.s.base.id, "turn": self.turn, "persona": d.brief.persona,
                              "profile": self.s.base.profile}}
 
-    def paused(self, model=None) -> bool:
-        """This turn's thread is waiting for approvals."""
-        return bool(self.build(model).get_state(self.config()).interrupts)
+    def paused(self) -> bool:
+        """This turn's thread is waiting for approvals: its latest checkpoint holds an interrupt write. Read from the
+        checkpointer directly, so checking costs one lookup, not an agent build."""
+        from .durable import saver_and_store
+        tup = saver_and_store(self.s.store)[0].get_tuple({"configurable": {"thread_id": f"{self.s.base.id}:{self.turn}"}})
+        return bool(tup) and any(w[1] == "__interrupt__" for w in (tup.pending_writes or []))
 
     def go(self, request: str | None = None, model=None, resume: bool = False) -> str:
         """Run one investigation turn, or resume one that paused for approvals. Returns the agent's closing sentence
@@ -895,8 +901,12 @@ def resume_paused(session: Session, agent_model=None, budget: Budget | None = No
                                if q.answered and q.input.get("x-approval")))
     for t in turns[:3]:  # each check builds the agent; older paused turns are left alone
         inv = Investigation(session, t, budget)
-        if not inv.paused(agent_model):
+        if not inv.paused():
             continue
+        spent = [(q.input.get("x-approval") or {}).get("spent") or {} for q in session.doc.questions
+                 if (q.input.get("x-approval") or {}).get("turn") == t]
+        inv.budget.calls = max([inv.budget.calls, *(x.get("calls", 0) for x in spent)])  # one cap across the pauses
+        inv.budget.runs = max([inv.budget.runs, *(x.get("runs", 0) for x in spent)])
         summary = inv.go(model=agent_model, resume=True)
         if inv.asked:
             return {"status": "approval", "questions": inv.asked, "budget": inv.budget.report()}

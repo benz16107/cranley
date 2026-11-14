@@ -86,6 +86,7 @@ class MongoStore:
         self._seen: dict[tuple[str, str], dict[str, str]] = {}  # (collection, workspace) -> {_id: content hash}
         self._lock = threading.Lock()
         self.vector_mode = "local"
+        self._capture_mtime: dict[str, int] = {}
         self._recalled: dict[tuple, tuple[float, list[dict]]] = {}  # shortcut: per process and unbounded; fine for one event
         self.setup()
 
@@ -237,8 +238,13 @@ class MongoStore:
         the capture ids already stored are read once per workspace and remembered."""
         if captures is None:
             from ..capture import store as cap
-            if not (cap.ROOT / ws).is_dir():
+            d = cap.ROOT / ws
+            if not d.is_dir():
                 return 0
+            mtime = d.stat().st_mtime_ns  # a new capture adds files, which changes the folder's mtime
+            if self._capture_mtime.get(ws) == mtime:
+                return 0
+            self._capture_mtime[ws] = mtime
             captures = cap.listing(ws)
         with self._lock:
             key = ("sensors", ws)
@@ -248,8 +254,12 @@ class MongoStore:
             rows = [derive.sensor(ws, c) for c in captures if c.get("id") and c["id"] not in seen]
             rows = [r for r in rows if r]
             if rows:
-                self.sensors.insert_many(rows, ordered=False)
-                seen.update({r["meta"]["capture"]: "" for r in rows})
+                try:
+                    self.sensors.insert_many(rows, ordered=False)
+                except BulkWriteError:  # the good rows are stored; a bad one would fail again, so none are retried
+                    logging.getLogger("threshold.store").exception("workspace %s: some phone readings were refused", ws)
+                finally:
+                    seen.update({r["meta"]["capture"]: "" for r in rows})
             return len(rows)
 
     def sensor_series(self, ws: str, scan: str | None = None, every: str = "minute") -> list[dict]:

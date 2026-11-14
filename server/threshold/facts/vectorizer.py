@@ -84,9 +84,11 @@ def status() -> dict:
 
 
 def ready() -> bool:
-    """The column exists and holds vectors: search may use it."""
+    """The column holds a vector for every described room: search may use it without losing rooms. While the worker
+    is behind (or stopped), search keeps the app's own embeddings."""
     try:
-        return bool(db.rows(f"SELECT 1 FROM room_text WHERE {COLUMN} IS NOT NULL LIMIT 1"))
+        r = db.rows(f"SELECT count(*) AS n, count({COLUMN}) AS v FROM room_text")[0]
+        return r["n"] > 0 and r["v"] == r["n"]
     except Exception:  # noqa: BLE001 - no column yet (vectorizer not installed): use the app-side embeddings
         return False
 
