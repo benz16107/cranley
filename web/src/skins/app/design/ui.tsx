@@ -54,9 +54,11 @@ export function RunState({ state, children }: { state: 'pending' | 'active' | 'r
 const LAYER: Record<Source['layer'], [short: string, long: string]> = {
   matterport: ['Scan', 'Interior scan (Matterport)'], vexcel: ['Aerial', 'Aerial survey (Vexcel)'], costar: ['Record', 'Property record (CoStar)'],
   drone: ['Drone', 'Drone capture'], model: ['Model', 'Model judgement'],
+  phone: ['Phone', 'Captured on site with a phone'],
 }
 const METHOD: Record<Source['method'], [short: string, long: string]> = {
   geometry: ['Geo', 'Calculated from geometry'], vision: ['Vis', 'Read from a photo by a vision model'], lookup: ['Look', 'Looked up, not measured'], simulation: ['Sim', 'Simulated'],
+  sensor: ['Sens', 'Read by the phone\'s sensors'], manual: ['Tape', 'Measured on site and typed in'],
 }
 const CONF = { high: 3, medium: 2, low: 1 } as const
 export const sourceText = (s: Source) => `${LAYER[s.layer]?.[1] ?? s.layer}, ${(METHOD[s.method]?.[1] ?? s.method).toLowerCase()}`
