@@ -120,7 +120,7 @@ export function Home() {
         )}
         <Stats items={[
           { label: 'Scanned addresses', value: count ? int(count) : <span className="sk" style={{ width: 48 }} /> },
-          { label: 'Investigations in this browser', value: int(list.length) },
+          { label: 'Investigations here', value: int(list.length) },
           { label: 'Saved buildings', value: int(doc.shortlist.length) },
           { label: 'Tools', value: tools.length ? int(tools.length) : <span className="sk" style={{ width: 24 }} /> },
         ]} />

@@ -184,8 +184,8 @@ button.chip[aria-pressed='true'] { background: var(--accent-wash); border-color:
 .drawer > .body { overflow-y: auto; flex: 1; }
 
 /* ---------- tabs ---------- */
-.tabs { display: flex; gap: 2px; padding: 0 var(--s-3); border-bottom: 1px solid var(--rule); position: relative; overflow-x: auto; scrollbar-width: none; flex: none; }
-.tabs [role='tab'] { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 8px; color: var(--ink-2); font-weight: 520; white-space: nowrap; position: relative; outline-offset: -2px; }
+.tabs { display: flex; gap: 0; padding: 0 var(--s-2); border-bottom: 1px solid var(--rule); position: relative; overflow-x: auto; scrollbar-width: none; flex: none; }
+.tabs [role='tab'] { display: inline-flex; align-items: center; gap: 5px; height: 36px; padding: 0 8px; flex: none; color: var(--ink-2); font-weight: 520; white-space: nowrap; position: relative; outline-offset: -2px; }
 .tabs [role='tab'][data-active], .tabs [role='tab'][aria-selected='true'] { color: var(--ink); }
 .tabs [role='tab'][data-active]::after, .tabs [role='tab'][aria-selected='true']::after { content: ''; position: absolute; left: 6px; right: 6px; bottom: -1px; height: 2px; background: var(--ink); }
 .tabs [role='tab'][data-disabled] { opacity: 0.4; }

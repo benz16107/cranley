@@ -3,7 +3,7 @@ import { CITIES, KINDS, navigate, searchMeasures, useBuildings, useWorkspace, ty
 import { PanelView } from '../blocks/blocks.tsx'
 import { Empty, Icon, RunState, SourceChip } from '../design/ui.tsx'
 import { int } from '../lib/format.ts'
-import { askHere, facts, type FloodLevel } from '../lib/pending.ts'
+import { facts, type FloodLevel } from '../lib/pending.ts'
 import { familyOf } from '../lib/tools.ts'
 
 /* City-level questions. The counts come from the server: search by measurement returns how many scans it looked at,
@@ -77,7 +77,7 @@ function Flood() {
   return (
     <section className="card">
       <header><h2>Flood exposure</h2><p className="grow">Rooms and houses wet at three water depths, across the Houston houses in the flood series.</p></header>
-      {!facts.fetchFloodWet ? <div className="body stack"><p className="note"><Icon name="info" size={13} /><span>The flood series is in the facts database. This look cannot read it until core has a client for it; the request is filed. The agent can query it now.</span></p><div className="row"><button className="btn" onClick={() => void askHere('Use the facts database to count how many rooms and houses are wet at 0.5 m, 1 m and 1.5 m of water.')}>Ask the agent for the counts</button></div></div>
+      {!facts.fetchFloodWet ? <div className="body"><p className="note"><Icon name="info" size={13} /><span>Not connected yet. The flood series is in the facts database, and this page will chart it once the app can read it.</span></p></div>
         : rows === 'error' ? <Empty icon="warn" title="The facts database did not answer" />
         : !rows ? <div className="body"><span className="sk" style={{ width: '50%' }} /></div> : (
           <table className="tbl">
@@ -89,21 +89,15 @@ function Flood() {
   )
 }
 
-const CENSUS = [
-  { label: 'Listed against measured area, by property type', ask: 'Run the city census of measured area against listed area, by property type.' },
-  { label: 'Homes a wheelchair can use, by zip code', ask: 'Run the city census of the share of homes where a wheelchair reaches a bathroom, by zip code.' },
-  { label: 'Narrowest door on the way to the bathroom, by city', ask: 'Run the city census of the narrowest door on the way to the bathroom, by city.' },
-]
 function Census() {
   const doc = useWorkspace((s) => s.doc)
   const panels = doc.panels.filter((p) => familyOf(p.tool) === 'database')
   const working = doc.runs.filter((r) => r.status === 'running' && familyOf(r.tool) === 'database')
   return (
     <section className="card">
-      <header><h2>Rollups from the facts database</h2><p className="grow">Census of every measured scan, grouped by zip code, city or property type.</p></header>
+      <header><h2>Rollups from the facts database</h2><p className="grow">Listed against measured area by property type, accessible homes by zip code, typical door widths by city.</p></header>
       <div className="body stack">
-        <p className="note"><Icon name="info" size={13} /><span>These rollups are a tool the agent runs (City census). A request below costs one agent turn and its result is kept in the open investigation. A direct client is requested from core.</span></p>
-        <div className="row wrap">{CENSUS.map((c) => <button key={c.label} className="btn" onClick={() => void askHere(c.ask)}>{c.label}</button>)}</div>
+        <p className="note"><Icon name="info" size={13} /><span>Not connected yet. The rollups exist on the server as the City census tool, which needs a choice of rollup that only the agent can give it today. When the agent runs it in the open investigation, its result is listed here.</span></p>
         {working.map((r) => <RunState key={r.id} state="running">{r.label}{r.summary ? `: ${r.summary}` : ''}</RunState>)}
       </div>
       {panels.map((p) => <PanelView key={p.id} panel={p} folded={panels.length > 1} />)}

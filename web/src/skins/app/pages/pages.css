@@ -44,7 +44,7 @@
 .can li { display: flex; align-items: center; gap: 8px; }
 .evid li { border-bottom: 1px solid var(--rule); }
 .evid button { display: flex; gap: 10px; width: 100%; padding: 9px var(--s-4); text-align: left; }
-.evid img, .evid .ph { width: 72px; height: 54px; object-fit: cover; border-radius: var(--r-1); flex: none; outline: 1px solid light-dark(rgb(0 0 0 / 0.1), rgb(255 255 255 / 0.1)); outline-offset: -1px; background: var(--pane-2); }
+.evid img, .evid .ph { width: 72px; height: 54px; object-fit: cover; border-radius: var(--r-1); flex: none; outline: 1px solid light-dark(rgb(0 0 0 / 0.1), rgb(255 255 255 / 0.1)); outline-offset: -1px; background-color: var(--pane-2); }
 .evid .grow { display: grid; gap: 3px; align-content: start; }
 .evid .t { display: flex; align-items: baseline; gap: 7px; font-weight: 560; line-height: 1.35; }
 .evid .t .glyph { flex: none; translate: 0 0.5px; }
@@ -169,4 +169,11 @@
   .card > header p.grow { flex-basis: 100%; }
   /* a wide table scrolls inside its own frame; the page never scrolls sideways */
   .listpage .tbl, .tabbody .tbl { min-width: 640px; }
+  .card > .tblwrap .tbl { min-width: 520px; }
+  .stats { flex-wrap: wrap; }
+  .stats > div { flex: 1 1 40%; border-top: 1px solid var(--rule); margin-top: -1px; }
+  /* one row of filters that scrolls sideways inside itself */
+  .bar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .bar > * { flex: none; }
+  .bar > .grow { flex: 1 0 8px; }
 }

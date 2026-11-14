@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import { Dialog } from '@base-ui/react/dialog'
 import { useWorkspace, userOp } from '../../../core/index.ts'
 import { DataTable, Empty, Icon, Seg, ToolKey, type Col } from '../design/ui.tsx'
-import { askHere } from '../lib/pending.ts'
 import { go } from '../lib/place.ts'
 import { FAMILIES, family, useTools, type Family, type ToolInfo } from '../lib/tools.ts'
 
@@ -21,9 +20,9 @@ function Detail({ t, on, onClose }: { t: ToolInfo | null; on: boolean; onClose: 
                 <p>{t.summary}</p>
                 <div className="row wrap">
                   <button className="btn solid" disabled={t.planned} onClick={() => userOp(on ? { op: 'tool.disable', id: t.id } : { op: 'tool.enable', tool: { id: t.id, title: t.title, summary: t.summary, reason: 'You added it from the tool catalogue.' } })}>{on ? 'Remove from this investigation' : 'Add to this investigation'}</button>
-                  {t.onScan ? <button className="btn" onClick={() => { onClose(); go('explore') }}>Pick a building to run it on</button>
-                    : <button className="btn" onClick={() => { onClose(); void askHere(`Run the ${t.title} tool.`) }}>Ask the agent to run it</button>}
+                  {t.onScan && <button className="btn" onClick={() => { onClose(); go('explore') }}>Pick a building to run it on</button>}
                 </div>
+                {!t.onScan && <p className="note"><Icon name="info" size={13} /><span>This tool works across the city, not on one building, so it cannot be started from a building page. The agent uses it when it is in the investigation.</span></p>}
                 {t.planned && <p className="note"><Icon name="info" size={13} /><span>Planned, not built yet.</span></p>}
                 <section><h3>Reads</h3>{t.needs.length ? <ul className="needs">{t.needs.map((n) => <li key={n.layer}><span className="grow">{n.label}</span><span className="muted">{n.required ? 'required' : 'used when there'}</span></li>)}</ul> : <p className="muted">Nothing listed.</p>}</section>
                 {t.asks.length > 0 && <section><h3>Asks you first</h3><ul className="asks">{t.asks.map((a) => <li key={a}>{a}</li>)}</ul></section>}

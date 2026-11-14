@@ -59,7 +59,7 @@ function CheckList({ b, ctx }: { b: Extract<Block, { type: 'CheckList' }>; ctx: 
               <span className="rule">{c.rule}{c.standard && <small>{c.standard}</small>}</span>
               <span className="m">
                 {c.measured == null ? <span className="none">not measured</span> : <span className="num">{fmt(c.measured)} {c.unit}</span>}
-                {c.threshold != null && <small>{c.kind === 'claim' ? 'record says' : 'limit'} <span className="num">{fmt(c.threshold, 3)}</span></small>}
+                {c.threshold != null && <small>{c.kind === 'claim' ? 'record says' : 'limit'} <span className="num">{!c.unit && Number.isInteger(c.threshold) && c.threshold > 1500 && c.threshold < 2200 ? c.threshold /* a year */ : fmt(c.threshold, 3)}</span></small>}
               </span>
               {c.kind !== 'claim' && c.measured != null && c.threshold != null && <Gauge measured={c.measured} threshold={c.threshold} status={c.status} />}
             </button>

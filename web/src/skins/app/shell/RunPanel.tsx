@@ -110,7 +110,7 @@ function Brief() {
 function Plan() {
   const plan = useWorkspace((s) => s.doc.plan), runs = useWorkspace((s) => s.doc.runs)
   const [all, setAll] = useState<Record<string, boolean>>({})
-  const loose = runs.filter((r) => !r.step || !plan.some((s) => s.id === r.step))
+  const byHand = runs.filter((r) => !r.step), earlier = runs.filter((r) => r.step && !plan.some((s) => s.id === r.step))
   if (!plan.length && !runs.length) return <p className="rp-none">No plan yet. It appears when the investigation starts.</p>
   const done = plan.filter((s) => s.status === 'done').length
   return (
@@ -131,12 +131,15 @@ function Plan() {
             </li>
           )
         })}
-        {loose.length > 0 && (
-          <li className="step" data-status="done">
-            {plan.length > 0 && <div className="sh"><span className="n" /><span className="grow">Run by you</span></div>}
-            <ul className="runs">{loose.map((r) => <RunRow key={r.id} r={r} />)}</ul>
+        {[['Earlier turns', earlier] as const, ['Run by you', byHand] as const].map(([label, list]) => list.length > 0 && (
+          <li key={label} className="step" data-status="done">
+            <div className="sh"><span className="n" /><span className="grow">{label}</span><span className="count">{list.length}</span></div>
+            <ul className="runs">
+              {list.length > 4 && !all[label] && <li><button className="more" onClick={() => setAll({ ...all, [label]: true })}>{list.length - 4} earlier runs</button></li>}
+              {(all[label] ? list : list.slice(-4)).map((r) => <RunRow key={r.id} r={r} />)}
+            </ul>
           </li>
-        )}
+        ))}
       </ol>
     </div>
   )

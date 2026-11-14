@@ -55,9 +55,9 @@ export function Shell() {
   useEffect(load, [load]) // every page names buildings: the breadcrumb, the search, the saved list
 
   // The run panel opens by itself when the agent starts working or needs an answer. Closing it is the person's.
-  const busy = useWorkspace((s) => s.doc.plan.some((p) => p.status === 'active') || (s.doc.plan.length > 0 && s.doc.questions.some((q) => q.answer == null)))
+  const busy = useWorkspace((s) => s.doc.plan.some((p) => p.status === 'active') || ((s.doc.plan.length > 0 || s.doc.runs.length > 0 || !s.doc.brief) && s.doc.questions.some((q) => q.answer == null)))
   const was = useRef(busy)
-  useEffect(() => { if (busy && !was.current && !phone) setRun(true); was.current = busy }, [busy, phone, setRun])
+  useEffect(() => { if (busy && !was.current) setRun(true); was.current = busy }, [busy, setRun])
 
   useEffect(() => {
     let g = 0

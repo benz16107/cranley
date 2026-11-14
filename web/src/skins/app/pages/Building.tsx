@@ -198,7 +198,7 @@ function History({ sid, runs }: { sid: string; runs: Doc['runs'] }) {
       </section>
       <section className="ins-sec">
         <h3>Measured facts over time</h3>
-        {facts.fetchFactHistory ? <FactHistory sid={sid} /> : <p className="note"><Icon name="info" size={13} /><span>Every metric a tool measures on this scan is kept in the facts database with its date. This look cannot read it yet: the client is requested from core.</span></p>}
+        {facts.fetchFactHistory ? <FactHistory sid={sid} /> : <p className="note"><Icon name="info" size={13} /><span>Not connected yet. Every value a tool measures on this scan is kept in the facts database with its date, and this tab will list them once the app can read it.</span></p>}
       </section>
     </div>
   )
@@ -214,14 +214,19 @@ function FactHistory({ sid }: { sid: string }) {
 export function Building({ sid }: { sid: string }) {
   const doc = useWorkspace((s) => s.doc)
   const scheme = useScheme()
-  const [hidden, setHidden] = useState<string[]>([]) // tools whose overlays are switched off
+  const runs = useMemo(() => doc.runs.filter((r) => r.sid === sid), [doc.runs, sid])
+  const panels = useMemo(() => doc.panels.filter((p) => p.sid === sid), [doc.panels, sid])
+  const focused = doc.camera?.finding ? doc.findings.find((f) => f.id === doc.camera!.finding)?.tool : undefined
+  // Which tools draw on the building. Left alone, it is the one result in view: the tool of the focused finding, else
+  // the latest result. Five tools drawing at once cannot be read.
   const drawn = useMemo(() => [...new Set(doc.overlays.filter((o) => !o.sid || o.sid === sid).map((o) => o.tool))], [doc.overlays, sid])
-  const v = useBuildingView(sid, hidden.length ? { tools: drawn.filter((t) => !hidden.includes(t)) } : undefined)
+  const [pick, setPick] = useState<string[] | null>(null)
+  const latest = panels.at(-1)?.tool
+  const on = pick ?? (focused && drawn.includes(focused) ? [focused] : latest && drawn.includes(latest) ? [latest] : drawn)
+  const v = useBuildingView(sid, on.length === drawn.length ? undefined : { tools: on })
   const b = useBuildings((s) => s.all.find((x) => x.scans.some((y) => y.sid === sid)))
   const [tab, setTab] = useState(() => (doc.panels.some((p) => p.sid === sid) ? 'results' : 'overview'))
 
-  const runs = useMemo(() => doc.runs.filter((r) => r.sid === sid), [doc.runs, sid])
-  const panels = useMemo(() => doc.panels.filter((p) => p.sid === sid), [doc.panels, sid])
   const findings = useMemo(() => {
     const mine = new Set(runs.map((r) => r.id))
     return doc.findings.filter((f) => (f.anchor && 'sid' in f.anchor && f.anchor.sid === sid) || (f.run && mine.has(f.run))).sort((x, y) => WORST[x.status] - WORST[y.status])
@@ -237,7 +242,6 @@ export function Building({ sid }: { sid: string }) {
     // a tool the person ran: the server's camera closes in on its worst finding, so frame the whole building again
     if (mine) { const t = setTimeout(v.stepBack, 900); return () => clearTimeout(t) }
   }, [count]) // eslint-disable-line react-hooks/exhaustive-deps
-  const focused = doc.camera?.finding ? doc.findings.find((f) => f.id === doc.camera!.finding)?.tool : undefined
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -280,15 +284,16 @@ export function Building({ sid }: { sid: string }) {
             <Seg label="View" value={v.mode} onChange={v.setMode} options={MODES.map((m) => ({ id: m.id, label: m.label, icon: m.icon, disabled: !v.modes.includes(m.id), title: v.plan && !v.modes.includes(m.id) ? m.none : undefined }))} />
             <span className="grow" />
             {drawn.length > 0 && (
-              <MenuBtn align="end" trigger={<button type="button" className="btn quiet"><Icon name={hidden.length === drawn.length ? 'eyeoff' : 'eye'} size={14} />Overlays<span className="count">{drawn.length - hidden.length} of {drawn.length}</span></button>}>
+              <MenuBtn align="end" trigger={<button type="button" className="btn quiet" aria-label={`Overlays: ${on.length} of ${drawn.length} tools drawn on the building`}><Icon name={on.length ? 'eye' : 'eyeoff'} size={14} /><span className="lbl">Overlays</span><span className="count">{on.length} of {drawn.length}</span></button>}>
                 <div className="mh">Draw on the building</div>
                 {drawn.map((t) => (
-                  <Menu.CheckboxItem key={t} checked={!hidden.includes(t)} closeOnClick={false} onCheckedChange={(on) => setHidden(on ? hidden.filter((x) => x !== t) : [...hidden, t])}>
+                  <Menu.CheckboxItem key={t} checked={on.includes(t)} closeOnClick={false} onCheckedChange={(yes) => setPick(yes ? [...on, t] : on.filter((x) => x !== t))}>
                     <span className="mi-check"><Menu.CheckboxItemIndicator><Icon name="check" size={12} /></Menu.CheckboxItemIndicator></span>{tools.find((x) => x.id === t)?.title ?? t}
                   </Menu.CheckboxItem>
                 ))}
                 <hr />
-                <Menu.Item closeOnClick={false} onClick={() => setHidden(hidden.length ? [] : drawn)}>{hidden.length ? 'Show all' : 'Hide all'}</Menu.Item>
+                <Menu.Item closeOnClick={false} onClick={() => setPick(on.length === drawn.length ? [] : drawn)}>{on.length === drawn.length ? 'Hide all' : 'Show all'}</Menu.Item>
+                {pick && <Menu.Item onClick={() => setPick(null)}>Follow the result in view</Menu.Item>}
               </MenuBtn>
             )}
             <IconBtn icon="expand" label="Show the whole building" onClick={v.stepBack} disabled={!v.plan} />
@@ -323,7 +328,7 @@ export function Building({ sid }: { sid: string }) {
                 Pick a tool to measure this scan. Its result, checks and evidence appear here, and it draws on the building.
               </Empty>
             )}
-            {[...panels].reverse().map((p, k) => <PanelView key={p.id} panel={p} folded={panels.length > 2 && (focused ? p.tool !== focused : k > 0)} />)}
+            {[...panels].reverse().map((p, k) => <PanelView key={p.id} panel={p} folded={k > 0 && p.tool !== focused} />)}
           </Tabs.Panel>
           <Tabs.Panel value="evidence" className="insp-body scroll"><Evidence findings={findings} /></Tabs.Panel>
           <Tabs.Panel value="record" className="insp-body scroll"><Record sid={sid} /></Tabs.Panel>
