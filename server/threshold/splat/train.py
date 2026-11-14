@@ -49,7 +49,10 @@ def run(sid: str, steps: int = 10000, sh_degree: int = 2, max_splats: int = 1_50
     plan = mp.plan(sid)
     panos = {p["id"]: p for p in plan["panos"] if p.get("rotation")}
     sweeps = [p for k, p in panos.items() if k not in set(meta["held_out"])]  # never the held-out sweeps
-    T = virtual.subdivide(seed.mesh_triangles(sid, plan, panos))
+    try:
+        T = virtual.subdivide(seed.mesh_triangles(sid, plan, panos))
+    except LookupError:
+        T = None  # no mesh: no free-space carve, only the building crop
     out = root / f"run_{steps}"
     shutil.rmtree(out, ignore_errors=True)
     out.mkdir()
@@ -64,7 +67,9 @@ def run(sid: str, steps: int = 10000, sh_degree: int = 2, max_splats: int = 1_50
         _brush(d, out, meta, start, end, sh_degree, max_splats, every, growth)
         cols = spz.read_ply(out / f"phase_{end}.ply")
         xyz = np.stack([cols["x"], cols["y"], cols["z"]], 1)
-        drop = carve.free_space(xyz, T, sweeps) | carve.outside(xyz, plan)
+        drop = carve.outside(xyz, plan)
+        if T is not None:
+            drop |= carve.free_space(xyz, T, sweeps)
         carved.append({"step": end, "splats": len(drop), "removed": int(drop.sum())})
         spz.write_ply(init, {k: v[~drop] for k, v in cols.items()})
     last = runs[-1][1]
