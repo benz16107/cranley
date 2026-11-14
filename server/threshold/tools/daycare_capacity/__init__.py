@@ -91,6 +91,9 @@ def indoor(plan: dict) -> tuple[list[dict], list[dict], list[dict]]:
     return counted, excluded, unknown
 
 
+YARD_MAX_M2 = 4047  # one acre: past this the parcel is shared grounds, not a daycare's play yard
+
+
 def capacities(rule: dict, indoor_ft2: float | None, outdoor_ft2: float | None, toilets: int | None,
                sinks: int | None) -> dict[str, int | None]:
     """Children each input allows under one state's rule (None when unknown)."""
@@ -217,6 +220,13 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         plan = None
         ctx.step("No scan: indoor area and fixtures are unknown")
     out = outdoor_area(s)
+    if out and out["parcel_m2"] > YARD_MAX_M2:  # a complex, campus or office park: its open land is not one yard
+        ctx.step(f"Parcel {out['parcel_m2']:.0f} m2 is larger than a play yard; outdoor space left unknown")
+        findings.append(Finding(id=f"daycare_capacity:{k}:parcel", title="Parcel too large to count as one play yard",
+                                status="unknown", anchor=geo(s.lon, s.lat), source=Source(layer="vexcel", method="geometry", confidence="low"),
+                                detail=f"The parcel is {out['parcel_m2'] * FT2_PER_M2:,.0f} ft2, so its open land is shared "
+                                       "grounds, not a licensed yard. Measure the fenced play area to count it."))
+        out = None
     out_ft2 = out["play_m2"] * FT2_PER_M2 if out else None
     if out:
         ctx.step(f"Parcel {out['parcel_m2']:.0f} m2; unbuilt {out['unbuilt_m2']:.0f} m2, less {out['paved_m2']:.0f} m2 paved "
