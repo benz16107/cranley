@@ -40,5 +40,6 @@ def free_space(xyz: np.ndarray, T: np.ndarray, sweeps: list[dict], px: int = PX)
             u = np.clip(((a[ok] + 1) / 2 * px).astype(int), 0, px - 1)
             v = np.clip(((b[ok] + 1) / 2 * px).astype(int), 0, px - 1)
             idx = np.nonzero(near)[0][ok]
-            out[idx] |= z[ok] < D[v, u] * 0.96 - CLEAR
+            surf = D[v, u]
+            out[idx] |= np.isfinite(surf) & (z[ok] < surf * 0.96 - CLEAR)  # no mesh in that direction: keep
     return out

@@ -134,3 +134,39 @@ def test_route_serves_ranges_and_sidecar(client):
     assert c.get("/api/scan/abcdefghijk/interior-splat", headers={"Range": "bytes=99999-"}).status_code == 416
     assert c.get("/api/scan/abcdefghijk/interior-splat?format=ply").status_code == 404
     assert c.get("/api/scan/abcdefghijk/interior-splat.json").json() == {"to_scanplan": "identity"}
+
+
+def _wall(x=3.0, half=4.0):
+    """Two triangles: a square wall at x, facing a camera at the origin."""
+    a, b, c, d = [x, -half, -half], [x, half, -half], [x, half, half], [x, -half, half]
+    return np.array([[a, b, c], [a, c, d]], float)
+
+
+def test_depth_raster_is_perspective_correct_on_a_tilted_plane():
+    from threshold.splat import virtual
+    R = np.array([[0, -1, 0], [0, 0, -1], [1, 0, 0]], float)  # camera looking along +x, COLMAP axes
+    t = np.zeros(3)
+    z = virtual.depth(virtual.subdivide(_wall()), R, t, 64)
+    assert np.isfinite(z).all() and np.allclose(z, 3.0, atol=1e-6)
+    tilt = np.array([[[2, -9, -9], [6, 9, -9], [6, 9, 9]], [[2, -9, -9], [6, 9, 9], [2, -9, 9]]], float)  # x = 4 + 2y/9
+    z = virtual.depth(tilt, R, t, 64)
+    v = (np.arange(64) + 0.5) / 32 - 1  # pixel centre to normalised image x; scan y = -image x
+    expect = 4 / (1 + 2 * v / 9)
+    assert np.allclose(z[32], expect, rtol=1e-3)
+
+
+def test_carve_removes_splats_in_front_of_the_wall_only():
+    from threshold.splat import carve, virtual
+    sweep = {"position": [0.0, 0.0, 0.0], "rotation": [0.0, 0.0, 0.0, 1.0]}
+    xyz = np.array([[1.5, 0.2, 0.1], [3.0, 0.5, 0.3], [4.0, 0.0, 0.0], [2.85, 0.0, 0.0], [-1.0, 0.0, 0.0]])
+    drop = carve.free_space(xyz, virtual.subdivide(_wall()), [sweep])
+    assert drop.tolist() == [True, False, False, False, False]
+
+
+def test_virtual_views_never_take_an_eval_slot():
+    panos = [f"p{i:02d}" for i in range(19)]
+    extra = [(f"p{i:02d}-v", f) for i in range(0, 19, 2) for f in (1, 2, 3, 4)]
+    seq, period, held = dataset.order(panos, 8, extra)
+    ev = [i for i, (p, _) in enumerate(seq) if p in held]
+    assert ev == list(range(0, len(seq), period))
+    assert all(not seq[i][0].endswith("-v") for i in ev)
