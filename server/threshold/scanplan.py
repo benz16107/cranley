@@ -202,6 +202,7 @@ def normalize(model: dict, index_row: dict | None = None) -> dict:
     plan["stairs"] = _stairs(plan)
     plan["quality"] = _quality(plan, dropped)
     plan["quality"]["walls_source"] = "matterport" if plan["quality"]["walls"] else None
+    plan["quality"]["walls_confidence"] = "high" if plan["quality"]["walls"] else None
     for r in plan["rooms"]:
         r["polygon_source"] = "matterport" if r["polygon"] else None
         del r["_outline_area"]
