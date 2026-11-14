@@ -139,5 +139,30 @@ def test_ortho_transform_round_trip():
 
 def test_square_is_size_metres():
     from shapely import wkt
+
     from threshold.aerial.site import area_m2
     assert area_m2(wkt.loads(square(29.56, -95.13, 60)), 29.56) == pytest.approx(3600, rel=0.01)
+
+
+def test_rays_meet_at_one_object_seen_from_two_panoramas():
+    from threshold.vision.reader import rays_meet
+    obj = np.array([2.0, 1.0, 0.5])
+    a, b = np.array([0.0, 0.0, 1.5]), np.array([4.0, -1.0, 1.4])
+    unit = lambda v: v / np.linalg.norm(v)
+    t = rays_meet(a, unit(obj - a), b, unit(obj - b))
+    assert t == pytest.approx((np.linalg.norm(obj - a), np.linalg.norm(obj - b)))
+    assert rays_meet(a, unit(obj - a), b, unit(obj + [0, 1.0, 0] - b)) is None  # 1 m apart: two objects
+    assert rays_meet(a, unit(a - obj), b, unit(obj - b)) is None  # behind the first camera
+
+
+def test_ray_passes_through_a_doorway_into_the_next_room():
+    plan = room_plan()
+    plan["openings"] = [{"id": "d", "wall": "w2", "floor": "f", "type": "doorway", "width": 1.0, "height": 2.1,
+                         "sill": 0.0, "center": [0.0, 2.0], "rooms": ["r", "r2"]}]
+    plan["walls"][2]["openings"] = ["d"]
+    plan["walls"].append({"id": "far", "floor": "f", "a": [-2, 4], "b": [2, 4], "type": "wall"})
+    out = loc.locate(plan, plan["panos"][0], 1, [490, 480, 510, 500], S)  # face 1 looks along +y
+    assert out["surface"] == "wall" and out["point_anchor"]["point"][1] == pytest.approx(4.0)
+    # beside the doorway the near wall still stops the ray
+    side = loc.locate(plan, plan["panos"][0], 1, [140, 480, 160, 500], S)
+    assert side["point_anchor"]["point"][1] == pytest.approx(2.0)

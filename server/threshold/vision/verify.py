@@ -1,4 +1,4 @@
-"""Checks the cube-face layout in projection.py against real panoramas. Run: `python -m threshold.vision.verify`.
+"""Checks the cube-face layout in projection.py against real panoramas. Run: `python -m threshold.vision.verify SID...`.
 
 1. Edge continuity: pixels just across each shared cube edge must match. This fixes how the up and down
    faces are turned relative to the side faces.
@@ -117,4 +117,7 @@ def main(sids: list[str]) -> None:
 
 
 if __name__ == "__main__":
-    main([a for a in sys.argv[1:] if not a.startswith("-")] or ["<scan-id>", "<scan-id>", "<scan-id>"])
+    sids = [a for a in sys.argv[1:] if not a.startswith("-")]
+    if not sids:
+        sys.exit("usage: python -m threshold.vision.verify SID [SID ...] [--sweep]  (fixture scan ids)")
+    main(sids)

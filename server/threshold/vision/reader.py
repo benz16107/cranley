@@ -13,6 +13,7 @@ import numpy as np
 
 from ..sources import matterport as mp
 from . import locate as loc
+from . import projection as pj
 from .model import BOX, CONCURRENCY, CONFIDENCE, ask, jpeg
 
 FACE_PX = 1000  # faces are sent at this size, so model boxes are in [0, 1000] pixels of each face
@@ -119,7 +120,9 @@ def _finding(plan, pano, det, face, idx, title, detail) -> dict:
                    "note": f"Vision model on panorama {pano['id']} face {face}; {place}"},
         "media": [{"kind": "pano", "ref": f"{plan['sid']}/{pano['id']}/{face}", "box": [round(v / FACE_PX, 4) for v in box]}],
     }
-    return {"label": det["label"], "room": pano.get("room"), "pano_anchor": where["anchor"],
+    ray = (pano["position"], pj.direction(where["anchor"]["yaw_deg"], where["anchor"]["pitch_deg"]))
+    return {"label": det["label"], "room": pano.get("room"), "pano_anchor": where["anchor"], "ray": ray,
+            "distance_m": where["distance_m"],
             "point": where["point_anchor"]["point"] if where["point_anchor"] else None,
             "surface": where["surface"], "finding": finding}
 
@@ -165,18 +168,45 @@ def find_objects(plan: dict, labels: list[str] | None = None, panos: list[str] |
     return _merge(found, merge_m)
 
 
+def rays_meet(o1, d1, o2, d2, max_gap: float = 0.25) -> tuple[float, float] | None:
+    """Ranges along two rays to their closest approach, if the rays pass within `max_gap` metres in front
+    of both cameras. Used to recognise one object seen from two panoramas."""
+    o1, d1, o2, d2 = (np.asarray(x, float) for x in (o1, d1, o2, d2))
+    w = o1 - o2
+    b = float(d1 @ d2)
+    den = 1 - b * b
+    if den < 1e-6:  # parallel
+        return None
+    t1 = (b * float(d2 @ w) - float(d1 @ w)) / den
+    t2 = (float(d2 @ w) - b * float(d1 @ w)) / den
+    if t1 <= 0 or t2 <= 0 or np.linalg.norm((o1 + t1 * d1) - (o2 + t2 * d2)) > max_gap:
+        return None
+    return t1, t2
+
+
+def _same(k: dict, f: dict, merge_m: float) -> bool:
+    if k["label"] != f["label"] or k["pano_anchor"]["pano"] == f["pano_anchor"]["pano"]:
+        return False
+    if k["point"] and f["point"] and math.dist(k["point"], f["point"]) <= merge_m:
+        return True
+    # The base ray may hit the wall behind a standing object; the centre rays from two panoramas still meet
+    # at the object, in front of (not beyond) where each ray meets the room.
+    t = rays_meet(k["ray"][0], k["ray"][1], f["ray"][0], f["ray"][1])
+    return bool(t) and all(d is None or ti <= d + 0.5 for ti, d in zip(t, (k["distance_m"], f["distance_m"])))
+
+
 def _merge(found: list[dict], merge_m: float) -> list[dict]:
     rank = {"high": 0, "medium": 1, "low": 2}
     found.sort(key=lambda f: rank[f["finding"]["source"]["confidence"]])
     kept: list[dict] = []
     for f in found:
-        twin = next((k for k in kept if k["label"] == f["label"] and k["point"] and f["point"]
-                     and k["finding"]["media"][0]["ref"].split("/")[1] != f["finding"]["media"][0]["ref"].split("/")[1]
-                     and math.dist(k["point"], f["point"]) <= merge_m), None)
+        twin = next((k for k in kept if _same(k, f, merge_m)), None)
         if twin:
             twin["finding"]["media"] += f["finding"]["media"]
         else:
             kept.append(f)
+    for k in kept:
+        k.pop("ray", None)
     return kept
 
 

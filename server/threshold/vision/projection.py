@@ -9,8 +9,8 @@ Cube faces. Matterport returns six square faces: 0 up, 1 to 4 around the horizon
 has u to the right and v down, continuous in [0, size] with 0 at the left or top edge. The face layout
 below was measured on 2026-11-13, not assumed (`python -m threshold.vision.verify`): edge continuity
 between faces picks the up and down orientation on three of three scans, and ScanPlan doorways projected
-through `rotation` land on the doors in the images for <scan-id>, <scan-id> and <scan-id>
-(`$THRESHOLD_DATA_DIR/shots/perception/doorways_*.jpg`). The other three face-1 headings miss every door.
+through `rotation` land on the doors in the images of three fixture scans (an apartment, a house and a
+warehouse office; `$THRESHOLD_DATA_DIR/shots/perception/doorways_*.jpg`). The other three face-1 headings miss every door.
 
 Angles. `yaw_deg` is the heading in the scan frame, degrees counterclockwise from +x. `pitch_deg` is
 elevation above the horizontal, positive up. Both are what Contract 3's pano anchor carries.
