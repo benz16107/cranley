@@ -90,3 +90,4 @@ LAYERS = (
            "roof, road or pavement, the surface rain cannot soak into.", max_z=16, data_date="2021", confidence="medium"),
 )
 FETCH: dict = {}
+LAYERS_BY_ID = {l.id: l for l in LAYERS}
