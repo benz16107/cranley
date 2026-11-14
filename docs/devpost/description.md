@@ -78,7 +78,7 @@ The same workspace works for 34 kinds of user. A Houston homeowner watches Hurri
 
 - The iPhone app on real phones, so any shop or home can be checked in ten minutes.
 - More rule packs: fire codes and accessibility standards by city.
-- Rule packs and tools published so other agents build on them: the MCP server already exposes every tool to Claude Code, Claude Desktop and Cursor.
+- A hosted MCP server, so any agent can check a building. Today it runs on the machine that holds the data and serves Claude Code, Claude Desktop and Cursor there.
 
 ## Limits
 
