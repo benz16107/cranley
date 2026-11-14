@@ -10,9 +10,10 @@ from ..catalog import Layer, arcgis
 def layer(id: str, title: str, group: str, shape: str, url: str | list[str] | dict[str, str], *, fields: str = "",
           name: Callable[[dict], str] | str = "", detail: Callable[[dict], str] | None = None,
           props: Callable[[dict], dict] | None = None, offset: float | None = None, where: str = "1=1",
-          scope: str = "grid", **entry) -> tuple[Layer, Callable]:
+          scope: str = "grid", clip: bool = False, **entry) -> tuple[Layer, Callable]:
     """`url` is one service layer, several to merge, or {city: url} where each city has its own. `name` is a field, a fixed string
-    or a function of the feature's attributes."""
+    or a function of the feature's attributes. `clip` cuts each shape to the tile, for services whose shapes span a
+    county (a fire zone arrives whole in every tile it touches)."""
     def fetch(box, city):
         urls = [url.get(city)] if isinstance(url, dict) else url if isinstance(url, list) else [url]
         feats, cut = [], False
@@ -30,10 +31,22 @@ def layer(id: str, title: str, group: str, shape: str, url: str | list[str] | di
                 p["detail"] = detail(a)
             if props:
                 p |= props(a)
-            out.append({"type": "Feature", "geometry": f["geometry"], "properties": p})
+            g = _clipped(f["geometry"], box) if clip else f["geometry"]
+            if g:
+                out.append({"type": "Feature", "geometry": g, "properties": p})
         return out, cut
     cities = entry.pop("cities", tuple(url) if isinstance(url, dict) else ("hou", "la"))
     return Layer(id, title, group, shape, scope, cities=cities, **entry), fetch
+
+
+def _clipped(geom: dict, box) -> dict | None:
+    from shapely.geometry import box as bbox
+    from shapely.geometry import mapping, shape
+    g = shape(geom)
+    if not g.is_valid:
+        g = g.buffer(0)
+    cut = g.intersection(bbox(*box))
+    return None if cut.is_empty else mapping(cut)
 
 
 def collect(*pairs: tuple[Layer, Callable]) -> tuple[tuple[Layer, ...], dict[str, Callable]]:
