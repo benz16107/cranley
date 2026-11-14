@@ -68,3 +68,13 @@ def test_a_bedroom_with_no_path_from_the_fire_is_not_applicable(monkeypatch):
     monkeypatch.setattr(sc, "cfast_bin", lambda: "/bin/false")
     r = run_tool("smoke_clock", {"scan": "island", "fire_room": "Living Room"}, ToolContext(plans=lambda s: p))
     assert r.verdict.status == "unknown" and "no doorway joins" in r.verdict.text
+
+
+def test_the_default_fire_room_is_one_whose_smoke_reaches_a_bedroom():
+    from ..conftest import make_plan
+    p = make_plan("upstairs", [("lr", 0, 0, 8, 6, "Living Room"), ("fam", 10, 0, 14, 4, "Family Room"),
+                               ("b", 14, 0, 17, 4, "Bedroom")], doors=[("fam", "b", 0.8), ("lr", None, 0.9)])
+    comp, _ = sc.compartments(p)
+    beds = {comp["b"]}
+    pick = sc._pick_fire(p, None, lambda r: bool(sc.reachable(p, comp, comp[r["id"]]) & beds))
+    assert pick["id"] == "fam" and sc._pick_fire(p, None)["id"] == "lr"

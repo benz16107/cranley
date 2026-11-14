@@ -76,7 +76,9 @@ def cfast_bin() -> str | None:
     return p if p and os.path.exists(p) else None
 
 
-def _pick_fire(plan: dict, want: str | None) -> dict | None:
+def _pick_fire(plan: dict, want: str | None, reaches=lambda r: True) -> dict | None:
+    """The named room, else the largest living room, family room or kitchen; `reaches(room)` prefers one whose smoke
+    can reach a bedroom (a multi-storey scan often has no stairs to carry it from a downstairs living room)."""
     rooms = [r for r in live_rooms(plan) if polygons(plan).get(r["id"]) is not None]
     if want:
         hit = next((r for r in rooms if r["id"] == want), None) or \
@@ -84,10 +86,11 @@ def _pick_fire(plan: dict, want: str | None) -> dict | None:
         if hit is None:
             raise ToolError(f"No room '{want}' in this scan. Rooms: " + ", ".join(sorted({name(r) for r in rooms})))
         return hit
-    for label in ("Living Room", "Family Room", "Kitchen"):
-        hit = [r for r in rooms if r.get("label") == label]
-        if hit:
-            return max(hit, key=lambda r: polygons(plan)[r["id"]].area)
+    for keep in (reaches, lambda r: True):
+        for label in ("Living Room", "Family Room", "Kitchen"):
+            hit = [r for r in rooms if r.get("label") == label and keep(r)]
+            if hit:
+                return max(hit, key=lambda r: polygons(plan)[r["id"]].area)
     return max(rooms, key=lambda r: polygons(plan)[r["id"]].area, default=None)
 
 
@@ -334,11 +337,17 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         return ToolResult(scope=scope, verdict=Verdict(status="unknown", text=(
             "NIST CFAST is not installed on this server, so no fire model was run and no estimate is given. "
             "Build steps are in the smoke_clock tool's docstring.")))
-    fire = _pick_fire(plan, inputs.fire_room)
+    comp0, _ = compartments(plan)
+    bed_comps = {comp0[r["id"]] for r in beds if r["id"] in comp0}
+    fire = _pick_fire(plan, inputs.fire_room,
+                      lambda r: r["id"] in comp0 and bool(reachable(plan, comp0, comp0[r["id"]]) & bed_comps))
+    plain = _pick_fire(plan, inputs.fire_room)
     multi = len({r["floor"] for r in live_rooms(plan)}) > 1
     where = lambda r: f"{name(r)} ({floor_label(plan, r['floor'])})" if multi else name(r)  # noqa: E731
     a = GROWTH[inputs.growth]
-    ctx.step(f"Fire in {where(fire)}: {inputs.growth} growth to {inputs.peak_kw:.0f} kW")
+    moved = (f" The {where(plain).lower()} has no doorway or stair path to the bedrooms in the scan, so the fire "
+             f"starts in the {where(fire).lower()} instead.") if plain is not None and fire["id"] != plain["id"] else ""
+    ctx.step(f"Fire in {where(fire)}: {inputs.growth} growth to {inputs.peak_kw:.0f} kW" + moved)
     from concurrent.futures import ThreadPoolExecutor
     cases = {closed: write_input(plan, fire, closed, a, inputs.peak_kw) for closed in (False, True)}
     comp = cases[False][1]
@@ -409,6 +418,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
             f"Fire in {where(fire)}: no bedroom became untenable in {ran(False)} with doors open; ") + \
         (f"with doors closed the shortest is {min(closes):.1f} min." if min(closes) < end[True] / 60 else
          f"with doors closed every bedroom stays tenable for {ran(True)}.")
+    text += moved
     if cut_off:
         text += f" {len(cut_off)} bedroom{'s are' if len(cut_off) > 1 else ' is'} not joined to the fire room in the scan, so not timed."
     status = "fail" if fails else "unknown" if cut_off or any(c.status == "unknown" for c in checks) else "pass"
