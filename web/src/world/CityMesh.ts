@@ -207,6 +207,7 @@ export class CityMesh implements CustomLayerInterface {
       const a = sun.azimuth * RAD, h = sun.altitude * RAD
       this.sunDir.set(Math.sin(a) * Math.cos(h), Math.cos(a) * Math.cos(h), Math.sin(h))
       this.sunLight.castShadow = true
+      this.sunLight.shadow.bias = -0.0004 / Math.max(0.15, Math.sin(h)) // a low sun grazes flat ground: more slack, or the ground stripes
       if (!this.sunLight.parent) this.scene.add(this.sunLight)
     } else if (this.sunLight.parent) this.scene.remove(this.sunLight)
     if (this.renderer) this.renderer.shadowMap.needsUpdate = true

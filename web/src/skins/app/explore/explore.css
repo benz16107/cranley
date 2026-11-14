@@ -8,6 +8,7 @@
 .ex-map > .ex-scene { position: absolute; inset: 0; z-index: 4; opacity: 0; pointer-events: none; transition: opacity 320ms var(--ease-out); }
 .ex[data-phase='ready'] .ex-scene { opacity: 1; }
 .ex[data-phase='leaving'] .ex-scene { transition-duration: 260ms; }
+.ex[data-under] .citymap { visibility: hidden; }
 /* the flight in is the app's move: a stray scroll must not stop it half way */
 .ex[data-phase='approach'] .citymap, .ex[data-phase='leaving'] .citymap { pointer-events: none; }
 .ex-scene .work { position: absolute; inset: 0; display: grid; align-content: start; justify-items: start; gap: 6px; padding: 10px; background: none; pointer-events: none; }
@@ -16,7 +17,9 @@
 /* the building's two toolbars float in the picture's corner as the map's own controls do */
 .ex-scene .worktools { position: relative; z-index: 3; max-width: 100%; padding: 3px; gap: 4px; border: 1px solid var(--rule); border-radius: var(--r-2); background: var(--pane); box-shadow: 0 1px 3px light-dark(rgb(24 33 43 / 0.12), rgb(0 0 0 / 0.4)); }
 .ex-scene .worktools > .grow { display: none; }
-@container (max-width: 780px) { .ex-scene .worktools > .seg:first-child button span { display: none; } .ex-scene .worktools > .seg:first-child button { padding: 0 8px; } }
+@container (max-width: 780px) { .ex-scene .work > .worktools:first-child > .seg:first-child button span { display: none; } .ex-scene .work > .worktools:first-child > .seg:first-child button { padding: 0 8px; } }
+/* the scene's own floor buttons stand in the same corner: they go under the two toolbars */
+.ex-scene .th-scene .th-floors { top: 92px; left: 10px; }
 
 /* On the map: one row of tools in a corner, a readout under it, the legend and the sun strip along the bottom. */
 .maptools { position: absolute; left: 10px; top: 10px; z-index: 2; display: flex; gap: 6px; align-items: center; max-width: calc(100% - 64px); flex-wrap: wrap; }

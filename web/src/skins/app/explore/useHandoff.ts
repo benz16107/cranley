@@ -25,6 +25,7 @@ type Bound = { plan: ScanPlan; setView: (fn: (v: SceneView) => SceneView) => voi
 export function useHandoff(sid: string | null, stage: HTMLElement | null, onLeave: () => void) {
   const map = useWorld((s) => s.map)
   const [phase, setPhase] = useState<Phase>(sid ? 'ready' : 'map') // a link straight to a scan opens on the building
+  const [landed, setLanded] = useState(true) // the map's flight to the building is over: the scene may load
   const now = useRef<Phase>(phase); now.current = phase
   const s = useRef<{ stand: Stand | null; pose: Pose | null; bound: Bound | null; cam: SceneCamera | null; aerial: boolean; flown: boolean; world: number; posed: boolean; since: number }>(
     { stand: null, pose: null, bound: null, cam: null, aerial: false, flown: false, world: 0, posed: false, since: 0 })
@@ -65,14 +66,15 @@ export function useHandoff(sid: string | null, stage: HTMLElement | null, onLeav
     const was = before.current; before.current = sid
     const x = s.current
     Object.assign(x, { stand: null, pose: null, cam: null, flown: false, world: 0, posed: false, since: performance.now() })
-    if (!sid) { setPhase('map'); return }
+    if (!sid) { setPhase('map'); setLanded(true); return }
     const m = useWorld.getState().map, fromMap = was == null && !!m
-    setPhase(fromMap ? 'approach' : 'ready')
+    setPhase(fromMap ? 'approach' : 'ready'); setLanded(!fromMap)
+    const land = () => { x.flown = true; setLanded(true) }
     let on = true
     Promise.all([fetchPlan(sid), fetchSite(sid)]).then(([plan, site]) => {
       const map = useWorld.getState().map, mesh = useWorld.getState().mesh
       if (!on) return
-      if (!site.available || !map || !stage) { if (now.current === 'approach') setPhase('ready'); return } // no place in the world: a plain fade
+      if (!site.available || !map || !stage) { land(); if (now.current === 'approach') setPhase('ready'); return } // no place in the world: a plain fade
       const r = stage.getBoundingClientRect()
       const st = x.stand = stand(plan as never, site, { w: r.width, h: r.height })
       void mesh?.want({ sid }, st.ring)
@@ -80,14 +82,14 @@ export function useHandoff(sid: string | null, stage: HTMLElement | null, onLeav
       const p = x.pose = { bearing: map.getBearing(), pitch: Math.min(76, Math.max(map.getPitch(), 50)), range: st.enter }
       const cam = cameraOf(st, p)
       const to = { ...map.calculateCameraOptionsFromCameraLngLatAltRotation(cam.lngLat, cam.altitude, p.bearing, p.pitch), padding: PAD }
-      if (now.current !== 'approach' || reduced()) { map.jumpTo(to); x.flown = true }
+      if (now.current !== 'approach' || reduced()) { map.jumpTo(to); land() }
       else {
-        map.once('moveend', () => { x.flown = true })
+        map.once('moveend', land)
         const far = map.getZoom() < 15.5 || !map.getBounds().contains(to.center as [number, number])
-        if (far) map.flyTo({ ...to, duration: 2600, curve: 1.3, essential: true }); else map.easeTo({ ...to, duration: 1200, essential: true })
+        if (far) map.flyTo({ ...to, duration: 2400, curve: 1.3, essential: true }); else map.easeTo({ ...to, duration: 1000, essential: true })
       }
       pose()
-    }, () => { if (on && now.current === 'approach') setPhase('ready') })
+    }, () => { if (on) { land(); if (now.current === 'approach') setPhase('ready') } })
     return () => { on = false }
   }, [sid, stage]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -129,5 +131,5 @@ export function useHandoff(sid: string | null, stage: HTMLElement | null, onLeav
     },
   }), []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { phase, host }
+  return { phase, host, hold: phase === 'approach' && !landed }
 }

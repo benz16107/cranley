@@ -203,7 +203,10 @@ export function Explore({ sid = null }: { sid?: string | null }) {
   /** Open a scan of this building here. On a phone the building is a page of its own. */
   const enter = (b: BuildingRow, scan = b.scans[0]?.sid) => { if (scan) goScan(scan, { b: b.id, city: b.metro ?? city, ...kept }) }
   const select = (b: BuildingRow | null) => (phone || !b ? m.select(b) : enter(b))
-  const host = useMemo(() => (headEl && sceneEl && sideEl ? { head: headEl, stage: sceneEl, side: sideEl, ...hand.host } : null), [headEl, sceneEl, sideEl, hand.host])
+  const host = useMemo(() => (headEl && sceneEl && sideEl ? { head: headEl, stage: sceneEl, side: sideEl, hold: hand.hold, ...hand.host } : null), [headEl, sceneEl, sideEl, hand.host, hand.hold])
+  // once the scene has faded in the map under it is not drawn at all, so the browser has one 3D picture to put on screen, not two
+  const [under, setUnder] = useState(false)
+  useEffect(() => { if (!covered) { setUnder(false); return } const t = setTimeout(() => setUnder(true), 600); return () => clearTimeout(t) }, [covered])
 
   const cols = useMemo<Col<BuildingRow>[]>(() => [
     { id: 'address', label: 'Address', fixed: true, sort: (b) => b.address, cell: (b) => <><span className="strong">{b.address.split(',')[0]}</span>{marks.has(b.id) && <span className="chip visited" title="The open investigation has results or kept scans here">In this investigation</span>}</> },
@@ -254,7 +257,7 @@ export function Explore({ sid = null }: { sid?: string | null }) {
   )
 
   return (
-    <div className="ex" data-view={view} data-phase={phase}>
+    <div className="ex" data-view={view} data-phase={phase} data-under={under || undefined}>
       {/* a building's own header takes the filter bar's place while it is open */}
       <div className="ex-head" ref={setHead} hidden={!inside} />
       {!inside && <div className="bar">

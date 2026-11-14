@@ -259,6 +259,9 @@ export type BuildingHost = {
   onCamera?: (c: SceneCamera) => void
   onState?: (s: SceneState) => void
   bind?: (b: { plan: ScanPlan; setView: (fn: (v: SceneView) => SceneView) => void } | null) => void
+  /** Not yet: the scene is not mounted while this is true (the map is still flying to the building, and a scene
+      loading its meshes at the same time would make that flight stutter). */
+  hold?: boolean
 }
 
 export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
@@ -495,7 +498,7 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
           <div className="scene-host">
             {v.error && fault(v.error)}
             {!v.plan && !v.error && <div className="scene-state loading" role="status"><span className="sk" /><span className="sk" /><span className="muted small">Loading the plan</span></div>}
-            {v.sceneProps && (
+            {v.sceneProps && !host?.hold && (
               <Suspense fallback={<div className="scene-state loading" role="status"><span className="sk" /><span className="sk" /><span className="muted small">Loading the building view</span></div>}>
                 {/* keyed by scan and scheme: the scene builds its model for one plan and reads its colours when it mounts */}
                 {(() => {
