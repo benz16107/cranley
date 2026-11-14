@@ -102,7 +102,7 @@ export class FireShow implements Player {
       if (r.fire || r.bedroom) {
         const c = centroid(room.polygon), num = h('span', 'th-num', ''), el = h('div', 'th-chip th-chip-smoke th-chip-show', h('span', 'th-chip-text', 'smoke at'), num)
         el.dataset.off = ''
-        chip = { el, num, spec: { id: `fire.${r.id}`, pos: [c[0], c[1], r.floor_z] as Vec3, floor: f, spanM: Math.sqrt(room.area ?? 9), minPx: 44, modes: ['doll' as const], make: () => el } }
+        chip = { el, num, spec: { id: `fire.${d.doors}.${r.id}`, pos: [c[0], c[1], r.floor_z] as Vec3, floor: f, spanM: Math.sqrt(room.area ?? 9), minPx: 44, modes: ['doll' as const], make: () => el } }
         this.labels.push(chip.spec)
       }
       this.rooms.push({ r, f, slab, wash, u, chip })

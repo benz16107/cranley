@@ -1,6 +1,6 @@
 // What a show says on top of the picture: the flood's loss list, the fire's room table, a tour's caption, and where
 // every number came from. The transport (play, time slider) belongs to the look's toolbar; see ShowBar.
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { mmss } from './fire.ts'
 import type { ShowState } from './types.ts'
 
@@ -56,7 +56,7 @@ function Fire({ state }: { state: ShowState }) {
         <tbody>
           {f.rooms.map((r) => (
             <tr key={r.id} data-lost={r.lost || undefined} title={r.cause ?? undefined}>
-              <td>{r.label}{r.fire && <span className="th-show-tag">fire</span>}</td>
+              <td><div className="th-show-cell"><span className="th-show-room">{r.label}</span>{r.fire && <span className="th-show-tag">fire</span>}</div></td>
               <td className="th-num">{r.layer_m.toFixed(2)} m</td>
               <td className="th-num">{r.upper_c} °C</td>
               <td className="th-num">{r.untenable_s == null ? 'not lost' : mmss(r.untenable_s)}</td>
@@ -64,13 +64,21 @@ function Fire({ state }: { state: ShowState }) {
           ))}
         </tbody>
       </table>
-      <p className="th-show-note">Bedroom doors {f.doors}. Routes out turn red where the room they cross is lost.</p>
+      <p className="th-show-note th-show-hint">Bedroom doors {f.doors}. Routes out turn red where the room they cross is lost.</p>
       <Sources state={state} />
     </section>
   )
 }
 
-export function ShowPanel({ state }: { state: ShowState }) {
+/** The show's words on the picture. It holds the playhead's state itself (the engine hands each step to `sink`), so
+    a step redraws this panel and nothing else of the scene. */
+export function ShowLayer({ kind, sink }: { kind: ShowState['kind']; sink: RefObject<((s: ShowState | null) => void) | null> }) {
+  const [state, setState] = useState<ShowState | null>(null)
+  useEffect(() => { sink.current = setState; return () => { sink.current = null } }, [sink])
+  return state && state.kind === kind ? <ShowPanel state={state} /> : null
+}
+
+function ShowPanel({ state }: { state: ShowState }) {
   if (state.status === 'missing') return <p className="th-note th-show-missing" role="status">{state.reason}</p>
   if (state.status === 'loading') return <p className="th-note th-show-missing" role="status">Loading {state.kind === 'flood' ? 'the storm record' : state.kind === 'fire' ? 'the fire model' : 'the tour'}</p>
   if (state.kind === 'flood' && state.flood) return <Flood state={state} />

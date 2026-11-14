@@ -31,6 +31,31 @@ const SHOWS: { id: ShowKind; label: string; icon: IconName; title: string }[] = 
   { id: 'tour', label: 'Tour', icon: 'walk', title: 'A camera tour of the findings on this scan, read aloud' },
 ]
 
+/** The transport of whatever is playing on the building: play and pause, the time slider, the clock. It keeps the
+    playhead's state itself (the scene hands each step to `sink`), so a step redraws this row and not the page. */
+function Transport({ spec, sink, set, seek, close }: { spec: ShowSpec; sink: React.RefObject<((s: ShowState | null) => void) | null>; set: (patch: Partial<ShowSpec>) => void; seek: (step: number) => void; close: () => void }) {
+  const [got, setShow] = useState<ShowState | null>(null)
+  useEffect(() => { sink.current = setShow; return () => { sink.current = null } }, [sink])
+  const show = got?.kind === spec.kind ? got : null, ready = show?.status === 'ready'
+  return (
+    <>
+      <button type="button" className="btn sm" style={{ minWidth: 62 }} disabled={!ready} onClick={() => set({ playing: !spec.playing })}>{spec.playing ? 'Pause' : <><Icon name="play" size={12} />Play</>}</button>
+      {spec.kind === 'tour' && <>
+        <IconBtn icon="left" label="Previous stop" className="btn icon quiet sm" disabled={!show || show.step <= 0} onClick={() => seek((show?.step ?? 0) - 1)} />
+        <IconBtn icon="right" label="Next stop" className="btn icon quiet sm" disabled={!show || show.step >= show.steps} onClick={() => seek((show?.step ?? 0) + 1)} />
+      </>}
+      <Slider.Root style={{ flex: '1 1 160px', minWidth: 120 }} value={show?.step ?? 0} min={0} max={Math.max(1, show?.steps ?? 1)} step={1} disabled={!ready} onValueChange={(n) => seek(n as number)}
+        aria-label={spec.kind === 'flood' ? 'Time in the storm' : spec.kind === 'fire' ? 'Time since the fire started' : 'Stop of the tour'}>
+        <Slider.Control className="slider"><Slider.Track className="track"><Slider.Indicator className="range" /><Slider.Thumb className="thumb" /></Slider.Track></Slider.Control>
+      </Slider.Root>
+      <span className="num small" style={{ minWidth: spec.kind === 'flood' ? 118 : 44, textAlign: 'right' }}>{show?.clock}</span>
+      {spec.kind === 'fire' && <button type="button" className="btn sm quiet" aria-pressed={spec.doors === 'closed'} title="Run the same fire with the bedroom doors closed" onClick={() => set({ doors: spec.doors === 'closed' ? 'open' : 'closed' })}>Doors {spec.doors === 'closed' ? 'closed' : 'open'}</button>}
+      {spec.kind === 'tour' && <button type="button" className="btn sm quiet" aria-pressed={spec.voice !== false} title="Read each stop aloud" onClick={() => set({ voice: spec.voice === false })}>Voice {spec.voice === false ? 'off' : 'on'}</button>}
+      <IconBtn icon="close" label="Stop and close" className="btn icon quiet sm" onClick={close} />
+    </>
+  )
+}
+
 /** A menu of every tool: the investigation's own first, then by family. One that needs more than this scan opens
     its form (marked with an ellipsis), the rest run at once. */
 export function RunToolMenu({ sid, trigger }: { sid: string; trigger: React.ReactElement }) {
@@ -296,7 +321,7 @@ export function Building({ sid }: { sid: string }) {
   useEffect(() => { if (fails > hadFails.current && performance.now() - born.current > 2500) setTab('results'); hadFails.current = fails }, [fails])
 
   // ---- shows: something played on the building. The scene plays it; this toolbar starts it and holds the transport.
-  const [show, setShow] = useState<ShowState | null>(null)
+  const sink = useRef<((s: ShowState | null) => void) | null>(null)
   const spec = v.view.show ?? null
   const held = useRef<Partial<SceneView> | null>(null)
   // the latest Tour run's findings are the tour's stops, in order; each line is that finding's own words
@@ -324,11 +349,11 @@ export function Building({ sid }: { sid: string }) {
     const look: Partial<SceneView> = kind === 'flood' ? { env: placed ? 'aerial' : x.env, frame: beside } : kind === 'fire' ? { env: 'studio', cut: photo ? null : x.cut, pose: { pitch: 62 }, frame: beside } : {}
     v.setView({ ...x, mode: 'dollhouse', surface: photo ? 'scan' : x.surface, ...look, show: kind === 'tour' ? { kind, playing: true, stops } : { kind, playing: true } })
   }
-  useEffect(() => { held.current = null; setShow(null) }, [sid]) // another scan starts with nothing playing and nothing to put back
+  useEffect(() => { held.current = null }, [sid]) // another scan starts with nothing to put back
   const setSpec = (patch: Partial<ShowSpec>) => v.setView((x) => (x.show ? { ...x, show: { ...x.show, ...patch } } : x))
   const seek = (step: number) => v.setView((x) => (x.show ? { ...x, show: { ...x.show, seek: { n: (x.show.seek?.n ?? 0) + 1, step } } } : x))
   const onShow = (st: ShowState | null) => {
-    setShow(st)
+    sink.current?.(st)
     if (st && !st.playing) v.setView((x) => (x.show?.playing && x.show.kind === st.kind ? { ...x, show: { ...x.show, playing: false } } : x)) // it ended, or the person took the camera
   }
   // a tour that arrives while the person is here (they asked for it, or the agent ended its turn with one) plays
@@ -423,21 +448,7 @@ export function Building({ sid }: { sid: string }) {
           {v.plan && (
             <div className="worktools" role="group" aria-label="Play on the building">
               <Seg<ShowKind | 'none'> label="Play on the building" value={spec?.kind ?? 'none'} onChange={(k) => play(k === 'none' ? null : k)} options={SHOWS} />
-              {spec && <>
-              <button type="button" className="btn sm" style={{ minWidth: 62 }} disabled={show?.status !== 'ready'} onClick={() => setSpec({ playing: !spec.playing })}>{spec.playing ? 'Pause' : <><Icon name="play" size={12} />Play</>}</button>
-              {spec.kind === 'tour' && <>
-                <IconBtn icon="left" label="Previous stop" className="btn icon quiet sm" disabled={!show || show.step <= 0} onClick={() => seek((show?.step ?? 0) - 1)} />
-                <IconBtn icon="right" label="Next stop" className="btn icon quiet sm" disabled={!show || show.step >= show.steps} onClick={() => seek((show?.step ?? 0) + 1)} />
-              </>}
-              <Slider.Root style={{ flex: '1 1 160px', minWidth: 120 }} value={show?.step ?? 0} min={0} max={Math.max(1, show?.steps ?? 1)} step={1} disabled={show?.status !== 'ready'} onValueChange={(n) => seek(n as number)}
-                aria-label={spec.kind === 'flood' ? 'Time in the storm' : spec.kind === 'fire' ? 'Time since the fire started' : 'Stop of the tour'}>
-                <Slider.Control className="slider"><Slider.Track className="track"><Slider.Indicator className="range" /><Slider.Thumb className="thumb" /></Slider.Track></Slider.Control>
-              </Slider.Root>
-              <span className="num small" style={{ minWidth: spec.kind === 'flood' ? 118 : 44, textAlign: 'right' }}>{show?.clock}</span>
-              {spec.kind === 'fire' && <Seg label="Bedroom doors" value={spec.doors ?? 'open'} onChange={(doors) => setSpec({ doors })} options={[{ id: 'open', label: 'Doors open' }, { id: 'closed', label: 'Doors closed' }]} />}
-              {spec.kind === 'tour' && <button type="button" className="btn sm quiet" aria-pressed={spec.voice !== false} title="Read each stop aloud" onClick={() => setSpec({ voice: spec.voice === false })}>Voice {spec.voice === false ? 'off' : 'on'}</button>}
-              <IconBtn icon="close" label="Stop and close" className="btn icon quiet sm" onClick={() => play(null)} />
-              </>}
+              {spec && <Transport spec={spec} sink={sink} set={setSpec} seek={seek} close={() => play(null)} />}
             </div>
           )}
           <div className="scene-host">

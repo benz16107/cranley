@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Engine, type FrameInfo, type SceneState } from './engine/Engine.ts'
 import { FloorPlan, type FloorPlanHandle } from './FloorPlan.tsx'
 import { isKnownOverlay, type Model } from './model.ts'
-import { ShowPanel } from './show/ShowPanel.tsx'
+import { ShowLayer } from './show/ShowPanel.tsx'
 import type { ShowState } from './show/types.ts'
 import { useSceneLink } from './store.ts'
 import type { CameraInfo, Overlay, Pick, ScanPlan, View } from './types.ts'
@@ -46,14 +46,14 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
   const planLayer = useRef<HTMLDivElement>(null), planHandle = useRef<FloorPlanHandle>(null), insetHandle = useRef<FloorPlanHandle>(null)
   const scaleBar = useRef<HTMLDivElement>(null), scaleText = useRef<HTMLSpanElement>(null)
   const [state, setState] = useState<SceneState | null>(null)
-  const [show, setShow] = useState<ShowState | null>(null)
+  const showSink = useRef<((s: ShowState | null) => void) | null>(null)
   const [model, setModel] = useState<Model | null>(null)
   const [view, setView] = useState(viewProp)
   const [seen, setSeen] = useState(viewProp)
   if (seen !== viewProp) { setSeen(viewProp); setView(viewProp) } // the outside can always say "look here"
   const cb = useRef({ onPick, onViewChange, onCamera, onState, onShow })
   useEffect(() => { cb.current = { onPick, onViewChange, onCamera, onState, onShow } })
-  const playing = view.show?.kind ?? null, shown = show && show.kind === playing ? show : null // a show that ended leaves nothing on screen
+  const playing = view.show?.kind ?? null, shown = !!playing
   useEffect(() => { if (!playing) cb.current.onShow?.(null) }, [playing])
   const change = useCallback((v: View) => { setView(v); cb.current.onViewChange?.(v) }, [])
 
@@ -69,7 +69,7 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
       }
       insetHandle.current?.cone(f.look)
     }
-    const e = new Engine(host.current!, plan, { api, onPick: (p) => cb.current.onPick?.(p), onViewChange: change, onState: (st) => { setState(st); cb.current.onState?.(st) }, onFrame, onCamera: (c) => cb.current.onCamera?.(c), prepare, onShow: (sh) => { setShow(sh); cb.current.onShow?.(sh) } })
+    const e = new Engine(host.current!, plan, { api, onPick: (p) => cb.current.onPick?.(p), onViewChange: change, onState: (st) => { setState(st); cb.current.onState?.(st) }, onFrame, onCamera: (c) => cb.current.onCamera?.(c), prepare, onShow: (sh) => { showSink.current?.(sh); cb.current.onShow?.(sh) } })
     engine.current = e; setModel(e.model)
     useSceneLink.setState({ hover: null, selected: null })
     return () => { e.dispose(); engine.current = null }
@@ -115,7 +115,7 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
         return <>{text.length > 0 && !shown && <p className="th-note th-note-layers">{text.map((t) => <span key={t}>{t}</span>)}</p>}{w.credit && view.env === 'aerial' && w.status === 'ready' && <span className="th-credit">© Vexcel Imaging, Microsoft</span>}</>
       })()}
 
-      {shown && <ShowPanel state={shown} />}
+      {playing && <ShowLayer kind={playing} sink={showSink} />}
 
       {model && model.hasWalls && mode !== 'plan' && mode !== 'splat' && !shown && (
         <div className="th-inset" data-scene-ui>
