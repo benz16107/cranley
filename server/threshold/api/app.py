@@ -29,3 +29,5 @@ for m in pkgutil.iter_modules([str(pathlib.Path(__file__).parent)]):
         mod = importlib.import_module(f"{__package__}.{m.name}")
         if hasattr(mod, "router"):
             app.include_router(mod.router)
+
+from ..mcp.http import mount; mount(app)  # MCP over streamable HTTP at /mcp, read-only (docs/MCP.md)
