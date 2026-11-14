@@ -88,7 +88,7 @@ def _pick_fire(plan: dict, want: str | None) -> dict | None:
 
 def compartments(plan: dict) -> tuple[dict[str, str], dict[str, dict]]:
     """Rooms joined by invisible walls are one open space, so one CFAST compartment; spaces under MIN_AREA_M2
-    (closets) are left out. Returns room id -> compartment id and compartment id -> {rooms, area, height, origin}."""
+    (closets) are left out, unless they join two spaces (a small hall), which joins its largest neighbour. Returns room id -> compartment id and compartment id -> {rooms, area, height, origin}."""
     polys, z = polygons(plan), floor_z(plan)
     ceiling = default_ceiling(plan) or 2.6
     rooms = {r["id"]: r for r in live_rooms(plan) if polys.get(r["id"]) is not None and polys[r["id"]].area > 0.3}
@@ -99,10 +99,21 @@ def compartments(plan: dict) -> tuple[dict[str, str], dict[str, dict]]:
             x = parent[x]
         return x
 
-    for link in room_graph(plan)["links"]:
+    links = room_graph(plan)["links"]
+    for link in links:
         a, b = link["rooms"]
         if link["kind"] == "invisible" and a in rooms and b in rooms:
             parent[find(a)] = find(b)
+    # a small hall that joins two or more spaces carries the smoke between them: fold it into its largest neighbour
+    # instead of leaving it out, or the bedroom past it is cut off from the fire
+    area_of = lambda g: sum(polys[k].area for k in rooms if find(k) == g)
+    for g in {find(k) for k in rooms}:
+        if area_of(g) >= MIN_AREA_M2:
+            continue
+        near = {find(x) for link in links if link["kind"] != "invisible" for x in link["rooms"]
+                if x in rooms and find(x) != g and any(find(y) == g for y in link["rooms"] if y in rooms)}
+        if len(near) >= 2:
+            parent[g] = max(near, key=area_of)
     groups: dict[str, list[str]] = {}
     for k in rooms:
         groups.setdefault(find(k), []).append(k)
