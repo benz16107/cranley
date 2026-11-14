@@ -95,6 +95,7 @@ def shoot(tool_id: str, inputs: dict, name: str, size_m: float | None = None, ex
         geos = [p["anchor"]["geo"] for ov in r.get("overlays") or [] if ov["kind"] == "pins" for p in ov["pins"]
                 if "geo" in p["anchor"]]
         geos += [(x, y) for ov in r.get("overlays") or [] if ov["kind"] == "route" and ov["floor"] == "geo" for x, y, _ in ov["points"]]
+        geos += list(shapely_wkt.loads(fp).exterior.coords) if fp else []
         span = max([abs(g[0] - lon) * 111320 * math.cos(math.radians(lat)) for g in geos] +
                    [abs(g[1] - lat) * 110574 for g in geos] + [40])
         size_m = min(500, 2 * span + 30)
