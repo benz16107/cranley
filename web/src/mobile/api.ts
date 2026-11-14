@@ -47,12 +47,12 @@ export const building = (s: State) => s.view?.buildings.find((b) => b.sid === s.
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const token = usePhone.getState().token
   const r = await fetch(`/api/phone/${token}${path}`, init).catch(() => null)
-  if (!r || GONE.includes(r.status)) { set({ state: 'offline' }); throw new Error('The server is not answering. Check that this phone is on the same network.') } // what is on screen stays
+  if (!r || (GONE.includes(r.status) && !r.headers.get('content-type')?.includes('json'))) { set({ state: 'offline' }); throw new Error('The server is not answering. Check that this phone is on the same network.') } // what is on screen stays
   if (r.status === 401) { mem.set(KEY, null); set({ token: null, view: null, state: 'expired', paired: false }); throw new Error('This phone link has expired.') }
   if (!r.ok) throw new Error(((await r.json().catch(() => ({}))) as { detail?: string }).detail ?? `The server answered ${r.status}.`)
   return r.json()
 }
-const GONE = [502, 503, 504] // the HTTPS proxy is up but the API behind it is not
+const GONE = [502, 503, 504] // without a JSON body: the HTTPS proxy is up but the API behind it is not
 const json = (body: unknown): RequestInit => ({ method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
 
 /** On load: a token in the link (from the QR code) wins and is taken out of the address bar; else the one kept here. */
@@ -90,7 +90,7 @@ export async function send(meta: Meta, file?: Blob | null, onProgress?: (fractio
     x.upload.onprogress = (e) => { if (e.lengthComputable) onProgress?.(e.loaded / e.total) }
     x.onerror = () => { set({ state: 'offline' }); reject(new Error('The upload did not reach the server. It is still on this phone: try again.')) }
     x.onload = () => {
-      if (GONE.includes(x.status)) { x.onerror?.(new ProgressEvent('error')); return }
+      if (GONE.includes(x.status) && !x.getResponseHeader('content-type')?.includes('json')) { x.onerror?.(new ProgressEvent('error')); return }
       let body: Reply & { detail?: string }
       try { body = JSON.parse(x.responseText) } catch { reject(new Error(`The server answered ${x.status}.`)); return }
       if (x.status === 401) { reject(new Error('This phone link has expired.')); return }

@@ -76,9 +76,10 @@ export function useHeading() {
   const sample = useCallback((ms = 2000) => new Promise<{ heading: number; spread: number } | null>((res) => {
     const from = performance.now()
     setTimeout(() => {
-      const xs = buf.current.filter((b) => b.t >= from).map((b) => b.h), last = buf.current.at(-1)
-      // the browser only fires when the heading changes: a phone held dead still sends nothing, and that means steady
-      if (xs.length < 5) { res(last && !xs.length ? { heading: last.h, spread: 0 } : null); return }
+      const fresh = buf.current.filter((b) => b.t >= from).map((b) => b.h), last = buf.current.at(-1)
+      // the browser fires only when the heading changes, and turning the phone always fires: no event means it held still
+      const xs = fresh.length ? fresh : last ? [last.h] : []
+      if (!xs.length) { res(null); return }
       const m = headingMean(xs); res({ heading: m.mean, spread: m.spread })
     }, ms)
   }), [])
@@ -96,7 +97,7 @@ export function getFix(ms = 6000): Promise<Fix> {
     const id = navigator.geolocation.watchPosition(
       (p) => { got.push({ lat: p.coords.latitude, lon: p.coords.longitude, accuracy_m: p.coords.accuracy ?? null, altitude_m: p.coords.altitude, altitude_accuracy_m: p.coords.altitudeAccuracy }); if (!end) end = window.setTimeout(finish, ms) },
       (e) => { failed = e.code === e.PERMISSION_DENIED ? 'Location is switched off for this page. Allow it in the browser settings, or pick the building from the list.' : 'The phone could not get a fix here. Step outside or near a window and try again.' },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: ms })
+      { enableHighAccuracy: true, maximumAge: 0, timeout: ms * 2 }) // a cold first fix can take longer than the window
     const early = setInterval(() => { if (failed && !got.length) finish() }, 300)
     const cap = setTimeout(finish, ms + 60_000)
   })

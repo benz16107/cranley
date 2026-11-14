@@ -59,7 +59,8 @@ struct TapeEntryView: View {
 
   private var metres: Double? {
     guard let v = Double(text.replacingOccurrences(of: ",", with: ".")), v > 0 else { return nil }
-    return inches ? v * 0.0254 : v / 100
+    let m = inches ? v * 0.0254 : v / 100
+    return (kind == .doorWidth ? 0.3...3.0 : 0.0...0.6).contains(m) ? m : nil  // the web page's limits: a wrong unit is not saved
   }
 
   var body: some View {

@@ -176,8 +176,9 @@ export function Level({ task, back }: Props) {
     setReading(false)
     if (!r) { toast.error('No readings came from the tilt sensor. Keep the screen on and try again.'); return }
     if (r.spread > 1.5) { toast.error('The phone moved. Let it lie still for two seconds.'); return }
-    // held up, not lying on the ramp: two such readings cancel end for end and would pass as level
-    if (mode !== 'plumb' && Math.abs(axis(r)) > 20) { toast.error(`The phone is ${Math.abs(axis(r)).toFixed(0)}° from flat. Lay it on its back on the ramp, then read.`); return }
+    // held up, not lying on the surface: two such readings cancel end for end and would pass as level (a steep bevel is 27°)
+    const off = Math.max(Math.abs(r.long), Math.abs(r.short))
+    if (mode !== 'plumb' && off > 45) { toast.error(`The phone is ${off.toFixed(0)}° from flat. Lay it on its back on the surface, then read.`); return }
     if (!first) { setFirst(r); return }
     await submit(first, r)
   }

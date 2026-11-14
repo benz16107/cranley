@@ -97,7 +97,9 @@ def test_a_step_seen_in_a_panorama_says_where_it_is(session):
     fake(session, "step_free_route", findings=[
         Finding(id="step_free_route:home:seen:step_or_threshold_1", title="Panorama shows step or threshold", status="warn",
                 detail="Wood-to-carpet transition at bedroom door. Seen by the vision model in the panorama, not measured.", anchor=None, source=SRC),
-        Finding(id="step_free_route:home:seen:step_or_threshold_2", title="Panorama shows step or threshold", status="warn", detail="", anchor=None, source=SRC)])
+        Finding(id="step_free_route:home:seen:step_or_threshold_2", title="Panorama shows step or threshold", status="warn", detail="", anchor=None, source=SRC),
+        Finding(id="step_free_route:home:seen:step_or_threshold_3", title="Panorama shows step or threshold", status="warn", detail="ADA strip at the back door.", anchor=None, source=SRC)])
     t = by_id(tasks(session.doc, plans))
     assert t["step:home:step_or_threshold_1"]["title"] == "Measure the step: wood-to-carpet transition at bedroom door"
     assert t["step:home:step_or_threshold_2"]["title"] == "Measure the step seen on your route"   # no description: the old words
+    assert t["step:home:step_or_threshold_3"]["title"] == "Measure the step: ADA strip at the back door"   # an acronym keeps its case
