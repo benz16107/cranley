@@ -76,3 +76,23 @@ def test_the_workspace_id_cannot_be_decoded_from_a_token():
     raw = base64.urlsafe_b64decode(tok + "=" * (-len(tok) % 4))
     assert b"ws_secret1" not in raw and b"secret1" not in raw
     assert pair.issue("ws_secret1", hours=1)["token"] != tok             # a fresh nonce each time
+
+
+def test_a_half_written_record_is_never_listed(root):
+    rec = store.save("ws_a", store.Meta(kind="reading", values={"x": 1}))
+    assert not list((root / "ws_a").glob("*.tmp")) and store.listing("ws_a")[0]["id"] == rec["id"]
+
+
+def test_frames_keep_their_indexes_when_another_count_is_asked_for(root):
+    import shutil
+    import subprocess
+
+    from threshold.capture import frames
+    if not shutil.which("ffmpeg"):
+        pytest.skip("ffmpeg not installed")
+    clip = root.parent / "clip.mp4"
+    subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "testsrc=duration=4:size=160x120:rate=10", "-pix_fmt",
+                    "yuv420p", str(clip)], check=True)
+    cid = store.save("ws_v", store.Meta(kind="video"), clip.read_bytes())["id"]
+    four = frames.extract(cid, 4)
+    assert frames.extract(cid, 2) == four and frames.frame(cid, 1) == four[1][1]   # "cid#1" still names the same still

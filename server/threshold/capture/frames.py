@@ -28,7 +28,8 @@ def extract(cid: str, n: int = 8, root=None) -> list[tuple[float, bytes]]:
     if src is None:
         raise LookupError(f"capture {cid} has no file")
     d = src.with_suffix(".frames")
-    marker = d / f"n{n}.json"
+    # the first extraction wins: frame files are named by index, and findings point at "capture#index"
+    marker = next(d.glob("n*.json"), None) or d / f"n{n}.json"
     if not marker.exists():
         d.mkdir(exist_ok=True)
         length = min(duration(src), MAX_SECONDS)
