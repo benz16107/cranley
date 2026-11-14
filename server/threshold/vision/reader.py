@@ -78,10 +78,13 @@ def _parallel(fn, items):
 
 def label_rooms(plan: dict, rooms: list[str] | None = None, *, labels: list[str] | None = None,
                 context: str | None = None, hints: dict[str, str] | None = None,
-                examples: list[dict] | None = None, views: int = 1, many: int = 4) -> list[dict]:
-    """A room type for every room that has a panorama, from the panorama nearest its centre. A room with at
-    least `many` panoramas (an open floor, a courtyard) is read from `views` of them in one call, the central
-    one and then those farthest apart, so one corridor view does not decide a large room.
+                examples: list[dict] | None = None, views: int = 1, many: int = 4,
+                large_m2: float = 150) -> list[dict]:
+    """A room type for every room that has a panorama, from the panorama nearest its centre. A room of at least
+    `large_m2` with at least `many` panoramas (an open floor, a courtyard) is read from `views` of them in one
+    call, the central one and then those farthest apart, so one corridor view does not decide a large room.
+    Below that size, extra views made answers worse (mid-size coworking rooms turned into corridors), so
+    smaller rooms keep the single central view.
 
     Homes (scans with Matterport labels) use Matterport's label set, and the model is not shown
     Matterport's label, so `agrees` is an honest check of one against the other. Other scans use a
@@ -112,7 +115,8 @@ def label_rooms(plan: dict, rooms: list[str] | None = None, *, labels: list[str]
 
     def one(room):
         ps = room_panos(plan, room)
-        pick = spread(ps, views) if views > 1 and len(ps) >= many else ps[:1]
+        big = len(ps) >= many and (room.get("area") or 0) >= large_m2
+        pick = spread(ps, views) if views > 1 and big else ps[:1]
         hint = (f" Measured facts about this room from the floor plan: {hints[room['id']]}. Use them as evidence "
                 "alongside the images; what you see decides." if hints and hints.get(room["id"]) else "")
         where = " The camera stands inside one room of a " + ("home" if home else "commercial building") + \
