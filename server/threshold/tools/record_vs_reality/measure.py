@@ -96,6 +96,8 @@ def bedrooms(plan: dict) -> dict:
         return {"available": False, "reason": "Matterport did not label this scan's rooms."}
     rooms = [r for r in plan["rooms"] if r.get("label") == "Bedroom" and (r.get("area") or 0) >= BEDROOM_MIN_M2]
     maybe = [r for r in plan["rooms"] if r.get("label") in ("Office", "Den", "Bonus Room", "Loft", "Family Room", "Game Room")]
+    living = sorted((r for r in plan["rooms"] if r.get("label") == "Living Room"), key=lambda r: -(r.get("area") or 0))
+    maybe += [r for r in living[1:] if (r.get("area") or 0) >= 7]  # a second "living room" is often a bedroom used as a den
     return {"available": True, "count": len(rooms), "rooms": [r["id"] for r in rooms],
             "maybe": [{"room": r["id"], "label": r["label"], "m2": round(r.get("area") or 0, 1)} for r in maybe]}
 

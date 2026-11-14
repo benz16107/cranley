@@ -216,8 +216,8 @@ def ceiling(plan: dict, claim: dict, scan: dict, p: dict) -> dict:
     if abs(ft - want) <= p["ceiling_tol_ft"]:
         return _c(claim, CONFIRMED, "high", head, measured=round(ft, 1), unit="ft", anchor=anchor)
     if want > TALL_FT and ft < want:
-        # In the 150-scan audit every industrial scan read 7 to 12 ft against records of 12 to 43 ft: Matterport's
-        # room height stops where the camera's depth reaches, so a scan cannot measure a warehouse's clear height.
+        # Matterport's room height stops where the camera's depth reaches (seen across the field audit's warehouses),
+        # so a scan cannot measure a warehouse's clear height.
         return _c(claim, UNVERIFIABLE, "medium", head + f"Matterport's room heights stop near the camera's reach, so a "
                   f"scan cannot measure a ceiling above about {TALL_FT:g} ft such as a warehouse's clear height.",
                   measured=round(ft, 1), unit="ft", anchor=anchor)
