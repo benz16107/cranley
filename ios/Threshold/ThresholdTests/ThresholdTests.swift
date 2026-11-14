@@ -5,19 +5,18 @@ import Testing
 
 struct WorkspaceLinkTests {
   @Test(arguments: [
-    ("http://linuxbox:8787/phone?workspace=ws_abc123", "http://linuxbox:8787", "ws_abc123"),
-    ("https://linuxbox.<tailnet>/m?w=abc-9", "https://linuxbox.<tailnet>", "abc-9"),
-    ("http://192.168.18.70:5173/w/xyz/phone", "http://192.168.18.70:5173", "xyz"),
-    ("  http://linuxbox:8787/workspace/k1  ", "http://linuxbox:8787", "k1"),
+    ("http://linuxbox:8787/m?t=d3NfYWJjLjE3.c2ln_-9", "http://linuxbox:8787", "d3NfYWJjLjE3.c2ln_-9"),
+    ("https://box.example.ts.net:8470/m?t=abc.9", "https://box.example.ts.net:8470", "abc.9"),
+    ("  http://192.168.1.20:5173/m?t=k1.s  ", "http://192.168.1.20:5173", "k1.s"),
   ])
-  func `reads the server and the workspace`(link: String, server: String, workspace: String) throws {
+  func `reads the server and the pairing token`(link: String, server: String, workspace: String) throws {
     let parsed = try #require(WorkspaceLink(link))
     #expect(parsed.server.absoluteString == server)
     #expect(parsed.workspace == workspace)
   }
 
-  @Test(arguments: ["http://linuxbox:8787/", "linuxbox:8787?w=a", "http://x/?w=a%20b", "not a link"])
-  func `refuses links without a usable workspace`(link: String) {
+  @Test(arguments: ["http://linuxbox:8787/", "linuxbox:8787?t=a", "http://x/m?t=a%20b", "http://x/m?w=ws_abc", "not a link"])
+  func `refuses links without a usable pairing token`(link: String) {
     #expect(WorkspaceLink(link) == nil)
   }
 }

@@ -75,10 +75,8 @@ struct HomeView: View {
     defer { uploading = false }
     do {
       let result = try await app.api.uploadScan(export: export, name: name ?? self.name, kind: kind, address: nil, geo: geo,
-                                                workspace: app.workspace)
-      if let ws = app.workspace {  // so the desktop sees the new scan
-        try? await app.api.ops(ws, [["op": "shortlist.add", "sid": result.sid, "note": "Scanned on iPhone"]])
-      }
+                                                workspace: nil)
+      if app.workspace != nil { try? await app.capture.place(result.sid) }  // the scan joins the linked workspace's buildings
       await app.refreshScans()
       path = [result.sid]
     } catch {

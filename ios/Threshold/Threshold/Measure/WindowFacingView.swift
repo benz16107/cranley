@@ -35,12 +35,12 @@ struct WindowFacingView: View {
   private func send(_ deg: Double) async {
     let fix = location.location
     do {
-      try await app.capture.send(.init(workspace: app.workspace, task: task?.id, finding: task?.finding, sid: task?.sid,
+      let reply = try await app.capture.send(.init(task: task?.id, finding: task?.finding, sid: task?.sid,
                                        kind: .windowFacing, value: deg.rounded(), unit: "deg", method: "compass",
                                        accuracy: location.headingAccuracy,
                                        location: fix.map { .init(lat: $0.coordinate.latitude, lon: $0.coordinate.longitude,
                                                                  accuracy_m: $0.horizontalAccuracy) }))
-      status = "Sent: faces \(Compass.word(deg))"
+      status = reply.says ?? "Sent: faces \(Compass.word(deg))"
     } catch {
       status = "Not sent: \(error.localizedDescription)"
     }

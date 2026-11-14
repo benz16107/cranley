@@ -47,22 +47,14 @@ struct FloorHeightView: View {
   }
 
   private func send(_ height: Double) async {
-    var done: [String] = []
-    if let ws = app.workspace {
-      do {
-        try await app.api.ops(ws, [["op": "pref.set", "key": "flood.floor_height_m", "value": (height * 100).rounded() / 100,
-                                    "reason": "Measured with the iPhone barometer, street to door threshold"]])
-        done.append("the flood tools will use it")
-      } catch { done.append("could not set it in the workspace (\(error.localizedDescription))") }
-    }
     do {
-      try await app.capture.send(.init(workspace: app.workspace, task: task?.id, finding: task?.finding, sid: task?.sid,
-                                       kind: .floorHeight, value: height, unit: "m", method: "barometer",
-                                       accuracy: max(spread, 0.05)))
-      done.append("sent as evidence")
-    } catch { done.append("evidence not sent (\(error.localizedDescription))") }
-    status = app.workspace == nil ? "Link a workspace to use this in the flood tools. " + done.joined(separator: "; ")
-                                  : done.joined(separator: "; ").capitalizedFirst
+      // with a flood task this settles it and the flood rehearsal runs again on the desktop
+      let reply = try await app.capture.send(.init(task: task?.id, finding: task?.finding, sid: task?.sid, kind: .floorHeight,
+                                                   value: height, unit: "m", method: "barometer", accuracy: max(spread, 0.05)))
+      status = reply.says ?? "Sent to the workspace"
+    } catch {
+      status = "Not sent: \(error.localizedDescription)"
+    }
   }
 }
 
@@ -79,8 +71,4 @@ private struct Step: View {
     }
     .padding(.vertical, 4)
   }
-}
-
-extension String {
-  var capitalizedFirst: String { prefix(1).uppercased() + dropFirst() }
 }

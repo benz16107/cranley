@@ -12,7 +12,10 @@ nonisolated struct ThresholdAPI: Sendable {
 
   func send(_ method: String, _ path: String, query: [URLQueryItem] = [], body: Data? = nil) async throws -> Data {
     var parts = URLComponents(url: base.appending(path: path), resolvingAgainstBaseURL: false)!
-    if !query.isEmpty { parts.queryItems = query }
+    if !query.isEmpty {
+      parts.queryItems = query
+      parts.percentEncodedQuery = parts.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")  // servers read + as a space
+    }
     var request = URLRequest(url: parts.url!, timeoutInterval: 120)
     request.httpMethod = method
     if let body {
@@ -51,20 +54,13 @@ nonisolated struct ThresholdAPI: Sendable {
 
   func plan(_ sid: String) async throws -> ScanPlan { try await get("api/scan/\(sid)/plan") }
 
-  // MARK: tools and workspaces
+  // MARK: tools
 
   /// Run a tool on its own (not inside a workspace) and return its verdict.
   func runTool(_ id: String, inputs: [String: any Sendable]) async throws -> ToolOutcome {
     let data = try await send("POST", "api/tools/\(id)/run", body: try JSONSerialization.data(withJSONObject: inputs))
     return try JSONDecoder().decode(ToolOutcome.self, from: data)
   }
-
-  /// Apply user ops to a workspace (Contract 5), e.g. shortlist.add or pref.set.
-  func ops(_ workspace: String, _ ops: [[String: any Sendable]]) async throws {
-    _ = try await send("POST", "api/workspace/\(workspace)/ops", body: try JSONSerialization.data(withJSONObject: ops))
-  }
-
-  func workspace(_ id: String) async throws -> WorkspaceDoc { try await get("api/workspace/\(id)") }
 }
 
 nonisolated struct ScanGeo: Codable, Sendable {
@@ -114,17 +110,4 @@ nonisolated struct ToolOutcome: Decodable, Sendable {
   }
   var verdict: Verdict
   var metrics: [Metric]?
-}
-
-nonisolated struct WorkspaceDoc: Decodable, Sendable {
-  struct Doc: Decodable, Sendable { var findings: [Finding]? }
-  struct Finding: Decodable, Sendable, Identifiable {
-    var id: String
-    var title: String
-    var status: String
-    var detail: String?
-    var result: String?
-    var tool: String?
-  }
-  var doc: Doc
 }

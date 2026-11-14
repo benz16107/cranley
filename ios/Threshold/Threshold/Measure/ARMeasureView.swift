@@ -66,13 +66,12 @@ struct ARMeasureView: View {
     sending = true
     defer { sending = false }
     let m = CaptureClient.Measurement(
-      workspace: app.workspace, task: task?.id, finding: task?.finding, sid: task?.sid, kind: kind, value: value,
+      task: task?.id, finding: task?.finding, sid: task?.sid, kind: kind, value: value,
       unit: "m", method: "arkit_lidar", accuracy: 0.01,
       points: session.points.map { [Double($0.x), Double($0.y), Double($0.z)] },
-      photo_jpeg_base64: await session.snapshotJPEG()?.base64EncodedString())
+      photo: await session.snapshotJPEG())
     do {
-      try await app.capture.send(m)
-      sent = "Sent to the workspace"
+      sent = try await app.capture.send(m).says ?? "Sent to the workspace"
     } catch {
       sent = "Not sent: \(error.localizedDescription)"
     }
