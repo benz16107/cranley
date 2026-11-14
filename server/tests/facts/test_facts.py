@@ -214,6 +214,22 @@ def test_similar_rooms_uses_diskann_with_label_filter(schema):
     assert "room_text_embedding" in json.dumps(plan)
 
 
+def test_load_measures_refreshes_only_measures(schema, tmp_path, monkeypatch):
+    from threshold.facts import load
+    row = {"sid": "hand_a", "name": "A", "kind": "house", "walls": 1, "polygons": 1, "labels": 1, "panos": 3,
+           **{k: v for k, v in schema["measures"].items()}, "floor_area": 99.5}
+    ghost = {**row, "sid": "not_held"}
+    path = tmp_path / "m.sqlite"
+    mt.write([(row, [("hand_a", "d1", "doorway", 0.9, 0, None, "f1")]), (ghost, [])], {"built_at": "2026-11-14T09:00:00"}, path)
+    monkeypatch.setattr(mt, "DB", path)
+    rooms_before = db.rows("SELECT count(*) AS n FROM room")[0]["n"]
+    out = load.load_measures()
+    assert out["scans"] == 1
+    assert db.rows("SELECT floor_area FROM measures WHERE sid = 'hand_a'")[0]["floor_area"] == 99.5
+    assert db.rows("SELECT count(*) AS n FROM measures WHERE sid = 'not_held'")[0]["n"] == 0
+    assert db.rows("SELECT count(*) AS n FROM room")[0]["n"] == rooms_before          # rooms are not touched
+
+
 def test_drop_all_leaves_nothing(schema):
     db.drop_all(target="test")
     assert db.rows("SELECT to_regclass('threshold.fact') IS NULL AS gone")[0]["gone"]
@@ -231,3 +247,4 @@ def test_guards_keep_destructive_commands_off_the_cloud(monkeypatch, capsys):
     monkeypatch.setattr(db, "drop_all", lambda **k: called.append("drop"))
     assert cli.main(["load"]) == 1 and cli.main(["drop_all"]) == 1 and cli.main(["drop_all", "--target", "cloud"]) == 1
     assert cli.main(["drop_all", "--yes"]) == 1 and not called  # nothing ran without both the name and the yes
+
