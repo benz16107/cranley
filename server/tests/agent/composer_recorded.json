@@ -342,6 +342,24 @@
    }
   ]
  },
+ "I play pickleball most days. How far are the nearest courts?": {
+  "cannot": [
+   "Nothing here can tell you whether a court is lined or netted for pickleball, how busy it gets, or its open-play hours."
+  ],
+  "persona": "racket_player",
+  "stated": [],
+  "summary": "You play pickleball most days and want to know how far the nearest courts are.",
+  "tools": [
+   {
+    "id": "nearby",
+    "reason": "You get the walk or ride along the streets to the nearest sports courts, plus parks and gyms close by."
+   },
+   {
+    "id": "home_search",
+    "reason": "If you are choosing a place, you can find scanned homes that sit close to courts and parks."
+   }
+  ]
+ },
  "I price commercial property and need the roof, the dock doors and the parking at this warehouse set against the record.": {
   "cannot": [],
   "persona": "commercial_underwriter",
@@ -900,6 +918,30 @@
    }
   ]
  },
+ "I'm renting with my indoor cat. Does this apartment allow cats, and is it safe for her?": {
+  "cannot": [],
+  "persona": "cat_owner_apartment",
+  "stated": [],
+  "summary": "A renter with an indoor cat who wants to know if this apartment allows cats and is safe for her.",
+  "tools": [
+   {
+    "id": "pet_fit",
+    "reason": "This checks the community's pet policy and fees for cats, plus windows or a balcony she could fall from and a good litter box spot."
+   },
+   {
+    "id": "nearby",
+    "reason": "This shows how far the nearest vets are, so you know where to take her."
+   },
+   {
+    "id": "amenity_census",
+    "reason": "This shows what the community actually offers, such as a balcony or shared spaces, beside what the listing claims."
+   },
+   {
+    "id": "home_search",
+    "reason": "If this apartment doesn't work out, this finds other scanned apartments that allow cats."
+   }
+  ]
+ },
  "If we get water in the house, what should I carry upstairs first?": {
   "cannot": [
    "None of these tools can judge which of your belongings matter most to you, such as documents, medicines or keepsakes, so that order is yours to set."
@@ -992,6 +1034,30 @@
    {
     "id": "room_census",
     "reason": "This lists the rooms in the home so you can see whether there's a bedroom and bathroom he could use."
+   }
+  ]
+ },
+ "My dog is 13 and can't do stairs anymore. Will this house work for him?": {
+  "cannot": [],
+  "persona": "senior_dog_owner",
+  "stated": [],
+  "summary": "Owner of a 13-year-old dog who can no longer manage stairs, checking whether this house works for him.",
+  "tools": [
+   {
+    "id": "pet_fit",
+    "reason": "You get a check of the house for your dog: stairs, floors for grip, the yard's slope and fence, and the way out back."
+   },
+   {
+    "id": "stairs_count",
+    "reason": "You see how many floors there are and any steps between the entrance, the daily rooms and doorways."
+   },
+   {
+    "id": "step_free_route",
+    "reason": "You see whether your dog can reach each room he needs, including the yard, without a single step."
+   },
+   {
+    "id": "nearby",
+    "reason": "You find the nearest emergency vet and how long the drive is."
    }
   ]
  },
@@ -1105,6 +1171,24 @@
    }
   ]
  },
+ "Our son plays soccer. Are there fields he can bike to from here?": {
+  "cannot": [
+   "None of these tools judges how safe the streets are for your son to bike on, such as bike lanes or traffic levels."
+  ],
+  "persona": "teen_soccer_family",
+  "stated": [],
+  "summary": "A family whose son plays soccer wants to know which soccer fields he can bike to from their home.",
+  "tools": [
+   {
+    "id": "nearby",
+    "reason": "You'll see the soccer fields, parks and schools near your home, with the ride to the nearest of each along the streets."
+   },
+   {
+    "id": "kids_fit",
+    "reason": "You'll get the trip from your home to nearby parks and schools, alongside other things that matter for kids."
+   }
+  ]
+ },
  "Our startup needs at least three meeting rooms and good daylight.": {
   "cannot": [],
   "persona": "office_tenant",
@@ -1169,6 +1253,34 @@
    }
   ]
  },
+ "We have a 60 lb lab and we're looking at houses in Houston. Is this one good for her?": {
+  "cannot": [],
+  "persona": "dog_owner_home",
+  "stated": [],
+  "summary": "You have a 60 lb lab and are house-hunting in Houston, and want to know if this home suits her.",
+  "tools": [
+   {
+    "id": "pet_fit",
+    "reason": "You get a check of this home for your lab: stairs, floors, crate room, a pet door, and the yard's size, slope, shade and fence."
+   },
+   {
+    "id": "path_to_water",
+    "reason": "You can see whether there is a pool she could reach from the house without a barrier."
+   },
+   {
+    "id": "nearby",
+    "reason": "You see the walk or drive to the nearest dog parks, parks and vets."
+   },
+   {
+    "id": "home_search",
+    "reason": "If this one falls short, you can find other scanned Houston houses with a fenced, flat yard and no pool."
+   },
+   {
+    "id": "tour",
+    "reason": "You get a camera walk through the home that stops at each thing found for your dog."
+   }
+  ]
+ },
  "We have a toddler and a backyard pool, and I want to see every way she could reach the water.": {
   "cannot": [
    "Nothing here can test whether your locks, latches, door alarms or pool gate actually work or are out of her reach.",
@@ -1217,6 +1329,36 @@
    {
     "id": "room_census",
     "reason": "This lists the rooms and their sizes so you can picture where the children will sleep and play."
+   }
+  ]
+ },
+ "We have a two year old. Is this house safe for her, and is there a playground nearby?": {
+  "cannot": [
+   "Checking small hazards like outlets, cords, cabinet latches or furniture that could tip is not something these tools do from the scan."
+  ],
+  "persona": "parent_young_kids",
+  "stated": [],
+  "summary": "Parents of a two-year-old checking whether this house is safe for her and whether a playground is close by.",
+  "tools": [
+   {
+    "id": "kids_fit",
+    "reason": "You get a check of this house for a toddler: stairs that need gates, windows she could fall from, any unbarriered pool path, and whether the kitchen looks onto the yard."
+   },
+   {
+    "id": "stairs_count",
+    "reason": "You see every stair and doorway step, floor by floor, so you know where gates go and where she could trip."
+   },
+   {
+    "id": "path_to_water",
+    "reason": "If there is a pool, you see every route she could take to reach it and which barrier is missing."
+   },
+   {
+    "id": "nearby",
+    "reason": "You find the nearest playgrounds and parks and how long the walk is along the streets."
+   },
+   {
+    "id": "tour",
+    "reason": "You get a camera walk-through to each spot flagged as a risk, so you can see it for yourself."
    }
   ]
  },
