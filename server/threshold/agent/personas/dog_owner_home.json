@@ -1,0 +1,26 @@
+{
+  "id": "dog_owner_home",
+  "title": "Dog owner choosing a home",
+  "who": "Is choosing a home for a dog: a fenced, flat yard with shade, no unfenced pool, a pet door to the yard, room for a crate, a dog park and a vet nearby.",
+  "tools": [
+    "pet_fit",
+    "nearby",
+    "home_search",
+    "path_to_water",
+    "tour"
+  ],
+  "thresholds": {
+    "pets.profile": [
+      {
+        "kind": "dog",
+        "weight_lb": 60,
+        "age": "adult"
+      }
+    ],
+    "nearby.profile": "pets"
+  },
+  "layout": {
+    "view": "scene",
+    "lead_tool": "pet_fit"
+  }
+}

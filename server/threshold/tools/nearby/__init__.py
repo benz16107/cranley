@@ -99,7 +99,7 @@ class Inputs(Where):
     profile: Literal["pets", "kids", "sports", "everyday"] | None = field(
         None, ask="What should be near the home? pets, kids, sports or everyday (grocery, pharmacy, transit, coffee)",
         pref="nearby.profile", description="A ready-made set of categories")
-    categories: list[Category] = field([], description="Categories to look for, added to the profile's. Sports: "
+    categories: list[Category] = field([], pref="nearby.categories", description="Categories to look for, added to the profile's. Sports: "
                                                        + ", ".join(engine.SPORTS))
     mode: Literal["walk", "cycle"] = field("walk", pref="nearby.mode", description="Walking or cycling time")
     ok_min: float = field(WALK_OK_MIN, pref="nearby.ok_min", unit="min", gt=0, le=60,
