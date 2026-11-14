@@ -1,86 +1,160 @@
-"""Matterport Model API: GraphQL with basic auth, plus a disk cache for the scans and images we serve.
+"""Matterport Model API: GraphQL with basic auth, and a disk cache for the scans and images we serve.
 
 Signed image links expire in about an hour, so links are looked up fresh and only the bytes are kept.
+Raw model responses are cached, ScanPlans are derived from them in memory, so a better `normalize` needs no re-fetch.
 """
 from __future__ import annotations
 
-import csv
 import functools
+import io
 import json
+import threading
 import time
 
 import httpx
+import numpy as np
+from PIL import Image
 
-from ..config import CACHE, DATA, env
+from ..config import DATA, env
 from ..scanplan import QUERY, normalize
+from . import index as _index
+from .upstream import cache_path, cached, check, one_flight, send
 
 URL = "https://api.matterport.com/api/models/graph"
+LINK_TTL = 1800
+RES = ("2k", "4k")
+VIEWS = ("furnished", "defurnished")
 _links: dict[tuple, tuple[float, dict]] = {}  # (kind, model id, res) -> (fetched at, links)
+_stitch = threading.Lock()  # one panorama stitch at a time: a 4096 px one needs several hundred MB
+
+
+def index() -> dict[str, dict]:
+    """sid -> typed index row (see sources/index.py)."""
+    return _index.rows()
 
 
 def graph(query: str, **variables) -> dict:
     e = env()
-    r = httpx.post(URL, json={"query": query, "variables": variables},
-                   auth=(e["MATTERPORT_API_KEY"], e["MATTERPORT_API_TOKEN"]), timeout=90)
-    r.raise_for_status()
+    r = send("POST", URL, json={"query": query, "variables": variables},
+             auth=(e["MATTERPORT_API_KEY"], e["MATTERPORT_API_TOKEN"]))
     body = r.json()
-    if body.get("errors") and not (body.get("data") or {}).get("model"):
-        raise LookupError(body["errors"][0].get("message", "Matterport error"))
+    errors = body.get("errors") or []
+    if errors and not (body.get("data") or {}).get("model"):
+        code = (errors[0].get("extensions") or {}).get("code", "")
+        raise LookupError("no such scan, or it is not shared with this key" if code == "not.found"
+                          else errors[0].get("message", "Matterport error"))
     return body["data"]
 
 
-@functools.cache
-def index() -> dict[str, dict]:
-    f = DATA / "models_index.csv"
-    return {r["sid"]: r for r in csv.DictReader(open(f))} if f.exists() else {}
+def model(sid: str) -> dict:
+    """The raw Model API response for QUERY, from the disk cache when there. Seeds from $THRESHOLD_DATA_DIR/raw."""
+    check(sid, "sid")
+    f = cache_path("model", f"{sid}.json")
+    seed = DATA / "raw" / f"{sid}.json"
+    if not f.exists() and seed.exists():
+        raw = json.loads(seed.read_text())
+        return raw["data"]["model"] if "data" in raw else raw
+    return json.loads(cached(f, lambda: json.dumps(graph(QUERY, id=sid)["model"]).encode()))
+
+
+@functools.lru_cache(maxsize=512)
+def plan_json(sid: str) -> bytes:
+    p = normalize(model(sid), index().get(sid))
+    return json.dumps(p, separators=(",", ":")).encode()
 
 
 def plan(sid: str) -> dict:
-    f = CACHE / "plan" / f"{sid}.json"
-    if f.exists():
-        return json.loads(f.read_text())
-    p = normalize(graph(QUERY, id=sid)["model"], index().get(sid))
-    f.parent.mkdir(parents=True, exist_ok=True)
-    f.write_text(json.dumps(p))
-    return p
+    """The ScanPlan. A fresh dict each call, so callers may change it."""
+    return json.loads(plan_json(sid))
 
 
 def _fresh(key: tuple, load) -> dict:
-    hit = _links.get(key)
-    if not hit or time.time() - hit[0] > 1800:
-        hit = _links[key] = (time.time(), load())
-    return hit[1]
+    with one_flight(repr(key)):
+        hit = _links.get(key)
+        if not hit or time.time() - hit[0] > LINK_TTL:
+            hit = _links[key] = (time.time(), load())
+        return hit[1]
+
+
+def _pano_links(model_id: str, res: str) -> dict[str, list[str]]:
+    q = 'query($id: ID!, $res: String!) { model(id: $id) { panoLocations { id skybox(resolution: $res) { status children } } } }'
+    return _fresh(("pano", model_id, res), lambda: {p["id"]: (p.get("skybox") or {}).get("children") or []
+                                                    for p in graph(q, id=model_id, res=res)["model"]["panoLocations"]})
 
 
 def pano_face(sid: str, pano: str, face: int, res: str = "2k", view: str = "furnished") -> bytes:
-    f = CACHE / "pano" / sid / view / res / f"{pano}_{face}.jpg"
-    if f.exists():
-        return f.read_bytes()
-    model_id = sid if view == "furnished" else plan(sid)["ids"]["defurnished_view"]
-    if not model_id:
-        raise LookupError("this scan has no defurnished view")
-    q = 'query($id: ID!, $res: String!) { model(id: $id) { panoLocations { id skybox(resolution: $res) { status children } } } }'
-    links = _fresh(("pano", model_id, res), lambda: {p["id"]: (p.get("skybox") or {}).get("children") or []
-                                                      for p in graph(q, id=model_id, res=res)["model"]["panoLocations"]})
-    faces = links.get(pano) or []
-    if face >= len(faces):
-        raise LookupError("no such panorama face")
-    data = httpx.get(faces[face], timeout=90).raise_for_status().content
-    f.parent.mkdir(parents=True, exist_ok=True)
-    f.write_bytes(data)
-    return data
+    check(sid, "sid"), check(pano)
+    if res not in RES or view not in VIEWS or not 0 <= face <= 5:
+        raise LookupError("res is 2k or 4k, view is furnished or defurnished, face is 0 to 5")
+
+    def load() -> bytes:
+        model_id = sid if view == "furnished" else plan(sid)["ids"]["defurnished_view"]
+        if not model_id:
+            raise LookupError("this scan has no defurnished view")
+        for attempt in (0, 1):
+            faces = _pano_links(model_id, res).get(pano) or []
+            if face >= len(faces):
+                raise LookupError("no such panorama face")
+            try:
+                return send("GET", faces[face]).content
+            except httpx.HTTPStatusError as e:  # a signed link that expired early: look it up again, once
+                if attempt or e.response.status_code not in (401, 403, 404, 410):
+                    raise
+                _links.pop(("pano", model_id, res), None)
+        raise AssertionError("unreachable")
+
+    return cached(cache_path("pano", sid, view, res, f"{pano}_{face}.jpg"), load)
+
+
+def stitch(faces: list[Image.Image], width: int) -> Image.Image:
+    """Six cube faces (0 up, 1-4 the horizon turning right, 5 down) into one equirectangular image, width x width/2."""
+    h = width // 2
+    lon = ((np.arange(width, dtype=np.float32) + 0.5) / width * 2 * np.pi - np.pi)[None, :]
+    lat = (np.pi / 2 - (np.arange(h, dtype=np.float32) + 0.5) / h * np.pi)[:, None]
+    x, y, z = np.cos(lat) * np.sin(lon), np.broadcast_to(np.sin(lat), (h, width)), np.cos(lat) * np.cos(lon)  # y up, z forward
+    ax, ay, az = np.abs(x), np.abs(y), np.abs(z)
+    out = np.zeros((h, width, 3), np.uint8)
+    n = faces[0].width
+    for k, mask, u, v in [
+        (1, (az >= ax) & (az >= ay) & (z > 0), lambda: x / az, lambda: -y / az),
+        (2, (ax >= ay) & (ax >= az) & (x > 0), lambda: -z / ax, lambda: -y / ax),
+        (3, (az >= ax) & (az >= ay) & (z < 0), lambda: -x / az, lambda: -y / az),
+        (4, (ax >= ay) & (ax >= az) & (x < 0), lambda: z / ax, lambda: -y / ax),
+        (0, (ay >= ax) & (ay >= az) & (y > 0), lambda: x / ay, lambda: z / ay),
+        (5, (ay >= ax) & (ay >= az) & (y < 0), lambda: x / ay, lambda: -z / ay),
+    ]:
+        col = np.clip(((u()[mask] + 1) / 2 * n).astype(np.int32), 0, n - 1)
+        row = np.clip(((v()[mask] + 1) / 2 * n).astype(np.int32), 0, n - 1)
+        out[mask] = np.asarray(faces[k])[row, col]
+    return Image.fromarray(out)
+
+
+def equirect(sid: str, pano: str, width: int = 2048, view: str = "furnished") -> bytes:
+    if not 512 <= width <= 4096 or width % 2:
+        raise LookupError("w is an even number from 512 to 4096")
+
+    def make() -> bytes:
+        res = "4k" if width > 2048 else "2k"
+        faces = [Image.open(io.BytesIO(pano_face(sid, pano, k, res, view))).convert("RGB") for k in range(6)]
+        with _stitch:
+            buf = io.BytesIO()
+            stitch(faces, width).save(buf, "JPEG", quality=88)
+        return buf.getvalue()
+
+    return cached(cache_path("equirect", sid, view, f"{pano}_{width}.jpg"), make)
 
 
 def floorplan(sid: str, floor: str, fmt: str = "jpg", flags: str = "photogramy") -> bytes:
+    check(sid, "sid"), check(floor)
+    if fmt not in ("jpg", "png") or not all(f.isalnum() for f in flags.split(",")):
+        raise LookupError("fmt is jpg or png; flags are comma separated words")
     want = sorted(flags.split(","))
-    f = CACHE / "floorplan" / sid / f"{floor}_{'-'.join(want)}.{fmt}"
-    if f.exists():
-        return f.read_bytes()
-    q = 'query($id: ID!) { model(id: $id) { assets { floorplans(provider: "matterport") { format flags url floor { id } } } } }'
-    for fp in graph(q, id=sid)["model"]["assets"]["floorplans"]:
-        if fp["format"] == fmt and sorted(fp.get("flags") or []) == want and (fp.get("floor") or {}).get("id") == floor and fp.get("url"):
-            data = httpx.get(fp["url"], timeout=90).raise_for_status().content
-            f.parent.mkdir(parents=True, exist_ok=True)
-            f.write_bytes(data)
-            return data
-    raise LookupError("no such floor plan")
+
+    def load() -> bytes:
+        q = 'query($id: ID!) { model(id: $id) { assets { floorplans(provider: "matterport") { format flags url floor { id } } } } }'
+        for fp in graph(q, id=sid)["model"]["assets"]["floorplans"]:
+            if fp["format"] == fmt and sorted(fp.get("flags") or []) == want and (fp.get("floor") or {}).get("id") == floor and fp.get("url"):
+                return send("GET", fp["url"]).content
+        raise LookupError("no such floor plan")
+
+    return cached(cache_path("floorplan", sid, f"{floor}_{'-'.join(want)}.{fmt}"), load)
