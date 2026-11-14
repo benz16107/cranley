@@ -37,11 +37,11 @@ def test_threshold_edit_is_used_and_marks_the_run_stale(session):
     setup(session)
     inv = Investigation(session)
     first = inv.run("door_widths", {"scan": "t1"})
-    assert first["inputs_from_persona_defaults"] == {"min_width_m": "access.door_width_m", "standard": "access.door_standard"}
+    assert first["inputs_from_persona_defaults"] == ["min_width_m", "standard"]
     session.submit({"op": "pref.set", "key": "access.door_width_m", "value": 0.6}, by="user")
     assert next(r for r in session.doc.runs if r.id == first["run"]).stale
     second = inv.run("door_widths", {"scan": "t1"})
-    assert second["verdict"] == "pass" and second["inputs_the_person_gave"] == {"min_width_m": "access.door_width_m"}
+    assert second["verdict"] == "pass" and second["inputs_the_person_gave"] == ["min_width_m"]
 
 
 def test_label_correction_reaches_tools(session):

@@ -46,7 +46,7 @@ def test_run_emits_bound_ops_and_compact_summary(session):
     assert seen[0] == "run.start" and seen.count("run.progress") == 2  # steps stream while the tool runs
     assert [n for n in seen if n != "run.progress"][:3] == ["run.start", "run.finish", "finding.add"]
     assert {"overlay.upsert", "panel.upsert", "camera.focus"} <= set(seen)
-    assert out["verdict"] == "fail" and out["inputs_from_persona_defaults"]["min_width_m"] == "access.door_width_m"
+    assert out["verdict"] == "fail" and "min_width_m" in out["inputs_from_persona_defaults"]
     assert "checks" not in out and "result" not in out  # the model never sees raw measurements
     panel = session.doc.panels[0]
     assert [b.type for b in panel.blocks][:3] == ["VerdictHeader", "MetricRow", "CheckList"]

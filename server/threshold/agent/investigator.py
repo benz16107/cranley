@@ -240,9 +240,9 @@ class Investigation:
                 "more_findings": max(0, len(shown) - 8), "hidden_because_rejected": len(result.findings) - len(shown),
                 # the person's own answers and edits apart from the persona's defaults, so the model never calls
                 # an answer the person just gave a "saved setting"
-                "inputs_the_person_gave": {k: v for k, v in used.items() if v in self.s.doc.prefs or v in self.s.doc.brief.facts},
-                "inputs_from_persona_defaults": {k: v for k, v in used.items()
-                                                 if v not in self.s.doc.prefs and v not in self.s.doc.brief.facts}}
+                "inputs_the_person_gave": [k for k, v in used.items() if v in self.s.doc.prefs or v in self.s.doc.brief.facts],
+                "inputs_from_persona_defaults": [k for k, v in used.items()
+                                                 if v not in self.s.doc.prefs and v not in self.s.doc.brief.facts]}
 
     def compare(self) -> None:
         """When several buildings ran the same tool, one RankedTable compares them."""
@@ -676,7 +676,8 @@ BUILDING = """You investigate one building (one scan id) for a person. Run each 
 this scan, once each. Leave out inputs you were not told; the person's preferences fill them. If a tool reports
 missing inputs, do not guess them; say so in your reply. Write a short case note with write_file to
 /notes/<scan id>.md: which finding ids matter for this person and why, without measurements. Use note only if
-something needs explaining to the person. Reply in two lines: the finding ids that matter most, and why."""
+something needs explaining to the person. Reply in two lines: the finding ids that matter most, and why. Inputs a run lists under inputs_the_person_gave are the
+person's own answers; never call them saved settings or defaults."""
 
 PROPERTY = """You investigate one whole property (a CoStar property id) for a person. Call property_scans first. Then
 call run_on_property once per useful tool, choosing the kinds of scan that matter (units, amenities). Then call
