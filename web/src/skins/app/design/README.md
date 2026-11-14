@@ -35,7 +35,7 @@ a tool a person works in all day. Tokens are in `tokens.css`, shared classes in 
 4. **Sizes.** 13 px for the interface and tables, 12 px secondary, 11 px captions. Titles are 13 to 15 px semibold.
    No number is set larger than 14 px: a value sits in a stat strip (`<Stats>`, `.b-metrics`) or a table cell.
 5. **Numbers.** A measured value, an id or a coordinate is `.num` (Martian Mono). A count stays in the text face.
-   Every number is tabular. Every measured number has a `<SourceChip>`. Numbers come from a result object and are
+   Every number is tabular. Every measured number has a source line (`<SourceChip>`), its own or one it shares. Numbers come from a result object and are
    printed as given; only the format is ours.
 6. **Density.** Rows 32 px, controls 28 px, sidebar items 28 px; 44 and 40 px on a touch screen (`--row-h`,
    `--ctl-h`).
@@ -60,6 +60,17 @@ a tool a person works in all day. Tokens are in `tokens.css`, shared classes in 
     (arrow keys, Home, End). A pane keeps its pixels when the window changes, is remembered per browser under
     `threshold.app.size.<id>`, and goes back to its designed size on a double click. A new side panel is a `<Pane>`
     in a `<Split>`, never a fixed grid column. On a phone a split is off and nothing drags.
+14. **One thing first on every screen, the rest behind a fold.** A building leads with its verdict: a status beside
+    its name, and a Summary tab that says the worst result in the tool's own words, then what to do next
+    (`lib/verdict.ts`). Above the building there is one row of tools: the view, one button for how it looks, Play, and
+    what is drawn on it. In a result, the checks that failed or need a look stay in view; the ones that passed fold
+    into one line (`lib/source.ts` `splitChecks`), and so does how the result was worked out, with its queries and
+    timings. Run times and ids live in folds and on the Activity tab, never in a heading.
+15. **Plain words for where a number came from.** "Measured from the scan", "Seen in aerial photos", "From the
+    property record" (`sourceWords`), with the three marks for how sure, never a code. Values that share a source
+    say it once. The visible word for a finding is "check"; a run of a tool is "activity".
+16. **Sections are set apart by space and a heading.** Hairlines are for rows of a list and cells of a row of values.
+    A box is for something that floats or is typed into.
 
 ## The design tells checklist
 
