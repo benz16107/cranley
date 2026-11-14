@@ -49,4 +49,4 @@ class Claude:
     def structured(self, system: str, user: str, schema: type[T]) -> T:
         # json_schema, not forced tool calling: the endpoint's model refuses forced tool use with thinking on
         return chat(self.max_tokens).with_structured_output(schema, method="json_schema").invoke(
-            [("system", system), ("human", user)])
+            [("system", system), ("human", user)], {"run_name": "composer", "tags": ["threshold", "composer"]})

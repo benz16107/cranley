@@ -198,6 +198,7 @@ class Investigation:
         self.notes: list[str] = []
         self.files: dict[str, Any] = {}
         self.asked: list[str] = []  # approval questions this turn is waiting on
+        self.grades: list[dict] = []  # the rubric grader's verdicts on the closing message
 
     def emit(self, op) -> bool:
         op.run = op.run or self.turn
@@ -695,9 +696,13 @@ class Investigation:
                                              "turn; carry on with the other tools and say it was skipped."}))
         return {k: {"decisions": [d for _, d in sorted(v, key=lambda x: x[0])]} for k, v in out.items()}
 
+    def graded(self, ev) -> None:
+        self.grades.append({"iteration": ev.get("iteration"), "result": ev.get("result"),
+                            "explanation": str(ev.get("explanation", ""))[:500]})  # a TypedDict: a plain dict
+
     # ---- the agent ----
     def build(self, model=None):
-        from deepagents import FilesystemPermission, create_deep_agent
+        from deepagents import FilesystemPermission, RubricMiddleware, create_deep_agent
         from deepagents.backends import CompositeBackend, FilesystemBackend, StateBackend, StoreBackend
         from langchain.agents.middleware import ModelCallLimitMiddleware, TodoListMiddleware
 
@@ -722,10 +727,12 @@ class Investigation:
                                                    "scans: units, amenities, lobby. Say which tools and kinds of scan.",
                 "system_prompt": PROPERTY, "tools": self.property_tools() + [note],
                 "middleware": [ModelCallLimitMiddleware(run_limit=b.property_calls), live.Watch(ws, main=False)]}
+        # a grader checks the closing message against RUBRIC before the turn ends (the real model only: tests script it)
+        grader = [] if model is not None else [RubricMiddleware(model=chat(1024), max_iterations=2, on_evaluation=self.graded)]
         return create_deep_agent(model=model or chat(2048), tools=self.small_tools() + self.search_tools(),
                                  system_prompt=MAIN, subagents=[building, prop], skills=["/skills/"],
                                  middleware=[TodoListMiddleware(), ModelCallLimitMiddleware(run_limit=b.main_calls),
-                                             live.Watch(ws, main=True)],
+                                             live.Watch(ws, main=True), *grader],
                                  backend=backend, store=store, checkpointer=saver, interrupt_on=self.interrupts(),
                                  permissions=[FilesystemPermission(operations=["write"], paths=["/skills/**"], mode="deny")],
                                  name="investigator")
@@ -758,7 +765,7 @@ class Investigation:
         last = ""
         config = self.config()
         start = Command(resume=self.decisions()) if resume else \
-            {"messages": [{"role": "user", "content": self.prompt(request)}]}
+            {"messages": [{"role": "user", "content": self.prompt(request)}], "rubric": RUBRIC}
         live.begin(self.s.base.id, self.turn, resumed=resume)
         status = "stopped"
         try:
@@ -784,9 +791,16 @@ class Investigation:
                                                           blocks=[Note(text=short(last))]))):
             last = ""
         (self.s.root / f"{self.s.base.id}.casefile.json").write_text(
-            json.dumps({"files": self.files, "budget": self.budget.report()}, default=str))
+            json.dumps({"files": self.files, "budget": self.budget.report(), "grades": self.grades}, default=str))
         return last
 
+
+RUBRIC = """The agent's final message to the person (its last message with no tool calls):
+1. Is at most three short sentences of plain text, with no lists.
+2. Contains no measurement, count, time, distance or money, in digits or in words (scan ids are allowed).
+3. Says that a check was skipped, missing or could not be done only when a tool result, a refused tool run or the
+   person's skip decision in the transcript says so; if tools ran and returned results, it does not say nothing ran.
+4. Names where the person should look first, unless no tool returned anything."""
 
 PLACE_HELP = ("Where to run: {\"scan\": id} or {\"property_id\": id} or {\"address\": text} or {\"geo\": [lon, lat]}. "
               "It must be in the workspace (consider adds it).")
