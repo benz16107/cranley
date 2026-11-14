@@ -16,8 +16,8 @@ import numpy as np
 from PIL import Image
 
 from ..config import DATA, env
-from ..scanplan import QUERY, apply_georef_fit, normalize
-from . import footprint
+from ..scanplan import QUERY, apply_georef_fit, apply_recovered_walls, normalize
+from . import footprint, recover
 from . import index as _index
 from .upstream import cache_path, cached, check, one_flight, send
 
@@ -61,9 +61,32 @@ def model(sid: str) -> dict:
 @functools.lru_cache(maxsize=512)
 def plan_json(sid: str) -> bytes:
     p = normalize(model(sid), index().get(sid))
+    if not p["quality"]["walls"]:
+        apply_recovered_walls(p, _recover(p), (index().get(sid) or {}).get("kind"))
     fit, ring = footprint.scan_fit(p)
     apply_georef_fit(p, fit, footprint.verdict(fit), ring)
     return json.dumps(p, separators=(",", ":")).encode()
+
+
+def _recover(p: dict) -> list[dict]:
+    """Walls recovered from each floor's schematic DXF and PNG, for a scan with no wall graph. A floor whose
+    schematic cannot be fetched or read is skipped; the plan still loads."""
+    parts = []
+    for i, fl in enumerate(p["floors"]):
+        have = {fp["format"] for fp in p["floorplans"] if fp["floor"] == fl["id"] and fp["flags"] == ["schematic"]}
+        if "dxf" not in have:
+            continue
+        try:
+            dxf = floorplan(p["sid"], fl["id"], "dxf", "schematic").decode("utf-8", "replace")
+            png = np.asarray(Image.open(io.BytesIO(floorplan(p["sid"], fl["id"], "png", "schematic"))).convert("L")) \
+                if "png" in have else None
+            rec = recover.recover_floor(dxf, png, [r for r in p["rooms"] if r["floor"] == fl["id"]],
+                                        [x for x in p["panos"] if x["floor"] == fl["id"]])
+        except (LookupError, httpx.HTTPError, ValueError, OSError):
+            continue
+        if rec["walls"]:
+            parts.append(recover.plan_parts(fl["id"], f"r{i}", rec))
+    return parts
 
 
 def plan(sid: str) -> dict:
@@ -149,8 +172,8 @@ def equirect(sid: str, pano: str, width: int = 2048, view: str = "furnished") ->
 
 def floorplan(sid: str, floor: str, fmt: str = "jpg", flags: str = "photogramy") -> bytes:
     check(sid, "sid"), check(floor)
-    if fmt not in ("jpg", "png") or not all(f.isalnum() for f in flags.split(",")):
-        raise LookupError("fmt is jpg or png; flags are comma separated words")
+    if fmt not in ("jpg", "png", "dxf") or not all(f.replace("_", "").isalnum() for f in flags.split(",")):
+        raise LookupError("fmt is jpg, png or dxf; flags are comma separated words")
     want = sorted(flags.split(","))
 
     def load() -> bytes:

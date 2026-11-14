@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import math
 
+import httpx
 import numpy as np
 from shapely import wkt
 from shapely.affinity import rotate, translate
@@ -131,7 +132,7 @@ def scan_fit(plan: dict, fetch: bool = True) -> tuple[dict | None, list | None]:
         return None, None
     try:
         fp = footprint_enu(plan)
-    except Exception:  # Vexcel down or no key: the plan still loads, unverified
+    except (LookupError, KeyError, OSError, httpx.HTTPError):  # Vexcel down or no key: the plan loads, unverified
         return None, None
     out = fit(plan, fp) if fp is not None else None
     ring = [[round(x, 3), round(y, 3)] for x, y in fp.exterior.coords] if fp is not None else None

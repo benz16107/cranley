@@ -13,6 +13,10 @@ Fields added to the contract (none renamed, none changed in meaning):
   openings[].exterior(_source)       true (leads outside) | false (to another room or unscanned space inside) | None
   openings[].on_outline              the opening sits on the outer edge of its floor's scanned area
   stairs                             panorama pairs that connect floors: floors, panos, rooms, points, rise_m, run_m
+  quality.walls_source               "matterport" (measured) | "dxf" (recovered from the schematic) | None
+  quality.walls_confidence, walls_error_m, outer_walls_error_m, opening_width_error_m   how far recovered walls
+                                     and doors can be trusted (90th percentile errors measured on scans with walls)
+  walls[].source, openings[].source, rooms[].polygon_source        "dxf" / "schematic_png" on recovered pieces
   geo.fit                            footprint refit: rotation_deg, shift_m, residual_m, method, iou, verified
   quality.georef                     true only when geo.fit verified the compass and position against the footprint
 """
@@ -197,7 +201,9 @@ def normalize(model: dict, index_row: dict | None = None) -> dict:
     _exterior(plan, row.get("kind"))
     plan["stairs"] = _stairs(plan)
     plan["quality"] = _quality(plan, dropped)
+    plan["quality"]["walls_source"] = "matterport" if plan["quality"]["walls"] else None
     for r in plan["rooms"]:
+        r["polygon_source"] = "matterport" if r["polygon"] else None
         del r["_outline_area"]
     return plan
 
@@ -341,4 +347,58 @@ def apply_georef_fit(plan: dict, fit: dict | None, verified: bool, footprint_enu
         q["notes"].append("geolocation not verified: no room outlines to check against the building footprint")
     else:
         q["notes"].append("geolocation not verified: no building footprint to check it against")
+    return plan
+
+
+# 90th percentiles from scripts/check_recovery.py on 15 scans that have a wall graph (2026-11-14): walls between two
+# rooms, walls with a room on one side only (their far face is unknown), and doorway widths
+RECOVERED_ERRORS = {"walls_error_m": 0.06, "outer_walls_error_m": 0.32, "opening_width_error_m": 0.11}
+
+
+def apply_recovered_walls(plan: dict, parts: list[dict], kind: str | None = None) -> dict:
+    """Merge walls, outlines and openings recovered from the schematic (sources/recover.py plan_parts, one per
+    floor) into a plan that had no wall graph, and say so in plan.quality. Matterport's room areas, labels and
+    ids stay; only rooms the schematic matched get an outline."""
+    if not parts or plan["quality"]["walls"]:
+        return plan
+    rooms = {r["id"]: r for r in plan["rooms"]}
+    for part in parts:
+        plan["walls"] += part["walls"]
+        plan["openings"] += part["openings"]
+        for rid, got in part["rooms"].items():
+            r = rooms[rid]
+            r.update(polygon=got["polygon"], hole_polygons=got["hole_polygons"], extra_polygons=[],
+                     walls=got["walls"], polygon_source="dxf", center=got["center"], center_source="polygon")
+            if r["area"] is None:
+                r["area"], r["area_source"] = got["outline_area"], "polygon"
+            r["_outline_area"] = got["outline_area"]
+    for r in plan["rooms"]:
+        r.setdefault("_outline_area", None)
+    plan["has"]["openings"] = bool(plan["openings"])
+    _exterior(plan, kind)
+    old = plan["quality"]
+    q = _quality(plan, old["counts"]["edges_dropped"])
+    for r in plan["rooms"]:
+        del r["_outline_area"]
+    reg = [p["registration"] for p in parts if p["registration"] is not None]
+    with_panos = {p["room"] for p in plan["panos"] if p.get("room")}
+    matched = sum(1 for r in plan["rooms"] if r["id"] in with_panos and r["polygon_source"] == "dxf")
+    share = matched / len(with_panos) if with_panos else 0.0
+    q["walls"] = q["walls"] and share >= 0.5
+    q["openings"] = q["openings"] and q["walls"] and bool(reg) and min(reg) >= 0.75
+    q["georef"] = old["georef"]
+    good = q["walls"] and q["openings"] and share >= 0.8
+    q.update(walls_source="dxf" if q["walls"] else None, walls_confidence="medium" if good else "low",
+             **RECOVERED_ERRORS)
+    q["counts"]["rooms_recovered"] = matched
+    q["counts"]["schematic_registration"] = round(min(reg), 3) if reg else None
+    q["notes"] = [n for n in q["notes"] if not n.startswith("no wall graph")] + [(
+        f"walls, room outlines and doorways recovered from Matterport's schematic floor plan, not measured: walls "
+        f"between rooms within about {RECOVERED_ERRORS['walls_error_m']} m, outer walls within about "
+        f"{RECOVERED_ERRORS['outer_walls_error_m']} m, door widths within about "
+        f"{RECOVERED_ERRORS['opening_width_error_m']} m; door heights, sills and windows are unknown; "
+        f"{matched} of {len(with_panos)} rooms with panoramas got an outline")]
+    if not q["walls"]:
+        q["notes"].append("the recovered walls cover too few rooms to rely on; treat this scan as having no walls")
+    plan["quality"] = q
     return plan

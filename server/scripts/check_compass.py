@@ -7,7 +7,6 @@ draws five overlays on the orthophoto under $THRESHOLD_DATA_DIR/shots/walls/.
 from __future__ import annotations
 
 import io
-import json
 import statistics
 import sys
 
