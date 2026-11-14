@@ -46,7 +46,7 @@ export function RunToolMenu({ sid, trigger }: { sid: string; trigger: React.Reac
   )
 }
 
-function Overview({ plan, sid, panels, onResults }: { plan: ScanPlan; sid: string; panels: Doc['panels']; onResults: () => void }) {
+function Overview({ plan, sid, panels, onResults }: { plan: ScanPlan; sid: string; panels: Doc['panels']; onResults: (panel: string) => void }) {
   const b = useBuildings((s) => s.all.find((x) => x.scans.some((y) => y.sid === sid)))
   const q = plan.quality
   const can: [string, boolean | undefined, string?][] = q ? [
@@ -65,7 +65,7 @@ function Overview({ plan, sid, panels, onResults }: { plan: ScanPlan; sid: strin
           <ul className="rows">
             {panels.map((p) => {
               const v = p.blocks.find((x) => x.type === 'VerdictHeader')
-              return <li key={p.id}><button type="button" onClick={onResults}><ToolKey id={p.tool} title={p.title} /><span className="grow trunc">{p.title}</span>{v && v.type === 'VerdictHeader' && <St status={v.status} />}</button></li>
+              return <li key={p.id}><button type="button" onClick={() => onResults(p.id)}><ToolKey id={p.tool} title={p.title} /><span className="grow trunc">{p.title}</span>{v && v.type === 'VerdictHeader' && <St status={v.status} />}</button></li>
             })}
           </ul>
         )}
@@ -221,8 +221,10 @@ export function Building({ sid }: { sid: string }) {
   // the latest result. Five tools drawing at once cannot be read.
   const drawn = useMemo(() => [...new Set(doc.overlays.filter((o) => !o.sid || o.sid === sid).map((o) => o.tool))], [doc.overlays, sid])
   const [pick, setPick] = useState<string[] | null>(null)
-  const latest = panels.at(-1)?.tool
-  const on = pick ?? (focused && drawn.includes(focused) ? [focused] : latest && drawn.includes(latest) ? [latest] : drawn)
+  // The result in view: the one the person opened, else the focused finding's, else the latest. null is "none open".
+  const [chosen, setChosen] = useState<string | null | undefined>(undefined)
+  const inView = chosen !== undefined ? panels.find((p) => p.id === chosen) ?? null : (focused && panels.findLast((p) => p.tool === focused)) || panels.at(-1) || null
+  const on = pick ?? (inView && drawn.includes(inView.tool) ? [inView.tool] : drawn)
   const v = useBuildingView(sid, on.length === drawn.length ? undefined : { tools: on })
   const b = useBuildings((s) => s.all.find((x) => x.scans.some((y) => y.sid === sid)))
   const [tab, setTab] = useState(() => (doc.panels.some((p) => p.sid === sid) ? 'results' : 'overview'))
@@ -236,6 +238,7 @@ export function Building({ sid }: { sid: string }) {
   // A result that arrives while the person is on this scan is shown; so is the result of a focused finding.
   const count = panels.length, last = panels.at(-1)
   const mine = !!last && !doc.runs.find((r) => r.id === last.run)?.step
+  useEffect(() => { setChosen(undefined) }, [count, doc.camera?.finding]) // a new result, or a finding focused: that is the one in view
   useEffect(() => {
     if (!count) return
     setTab('results')
@@ -320,7 +323,7 @@ export function Building({ sid }: { sid: string }) {
             <Tabs.Tab value="record">Record</Tabs.Tab>
             <Tabs.Tab value="history">History{runs.length > 0 && <span className="count">{runs.length}</span>}</Tabs.Tab>
           </Tabs.List>
-          <Tabs.Panel value="overview" className="insp-body scroll">{v.plan ? <Overview plan={v.plan} sid={sid} panels={panels} onResults={() => setTab('results')} /> : <div className="ins-pad stack">{[60, 80, 45].map((w, k) => <span key={k} className="sk" style={{ width: `${w}%` }} />)}</div>}</Tabs.Panel>
+          <Tabs.Panel value="overview" className="insp-body scroll">{v.plan ? <Overview plan={v.plan} sid={sid} panels={panels} onResults={(id) => { setChosen(id); setPick(null); setTab('results') }} /> : <div className="ins-pad stack">{[60, 80, 45].map((w, k) => <span key={k} className="sk" style={{ width: `${w}%` }} />)}</div>}</Tabs.Panel>
           <Tabs.Panel value="results" className="insp-body scroll">
             {working.map((r) => <div key={r.id} className="b-loading working"><RunState state="running">{r.label.split(' · ')[0]}</RunState>{r.summary && <p className="muted small">{r.summary}</p>}<span className="sk" style={{ width: '64%' }} /></div>)}
             {panels.length === 0 && working.length === 0 && (
@@ -328,7 +331,7 @@ export function Building({ sid }: { sid: string }) {
                 Pick a tool to measure this scan. Its result, checks and evidence appear here, and it draws on the building.
               </Empty>
             )}
-            {[...panels].reverse().map((p, k) => <PanelView key={p.id} panel={p} folded={k > 0 && p.tool !== focused} />)}
+            {[...panels].reverse().map((p) => <PanelView key={p.id} panel={p} open={p.id === inView?.id} onOpen={(o) => { setChosen(o ? p.id : null); setPick(null) }} />)}
           </Tabs.Panel>
           <Tabs.Panel value="evidence" className="insp-body scroll"><Evidence findings={findings} /></Tabs.Panel>
           <Tabs.Panel value="record" className="insp-body scroll"><Record sid={sid} /></Tabs.Panel>

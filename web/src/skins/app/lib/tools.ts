@@ -36,6 +36,8 @@ const LAYER: Record<string, string> = {
   'vexcel.dsm': 'Roof heights', 'vexcel.footprint': 'Building footprint', 'costar.property': 'Property record', 'costar.listing': 'Listing', 'drone.photos': 'Drone photos', 'drone.splat': 'Drone capture',
   'threshold.facts': 'Facts database', 'threshold.facts.rooms': 'Room descriptions', 'threshold.measures': 'Measures table', 'osm.streets': 'Street map',
 }
+/** A manifest's input title ("Floor Height M") as a label: sentence case, without the unit it repeats. */
+const inputLabel = (t: string) => { const s = t.replace(/ (M|M2|Ft2|Kw|Min|Pct|Km)$/, '').toLowerCase(); return s.charAt(0).toUpperCase() + s.slice(1) }
 const layerName = (l: string) => LAYER[l] ?? l.replace(/^[a-z]+\./, '').replace(/_/g, ' ')
 
 export type ToolInfo = {
@@ -64,8 +66,8 @@ export function useTools(): ToolInfo[] {
       id: t.id, title: t.title, summary: (t.summary ?? '').replace(/^Planned, not built yet\. /, ''), planned: t.planned, family: familyOf(t.id),
       needs: (m?.requires ?? []).map((r) => ({ layer: r.layer, label: layerName(r.layer), required: r.need === 'required' })),
       asks: Object.values(props).map((p) => p['x-ask']).filter((x): x is string => typeof x === 'string'),
-      inputs: Object.entries(props).filter(([k]) => k !== 'scan').map(([k, p]) => ({ id: k, label: String(p.title ?? k), about: String(p.description ?? ''), unit: p['x-unit'] as string | undefined,
-        fallback: p.default == null || typeof p.default === 'object' ? undefined : String(p.default) })),
+      inputs: Object.entries(props).filter(([k]) => k !== 'scan').map(([k, p]) => ({ id: k, label: inputLabel(String(p.title ?? k)), about: String(p.description ?? ''), unit: p['x-unit'] as string | undefined,
+        fallback: p.default == null || typeof p.default === 'object' ? undefined : p.default === true ? 'yes' : p.default === false ? 'no' : String(p.default) })),
       draws: m?.overlays ?? [], blocks: m?.blocks ?? [], examples: m?.examples ?? [],
       slow: m?.annotations?.cost === 'slow', onScan: !m || 'scan' in props || 'place' in props,
     }

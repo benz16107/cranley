@@ -21,7 +21,7 @@ export function Buildings() {
     { id: 'results', label: 'Results', num: true, width: 80, sort: (s) => of(s.sid).panels, cell: (s) => int(of(s.sid).panels) },
     { id: 'findings', label: 'Findings', num: true, width: 84, sort: (s) => of(s.sid).findings, cell: (s) => int(of(s.sid).findings) },
     { id: 'note', label: 'Note', width: '24%', cell: (s) => <span className="dim" title={s.note}>{s.note ?? ''}</span> },
-    { id: 'x', label: '', width: 44, fixed: true, cell: (s) => <IconBtn icon="close" label={`Stop keeping ${s.name}`} className="btn icon quiet sm" size={13} onClick={(e) => { e.stopPropagation(); userOp({ op: 'shortlist.remove', sid: s.sid }) }} /> },
+    { id: 'x', label: '', width: 56, fixed: true, cell: (s) => <IconBtn icon="close" label={`Stop keeping ${s.name}`} className="btn icon quiet sm" size={13} onClick={(e) => { e.stopPropagation(); userOp({ op: 'shortlist.remove', sid: s.sid }) }} /> },
   ]
   return (
     <div className="listpage">

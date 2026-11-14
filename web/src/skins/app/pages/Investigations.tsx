@@ -24,12 +24,13 @@ export function Investigations() {
     { id: 'status', label: 'Status', width: 150, sort: (s) => s.status, cell: (s) => <RunState state={STATUS[s.status].state}>{STATUS[s.status].label}</RunState> },
     { id: 'steps', label: 'Steps', num: true, width: 76, sort: (s) => s.done, cell: (s) => (s.steps ? `${s.done} of ${s.steps}` : <span className="muted">–</span>) },
     { id: 'tools', label: 'Tools', num: true, width: 64, sort: (s) => s.tools, cell: (s) => int(s.tools) },
-    { id: 'runs', label: 'Runs', num: true, width: 64, sort: (s) => s.runs, cell: (s) => <>{int(s.runs)}{s.failed > 0 && <span className="st" data-status="fail" style={{ marginLeft: 6 }}>{s.failed} failed</span>}</> },
+    { id: 'runs', label: 'Runs', num: true, width: 64, sort: (s) => s.runs, cell: (s) => int(s.runs) },
+    { id: 'failed', label: 'Failed', num: true, width: 68, sort: (s) => s.failed, cell: (s) => (s.failed ? <span className="st" data-status="fail">{s.failed}</span> : <span className="muted">–</span>) },
     { id: 'findings', label: 'Findings', num: true, width: 80, sort: (s) => s.findings, cell: (s) => int(s.findings) },
     { id: 'kept', label: 'Kept', num: true, width: 60, sort: (s) => s.kept, cell: (s) => int(s.kept) },
     { id: 'first', label: 'First seen', width: 132, sort: (s) => s.first, cell: (s) => <span className="dim">{clock(s.first)}</span> },
     { id: 'last', label: 'Last change', width: 116, sort: (s) => s.last, cell: (s) => <span className="dim">{ago(s.last)}</span> },
-    { id: 'x', label: '', width: 44, fixed: true, cell: (s) => (s.id === current ? null : <IconBtn icon="trash" label="Remove from this list" className="btn icon quiet sm" size={13} onClick={(e) => { e.stopPropagation(); forgetSeen(s.id) }} />) },
+    { id: 'x', label: '', width: 56, fixed: true, cell: (s) => (s.id === current ? null : <IconBtn icon="trash" label="Remove from this list" className="btn icon quiet sm" size={13} onClick={(e) => { e.stopPropagation(); forgetSeen(s.id) }} />) },
   ]
   return (
     <div className="listpage">

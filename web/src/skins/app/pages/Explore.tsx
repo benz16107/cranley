@@ -177,10 +177,9 @@ export function Explore() {
 
   const crit = where.map(parse).filter((x): x is NonNullable<ReturnType<typeof parse>> => !!x)
   const hitCols = useMemo<Col<MeasureHit>[]>(() => [
-    { id: 'name', label: 'Scan', fixed: true, cell: (r) => <><span className="strong">{r.name}</span><span className="sub">{(r.address ?? '').split(',')[0]}</span></> },
-    ...crit.map((c): Col<MeasureHit> => ({ id: c.field, label: fields?.[c.field]?.label ?? c.field, num: true, width: 150, sort: (r) => (typeof r.values[c.field] === 'number' ? (r.values[c.field] as number) : null),
+    { id: 'name', label: 'Scan', fixed: true, cell: (r) => <><span className="strong">{r.name}</span><span className="sub">{[(r.address ?? '').split(',')[0], r.kind.replace(/_/g, ' ')].filter(Boolean).join(' · ')}</span></> },
+    ...crit.map((c): Col<MeasureHit> => ({ id: c.field, label: fields?.[c.field]?.label ?? c.field, num: true, width: crit.length > 2 ? 104 : 128, sort: (r) => (typeof r.values[c.field] === 'number' ? (r.values[c.field] as number) : null),
       cell: (r) => { const v = r.values[c.field]; return typeof v === 'number' ? <><span className="num">{num(v)}</span>{fields?.[c.field]?.unit && <span className="muted"> {fields[c.field].unit}</span>}</> : String(v ?? '–') } })),
-    { id: 'kind', label: 'Kind', width: 120, off: true, cell: (r) => <span className="dim">{r.kind.replace(/_/g, ' ')}</span> },
   ], [key, fields]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const setKinds = (k: Kind) => { const next = f.kinds.includes(k) ? f.kinds.filter((x) => x !== k) : [...f.kinds, k]; setQuery({ kind: next.join(',') || null }) }

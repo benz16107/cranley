@@ -43,8 +43,8 @@ p { text-wrap: pretty; }
 
 /* Hatching means "not measured". Loading is .sk. */
 .hatch { background-image: repeating-linear-gradient(135deg, transparent 0 4px, var(--rule) 4px 5px); }
-.sk { display: block; height: 10px; border-radius: 2px; background: var(--pane-2); animation: sk 1.4s ease-in-out infinite; }
-@keyframes sk { 50% { opacity: 0.45; } }
+.sk { display: block; height: 10px; border-radius: 2px; background: var(--pane-2); animation: sk 1.4s linear infinite; }
+@keyframes sk { 50% { opacity: 0.5; } } /* a slow pulse while something loads; it loops, so it is not eased */
 @media (prefers-reduced-motion: reduce) { .sk { animation: none; } }
 
 /* ---------- buttons ---------- */

@@ -266,9 +266,10 @@ function BlockView({ block: b, ctx }: { block: Block; ctx: Ctx }): ReactNode {
 }
 
 /** One result. `bare` leaves the header out, for a drawer or a tab that already names it. */
-export function PanelView({ panel, bare = false, folded = false }: { panel: Panel; bare?: boolean; folded?: boolean }) {
+export function PanelView({ panel, bare = false, folded = false, open: held, onOpen }: { panel: Panel; bare?: boolean; folded?: boolean; /** when given, the parent decides */ open?: boolean; onOpen?: (open: boolean) => void }) {
   const doc = useWorkspace((s) => s.doc)
-  const [open, setOpen] = useState(!folded)
+  const [own, setOwn] = useState(!folded)
+  const open = held ?? own, setOpen = (o: boolean) => { setOwn(o); onOpen?.(o) }
   const tool = doc.tools.find((t) => t.id === panel.tool)
   const run = doc.runs.find((r) => r.id === panel.run)
   const verdict = panel.blocks.find((b): b is Extract<Block, { type: 'VerdictHeader' }> => b.type === 'VerdictHeader')
