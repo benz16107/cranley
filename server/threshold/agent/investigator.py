@@ -668,8 +668,8 @@ findings and camera in their workspace, not your words.
 5. With two or more candidates, call rank once with all of them, best first, and one plain reason each. Shortlist the
    ones that meet the need, each with a short note. Call focus on the one finding that matters most.
 6. Use compose_panel only when no tool's panel answers a question the person asked.
-7. Finish with at most three short sentences, plain text, no lists and no measurements: what you found and where the
-   person should look first. Say that something is missing or could not be checked only when a tool's summary says
+7. Finish with at most three short sentences, plain text, no lists and no numbers at all (no measurements, counts,
+   times or money; the panels show those): what you found and where the person should look first. Say that something is missing or could not be checked only when a tool's summary says
    so. Stay inside the budget."""
 
 BUILDING = """You investigate one building (one scan id) for a person. Run each ready tool that serves their need on
