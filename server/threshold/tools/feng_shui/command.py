@@ -24,8 +24,8 @@ SKIP_DOORS = ("Closet",)
 
 
 def doors_of(plan: dict, room_id: str, links: list[dict]) -> list[dict]:
-    """Doorways and openings of a room with the room on the far side; the entry door (to a hall or living
-    space, the widest) first. Closet doors are left out."""
+    """Doorways and openings of a room with the room on the far side; the entry door first: an inside door before
+    one to the outside (a patio door), not to a bathroom, the widest. Closet doors are left out."""
     rooms = rooms_by_id(plan)
     out = []
     for link in links:
@@ -36,7 +36,7 @@ def doors_of(plan: dict, room_id: str, links: list[dict]) -> list[dict]:
         if lab in SKIP_DOORS:
             continue
         out.append(link | {"to": other, "to_label": lab})
-    return sorted(out, key=lambda d: (d["to_label"] in ("Bathroom", "Toilet"), -(d.get("width") or 0)))
+    return sorted(out, key=lambda d: (d["to"] is None, d["to_label"] in ("Bathroom", "Toilet"), -(d.get("width") or 0)))
 
 
 def _rect(a, u, n, s, off, w, d) -> Polygon:

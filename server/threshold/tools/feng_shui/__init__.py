@@ -190,7 +190,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                 z = fz.get(fl["id"], 0.0)
                 overlays.append(BoxOverlay(center=(*cell["center"], z + 0.01), size=(*cell["size"], 0.02),
                                            yaw_deg=math.degrees(gr["theta"]),
-                                           label=_sector_name(d, convention),
+                                           label=f"{SECTORS[d][0]} {d if convention == 'compass' else SECTORS[d][1].split()[0]}",
                                            status="warn" if cell["share"] < MISSING_SHARE else "unknown"))
                 pins.append(Pin(id=f"bagua:{d}", anchor=PointAnchor(sid=sid, point=(*cell["center"], z)),
                                 label=_sector_name(d, convention), status="warn" if cell["share"] < MISSING_SHARE else "unknown"))
