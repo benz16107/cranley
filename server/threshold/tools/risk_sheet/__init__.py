@@ -96,7 +96,7 @@ inspection.</footer></html>"""
                         "defensible-space tree cover (Los Angeles), pool and enclosure, trees over the roof, and with a scan "
                         "reads interior hazards (smoke alarms, extinguishers, panels, water heaters, stoves) from the "
                         "panoramas. Returns checks and findings and a printable HTML sheet at /api/site/sheet/<name>.html.",
-      personas=["insurance_underwriter", "houston_homeowner_storm"],
+      personas=["commercial_underwriter", "insurance_underwriter", "houston_homeowner_storm"],
       requires=[{"layer": "vexcel.property"}, {"layer": "vexcel.dtm"}, {"layer": "matterport.panos", "need": "optional"}],
       blocks=["VerdictHeader", "MetricRow", "CheckList", "EvidenceStrip", "StepLog", "ActionBar"],
       overlays=["pins"], annotations={"cost": "slow"},

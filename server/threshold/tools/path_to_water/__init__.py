@@ -211,7 +211,7 @@ def door_barrier(insp: dict | None, cover: bool) -> tuple[str, str]:
                         "graph and across the yard, inspects each pool-side door in the panoramas (self-closing, high latch, "
                         "pet door, alarm), checks the yard for a pool fence or cover from the air, and judges each route "
                         "against CPSC Pub. 362. Returns routes (scan frame and map), pins, checks and a fix list.",
-      personas=["older_adult_family", "houston_homeowner_storm", "insurance_underwriter"],
+      personas=["pool_safety_parent", "older_adult_family", "houston_homeowner_storm", "insurance_underwriter"],
       requires=[{"layer": "matterport.openings"}, {"layer": "matterport.room_labels"}, {"layer": "matterport.panos"},
                 {"layer": "vexcel.property"}, {"layer": "vexcel.ortho"}],
       blocks=["VerdictHeader", "MetricRow", "CheckList", "EvidenceStrip", "FloorPlanMini", "Note", "StepLog"],

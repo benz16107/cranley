@@ -57,7 +57,7 @@ def defects(s) -> list[tuple[str, float | None]]:
                         "condition score, each defect with its share of the roof, solar, rooftop object counts, tree "
                         "cover over the roof and roof height, with the orthophoto and capture date. For insurers and "
                         "storm plans. Works for any address in Houston or Los Angeles.",
-      personas=["insurance_underwriter", "houston_homeowner_storm", "costar_researcher"],
+      personas=["commercial_underwriter", "insurance_underwriter", "houston_homeowner_storm", "costar_researcher"],
       requires=[{"layer": "vexcel.property"}, {"layer": "vexcel.ortho"}],
       blocks=["VerdictHeader", "MetricRow", "CheckList", "EvidenceStrip", "MiniChart", "AssumptionChips", "StepLog"],
       overlays=["pins"],

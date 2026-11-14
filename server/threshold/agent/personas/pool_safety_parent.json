@@ -1,0 +1,15 @@
+{
+  "id": "pool_safety_parent",
+  "title": "Parent of a toddler, house with a pool",
+  "who": "Has a child under five and a backyard pool, and wants to know every way the child could reach the water.",
+  "tools": [
+    "path_to_water",
+    "door_widths",
+    "risk_sheet"
+  ],
+  "thresholds": {},
+  "layout": {
+    "view": "map",
+    "lead_tool": "path_to_water"
+  }
+}

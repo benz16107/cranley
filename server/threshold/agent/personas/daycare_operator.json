@@ -1,0 +1,16 @@
+{
+  "id": "daycare_operator",
+  "title": "Daycare operator",
+  "who": "Looking for a building to license as a child-care centre and needs the capacity inside and out.",
+  "tools": [
+    "daycare_capacity",
+    "door_widths",
+    "room_census",
+    "path_to_water"
+  ],
+  "thresholds": {},
+  "layout": {
+    "view": "plan",
+    "lead_tool": "daycare_capacity"
+  }
+}

@@ -121,7 +121,7 @@ def agree(a, b, pct: float) -> str:
                         "orthophoto by the vision model on 90 m tiles (whole-row boxes split into stalls), cross-checked against "
                         "the lot area Vexcel's detector outlines and the cars it counts, accessible stalls where visible, vehicles on capture day and occupancy, beside the CoStar "
                         "record's parking spaces and ratio. Surface lots only: garages and stalls under trees are invisible.",
-      personas=["apartment_manager", "costar_researcher", "office_tenant", "truck_dispatcher"],
+      personas=["commercial_underwriter", "apartment_manager", "costar_researcher", "office_tenant", "truck_dispatcher"],
       requires=[{"layer": "vexcel.ortho"}, {"layer": "vexcel.property"}, {"layer": "costar.property", "need": "optional"}],
       blocks=["VerdictHeader", "MetricRow", "CheckList", "EvidenceStrip", "AssumptionChips", "StepLog"],
       overlays=["pins"], annotations={"cost": "slow"},

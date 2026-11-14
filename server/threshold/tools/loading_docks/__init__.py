@@ -189,7 +189,7 @@ def agree(a: float | None, b: float | None) -> str:
                         "oblique views, split into dock-high and drive-in by the vision model on the dock face, from "
                         "inside when a scan exists, and compared with the CoStar record (numExternalLoadingDocks + "
                         "numInternalLoadingDocks, driveInBays). Returns pins per door, the dock side, and checks.",
-      personas=["truck_dispatcher", "costar_researcher"],
+      personas=["commercial_underwriter", "truck_dispatcher", "costar_researcher"],
       requires=[{"layer": "vexcel.oblique"}, {"layer": "costar.property", "need": "optional"},
                 {"layer": "matterport.panos", "need": "optional"}],
       blocks=["VerdictHeader", "MetricRow", "CheckList", "EvidenceStrip", "StepLog", "ActionBar"],
