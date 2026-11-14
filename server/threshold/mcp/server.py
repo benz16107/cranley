@@ -7,6 +7,7 @@ because the list is read from the registry on every `tools/list`.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 from collections.abc import Callable
 from typing import Annotated, Any
@@ -50,17 +51,21 @@ def as_mcp(m: Manifest) -> MCPTool:
 
 
 async def in_thread(ctx: Context, work: Callable[[Callable[[str], None]], Any]) -> Any:
-    """Run blocking work in a worker thread; each line it reports reaches the client as a log message and progress."""
-    n = 0
+    """Run blocking work in a worker thread; each line it reports reaches the client as a log message and progress.
+    Lines may come from any thread (the agent runs tools in its own pool), so they are scheduled on the loop."""
+    loop, n = asyncio.get_running_loop(), 0
+
+    async def send(i: int, text: str) -> None:
+        try:
+            await ctx.info(text)
+            await ctx.report_progress(i, None, text)
+        except Exception:  # the client went away; the work carries on
+            pass
 
     def line(text: str) -> None:
         nonlocal n
         n += 1
-        try:
-            anyio.from_thread.run(ctx.info, text)
-            anyio.from_thread.run(lambda: ctx.report_progress(n, None, text))
-        except Exception:  # the client went away; the work carries on
-            pass
+        asyncio.run_coroutine_threadsafe(send(n, text), loop)
     return await anyio.to_thread.run_sync(lambda: work(line))
 
 
