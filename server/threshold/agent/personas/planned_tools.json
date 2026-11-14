@@ -1,0 +1,74 @@
+{
+  "step_free_route": {
+    "title": "Step-free route",
+    "summary": "Finds a route from the entrance to each room and marks steps and narrow points on it."
+  },
+  "turning_space": {
+    "title": "Turning space",
+    "summary": "Checks whether each room has a clear 1.5 m turning circle."
+  },
+  "bathroom_clearance": {
+    "title": "Bathroom clearance",
+    "summary": "Checks bathroom floor space and door swing for a wheelchair."
+  },
+  "record_vs_reality": {
+    "title": "Record versus reality",
+    "summary": "Compares the listing or CoStar record with what the scan measured: rooms, areas, features."
+  },
+  "daylight": {
+    "title": "Daylight",
+    "summary": "Estimates daylight per room from window area and orientation."
+  },
+  "storage_space": {
+    "title": "Storage space",
+    "summary": "Totals closet and storage area."
+  },
+  "furniture_fit": {
+    "title": "Furniture fit",
+    "summary": "Tests whether a box of given size passes along the route to a room and fits inside it."
+  },
+  "stairs_count": {
+    "title": "Stairs",
+    "summary": "Counts floors and stairs between the entrance and bedrooms."
+  },
+  "unit_compare": {
+    "title": "Unit compare",
+    "summary": "Ranks several units side by side on the metrics you care about."
+  },
+  "fire_preplan": {
+    "title": "Fire pre-plan",
+    "summary": "Builds a pre-incident plan: entries, egress, hazards, utilities and access for apparatus."
+  },
+  "egress_routes": {
+    "title": "Egress routes",
+    "summary": "Traces the exit path from every room and its narrowest point."
+  },
+  "flood_rehearsal": {
+    "title": "Flood rehearsal",
+    "summary": "Shows what a given water depth would reach, room by room, from ground elevation."
+  },
+  "valuables_height": {
+    "title": "Valuables height",
+    "summary": "Lists what sits below a water line and where higher ground inside is."
+  },
+  "roof_facts": {
+    "title": "Roof facts",
+    "summary": "Roof shape, material, condition and solar from aerial imagery."
+  },
+  "office_fit": {
+    "title": "Office fit",
+    "summary": "Estimates desks and meeting rooms the plan holds for a team size."
+  },
+  "truck_access": {
+    "title": "Truck access",
+    "summary": "Checks the approach and turning room for a truck from aerial imagery."
+  },
+  "loading_docks": {
+    "title": "Loading docks",
+    "summary": "Finds loading docks and dock doors from aerial and scan data."
+  },
+  "room_labeller": {
+    "title": "Room labeller",
+    "summary": "Labels unlabelled rooms from panoramas and the corrections you have made."
+  }
+}

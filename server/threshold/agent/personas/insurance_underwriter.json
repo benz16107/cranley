@@ -1,0 +1,16 @@
+{
+  "id": "insurance_underwriter",
+  "title": "Insurance underwriter",
+  "who": "Prices risk on a property: roof, flood exposure, what was built versus what is recorded.",
+  "tools": [
+    "roof_facts",
+    "flood_rehearsal",
+    "record_vs_reality",
+    "room_census"
+  ],
+  "thresholds": {},
+  "layout": {
+    "view": "map",
+    "lead_tool": "roof_facts"
+  }
+}

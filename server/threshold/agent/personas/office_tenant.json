@@ -1,0 +1,18 @@
+{
+  "id": "office_tenant",
+  "title": "Office tenant",
+  "who": "Is choosing office space and wants seats, meeting rooms and how the plan works for a team.",
+  "tools": [
+    "office_fit",
+    "room_census",
+    "door_widths",
+    "daylight"
+  ],
+  "thresholds": {
+    "access.door_width_m": 0.813
+  },
+  "layout": {
+    "view": "plan",
+    "lead_tool": "office_fit"
+  }
+}

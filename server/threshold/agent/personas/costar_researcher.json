@@ -1,0 +1,15 @@
+{
+  "id": "costar_researcher",
+  "title": "CoStar researcher",
+  "who": "Checks and enriches property records: room types, areas, what changed since the record.",
+  "tools": [
+    "record_vs_reality",
+    "room_census",
+    "room_labeller"
+  ],
+  "thresholds": {},
+  "layout": {
+    "view": "plan",
+    "lead_tool": "record_vs_reality"
+  }
+}

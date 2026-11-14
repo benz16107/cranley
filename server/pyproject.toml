@@ -12,6 +12,8 @@ dependencies = [
   "pillow>=10.4",
   "pyzipper>=0.4.0",
   "anthropic>=2.8",
+  "deepagents>=0.7.38",
+  "langchain-anthropic>=1.7.10",
 ]
 
 [dependency-groups]

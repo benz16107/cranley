@@ -1,0 +1,19 @@
+{
+  "id": "fire_captain",
+  "title": "Fire captain",
+  "who": "Pre-plans a building: entries, egress widths, hazards, standpipes and the route in.",
+  "tools": [
+    "fire_preplan",
+    "egress_routes",
+    "door_widths",
+    "room_census"
+  ],
+  "thresholds": {
+    "access.door_width_m": 0.813,
+    "access.door_standard": "IBC 2021 §1010.1.1, 32 in clear egress"
+  },
+  "layout": {
+    "view": "plan",
+    "lead_tool": "fire_preplan"
+  }
+}

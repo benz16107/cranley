@@ -1,0 +1,18 @@
+{
+  "id": "apartment_manager",
+  "title": "Apartment manager",
+  "who": "Runs a building and compares units, accessibility and what the listing claims.",
+  "tools": [
+    "room_census",
+    "door_widths",
+    "unit_compare",
+    "record_vs_reality"
+  ],
+  "thresholds": {
+    "access.door_width_m": 0.813
+  },
+  "layout": {
+    "view": "map",
+    "lead_tool": "unit_compare"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "wheelchair_user",
+  "title": "Wheelchair user",
+  "who": "Uses a wheelchair and needs every door, route and bathroom to work for them.",
+  "tools": [
+    "door_widths",
+    "step_free_route",
+    "turning_space",
+    "bathroom_clearance",
+    "room_census"
+  ],
+  "thresholds": {
+    "access.door_width_m": 0.813,
+    "access.door_standard": "ADA 2010 §404.2.3, 32 in clear"
+  },
+  "layout": {
+    "view": "plan",
+    "lead_tool": "door_widths"
+  }
+}

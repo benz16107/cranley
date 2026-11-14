@@ -1,0 +1,3704 @@
+{
+  "$defs": {
+    "Action": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "tool": {
+          "type": "string"
+        },
+        "inputs": {
+          "additionalProperties": true,
+          "default": {},
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "tool"
+      ],
+      "title": "Action",
+      "type": "object"
+    },
+    "ActionBar": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "ActionBar",
+          "default": "ActionBar",
+          "type": "string"
+        },
+        "run": {
+          "description": "Shows result.actions; each runs its tool with its inputs",
+          "type": "string"
+        }
+      },
+      "required": [
+        "run",
+        "type"
+      ],
+      "title": "ActionBar",
+      "type": "object"
+    },
+    "AddressScope": {
+      "additionalProperties": false,
+      "properties": {
+        "address": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "address"
+      ],
+      "title": "AddressScope",
+      "type": "object"
+    },
+    "Annotations": {
+      "additionalProperties": false,
+      "properties": {
+        "read_only": {
+          "default": true,
+          "type": "boolean"
+        },
+        "cost": {
+          "default": "fast",
+          "enum": [
+            "fast",
+            "slow"
+          ],
+          "type": "string"
+        }
+      },
+      "title": "Annotations",
+      "type": "object"
+    },
+    "Assumption": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "For an editable assumption, the preference key (x-pref) that an edit sets",
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "editable": {
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "value"
+      ],
+      "title": "Assumption",
+      "type": "object"
+    },
+    "AssumptionChips": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "AssumptionChips",
+          "default": "AssumptionChips",
+          "type": "string"
+        },
+        "run": {
+          "description": "Shows result.assumptions; an editable chip sends pref.set with key = assumption id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "run",
+        "type"
+      ],
+      "title": "AssumptionChips",
+      "type": "object"
+    },
+    "BoxOverlay": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "box",
+          "default": "box",
+          "type": "string"
+        },
+        "center": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "type": "array"
+        },
+        "size": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "type": "array"
+        },
+        "yaw_deg": {
+          "default": 0,
+          "type": "number"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail",
+            "unknown"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "center",
+        "size",
+        "label",
+        "status",
+        "kind"
+      ],
+      "title": "BoxOverlay",
+      "type": "object"
+    },
+    "Brief": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "default": "",
+          "description": "What the person said, in their words",
+          "type": "string"
+        },
+        "summary": {
+          "default": "",
+          "description": "One line: who they are and what they need",
+          "type": "string"
+        },
+        "persona": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope",
+          "default": {
+            "sids": [],
+            "address": null
+          }
+        },
+        "facts": {
+          "additionalProperties": true,
+          "default": {},
+          "description": "Answers keyed by preference key (x-pref)",
+          "type": "object"
+        }
+      },
+      "title": "Brief",
+      "type": "object"
+    },
+    "BriefSet": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "default": "agent",
+          "enum": [
+            "agent",
+            "user",
+            "system"
+          ],
+          "type": "string"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Agent turn or tool run this op belongs to"
+        },
+        "op": {
+          "const": "brief.set",
+          "default": "brief.set",
+          "type": "string"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "persona": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Scope"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "facts": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "BriefSet",
+      "type": "object",
+      "required": [
+        "op"
+      ]
+    },
+    "Camera": {
+      "additionalProperties": false,
+      "properties": {
+        "anchor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PointAnchor"
+            },
+            {
+              "$ref": "#/$defs/RoomAnchor"
+            },
+            {
+              "$ref": "#/$defs/OpeningAnchor"
+            },
+            {
+              "$ref": "#/$defs/WallAnchor"
+            },
+            {
+              "$ref": "#/$defs/PanoAnchor"
+            },
+            {
+              "$ref": "#/$defs/GeoAnchor"
+            }
+          ]
+        },
+        "reason": {
+          "default": "",
+          "type": "string"
+        },
+        "at": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "anchor"
+      ],
+      "title": "Camera",
+      "type": "object"
+    },
+    "CameraFocus": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "default": "agent",
+          "enum": [
+            "agent",
+            "user",
+            "system"
+          ],
+          "type": "string"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Agent turn or tool run this op belongs to"
+        },
+        "op": {
+          "const": "camera.focus",
+          "default": "camera.focus",
+          "type": "string"
+        },
+        "anchor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PointAnchor"
+            },
+            {
+              "$ref": "#/$defs/RoomAnchor"
+            },
+            {
+              "$ref": "#/$defs/OpeningAnchor"
+            },
+            {
+              "$ref": "#/$defs/WallAnchor"
+            },
+            {
+              "$ref": "#/$defs/PanoAnchor"
+            },
+            {
+              "$ref": "#/$defs/GeoAnchor"
+            }
+          ]
+        },
+        "reason": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "required": [
+        "anchor",
+        "op"
+      ],
+      "title": "CameraFocus",
+      "type": "object"
+    },
+    "Check": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "rule": {
+          "type": "string"
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unit": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail",
+            "unknown"
+          ],
+          "type": "string"
+        },
+        "standard": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "findings": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "rule",
+        "measured",
+        "threshold",
+        "unit",
+        "status"
+      ],
+      "title": "Check",
+      "type": "object"
+    },
+    "CheckList": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "CheckList",
+          "default": "CheckList",
+          "type": "string"
+        },
+        "run": {
+          "type": "string"
+        },
+        "checks": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Check ids; null means all, worst first"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "items": {
+                "enum": [
+                  "pass",
+                  "warn",
+                  "fail",
+                  "unknown"
+                ],
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Show only these statuses; null means all"
+        }
+      },
+      "required": [
+        "run",
+        "type"
+      ],
+      "title": "CheckList",
+      "type": "object"
+    },
+    "Choke": {
+      "additionalProperties": false,
+      "properties": {
+        "point": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "type": "array"
+        },
+        "width": {
+          "type": "number"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail",
+            "unknown"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "point",
+        "width",
+        "status"
+      ],
+      "title": "Choke",
+      "type": "object"
+    },
+    "Control": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "description": "Tool input name",
+          "type": "string"
+        },
+        "pref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Preference key an edit sets (pref.set), which re-runs the tool"
+        },
+        "label": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "slider",
+            "select",
+            "toggle"
+          ],
+          "type": "string"
+        },
+        "min": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "step": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "options": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "input",
+        "label",
+        "kind"
+      ],
+      "title": "Control",
+      "type": "object"
+    },
+    "Controls": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "Controls",
+          "default": "Controls",
+          "type": "string"
+        },
+        "tool": {
+          "type": "string"
+        },
+        "controls": {
+          "items": {
+            "$ref": "#/$defs/Control"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "tool",
+        "controls",
+        "type"
+      ],
+      "title": "Controls",
+      "type": "object"
+    },
+    "EvidenceStrip": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "EvidenceStrip",
+          "default": "EvidenceStrip",
+          "type": "string"
+        },
+        "findings": {
+          "description": "Workspace finding ids; each thumbnail flies to its anchor",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "findings",
+        "type"
+      ],
+      "title": "EvidenceStrip",
+      "type": "object"
+    },
+    "Feedback": {
+      "additionalProperties": false,
+      "properties": {
+        "verdict": {
+          "enum": [
+            "rejected",
+            "confirmed"
+          ],
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "verdict"
+      ],
+      "title": "Feedback",
+      "type": "object"
+    },
+    "Finding": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail",
+            "unknown"
+          ],
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "anchor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PointAnchor"
+            },
+            {
+              "$ref": "#/$defs/RoomAnchor"
+            },
+            {
+              "$ref": "#/$defs/OpeningAnchor"
+            },
+            {
+              "$ref": "#/$defs/WallAnchor"
+            },
+            {
+              "$ref": "#/$defs/PanoAnchor"
+            },
+            {
+              "$ref": "#/$defs/GeoAnchor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source": {
+          "$ref": "#/$defs/Source"
+        },
+        "media": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Media"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "status",
+        "detail",
+        "anchor",
+        "source"
+      ],
+      "title": "Finding",
+      "type": "object"
+    },
+    "FindingAdd": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "default": "agent",
+          "enum": [
+            "agent",
+            "user",
+            "system"
+          ],
+          "type": "string"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Agent turn or tool run this op belongs to"
+        },
+        "op": {
+          "const": "finding.add",
+          "default": "finding.add",
+          "type": "string"
+        },
+        "finding": {
+          "$ref": "#/$defs/WsFinding"
+        }
+      },
+      "required": [
+        "finding",
+        "op"
+      ],
+      "title": "FindingAdd",
+      "type": "object"
+    },
+    "FloorPlanMini": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "FloorPlanMini",
+          "default": "FloorPlanMini",
+          "type": "string"
+        },
+        "sid": {
+          "type": "string"
+        },
+        "floor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "overlays": {
+          "default": [],
+          "description": "Workspace overlay ids drawn on the plan",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "sid",
+        "type"
+      ],
+      "title": "FloorPlanMini",
+      "type": "object"
+    },
+    "GeoAnchor": {
+      "additionalProperties": false,
+      "properties": {
+        "geo": {
+          "description": "[lon, lat]",
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "type": "array"
+        }
+      },
+      "required": [
+        "geo"
+      ],
+      "title": "GeoAnchor",
+      "type": "object"
+    },
+    "Layer": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "block": {
+          "enum": [
+            "PinSet",
+            "ParcelFill",
+            "Extrusion",
+            "ReachRing",
+            "RouteLine",
+            "OrthoPatch",
+            "HexDensity",
+            "Callout"
+          ],
+          "type": "string"
+        },
+        "data_ref": {
+          "description": "A back-end route, never data",
+          "type": "string"
+        },
+        "label": {
+          "default": "",
+          "type": "string"
+        },
+        "tool": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "visible": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "block",
+        "data_ref"
+      ],
+      "title": "Layer",
+      "type": "object"
+    },
+    "LayerUpsert": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "default": "agent",
+          "enum": [
+            "agent",
+            "user",
+            "system"
+          ],
+          "type": "string"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Agent turn or tool run this op belongs to"
+        },
+        "op": {
+          "const": "layer.upsert",
+          "default": "layer.upsert",
+          "type": "string"
+        },
+        "layer": {
+          "$ref": "#/$defs/Layer"
+        }
+      },
+      "required": [
+        "layer",
+        "op"
+      ],
+      "title": "LayerUpsert",
+      "type": "object"
+    },
+    "Legend": {
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "title",
+        "unit",
+        "min",
+        "max"
+      ],
+      "title": "Legend",
+      "type": "object"
+    },
+    "LensOverlay": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "lens",
+          "default": "lens",
+          "type": "string"
+        },
+        "values": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "description": "room id -> value",
+          "type": "object"
+        },
+        "ramp": {
+          "enum": [
+            "sequential",
+            "status"
+          ],
+          "type": "string"
+        },
+        "legend": {
+          "$ref": "#/$defs/Legend"
+        }
+      },
+      "required": [
+        "values",
+        "ramp",
+        "legend",
+        "kind"
+      ],
+      "title": "LensOverlay",
+      "type": "object"
+    },
+    "LogEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "type": "integer"
+        },
+        "at": {
+          "type": "number"
+        },
+        "op": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "brief.set": "#/$defs/BriefSet",
+                  "camera.focus": "#/$defs/CameraFocus",
+                  "finding.add": "#/$defs/FindingAdd",
+                  "layer.upsert": "#/$defs/LayerUpsert",
+                  "overlay.upsert": "#/$defs/OverlayUpsert",
+                  "panel.upsert": "#/$defs/PanelUpsert",
+                  "plan.set": "#/$defs/PlanSet",
+                  "pref.set": "#/$defs/PrefSet",
+                  "question.answer": "#/$defs/QuestionAnswer",
+                  "question.ask": "#/$defs/QuestionAsk",
+                  "run.finish": "#/$defs/RunFinish",
+                  "run.start": "#/$defs/RunStart",
+                  "shortlist.add": "#/$defs/ShortlistAdd",
+                  "shortlist.remove": "#/$defs/ShortlistRemove",
+                  "tool.disable": "#/$defs/ToolDisable",
+                  "tool.enable": "#/$defs/ToolEnable"
+                },
+                "propertyName": "op"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/BriefSet"
+                },
+                {
+                  "$ref": "#/$defs/QuestionAsk"
+                },
+                {
+                  "$ref": "#/$defs/QuestionAnswer"
+                },
+                {
+                  "$ref": "#/$defs/ToolEnable"
+                },
+                {
+                  "$ref": "#/$defs/ToolDisable"
+                },
+                {
+                  "$ref": "#/$defs/RunStart"
+                },
+                {
+                  "$ref": "#/$defs/RunFinish"
+                },
+                {
+                  "$ref": "#/$defs/FindingAdd"
+                },
+                {
+                  "$ref": "#/$defs/LayerUpsert"
+                },
+                {
+                  "$ref": "#/$defs/OverlayUpsert"
+                },
+                {
+                  "$ref": "#/$defs/PanelUpsert"
+                },
+                {
+                  "$ref": "#/$defs/CameraFocus"
+                },
+                {
+                  "$ref": "#/$defs/PlanSet"
+                },
+                {
+                  "$ref": "#/$defs/PrefSet"
+                },
+                {
+                  "$ref": "#/$defs/ShortlistAdd"
+                },
+                {
+                  "$ref": "#/$defs/ShortlistRemove"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "undo": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Seq of the entry this one undoes"
+        },
+        "cause": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Seq of the user op this entry was learned from"
+        }
+      },
+      "required": [
+        "seq",
+        "at"
+      ],
+      "title": "LogEntry",
+      "type": "object"
+    },
+    "Manifest": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "summary": {
+          "description": "For the person: tooltip and 'why this tool'",
+          "type": "string"
+        },
+        "model_description": {
+          "description": "For the model: when to use it and what it returns",
+          "type": "string"
+        },
+        "icon": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "personas": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "requires": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Requirement"
+          },
+          "type": "array"
+        },
+        "inputs": {
+          "additionalProperties": true,
+          "description": "JSON Schema with x-ask, x-pref, x-source, x-unit",
+          "type": "object"
+        },
+        "blocks": {
+          "default": [],
+          "items": {
+            "enum": [
+              "VerdictHeader",
+              "MetricRow",
+              "CheckList",
+              "EvidenceStrip",
+              "RankedTable",
+              "MiniChart",
+              "FloorPlanMini",
+              "Controls",
+              "AssumptionChips",
+              "StepLog",
+              "Note",
+              "ActionBar"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "overlays": {
+          "default": [],
+          "items": {
+            "enum": [
+              "lens",
+              "rule",
+              "pins",
+              "route",
+              "water",
+              "box"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "annotations": {
+          "$ref": "#/$defs/Annotations",
+          "default": {
+            "read_only": true,
+            "cost": "fast"
+          }
+        },
+        "examples": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "status": {
+          "default": "ready",
+          "enum": [
+            "ready",
+            "planned"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "summary",
+        "model_description"
+      ],
+      "title": "Manifest",
+      "type": "object"
+    },
+    "Media": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "pano",
+            "ortho",
+            "drone"
+          ],
+          "type": "string"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "box": {
+          "anyOf": [
+            {
+              "maxItems": 4,
+              "minItems": 4,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "kind",
+        "ref"
+      ],
+      "title": "Media",
+      "type": "object"
+    },
+    "Metric": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unit": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/Source"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "value",
+        "unit",
+        "source"
+      ],
+      "title": "Metric",
+      "type": "object"
+    },
+    "MetricRow": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "MetricRow",
+          "default": "MetricRow",
+          "type": "string"
+        },
+        "run": {
+          "type": "string"
+        },
+        "metrics": {
+          "description": "Metric ids in result.metrics, each shown with its source",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 4,
+          "type": "array"
+        }
+      },
+      "required": [
+        "run",
+        "metrics",
+        "type"
+      ],
+      "title": "MetricRow",
+      "type": "object"
+    },
+    "MiniChart": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "MiniChart",
+          "default": "MiniChart",
+          "type": "string"
+        },
+        "run": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "metrics": {
+          "description": "Metric ids; one bar each, label and unit from the metric",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "run",
+        "title",
+        "metrics",
+        "type"
+      ],
+      "title": "MiniChart",
+      "type": "object"
+    },
+    "Note": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "Note",
+          "default": "Note",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 280,
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "type"
+      ],
+      "title": "Note",
+      "type": "object"
+    },
+    "OpeningAnchor": {
+      "additionalProperties": false,
+      "properties": {
+        "sid": {
+          "type": "string"
+        },
+        "opening": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "sid",
+        "opening"
+      ],
+      "title": "OpeningAnchor",
+      "type": "object"
+    },
+    "OverlayUpsert": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "default": "agent",
+          "enum": [
+            "agent",
+            "user",
+            "system"
+          ],
+          "type": "string"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Agent turn or tool run this op belongs to"
+        },
+        "op": {
+          "const": "overlay.upsert",
+          "default": "overlay.upsert",
+          "type": "string"
+        },
+        "overlay": {
+          "$ref": "#/$defs/WsOverlay"
+        }
+      },
+      "required": [
+        "overlay",
+        "op"
+      ],
+      "title": "OverlayUpsert",
+      "type": "object"
+    },
+    "Panel": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "blocks": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "ActionBar": "#/$defs/ActionBar",
+                "AssumptionChips": "#/$defs/AssumptionChips",
+                "CheckList": "#/$defs/CheckList",
+                "Controls": "#/$defs/Controls",
+                "EvidenceStrip": "#/$defs/EvidenceStrip",
+                "FloorPlanMini": "#/$defs/FloorPlanMini",
+                "MetricRow": "#/$defs/MetricRow",
+                "MiniChart": "#/$defs/MiniChart",
+                "Note": "#/$defs/Note",
+                "RankedTable": "#/$defs/RankedTable",
+                "StepLog": "#/$defs/StepLog",
+                "VerdictHeader": "#/$defs/VerdictHeader"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/VerdictHeader"
+              },
+              {
+                "$ref": "#/$defs/MetricRow"
+              },
+              {
+                "$ref": "#/$defs/CheckList"
+              },
+              {
+                "$ref": "#/$defs/EvidenceStrip"
+              },
+              {
+                "$ref": "#/$defs/RankedTable"
+              },
+              {
+                "$ref": "#/$defs/MiniChart"
+              },
+              {
+                "$ref": "#/$defs/FloorPlanMini"
+              },
+              {
+                "$ref": "#/$defs/Controls"
+              },
+              {
+                "$ref": "#/$defs/AssumptionChips"
+              },
+              {
+                "$ref": "#/$defs/StepLog"
+              },
+              {
+                "$ref": "#/$defs/Note"
+              },
+              {
+                "$ref": "#/$defs/ActionBar"
+              }
+            ]
+          },
+          "type": "array"
+        },
+        "tool": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "blocks"
+      ],
+      "title": "Panel",
+      "type": "object"
+    },
+    "PanelUpsert": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "default": "agent",
+          "enum": [
+            "agent",
+            "user",
+            "system"
+          ],
+          "type": "string"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Agent turn or tool run this op belongs to"
+        },
+        "op": {
+          "const": "panel.upsert",
+          "default": "panel.upsert",
+          "type": "string"
+        },
+        "panel": {
+          "$ref": "#/$defs/Panel"
+        }
+      },
+      "required": [
+        "panel",
+        "op"
+      ],
+      "title": "PanelUpsert",
+      "type": "object"
+    },
+    "PanoAnchor": {
+      "additionalProperties": false,
+      "properties": {
+        "sid": {
+          "type": "string"
+        },
+        "pano": {
+          "type": "string"
+        },
+        "yaw_deg": {
+          "type": "number"
+        },
+        "pitch_deg": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "sid",
+        "pano",
+        "yaw_deg",
+        "pitch_deg"
+      ],
+      "title": "PanoAnchor",
+      "type": "object"
+    },
+    "Pin": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "anchor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PointAnchor"
+            },
+            {
+              "$ref": "#/$defs/RoomAnchor"
+            },
+            {
+              "$ref": "#/$defs/OpeningAnchor"
+            },
+            {
+              "$ref": "#/$defs/WallAnchor"
+            },
+            {
+              "$ref": "#/$defs/PanoAnchor"
+            },
+            {
+              "$ref": "#/$defs/GeoAnchor"
+            }
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail",
+            "unknown"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "anchor",
+        "label",
+        "status"
+      ],
+      "title": "Pin",
+      "type": "object"
+    },
+    "PinsOverlay": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "pins",
+          "default": "pins",
+          "type": "string"
+        },
+        "pins": {
+          "items": {
+            "$ref": "#/$defs/Pin"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "pins",
+        "kind"
+      ],
+      "title": "PinsOverlay",
+      "type": "object"
+    },
+    "PlanSet": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "default": "agent",
+          "enum": [
+            "agent",
+            "user",
+            "system"
+          ],
+          "type": "string"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Agent turn or tool run this op belongs to"
+        },
+        "op": {
+          "const": "plan.set",
+          "default": "plan.set",
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/PlanStep"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "steps",
+        "op"
+      ],
+      "title": "PlanSet",
+      "type": "object"
+    },
+    "PlanStep": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "status": {
+          "default": "pending",
+          "enum": [
+            "pending",
+            "in_progress",
+            "completed"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text"
+      ],
+      "title": "PlanStep",
+      "type": "object"
+    },
+    "PointAnchor": {
+      "additionalProperties": false,
+      "properties": {
+        "sid": {
+          "type": "string"
+        },
+        "point": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "type": "array"
+        }
+      },
+      "required": [
+        "sid",
+        "point"
+      ],
+      "title": "PointAnchor",
+      "type": "object"
+    },
+    "Pref": {
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "value": {},
+        "reason": {
+          "default": "",
+          "description": "The event it came from, said to the person",
+          "type": "string"
+        },
+        "cause": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Log seq of the op it was learned from"
+        },
+        "by": {
+          "default": "user",
+          "enum": [
+            "agent",
+            "user",
+            "system"
+          ],
+          "type": "string"
+        },
+        "at": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "key",
+        "value"
+      ],
+      "title": "Pref",
+      "type": "object"
+    },
+    "PrefSet": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "default": "agent",
+          "enum": [
+            "agent",
+            "user",
+            "system"
+          ],
+          "type": "string"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Agent turn or tool run this op belongs to"
+        },
+        "op": {
+          "const": "pref.set",
+          "default": "pref.set",
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "description": "null removes the preference"
+        },
+        "reason": {
+          "default": "",
+          "type": "string"
+        },
+        "cause": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "key",
+        "value",
+        "op"
+      ],
+      "title": "PrefSet",
+      "type": "object"
+    },
+    "Question": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "key": {
+          "description": "Preference key the answer fills",
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "tools": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "input": {
+          "additionalProperties": true,
+          "description": "JSON Schema of the answer (type, minimum, maximum, x-unit)",
+          "type": "object"
+        },
+        "answer": {
+          "default": null
+        },
+        "answered": {
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "text",
+        "tools",
+        "input"
+      ],
+      "title": "Question",
+      "type": "object"
+    },
+    "QuestionAnswer": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "default": "agent",
+          "enum": [
+            "agent",
+            "user",
+            "system"
+          ],
+          "type": "string"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Agent turn or tool run this op belongs to"
+        },
+        "op": {
+          "const": "question.answer",
+          "default": "question.answer",
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "value": {}
+      },
+      "required": [
+        "id",
+        "value",
+        "op"
+      ],
+      "title": "QuestionAnswer",
+      "type": "object"
+    },
+    "QuestionAsk": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "default": "agent",
+          "enum": [
+            "agent",
+            "user",
+            "system"
+          ],
+          "type": "string"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Agent turn or tool run this op belongs to"
+        },
+        "op": {
+          "const": "question.ask",
+          "default": "question.ask",
+          "type": "string"
+        },
+        "question": {
+          "$ref": "#/$defs/Question"
+        }
+      },
+      "required": [
+        "question",
+        "op"
+      ],
+      "title": "QuestionAsk",
+      "type": "object"
+    },
+    "RankedColumn": {
+      "additionalProperties": false,
+      "properties": {
+        "metric": {
+          "description": "Metric id read from each row's run result",
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "better": {
+          "enum": [
+            "higher",
+            "lower"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "metric",
+        "label",
+        "better"
+      ],
+      "title": "RankedColumn",
+      "type": "object"
+    },
+    "RankedTable": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "RankedTable",
+          "default": "RankedTable",
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "columns": {
+          "items": {
+            "$ref": "#/$defs/RankedColumn"
+          },
+          "maxItems": 6,
+          "type": "array"
+        },
+        "rows": {
+          "description": "Run ids, one per candidate building",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "title",
+        "columns",
+        "rows",
+        "type"
+      ],
+      "title": "RankedTable",
+      "type": "object"
+    },
+    "Requirement": {
+      "additionalProperties": false,
+      "properties": {
+        "layer": {
+          "description": "e.g. matterport.rooms, matterport.openings, vexcel.ortho, costar.property",
+          "type": "string"
+        },
+        "need": {
+          "default": "required",
+          "enum": [
+            "required",
+            "optional"
+          ],
+          "type": "string"
+        },
+        "fallback": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "layer"
+      ],
+      "title": "Requirement",
+      "type": "object"
+    },
+    "RoomAnchor": {
+      "additionalProperties": false,
+      "properties": {
+        "sid": {
+          "type": "string"
+        },
+        "room": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "sid",
+        "room"
+      ],
+      "title": "RoomAnchor",
+      "type": "object"
+    },
+    "RouteOverlay": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "route",
+          "default": "route",
+          "type": "string"
+        },
+        "floor": {
+          "type": "string"
+        },
+        "points": {
+          "items": {
+            "maxItems": 3,
+            "minItems": 3,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "type": "array"
+        },
+        "chokes": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Choke"
+          },
+          "type": "array"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "floor",
+        "points",
+        "label",
+        "kind"
+      ],
+      "title": "RouteOverlay",
+      "type": "object"
+    },
+    "RuleOverlay": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "rule",
+          "default": "rule",
+          "type": "string"
+        },
+        "select": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SelectRooms"
+            },
+            {
+              "$ref": "#/$defs/SelectRoomLabels"
+            },
+            {
+              "$ref": "#/$defs/SelectOpenings"
+            },
+            {
+              "$ref": "#/$defs/SelectWalls"
+            }
+          ]
+        },
+        "style": {
+          "enum": [
+            "solid",
+            "dim",
+            "hide",
+            "highlight",
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "select",
+        "style",
+        "kind"
+      ],
+      "title": "RuleOverlay",
+      "type": "object"
+    },
+    "Run": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "tool": {
+          "type": "string"
+        },
+        "sid": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "inputs": {
+          "additionalProperties": true,
+          "default": {},
+          "type": "object"
+        },
+        "inputs_from": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "description": "input -> preference key it came from",
+          "type": "object"
+        },
+        "plan_step": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "status": {
+          "default": "running",
+          "enum": [
+            "running",
+            "done",
+            "error",
+            "skipped"
+          ],
+          "type": "string"
+        },
+        "started": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "finished": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "steps": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "summary": {
+          "default": "",
+          "type": "string"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ToolResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "stale": {
+          "default": false,
+          "description": "A preference this run used changed after it finished",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "tool"
+      ],
+      "title": "Run",
+      "type": "object"
+    },
+    "RunFinish": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "default": "agent",
+          "enum": [
+            "agent",
+            "user",
+            "system"
+          ],
+          "type": "string"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Agent turn or tool run this op belongs to"
+        },
+        "op": {
+          "const": "run.finish",
+          "default": "run.finish",
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "done",
+            "error",
+            "skipped"
+          ],
+          "type": "string"
+        },
+        "summary": {
+          "default": "",
+          "type": "string"
+        },
+        "steps": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ToolResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "op"
+      ],
+      "title": "RunFinish",
+      "type": "object"
+    },
+    "RunStart": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "default": "agent",
+          "enum": [
+            "agent",
+            "user",
+            "system"
+          ],
+          "type": "string"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Agent turn or tool run this op belongs to"
+        },
+        "op": {
+          "const": "run.start",
+          "default": "run.start",
+          "type": "string"
+        },
+        "record": {
+          "$ref": "#/$defs/Run"
+        }
+      },
+      "required": [
+        "record",
+        "op"
+      ],
+      "title": "RunStart",
+      "type": "object"
+    },
+    "ScanScope": {
+      "additionalProperties": false,
+      "properties": {
+        "sid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "sid"
+      ],
+      "title": "ScanScope",
+      "type": "object"
+    },
+    "ScansScope": {
+      "additionalProperties": false,
+      "properties": {
+        "sids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "sids"
+      ],
+      "title": "ScansScope",
+      "type": "object"
+    },
+    "Scope": {
+      "additionalProperties": false,
+      "properties": {
+        "sids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "Scope",
+      "type": "object"
+    },
+    "SelectOpenings": {
+      "additionalProperties": false,
+      "properties": {
+        "openings": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "openings"
+      ],
+      "title": "SelectOpenings",
+      "type": "object"
+    },
+    "SelectRoomLabels": {
+      "additionalProperties": false,
+      "properties": {
+        "room_labels": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "room_labels"
+      ],
+      "title": "SelectRoomLabels",
+      "type": "object"
+    },
+    "SelectRooms": {
+      "additionalProperties": false,
+      "properties": {
+        "rooms": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "rooms"
+      ],
+      "title": "SelectRooms",
+      "type": "object"
+    },
+    "SelectWalls": {
+      "additionalProperties": false,
+      "properties": {
+        "walls": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "walls"
+      ],
+      "title": "SelectWalls",
+      "type": "object"
+    },
+    "ShortlistAdd": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "default": "agent",
+          "enum": [
+            "agent",
+            "user",
+            "system"
+          ],
+          "type": "string"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Agent turn or tool run this op belongs to"
+        },
+        "op": {
+          "const": "shortlist.add",
+          "default": "shortlist.add",
+          "type": "string"
+        },
+        "sid": {
+          "type": "string"
+        },
+        "note": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sid",
+        "op"
+      ],
+      "title": "ShortlistAdd",
+      "type": "object"
+    },
+    "ShortlistItem": {
+      "additionalProperties": false,
+      "properties": {
+        "sid": {
+          "type": "string"
+        },
+        "note": {
+          "default": "",
+          "type": "string"
+        },
+        "by": {
+          "default": "user",
+          "enum": [
+            "agent",
+            "user",
+            "system"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "sid"
+      ],
+      "title": "ShortlistItem",
+      "type": "object"
+    },
+    "ShortlistRemove": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "default": "agent",
+          "enum": [
+            "agent",
+            "user",
+            "system"
+          ],
+          "type": "string"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Agent turn or tool run this op belongs to"
+        },
+        "op": {
+          "const": "shortlist.remove",
+          "default": "shortlist.remove",
+          "type": "string"
+        },
+        "sid": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "sid",
+        "op"
+      ],
+      "title": "ShortlistRemove",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "layer": {
+          "enum": [
+            "matterport",
+            "vexcel",
+            "costar",
+            "drone",
+            "model"
+          ],
+          "type": "string"
+        },
+        "method": {
+          "enum": [
+            "geometry",
+            "vision",
+            "lookup",
+            "simulation"
+          ],
+          "type": "string"
+        },
+        "confidence": {
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ],
+          "type": "string"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "layer",
+        "method",
+        "confidence"
+      ],
+      "title": "Source",
+      "type": "object"
+    },
+    "StepLog": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "StepLog",
+          "default": "StepLog",
+          "type": "string"
+        },
+        "run": {
+          "description": "Shows the run's steps",
+          "type": "string"
+        }
+      },
+      "required": [
+        "run",
+        "type"
+      ],
+      "title": "StepLog",
+      "type": "object"
+    },
+    "ToolDisable": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "default": "agent",
+          "enum": [
+            "agent",
+            "user",
+            "system"
+          ],
+          "type": "string"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Agent turn or tool run this op belongs to"
+        },
+        "op": {
+          "const": "tool.disable",
+          "default": "tool.disable",
+          "type": "string"
+        },
+        "tool": {
+          "type": "string"
+        },
+        "reason": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tool",
+        "op"
+      ],
+      "title": "ToolDisable",
+      "type": "object"
+    },
+    "ToolEnable": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "default": "agent",
+          "enum": [
+            "agent",
+            "user",
+            "system"
+          ],
+          "type": "string"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Agent turn or tool run this op belongs to"
+        },
+        "op": {
+          "const": "tool.enable",
+          "default": "tool.enable",
+          "type": "string"
+        },
+        "tool": {
+          "type": "string"
+        },
+        "reason": {
+          "default": "",
+          "type": "string"
+        },
+        "status": {
+          "default": "ready",
+          "enum": [
+            "ready",
+            "planned"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "tool",
+        "op"
+      ],
+      "title": "ToolEnable",
+      "type": "object"
+    },
+    "ToolEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "type": "boolean"
+        },
+        "reason": {
+          "default": "",
+          "type": "string"
+        },
+        "by": {
+          "default": "agent",
+          "enum": [
+            "agent",
+            "user",
+            "system"
+          ],
+          "type": "string"
+        },
+        "status": {
+          "default": "ready",
+          "enum": [
+            "ready",
+            "planned"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "ToolEntry",
+      "type": "object"
+    },
+    "ToolResult": {
+      "additionalProperties": false,
+      "properties": {
+        "tool": {
+          "default": "",
+          "type": "string"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScanScope"
+            },
+            {
+              "$ref": "#/$defs/AddressScope"
+            },
+            {
+              "$ref": "#/$defs/ScansScope"
+            }
+          ]
+        },
+        "verdict": {
+          "$ref": "#/$defs/Verdict"
+        },
+        "metrics": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Metric"
+          },
+          "type": "array"
+        },
+        "checks": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Check"
+          },
+          "type": "array"
+        },
+        "findings": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Finding"
+          },
+          "type": "array"
+        },
+        "overlays": {
+          "default": [],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "box": "#/$defs/BoxOverlay",
+                "lens": "#/$defs/LensOverlay",
+                "pins": "#/$defs/PinsOverlay",
+                "route": "#/$defs/RouteOverlay",
+                "rule": "#/$defs/RuleOverlay",
+                "water": "#/$defs/WaterOverlay"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/LensOverlay"
+              },
+              {
+                "$ref": "#/$defs/RuleOverlay"
+              },
+              {
+                "$ref": "#/$defs/PinsOverlay"
+              },
+              {
+                "$ref": "#/$defs/RouteOverlay"
+              },
+              {
+                "$ref": "#/$defs/WaterOverlay"
+              },
+              {
+                "$ref": "#/$defs/BoxOverlay"
+              }
+            ]
+          },
+          "type": "array"
+        },
+        "assumptions": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Assumption"
+          },
+          "type": "array"
+        },
+        "actions": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Action"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "scope",
+        "verdict"
+      ],
+      "title": "ToolResult",
+      "type": "object"
+    },
+    "Verdict": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail",
+            "unknown"
+          ],
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "text"
+      ],
+      "title": "Verdict",
+      "type": "object"
+    },
+    "VerdictHeader": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "VerdictHeader",
+          "default": "VerdictHeader",
+          "type": "string"
+        },
+        "run": {
+          "description": "Run id; shows result.verdict",
+          "type": "string"
+        }
+      },
+      "required": [
+        "run",
+        "type"
+      ],
+      "title": "VerdictHeader",
+      "type": "object"
+    },
+    "WallAnchor": {
+      "additionalProperties": false,
+      "properties": {
+        "sid": {
+          "type": "string"
+        },
+        "wall": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "sid",
+        "wall"
+      ],
+      "title": "WallAnchor",
+      "type": "object"
+    },
+    "WaterOverlay": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "water",
+          "default": "water",
+          "type": "string"
+        },
+        "level_m": {
+          "type": "number"
+        },
+        "datum": {
+          "const": "scan_z",
+          "default": "scan_z",
+          "type": "string"
+        }
+      },
+      "required": [
+        "level_m",
+        "kind"
+      ],
+      "title": "WaterOverlay",
+      "type": "object"
+    },
+    "Workspace": {
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "const": "workspace/1",
+          "default": "workspace/1",
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "profile": {
+          "default": "default",
+          "type": "string"
+        },
+        "created": {
+          "default": 0,
+          "type": "number"
+        },
+        "updated": {
+          "default": 0,
+          "type": "number"
+        },
+        "brief": {
+          "$ref": "#/$defs/Brief",
+          "default": {
+            "text": "",
+            "summary": "",
+            "persona": null,
+            "scope": {
+              "address": null,
+              "sids": []
+            },
+            "facts": {}
+          }
+        },
+        "questions": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Question"
+          },
+          "type": "array"
+        },
+        "tools": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ToolEntry"
+          },
+          "type": "array"
+        },
+        "runs": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Run"
+          },
+          "type": "array"
+        },
+        "findings": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/WsFinding"
+          },
+          "type": "array"
+        },
+        "layers": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Layer"
+          },
+          "type": "array"
+        },
+        "overlays": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/WsOverlay"
+          },
+          "type": "array"
+        },
+        "panels": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Panel"
+          },
+          "type": "array"
+        },
+        "camera": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Camera"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "plan": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PlanStep"
+          },
+          "type": "array"
+        },
+        "prefs": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Pref"
+          },
+          "default": {},
+          "type": "object"
+        },
+        "shortlist": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ShortlistItem"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "schema"
+      ],
+      "title": "Workspace",
+      "type": "object"
+    },
+    "WsFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail",
+            "unknown"
+          ],
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "anchor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PointAnchor"
+            },
+            {
+              "$ref": "#/$defs/RoomAnchor"
+            },
+            {
+              "$ref": "#/$defs/OpeningAnchor"
+            },
+            {
+              "$ref": "#/$defs/WallAnchor"
+            },
+            {
+              "$ref": "#/$defs/PanoAnchor"
+            },
+            {
+              "$ref": "#/$defs/GeoAnchor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source": {
+          "$ref": "#/$defs/Source"
+        },
+        "media": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Media"
+          },
+          "type": "array"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "tool": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "feedback": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Feedback"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "superseded_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A later run of the same tool on the same scan that no longer reports this finding; hide it"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "status",
+        "detail",
+        "anchor",
+        "source"
+      ],
+      "title": "WsFinding",
+      "type": "object"
+    },
+    "WsOverlay": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "sid": {
+          "type": "string"
+        },
+        "overlay": {
+          "discriminator": {
+            "mapping": {
+              "box": "#/$defs/BoxOverlay",
+              "lens": "#/$defs/LensOverlay",
+              "pins": "#/$defs/PinsOverlay",
+              "route": "#/$defs/RouteOverlay",
+              "rule": "#/$defs/RuleOverlay",
+              "water": "#/$defs/WaterOverlay"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/LensOverlay"
+            },
+            {
+              "$ref": "#/$defs/RuleOverlay"
+            },
+            {
+              "$ref": "#/$defs/PinsOverlay"
+            },
+            {
+              "$ref": "#/$defs/RouteOverlay"
+            },
+            {
+              "$ref": "#/$defs/WaterOverlay"
+            },
+            {
+              "$ref": "#/$defs/BoxOverlay"
+            }
+          ]
+        },
+        "tool": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "visible": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "sid",
+        "overlay"
+      ],
+      "title": "WsOverlay",
+      "type": "object"
+    }
+  },
+  "description": "Contract 5. `workspace` is the document, `op` one of the sixteen operations, `log_entry` what the SSE\nstream and the op log carry, `block` one panel block, plus Contract 3 (`tool_result`) and the tool manifest.",
+  "properties": {
+    "workspace": {
+      "$ref": "#/$defs/Workspace"
+    },
+    "op": {
+      "discriminator": {
+        "mapping": {
+          "brief.set": "#/$defs/BriefSet",
+          "camera.focus": "#/$defs/CameraFocus",
+          "finding.add": "#/$defs/FindingAdd",
+          "layer.upsert": "#/$defs/LayerUpsert",
+          "overlay.upsert": "#/$defs/OverlayUpsert",
+          "panel.upsert": "#/$defs/PanelUpsert",
+          "plan.set": "#/$defs/PlanSet",
+          "pref.set": "#/$defs/PrefSet",
+          "question.answer": "#/$defs/QuestionAnswer",
+          "question.ask": "#/$defs/QuestionAsk",
+          "run.finish": "#/$defs/RunFinish",
+          "run.start": "#/$defs/RunStart",
+          "shortlist.add": "#/$defs/ShortlistAdd",
+          "shortlist.remove": "#/$defs/ShortlistRemove",
+          "tool.disable": "#/$defs/ToolDisable",
+          "tool.enable": "#/$defs/ToolEnable"
+        },
+        "propertyName": "op"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/BriefSet"
+        },
+        {
+          "$ref": "#/$defs/QuestionAsk"
+        },
+        {
+          "$ref": "#/$defs/QuestionAnswer"
+        },
+        {
+          "$ref": "#/$defs/ToolEnable"
+        },
+        {
+          "$ref": "#/$defs/ToolDisable"
+        },
+        {
+          "$ref": "#/$defs/RunStart"
+        },
+        {
+          "$ref": "#/$defs/RunFinish"
+        },
+        {
+          "$ref": "#/$defs/FindingAdd"
+        },
+        {
+          "$ref": "#/$defs/LayerUpsert"
+        },
+        {
+          "$ref": "#/$defs/OverlayUpsert"
+        },
+        {
+          "$ref": "#/$defs/PanelUpsert"
+        },
+        {
+          "$ref": "#/$defs/CameraFocus"
+        },
+        {
+          "$ref": "#/$defs/PlanSet"
+        },
+        {
+          "$ref": "#/$defs/PrefSet"
+        },
+        {
+          "$ref": "#/$defs/ShortlistAdd"
+        },
+        {
+          "$ref": "#/$defs/ShortlistRemove"
+        }
+      ]
+    },
+    "log_entry": {
+      "$ref": "#/$defs/LogEntry"
+    },
+    "block": {
+      "discriminator": {
+        "mapping": {
+          "ActionBar": "#/$defs/ActionBar",
+          "AssumptionChips": "#/$defs/AssumptionChips",
+          "CheckList": "#/$defs/CheckList",
+          "Controls": "#/$defs/Controls",
+          "EvidenceStrip": "#/$defs/EvidenceStrip",
+          "FloorPlanMini": "#/$defs/FloorPlanMini",
+          "MetricRow": "#/$defs/MetricRow",
+          "MiniChart": "#/$defs/MiniChart",
+          "Note": "#/$defs/Note",
+          "RankedTable": "#/$defs/RankedTable",
+          "StepLog": "#/$defs/StepLog",
+          "VerdictHeader": "#/$defs/VerdictHeader"
+        },
+        "propertyName": "type"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/VerdictHeader"
+        },
+        {
+          "$ref": "#/$defs/MetricRow"
+        },
+        {
+          "$ref": "#/$defs/CheckList"
+        },
+        {
+          "$ref": "#/$defs/EvidenceStrip"
+        },
+        {
+          "$ref": "#/$defs/RankedTable"
+        },
+        {
+          "$ref": "#/$defs/MiniChart"
+        },
+        {
+          "$ref": "#/$defs/FloorPlanMini"
+        },
+        {
+          "$ref": "#/$defs/Controls"
+        },
+        {
+          "$ref": "#/$defs/AssumptionChips"
+        },
+        {
+          "$ref": "#/$defs/StepLog"
+        },
+        {
+          "$ref": "#/$defs/Note"
+        },
+        {
+          "$ref": "#/$defs/ActionBar"
+        }
+      ]
+    },
+    "tool_result": {
+      "$ref": "#/$defs/ToolResult"
+    },
+    "manifest": {
+      "$ref": "#/$defs/Manifest"
+    }
+  },
+  "required": [
+    "workspace",
+    "op",
+    "log_entry",
+    "block",
+    "tool_result",
+    "manifest"
+  ],
+  "title": "WorkspaceContract",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "threshold/workspace/1"
+}

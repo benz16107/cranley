@@ -1,0 +1,15 @@
+{
+  "id": "truck_dispatcher",
+  "title": "Truck dispatcher",
+  "who": "Sends trucks to a site and needs the approach, the dock and the doors a pallet passes.",
+  "tools": [
+    "truck_access",
+    "loading_docks",
+    "door_widths"
+  ],
+  "thresholds": {},
+  "layout": {
+    "view": "map",
+    "lead_tool": "truck_access"
+  }
+}
