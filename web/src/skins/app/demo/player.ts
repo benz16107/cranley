@@ -117,13 +117,12 @@ async function run(my: number, s: Step): Promise<void> {
       const before = changes()
       // several scans: the turn names them all, as a brief over a shortlist does; one scan: the scan in view
       await within<unknown>(Array.isArray(s.sids) ? turn({ text: String(s.text), sids: s.sids as string[] }) : ask(String(s.text)), ms, 'The agent')
-      // composing stopped at questions with an answer on offer: take it, as "Use the defaults" does
-      if (s.answer !== false && doc().questions.some((q) => q.answer == null && !isApproval(q.id) && q.hint != null)) { await investigate(); await settled(my, ms) }
+      if (s.answer !== false) await answerAll(my, s, ms)
       if (s.approve !== false) await approveAll(my, ms)
       if (changes() === before) throw new Error('The agent did not answer')
       return
     }
-    case 'answer': { await investigate(); await settled(my, ms); if (s.approve !== false) await approveAll(my, ms); return }
+    case 'answer': { await answerAll(my, s, ms); if (s.approve !== false) await approveAll(my, ms); return }
     case 'tool': {
       const sid = (s.sid as string | undefined) ?? (location.pathname.match(/\/scan\/([^/?]+)/)?.[1] ?? null)
       const before = doc().runs.length
@@ -168,6 +167,21 @@ async function run(my: number, s: Step): Promise<void> {
   throw new Error(`Unknown step “${s.do}”`)
 }
 
+/** The agent's open questions: the flow's `answers` (a word or phrase of the question -> the answer), else the answer
+    on offer; then the investigation starts, as "Start the investigation" does. Throws when one has neither. */
+async function answerAll(my: number, s: Step, ms: number) {
+  const given = Object.entries((s.answers as Record<string, string | number>) ?? {})
+  const open = doc().questions.filter((q) => q.answer == null && !isApproval(q.id))
+  if (!open.length) return
+  for (const q of open) {
+    const hit = given.find(([k]) => q.text.toLowerCase().includes(k.toLowerCase()))
+    if (hit) userOp({ op: 'question.answer', id: q.id, answer: hit[1] })
+    else if (q.hint == null) throw new Error(`The agent asked “${q.text}” and the flow has no answer for it (add it to "answers")`)
+  }
+  await investigate()
+  await settled(my, ms)
+}
+
 /** Every approval the agent paused for: run it, then let the turn carry on. */
 async function approveAll(my: number, ms: number) {
   for (let n = 0; n < 4; n++) {
@@ -200,7 +214,7 @@ export async function play(flow: Flow) {
         if (e instanceof Stopped) throw e
         const why = (e as Error).message
         if (s.else) {
-          useDemo.setState({ note: `${why}. ${s.else.say ? '' : 'Showing the fallback.'}`, say: s.else.say ?? useDemo.getState().say })
+          useDemo.setState({ note: `${why.replace(/\.$/, '')}. ${s.else.say ? '' : 'Showing the fallback.'}`, say: s.else.say ?? useDemo.getState().say })
           try { await run(my, s.else) } catch (e2) { if (e2 instanceof Stopped) throw e2; useDemo.setState({ note: `Skipped: ${(e2 as Error).message}` }) }
         } else useDemo.setState({ note: `Skipped: ${why}` })
       }

@@ -2,19 +2,19 @@
   "id": "langchain",
   "track": "LangChain",
   "title": "Subagents in parallel, approval before a slow step",
-  "about": "A fire captain asks about three houses at once.",
-  "vars": { "a": "<scan-id>", "b": "<scan-id>", "c": "<scan-id>",
-            "brief": "I'm a fire captain. Compare how smoke would spread in these three houses and which bedrooms are hardest to reach." },
+  "about": "A fire captain asks about two houses at once.",
+  "vars": { "a": "<scan-id>", "b": "<scan-id>",
+            "brief": "I'm a fire captain. Compare how smoke would spread in these two houses and which bedrooms are hardest to reach." },
   "steps": [
-    { "do": "open", "page": "home", "say": "One brief, three houses: the main agent hands each house to its own subagent.", "hold": 2000 },
+    { "do": "open", "page": "home", "say": "One brief, two houses: the main agent hands each house to its own subagent, and they run at once.", "hold": 2000 },
     { "do": "agent", "open": true, "hold": 300 },
-    { "do": "ask", "text": "$brief", "sids": ["$a", "$b", "$c"], "approve": false, "say": "The agents work at once; the smoke model is slow, so the agent stops and asks first.",
+    { "do": "ask", "text": "$brief", "sids": ["$a", "$b"], "approve": false, "say": "The agents work at once; the smoke model is slow, so the agent stops and asks first.",
       "else": { "do": "tool", "tool": "egress_routes", "say": "The agent is offline, so the escape routes run as a tool." } },
     { "do": "wait", "for": "Run it", "timeout": 20000, "say": "An approval card for each slow step. The person decides.",
       "else": { "do": "say", "say": "No approval was needed this time: the smoke runs were already approved here." } },
     { "do": "click", "label": "Run it", "all": true, "say": "Approved. The paused turn carries on from where it stopped.",
       "else": { "do": "say", "say": "Nothing waiting for approval." } },
-    { "do": "wait", "for": "agent", "timeout": 120000, "say": "Each subagent writes its findings into the same workspace." },
+    { "do": "wait", "for": "agent", "timeout": 150000, "say": "Each subagent writes its findings into the same workspace." },
     { "do": "focus", "finding": "worst", "say": "The bedroom that is hardest to reach, on camera.", "hold": 5000 }
   ]
 }
