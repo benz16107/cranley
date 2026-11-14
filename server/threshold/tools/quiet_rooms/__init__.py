@@ -198,8 +198,12 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         est = p["level"]
         st = "pass" if est + ERR_DB <= limit else "warn" if est - ERR_DB > limit else "unknown"
         fid = f"quiet_rooms:{inputs.scan}:{k}"
-        checks.append(Check(id=k, rule=f"Estimated indoor noise, {names[k]}", measured=round(est, 1), threshold=limit,
-                            unit="dBA", status=st, standard=WHO, findings=[fid]))
+        if relative:  # only "below 45" is known outside: the room-to-room difference is the result
+            checks.append(Check(id=k, rule=f"Traffic noise against the loudest room, {names[k]}",
+                                measured=round(p["raw"] - loudest, 1), threshold=None, unit="dB", status="pass", findings=[fid]))
+        else:
+            checks.append(Check(id=k, rule=f"Estimated indoor noise, {names[k]}", measured=round(est, 1), threshold=limit,
+                                unit="dBA", status=st, standard=WHO, findings=[fid]))
         d0 = next((d for d in p["detail"] if d["layer"] == lead["layer"]), None) or (p["detail"][0] if p["detail"] else None)
         side = f"faces {compass(p['main'])}" if p["main"] is not None else "has no outside wall"
         src_name = next((s["where"]["name"] for s in sources if d0 and s["layer"] == d0["layer"]), "")
@@ -208,13 +212,14 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                  if d0 else "; aircraft noise comes from above")
         findings.append(Finding(
             id=fid, title=f"{'Quietest' if i == 0 else 'Loudest' if i == len(ranked) - 1 else f'Rank {i + 1}'}: {names[k]}",
-            status=st, source=EST, anchor=RoomAnchor(sid=inputs.scan, room=k),
+            status="pass" if relative else st, source=EST, anchor=RoomAnchor(sid=inputs.scan, room=k),
             detail=((f"About {loudest - p['raw']:.0f} dB quieter than the loudest room" if loudest - p["raw"] >= 1
                      else "As loud as the loudest room") + f"; outside traffic is below the "
                     f"map's {noise_map.FLOOR_DBA:.0f} dBA floor, so indoors it is near background" if relative else
                     f"About {est:.0f} dBA inside with windows {'partly open' if inputs.windows_open else 'closed'} "
                     f"(give or take {ERR_DB:.0f} dB)") + f". The room {side}{where}."))
-        metrics.append(Metric(id=f"indoor.{names[k]}", label=names[k], value=round(est, 1), unit="dBA", source=EST))
+        metrics.append(Metric(id=f"indoor.{names[k]}", label=names[k], value=round(p["raw"] - loudest, 1) if relative
+                              else round(est, 1), unit="dB" if relative else "dBA", source=EST))
     out_lv = _sum_db([s["outside"] for s in sources])
     metrics = [Metric(id="outside", label=f"Outside at the house{' (at most)' if all(s['at_most'] for s in sources) else ''}",
                       value=round(out_lv, 1), unit="dBA", source=MAP),
