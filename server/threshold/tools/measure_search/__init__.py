@@ -7,7 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from .. import Action, Check, Finding, Metric, ScanScope, Source, ToolError, ToolResult, Verdict, field, tool
+from .. import Action, Check, Finding, Metric, NotApplicable, ScanScope, Source, ToolError, ToolResult, Verdict, field, tool
 from ..types import GeoAnchor, ScansScope, Strict
 from . import table
 
@@ -32,10 +32,25 @@ class RoomCriterion(Strict):
     where: list[RoomMeasure] = Field(default_factory=list, description="Every measure must hold in one such room")
 
 
+# What a person can pick in a form; each is a fixed list of criteria. Anything else goes in `criteria`.
+NEEDS: dict[str, tuple[str, list[dict]]] = {
+    "wheelchair": ("A wheelchair reaches a bathroom from the entrance",
+                   [{"measure": "wheelchair_bath", "op": "==", "value": 1}]),
+    "step_free_bath": ("No step between the entrance and a bathroom", [{"measure": "step_free_bath", "op": "==", "value": 1}]),
+    "one_floor_living": ("Bedroom and bathroom on the entrance floor, no doorway steps",
+                         [{"measure": "bed_bath_entry_floor", "op": "==", "value": 1},
+                          {"measure": "level_changes", "op": "==", "value": 0}]),
+    "king_bed": ("A king bed fits: a bedroom wall of 3 m and 0.76 m doors to every bedroom",
+                 [{"measure": "bed_wall", "op": ">=", "value": 3.0}, {"measure": "bed_route_door_min", "op": ">=", "value": 0.76}]),
+    "upright_piano": ("An upright piano fits: a living room wall of 3 m and a 0.85 m entrance",
+                      [{"measure": "living_wall", "op": ">=", "value": 3.0}, {"measure": "entrance_width", "op": ">=", "value": 0.85}]),
+}
+
+
 class Inputs(BaseModel):
-    criteria: list[Criterion] = field(ask="What must the home have? For example: doors to the bathroom at least "
-                                          "0.81 m, a bedroom wall of at least 2.2 m, one floor.",
-                                      description="Every criterion must hold")
+    need: Literal[tuple(NEEDS)] | None = field(None, ask="What must the home allow? " + "; ".join(
+        f"{k}: {v[0]}" for k, v in NEEDS.items()), pref="search.need", description="A common search, picked from a list")
+    criteria: list[Criterion] = field([], description="Every criterion must hold; added to the need's own criteria")
     city: str | None = field(None, description="Houston or Los Angeles")
     kind: Literal["house", "apartment_unit"] | None = field(None, description="House or apartment")
     sort: Measure | None = field(None, description="Rank by this measure, highest first; default by margin")
@@ -69,7 +84,9 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     if not table.DB.exists() and not facts_db.available():
         return ToolResult(scope=ScansScope(sids=[]), verdict=Verdict(status="unknown", text=(
             "The measures table has not been built yet.")))
-    crit = [c.model_dump() for c in inputs.criteria]
+    crit = (NEEDS[inputs.need][1] if inputs.need else []) + [c.model_dump() for c in inputs.criteria]
+    if not crit and not inputs.rooms:
+        raise NotApplicable("Say what the home must allow: pick a need (" + ", ".join(NEEDS) + ") or give criteria.")
     try:
         res = table.search(crit, city=inputs.city, kind=inputs.kind, sort=inputs.sort, limit=inputs.limit,
                            near=inputs.near, within_m=inputs.within_km * 1000 if inputs.within_km else None,

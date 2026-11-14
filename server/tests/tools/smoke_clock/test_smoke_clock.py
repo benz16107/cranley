@@ -43,3 +43,50 @@ def test_a_small_hall_between_rooms_stays_in_the_model():
     assert comp["h"] == comp["lr"] and comp["b"] != comp["lr"] and "cl" not in comp   # the closet joins nothing
     text, _ = sc.write_input(p, next(r for r in p["rooms"] if r["id"] == "lr"), False, 0.047, 2000)
     assert f"COMP_IDS = '{comp['lr']}', '{comp['b']}'" in text or f"COMP_IDS = '{comp['b']}', '{comp['lr']}'" in text
+
+
+def test_a_stalled_cfast_is_stopped_and_its_timeline_kept(monkeypatch, tmp_path):
+    exe = tmp_path / "fake_cfast"   # writes 2 min of output, then crawls forever like a stiff plan
+    exe.write_text("#!/bin/sh\nprintf 'ID,TRGFEDG_1\\n,\\n,T_C3\\n,\\n0,0\\n60,0.1\\n120,0.5\\n' > case_devices.csv\n"
+                   "echo 'Status at T =    1.20E+02 DT = 4.8E-02' > case.status\nsleep 30\n")
+    exe.chmod(0o755)
+    monkeypatch.setattr(sc, "cfast_bin", lambda: str(exe))
+    monkeypatch.setattr(sc, "RUNS", tmp_path / "runs")
+    res = sc.run_cfast("case a", stall_s=0.5, poll_s=0.1)
+    assert res["stopped_s"] == 120 and res["time"][-1] == 120
+    assert sc.run_cfast("case a")["stopped_s"] == 120          # cached: the stall is not waited out twice
+    exe.write_text("#!/bin/sh\nprintf 'ID,X\\n,\\n,T_C3\\n,\\n0,0\\n5,0\\n' > case_devices.csv\nsleep 30\n")
+    import pytest
+    with pytest.raises(sc.NotApplicable):                      # stalled before a minute: no timeline at all
+        sc.run_cfast("case b", stall_s=0.5, poll_s=0.1)
+
+
+def test_a_bedroom_with_no_path_from_the_fire_is_not_applicable(monkeypatch):
+    from ..conftest import make_plan
+    p = make_plan("island", [("lr", 0, 0, 5, 4, "Living Room"), ("b", 6, 0, 9, 4, "Bedroom"), ("h", 9, 0, 11, 4, "Hallway")],
+                  doors=[("b", "h", 0.8), ("lr", None, 0.9)])
+    monkeypatch.setattr(sc, "cfast_bin", lambda: "/bin/false")
+    r = run_tool("smoke_clock", {"scan": "island", "fire_room": "Living Room"}, ToolContext(plans=lambda s: p))
+    assert r.verdict.status == "unknown" and "no doorway joins" in r.verdict.text
+
+
+def test_the_default_fire_room_is_one_whose_smoke_reaches_a_bedroom():
+    from ..conftest import make_plan
+    p = make_plan("upstairs", [("lr", 0, 0, 8, 6, "Living Room"), ("fam", 10, 0, 14, 4, "Family Room"),
+                               ("b", 14, 0, 17, 4, "Bedroom")], doors=[("fam", "b", 0.8), ("lr", None, 0.9)])
+    comp, _ = sc.compartments(p)
+    beds = {comp["b"]}
+    pick = sc._pick_fire(p, None, lambda r: len(sc.reachable(p, comp, comp[r["id"]]) & beds))
+    assert pick["id"] == "fam" and sc._pick_fire(p, None)["id"] == "lr"
+    counts = {"lr": 1, "fam": 4}                                       # a kitchen reaching more beats a living room
+    p["rooms"][1]["label"] = "Kitchen"
+    assert sc._pick_fire(p, None, lambda r: counts.get(r["id"], 0))["id"] == "fam"
+
+
+def test_rooms_the_fire_cannot_reach_are_left_out_of_the_model():
+    from ..conftest import make_plan
+    p = make_plan("two_parts", [("lr", 0, 0, 5, 4, "Living Room"), ("b", 5, 0, 8, 4, "Bedroom"),
+                                ("up", 20, 0, 24, 4, "Bedroom"), ("up2", 24, 0, 28, 4, "Living Room")],
+                  doors=[("lr", "b", 0.8), ("up", "up2", 0.8)])
+    text, comp = sc.write_input(p, next(r for r in p["rooms"] if r["id"] == "lr"), False, 0.047, 2000)
+    assert set(comp) == {"lr", "b"} and text.count("&COMP ") == 2 and text.count("&DEVC ") == 1

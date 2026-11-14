@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from .. import Check, Metric, Source, ToolError, ToolResult, Verdict, field, tool
+from .. import Metric, Source, ToolError, ToolResult, Verdict, field, tool
 from ..types import ScansScope
 
 SRC = Source(layer="matterport", method="geometry", confidence="medium",
@@ -38,7 +38,10 @@ class Inputs(BaseModel):
       personas=["costar_research_lead", "costar_researcher", "commercial_underwriter", "insurance_underwriter",
                 "wheelchair_home_search", "apartment_manager"],
       requires=[{"layer": "threshold.facts"}],
-      blocks=["VerdictHeader", "MetricRow", "CheckList", "MiniChart", "StepLog"],
+      blocks=["VerdictHeader", "MetricRow", "RankedTable", "StepLog"],
+      table=[{"metric": "share", "label": "Share"},
+             {"metric": "median", "label": "Median"}, {"metric": "mean", "label": "Mean"},
+             {"metric": "scans", "label": "Scans"}],
       examples=["Which Houston zip codes have the highest share of homes a wheelchair can reach a bathroom in?",
                 "Median gap between listed and measured area by property type"])
 def run(ctx, inputs: Inputs) -> ToolResult:
@@ -59,10 +62,15 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     rows, stat = res["rows"], res["stat"]
     label = res.get("label") or res["field"]
     counted = sum(r["scans"] for r in rows)
-    checks = [Check(id=f"group.{i}", rule=f"{res['by']} {r['grp'] or 'unknown'}: {r['scans']} scans; share "
-                                          f"{r['share']:.0%}, median {r['median']}, mean {r['mean']}",
-                    measured=r[stat], threshold=None, unit="", status="pass")
-              for i, r in enumerate(rows)]
+    unit = res.get("unit") or ""
+    cells = []  # one table row per group, in rank order: metrics g<i>/<column>, labelled with the group's name
+    for i, r in enumerate(rows):
+        name = f"{res['by']} {r['grp'] or 'unknown'}"
+        for col, v, u in (("share", r["share"], "%"),
+                          ("median", r["median"], unit), ("mean", r["mean"], unit), ("scans", r["scans"], "")):
+            if v is not None:
+                v = round(100 * v, 1) if u == "%" else round(v, 3)
+            cells.append(Metric(id=f"g{i}/{col}", label=name, value=v, unit=u, source=SRC))
     if not rows:
         text = (f"No group has {inputs.min_scans} or more scans with {label}. "
                 f"{res['scans_with_field']} scans have this field recorded.")
@@ -73,5 +81,4 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     return ToolResult(scope=ScansScope(sids=[]), verdict=Verdict(status="pass" if rows else "unknown", text=text),
                       metrics=[Metric(id="groups", label="Groups", value=len(rows), unit="", source=SRC),
                                Metric(id="scans", label="Scans counted", value=counted, unit="", source=SRC),
-                               Metric(id="ms", label="Query time", value=res["ms"], unit="ms", source=SRC)],
-                      checks=checks)
+                               Metric(id="ms", label="Query time", value=res["ms"], unit="ms", source=SRC), *cells])

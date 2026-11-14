@@ -283,3 +283,30 @@ def load(sids: list[str] | None = None, workers: int = 8) -> dict:
             "footprints": sum(1 for b in b_rows if b[-1]), "errors": len(errors),
             "error_kinds": sorted({e.split(":")[0] for e in errors}), "compute_s": round(t_compute, 1),
             "total_s": round(time.time() - t0, 1)}
+
+
+def load_measures() -> dict:
+    """Refresh only the measures and doors of the scans in the measures table, and their scan flags, after the table is
+    rebuilt. Unlike `load` it leaves the flood series, room descriptions, rooms and tool facts alone, so it is safe on
+    the cloud database. Scans the database does not hold are skipped."""
+    src = mt.connect()
+    meas = [dict(r) for r in src.execute("SELECT * FROM measures")]
+    doors = [list(r) for r in src.execute("SELECT * FROM doors")]
+    built = {r["key"]: json.loads(r["value"]) for r in src.execute("SELECT * FROM meta")}
+    mcols = ["sid", "error"] + list(mt.FIELDS)
+    with db.transaction() as c:
+        held = {r[0] for r in c.run("SELECT sid FROM scan WHERE sid = ANY(CAST(:s AS text[]))", s=[m["sid"] for m in meas])}
+        meas = [m for m in meas if m["sid"] in held]
+        sids = [m["sid"] for m in meas]
+        c.run("DELETE FROM measures WHERE sid = ANY(CAST(:s AS text[]))", s=sids)
+        c.run("DELETE FROM door WHERE sid = ANY(CAST(:s AS text[]))", s=sids)
+        copy(c, "measures", mcols, [[int(m[k]) if m.get(k) is not None and mt.FIELDS.get(k, ("", "", ""))[2] in ("count", "flag")
+                                     else m.get(k) for k in mcols] for m in meas])
+        copy(c, "door", ["sid", "opening", "kind", "width", "implausible", "step", "floor"],
+             [d[:4] + [bool(d[4])] + d[5:] for d in doors if d[0] in held])
+        for m in meas:
+            c.run("UPDATE scan SET walls = :w, polygons = :p, labels = :l WHERE sid = :s",
+                  w=bool(m["walls"]), p=bool(m["polygons"]), l=bool(m["labels"]), s=m["sid"])
+        c.run("UPDATE meta SET value = jsonb_set(value, '{measures_built_at}', to_jsonb(CAST(:b AS text))) WHERE key = 'load'",
+              b=built.get("built_at") or "")
+    return {"scans": len(sids), "doors": sum(1 for d in doors if d[0] in held), "measures_built_at": built.get("built_at")}

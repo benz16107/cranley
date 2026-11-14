@@ -219,3 +219,21 @@ def test_scans_route(small_index):
     assert c.get("/api/scans", params={"kind": "bogus"}).status_code == 422
     assert c.get("/api/scan/..%2Fetc/plan").status_code == 404
     assert c.get("/api/scan/short/plan").status_code == 404
+
+
+def test_ids_with_a_trailing_newline_are_refused():
+    from threshold.sources import user_scans
+    from threshold.sources.upstream import check
+    assert user_scans.owns("u_0123456789ab") and not user_scans.owns("u_0123456789ab\n")
+    for kind, v in (("sid", "onXQLXhfyQa"), ("id", "abc_1"), ("file", "a.jpg")):
+        assert check(v, kind) == v
+        with pytest.raises(LookupError):
+            check(v + "\n", kind)
+
+
+def test_equirect_checks_view_and_pano_before_the_cache_path(monkeypatch):
+    from threshold.sources import matterport
+    monkeypatch.setattr(matterport, "cached", lambda *a, **k: pytest.fail("cache path built"))
+    for args in (("abcdefgh", "p1", 2048, "../../x"), ("abcdefgh", "../p", 2048, "furnished"), ("abc/../d", "p1", 2048, "furnished")):
+        with pytest.raises(LookupError):
+            matterport.equirect(*args)

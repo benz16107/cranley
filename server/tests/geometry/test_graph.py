@@ -41,3 +41,15 @@ def test_missing_polygon_is_rebuilt_from_walls(plan):
     plan["rooms"][0]["polygon"] = []
     a = next(n for n in room_graph(plan)["nodes"] if n["room"] == "A")
     assert a["has_polygon"] and a["polygon_source"] == "rebuilt" and abs(a["area"] - 16) < 1e-6
+
+
+def test_a_divider_is_an_open_passage_between_rooms(plan):
+    import copy
+
+    from threshold.geometry import room_graph
+    p = copy.deepcopy(plan)
+    p["sid"] = "divided"
+    o = next(o for o in p["openings"] if len(o.get("rooms") or []) == 2)
+    o["type"] = "divider"
+    link = next(link for link in room_graph(p)["links"] if link["opening"] == o["id"])
+    assert link["kind"] == "opening" and sorted(link["rooms"]) == sorted(o["rooms"])

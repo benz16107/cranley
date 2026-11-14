@@ -4,6 +4,8 @@
     uv run python -m threshold.facts load             scans, buildings, measures, rooms, doors and seed facts
                                                      (on the cloud database it needs --yes: it empties the flood
                                                      series and room descriptions too)
+    uv run python -m threshold.facts measures         refresh only measures, doors and scan flags from a rebuilt
+                                                     measures table (safe on the cloud: nothing else is touched)
     uv run python -m threshold.facts flood [--city Houston --kind house --limit 200]
     uv run python -m threshold.facts rooms [--limit 300]      describe rooms with the vision model and embed them
     uv run python -m threshold.facts compress         convert every finished chunk to the columnstore; print ratios
@@ -26,7 +28,7 @@ from . import db
 
 def main(argv=None) -> int:
     a = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    a.add_argument("cmd", choices=["migrate", "load", "flood", "rooms", "compress", "stats", "bench", "ops", "drop_all"])
+    a.add_argument("cmd", choices=["migrate", "load", "measures", "flood", "rooms", "compress", "stats", "bench", "ops", "drop_all"])
     a.add_argument("--yes", action="store_true", help="confirm drop_all, or load on the cloud database")
     a.add_argument("--target", choices=sorted(db.TARGETS), help="drop_all: which database (required)")
     a.add_argument("--city", default="Houston")
@@ -56,6 +58,9 @@ def main(argv=None) -> int:
         from . import load
         db.migrate()
         out = load.load(workers=args.workers)
+    elif args.cmd == "measures":
+        from . import load
+        out = load.load_measures()
     elif args.cmd == "flood":
         from . import flood
         out = flood.run_many(city=args.city, kind=args.kind, limit=args.limit or 200, workers=args.workers)

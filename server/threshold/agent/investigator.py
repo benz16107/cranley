@@ -124,10 +124,22 @@ def sibling_scans(sid: str) -> list[str]:
         return []
 
 
+def own_table(m, run: Run) -> RankedTable | None:
+    """The run's own ranked table from the manifest's `table` columns and its `<row>/<column>` metrics, in their order."""
+    labels: dict[str, str] = {}
+    for x in run.result.metrics:
+        if "/" in x.id:
+            labels.setdefault(x.id.split("/", 1)[0], x.label)
+    if not m.table or not labels:
+        return None
+    return RankedTable(title=m.title, run=run.id, rows=list(labels), labels=labels,
+                       columns=[RankedColumn(metric=c.metric, label=c.label, better=c.better) for c in m.table])
+
+
 def panel_for(m, run: Run, overlay_ids: list[str]) -> Panel:
     """The tool's panel, built from the blocks its manifest declares, bound to the run. No model involved."""
     r = run.result
-    head = [x.id for x in r.metrics if "." not in x.id][:4]
+    head = [x.id for x in r.metrics if "." not in x.id and "/" not in x.id][:4]  # "/" ids are table cells
     series = [x.id for x in r.metrics if "." in x.id]  # dotted ids (area.Bedroom) are one series
     controls = [Control(input=k, pref=s["x-pref"], label=s.get("description") or s.get("title", k), kind="slider",
                         min=s.get("minimum", s.get("exclusiveMinimum")), max=s.get("maximum"), step=0.01,
@@ -142,7 +154,8 @@ def panel_for(m, run: Run, overlay_ids: list[str]) -> Panel:
             "Controls": lambda: Controls(tool=m.id, controls=controls) if controls else None,
             "AssumptionChips": lambda: AssumptionChips(run=run.id) if r.assumptions else None,
             "StepLog": lambda: StepLog(run=run.id),
-            "ActionBar": lambda: ActionBar(run=run.id) if r.actions else None}
+            "ActionBar": lambda: ActionBar(run=run.id) if r.actions else None,
+            "RankedTable": lambda: own_table(m, run)}
     blocks = [b for b in (make[name]() for name in m.blocks if name in make) if b]
     return Panel(id=f"panel:{m.id}:{target(run)}", title=m.title, blocks=blocks, tool=m.id, run=run.id)
 

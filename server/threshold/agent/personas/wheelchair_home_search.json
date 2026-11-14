@@ -10,6 +10,7 @@
     "curb_to_door"
   ],
   "thresholds": {
+    "search.need": "wheelchair",
     "access.door_width_m": 0.815,
     "access.turning_diameter_m": 1.525,
     "access.destinations": ["Bathroom", "Bedroom", "Kitchen"]

@@ -158,6 +158,9 @@ def stitch(faces: list[Image.Image], width: int) -> Image.Image:
 
 
 def equirect(sid: str, pano: str, width: int = 2048, view: str = "furnished") -> bytes:
+    check(sid, "sid"), check(pano)  # all three go into the cache path below
+    if view not in VIEWS:
+        raise LookupError("view is furnished or defurnished")
     if not 512 <= width <= 4096 or width % 2:
         raise LookupError("w is an even number from 512 to 4096")
 

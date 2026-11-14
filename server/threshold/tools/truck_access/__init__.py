@@ -273,6 +273,7 @@ def directions(e: dict, gate: str, dock_side: str, dock_bearing: float, n_doors:
 def run(ctx, inputs: Inputs) -> ToolResult:
     not_for_homes(inputs.scan, "truck docks and courts")
     s = locate(ctx, inputs)
+    not_for_homes(inputs.scan, "truck docks and courts", s)
     sv = survey(ctx, s, use_vision=inputs.use_vision, inside=False)
     if sv["footprint"] is None:
         return ToolResult(scope=s.scope, verdict=Verdict(status="unknown",

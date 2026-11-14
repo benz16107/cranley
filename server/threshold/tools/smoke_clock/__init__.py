@@ -12,8 +12,11 @@ import csv
 import hashlib
 import math
 import os
+import pathlib
+import re
 import shutil
 import subprocess
+import time
 
 from pydantic import BaseModel
 
@@ -40,7 +43,10 @@ from .. import (
 from ..fire_preplan.common import BEDROOM, floor_label, live_rooms, name, walls_ok
 
 RUNS = CACHE / "tools" / "smoke_clock"
-TIMEOUT_S = 900                    # CFAST at -O0 takes 3 to 11 minutes on a house; some plans go stiff
+STALL_S = 120                      # stop CFAST when its simulated clock has not moved for this long
+MIN_PARTIAL_S = 60                 # a stalled run that reached less than this gives no timeline
+TIMEOUT_S = 480                    # wall-clock cap; CFAST at -O0 runs about 1 simulated s per s on a large house, and the
+                                   # timeline reached by then is kept (doors-open answers come in 2 to 3 simulated minutes)
 MIN_AREA_M2 = 2.5                  # closets and nooks under this are left out of the model
 SIM_S = 900                        # 15 minutes
 TARGET_Z = 1.5                     # tenability measured at a standing person's head
@@ -71,7 +77,9 @@ def cfast_bin() -> str | None:
     return p if p and os.path.exists(p) else None
 
 
-def _pick_fire(plan: dict, want: str | None) -> dict | None:
+def _pick_fire(plan: dict, want: str | None, reaches=lambda r: 1) -> dict | None:
+    """The named room, else a living room, family room or kitchen: the one whose smoke reaches the most bedrooms
+    (`reaches(room)` counts them; a multi-storey scan often has no stairs between floors), then the largest."""
     rooms = [r for r in live_rooms(plan) if polygons(plan).get(r["id"]) is not None]
     if want:
         hit = next((r for r in rooms if r["id"] == want), None) or \
@@ -79,10 +87,12 @@ def _pick_fire(plan: dict, want: str | None) -> dict | None:
         if hit is None:
             raise ToolError(f"No room '{want}' in this scan. Rooms: " + ", ".join(sorted({name(r) for r in rooms})))
         return hit
-    for label in ("Living Room", "Family Room", "Kitchen"):
-        hit = [r for r in rooms if r.get("label") == label]
-        if hit:
-            return max(hit, key=lambda r: polygons(plan)[r["id"]].area)
+    order = ("Living Room", "Family Room", "Kitchen")
+    for keep in (reaches, lambda r: 1):
+        hit = [(n, -order.index(r["label"]), polygons(plan)[r["id"]].area, r) for r in rooms
+               if r.get("label") in order and (n := keep(r))]
+        if hit:  # most bedrooms reached, then living room over family room over kitchen, then the largest
+            return max(hit, key=lambda x: x[:3])[3]
     return max(rooms, key=lambda r: polygons(plan)[r["id"]].area, default=None)
 
 
@@ -135,11 +145,33 @@ def compartments(plan: dict) -> tuple[dict[str, str], dict[str, dict]]:
     return comp, info
 
 
+def reachable(plan: dict, comp: dict[str, str], start: str) -> set[str]:
+    """Compartments smoke can reach from `start` through the scan's doorways, openings and stair holes."""
+    adj: dict[str, set[str]] = {}
+    pairs = [(comp[a], comp[b]) for a, b in (link["rooms"] for link in room_graph(plan)["links"]) if a in comp and b in comp]
+    pairs += [(comp[u], comp[d]) for u, d, _ in _stair_holes(plan, comp)]
+    for a, b in pairs:
+        adj.setdefault(a, set()).add(b)
+        adj.setdefault(b, set()).add(a)
+    seen, todo = {start}, [start]
+    while todo:
+        for n in adj.get(todo.pop(), ()):
+            if n not in seen:
+                seen.add(n)
+                todo.append(n)
+    return seen
+
+
 def write_input(plan: dict, fire: dict, doors_closed: bool, growth: float, peak_kw: float) -> tuple[str, dict]:
     """A CFAST input file for the plan, and room id -> compartment id. Pure; no files touched."""
     comp, info = compartments(plan)
     if fire["id"] not in comp:
         raise ToolError(f"The fire room ({name(fire)}) is too small to model; pick another room.")
+    # rooms no doorway or stair joins to the fire only leak to outside: leaving them out changes nothing but the run
+    # time (a two-storey scan with no stairs carried 12 idle compartments of 23)
+    linked = reachable(plan, comp, comp[fire["id"]])
+    comp = {k: v for k, v in comp.items() if v in linked}
+    info = {k: v for k, v in info.items() if k in linked}
     holes = _stair_holes(plan, comp)
     z = floor_z(plan)
     for up, down, _ in holes:  # CFAST needs the lower ceiling to meet the upper floor at a ceiling vent
@@ -220,28 +252,52 @@ def _stair_holes(plan: dict, comp: dict) -> list[tuple[str, str, float]]:
     return out
 
 
-def run_cfast(text: str) -> dict:
-    """Run CFAST on an input (cached by its text). Returns the devices table: {column id: [values]} and times."""
+def _sim_time(d: pathlib.Path) -> float:
+    """Simulated seconds CFAST has reached, from its status file ("Status at T = 1.80E+02 ...")."""
+    m = re.search(r"T\s*=\s*([0-9.E+-]+)", (d / "case.status").read_text()) if (d / "case.status").exists() else None
+    return float(m.group(1)) if m else 0.0
+
+
+def run_cfast(text: str, stall_s: float = STALL_S, poll_s: float = 5.0) -> dict:
+    """Run CFAST on an input (cached by its text). Returns the devices table: {column id: [values]}, times, and
+    `stopped_s` when CFAST stalled (its clock stopped advancing for `stall_s`) and only that much timeline exists."""
     exe = cfast_bin()
     key = hashlib.sha1(text.encode()).hexdigest()[:16]
     d = RUNS / key
-    out, done = d / "case_devices.csv", d / "ok"
-    if not done.exists():
+    out, done, part = d / "case_devices.csv", d / "ok", d / "stalled"
+    if not done.exists() and not part.exists():
         d.mkdir(parents=True, exist_ok=True)
         (d / "case.in").write_text(text)
-        try:
-            r = subprocess.run([exe, "case.in"], cwd=d, capture_output=True, text=True, timeout=TIMEOUT_S)
-        except subprocess.TimeoutExpired:
-            raise NotApplicable(f"CFAST did not finish within {TIMEOUT_S // 60} minutes: its solver slowed to tiny time "
-                            "steps on this plan") from None
-        if "Normal exit" not in r.stdout + r.stderr:
-            raise NotApplicable(f"CFAST stopped early, so no smoke timeline: {(r.stdout + r.stderr).strip()[-300:]}")
-        done.touch()
-    rows = list(csv.reader(out.open()))
-    ids, comps = rows[0], rows[2]
+        log_f = (d / "case.stdout").open("w")  # a file, not a pipe: a full pipe would block CFAST and look like a stall
+        p = subprocess.Popen([exe, "case.in"], cwd=d, stdout=log_f, stderr=subprocess.STDOUT, text=True)
+        start = last_move = time.monotonic()
+        reached = 0.0
+        while p.poll() is None:  # stiff plans crawl at tiny time steps for an hour: stop them, keep what was reached
+            time.sleep(poll_s)
+            now, t = time.monotonic(), _sim_time(d)
+            if t > reached + 1:
+                reached, last_move = t, now
+            if now - last_move > stall_s or now - start > TIMEOUT_S:
+                p.kill()
+                p.wait()
+                log_f.close()
+                part.touch()
+                break
+        else:
+            log_f.close()
+            log = (d / "case.stdout").read_text()
+            if "Normal exit" not in log:
+                raise NotApplicable(f"CFAST stopped early, so no smoke timeline: {log.strip()[-300:]}")
+            done.touch()
+    rows = list(csv.reader(out.open())) if out.exists() else []
     data = [[float(v) for v in row] for row in rows[4:] if row]
+    if part.exists() and (not data or data[-1][0] < MIN_PARTIAL_S):
+        raise NotApplicable("CFAST's solver stalled in the first minute on this plan (a room sealed off or too small "
+                            "for the fire), so no smoke timeline is given")
+    ids, comps = rows[0], rows[2]
     cols = {f"{ids[i]}|{comps[i]}": [row[i] for row in data] for i in range(len(ids))}
-    return {"time": [row[0] for row in data], "cols": cols, "dir": str(d)}
+    return {"time": [row[0] for row in data], "cols": cols, "dir": str(d),
+            "stopped_s": data[-1][0] if part.exists() else None}
 
 
 def untenable(res: dict, comp: str) -> dict:
@@ -291,13 +347,27 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         return ToolResult(scope=scope, verdict=Verdict(status="unknown", text=(
             "NIST CFAST is not installed on this server, so no fire model was run and no estimate is given. "
             "Build steps are in the smoke_clock tool's docstring.")))
-    fire = _pick_fire(plan, inputs.fire_room)
+    comp0, _ = compartments(plan)
+    bed_comps = {comp0[r["id"]] for r in beds if r["id"] in comp0}
+    fire = _pick_fire(plan, inputs.fire_room,
+                      lambda r: len(reachable(plan, comp0, comp0[r["id"]]) & bed_comps) if r["id"] in comp0 else 0)
+    plain = _pick_fire(plan, inputs.fire_room)
+    plain_n = len(reachable(plan, comp0, comp0[plain["id"]]) & bed_comps) if plain and plain["id"] in comp0 else 0
     multi = len({r["floor"] for r in live_rooms(plan)}) > 1
     where = lambda r: f"{name(r)} ({floor_label(plan, r['floor'])})" if multi else name(r)  # noqa: E731
     a = GROWTH[inputs.growth]
-    ctx.step(f"Fire in {where(fire)}: {inputs.growth} growth to {inputs.peak_kw:.0f} kW")
+    moved = (f" The {where(plain).lower()} has {'no doorway or stair path to the bedrooms' if not plain_n else 'a path to fewer bedrooms'}"
+             f" in the scan, so the fire starts in the {where(fire).lower()} instead.") if plain is not None and fire["id"] != plain["id"] else ""
+    ctx.step(f"Fire in {where(fire)}: {inputs.growth} growth to {inputs.peak_kw:.0f} kW" + moved)
     from concurrent.futures import ThreadPoolExecutor
     cases = {closed: write_input(plan, fire, closed, a, inputs.peak_kw) for closed in (False, True)}
+    comp = comp0  # every compartment, before write_input leaves out those the fire cannot reach
+    linked = reachable(plan, comp, comp[fire["id"]]) if fire["id"] in comp else set()
+    cut_off = [r for r in beds if r["id"] in comp and comp[r["id"]] not in linked]
+    if len(cut_off) == len([r for r in beds if r["id"] in comp]):
+        raise NotApplicable(f"In the scan's wall graph no doorway joins the {name(fire).lower()} to any bedroom (a door "
+                            "or opening is missing from the scan), so smoke has no path to them in the model. Pick the "
+                            "fire room with fire_room, or check the plan.")
     try:
         with ThreadPoolExecutor(2) as ex:  # the two cases are independent CFAST processes
             runs = dict(zip(cases, ex.map(lambda c: run_cfast(c[0]), cases.values())))
@@ -307,20 +377,29 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     results = {closed: (runs[closed], cases[closed][1]) for closed in cases}
     ctx.step(f"Ran CFAST twice (bedroom doors open, then closed) on {len(set(cases[False][1].values()))} "
              "compartments")
-    beds = [r for r in beds if r["id"] in cases[False][1]]
+    beds = [r for r in beds if r["id"] in comp0]
     checks, findings, metrics = [], [], []
     lens = {False: {}, True: {}}
     limit_s = inputs.escape_min * 60
     worst = None
+    end = {closed: results[closed][0]["stopped_s"] or SIM_S for closed in results}  # a stalled run ends early
+    cut = {r["id"] for r in cut_off}
     for r in sorted(beds, key=lambda r: r["id"]):
+        if r["id"] in cut:
+            findings.append(Finding(id=f"smoke_clock:{sid}:{r['id']}", title=f"{where(r)}, survivable time",
+                                    status="unknown", anchor=RoomAnchor(sid=sid, room=r["id"]), source=SIM,
+                                    detail="No doorway joins this bedroom to the fire room in the scan's wall graph, so "
+                                           "the model cannot time it."))
+            continue
         tt = {}
         for closed in (False, True):
             res, comp = results[closed]
             u = untenable(res, comp[r["id"]])
             tt[closed] = u
             mins = round(u["time_s"] / 60, 1) if u["time_s"] is not None else None
-            lens[closed][r["id"]] = mins if mins is not None else SIM_S / 60
-            st = "pass" if mins is None or u["time_s"] >= limit_s else "fail"
+            lens[closed][r["id"]] = mins if mins is not None else round(end[closed] / 60, 1)
+            st = ("pass" if u["time_s"] >= limit_s else "fail") if mins is not None else \
+                "pass" if end[closed] >= limit_s else "unknown"
             fid = f"smoke_clock:{sid}:{r['id']}"
             checks.append(Check(id=f"{r['id']}:{'closed' if closed else 'open'}",
                                 rule=f"Survivable time, {name(r)} ({floor_label(plan, r['floor'])}), door "
@@ -331,23 +410,29 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                                   label=f"{name(r)}, door {'closed' if closed else 'open'}", value=mins,
                                   unit="min", source=SIM))
         o, c = tt[False], tt[True]
-        fmt = lambda u: (f"untenable at {u['time_s'] / 60:.1f} min ({u['cause']})" if u["time_s"] is not None  # noqa: E731
-                         else f"still tenable at {SIM_S // 60} min")
+        fmt = lambda u, closed: (f"untenable at {u['time_s'] / 60:.1f} min ({u['cause']})" if u["time_s"] is not None  # noqa: E731
+                                 else f"still tenable at {end[closed] / 60:.1f} min"
+                                 + (", when the model was stopped" if end[closed] < SIM_S else ""))
         st = "fail" if o["time_s"] is not None and o["time_s"] < limit_s else "warn" if o["time_s"] is not None else "pass"
         findings.append(Finding(id=f"smoke_clock:{sid}:{r['id']}", title=f"{where(r)}, survivable time", status=st,
-                                detail=f"Door open: {fmt(o)}. Door closed: {fmt(c)}.",
+                                detail=f"Door open: {fmt(o, False)}. Door closed: {fmt(c, True)}.",
                                 anchor=RoomAnchor(sid=sid, room=r["id"]), source=SIM))
         if o["time_s"] is not None and (worst is None or o["time_s"] < worst[1]):
             worst = (r, o["time_s"])
     opens = [v for v in lens[False].values()]
     closes = [v for v in lens[True].values()]
     fails = sum(c.status == "fail" for c in checks)
+    ran = lambda closed: f"the full {SIM_S // 60} min" if end[closed] >= SIM_S else \
+        f"the {end[closed] / 60:.1f} min the model ran before it was stopped (CFAST is slow on large plans)"  # noqa: E731
     text = (f"Fire in {where(fire)}, {inputs.growth} growth: with bedroom doors open the first bedroom becomes "
             f"untenable at {worst[1] / 60:.1f} min; " if worst else
-            f"Fire in {where(fire)}: no bedroom became untenable within {SIM_S // 60} min with doors open; ") + \
-        (f"with doors closed the shortest is {min(closes):.1f} min." if min(closes) < SIM_S / 60 else
-         f"with doors closed every bedroom stays tenable for the full {SIM_S // 60} min.")
-    status = "fail" if fails else "pass"
+            f"Fire in {where(fire)}: no bedroom became untenable in {ran(False)} with doors open; ") + \
+        (f"with doors closed the shortest is {min(closes):.1f} min." if min(closes) < end[True] / 60 else
+         f"with doors closed every bedroom stays tenable for {ran(True)}.")
+    text += moved
+    if cut_off:
+        text += f" {len(cut_off)} bedroom{'s are' if len(cut_off) > 1 else ' is'} not joined to the fire room in the scan, so not timed."
+    status = "fail" if fails else "unknown" if cut_off or any(c.status == "unknown" for c in checks) else "pass"
     return ToolResult(
         scope=scope, verdict=Verdict(status=status, text=text),
         metrics=[Metric(id="shortest_open", label="Shortest, doors open", value=min(opens), unit="min", source=SIM),

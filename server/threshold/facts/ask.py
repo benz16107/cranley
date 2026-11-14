@@ -39,11 +39,11 @@ fact_daily(day, sid, room, field, value_num, value_text, unit, method, confidenc
   confirmed|contradicted|cannot verify; record_value is the record's), room.area, room.turn_diameter, <tool>.<metric>
 flood_run(run, sid, scenario, datum, step_m, step_s, started); flood_depth(ts, run, sid, room, label, level_m, depth_m, wet_area_m2)
 flood_by_level(bucket, run, sid, level_m, rooms_wet, rooms, wet_area_m2, max_depth_m)  -- continuous aggregate
-op_log(at, workspace, seq, op, by_whom, tool, undo, cause, body jsonb); ops_hourly(hour, op, by_whom, tool, ops, workspaces)
+ops_hourly(hour, op, by_whom, tool, ops, workspaces)  -- agent operations per hour, counts only
 room_text(sid, room, pano, description, features text[], embedding vector(384), labels smallint[]); room_type(id, label)"""
 _FORBIDDEN = re.compile(r"\b(insert|update|delete|merge|truncate|alter|create|drop|grant|revoke|copy|call|do|vacuum|"
                         r"analyze|refresh|set|reset|lock|listen|notify|prepare|execute|comment|security|set_config|"
-                        r"pg_sleep|dblink|lo_\w+|pg_read\w*|pg_ls\w*)\b", re.IGNORECASE)
+                        r"pg_sleep|dblink|lo_\w+|pg_read\w*|pg_ls\w*|op_log|_timescaledb_\w+|_hyper_\w+)\b", re.IGNORECASE)
 _lock = threading.Lock()
 _reader: dict = {}
 
