@@ -23,8 +23,10 @@ versus reality. Many smaller tools share the same engines.
 Data facts that shape everything (measured on 2026-11-13):
 
 - The scans are mostly apartment units and amenity rooms, then houses, then offices. Few shops or warehouses.
-- The wall graph (walls, doorways and windows with real widths, room polygons, heights) exists for most
-  scans. Some scans have rooms but no walls. Build for both.
+- The wall graph (walls, doorways and windows with real widths, room polygons, heights) exists for every house
+  sampled but only about half of apartment units and two thirds of offices. The rest have rooms, panoramas,
+  floor plan images and a schematic DXF, but no walls. Every tool must check `plan.quality` and say plainly
+  when a scan cannot answer.
 - The mesh download (MatterPak) is unavailable. The dollhouse is built from the wall graph.
 - `geocoordinates` gives each scan's compass rotation. Panoramas carry a position, a rotation and their
   walkable neighbours.
@@ -153,6 +155,37 @@ FloorPlanMini, Controls, AssumptionChips, StepLog, Note, ActionBar). The agent w
 schema and the op validator (`server/threshold/agent/workspace.py`, exported as JSON Schema to
 `docs/contracts/workspace.schema.json`); the shell workstream renders it. Until that schema lands, the
 shell codes against the op names above and the block catalog.
+
+## Amendments after wave 1 (2026-11-13)
+
+**Contract 1.** Added, nothing renamed: `plan.quality` (`walls`, `polygons`, `openings`, `labels`, `georef` as booleans,
+plus `counts` and `notes`); `floors[].elevation` (metres above the lowest floor) and `elevation_source`;
+`rooms[].center`, `hole_polygons`, `extra_polygons`, `area_source`. Room polygons are counter-clockwise.
+`openings[].sill` is absolute scan z, so subtract the floor's elevation for height above that floor. A doorway
+with one room may lead outside or to an unscanned room; until the plan says which, treat it as "entrance,
+unverified". About 60% of rooms have no `height`; use the plan's median and mark it.
+
+**Contract 2.** Also served: `/api/scans` filters, `/api/property/{id}/scans`, `/api/scan/{sid}/splat/envmap/{face}.jpg`,
+`POST /api/workspace`, `POST /api/workspace/{id}/undo`. `/api/scan/{sid}/record` returns the CoStar or listing record
+with related records and a `claims` list (each claim has the exact field path it came from).
+
+**Contract 3.** A check may also carry `result` (`likely pass`, `likely fail`, `measure on site`), `tolerance`,
+`severity` and `items`; a finding may carry `result`, `label` and `room`. Renderers ignore fields they do not know.
+A panorama anchor's `yaw_deg` is measured in the scan frame, counter-clockwise from +x; `pitch_deg` is positive
+looking up. A panorama media ref is `"<sid>/<pano>/<face>"` with `box` as fractions of the face (x0, y0, x1, y1).
+Run inputs and timestamps live on the workspace's run record, not on the result.
+
+**Contract 5.** `finding.add` is an upsert and carries user feedback (`feedback`, `superseded_by`). Undo is a log
+entry. The schema and TypeScript types are in `docs/contracts/workspace.schema.json` and `workspace.ts`.
+
+**Tools.** How to write one: `server/threshold/tools/README.md`. A tool lives in `server/threshold/tools/<id>/`,
+tests in `server/tests/tools/<id>/`. Use the ids already named in `server/threshold/agent/personas/*.json` so the
+presets pick the tool up. Engines to call, never to copy: `threshold.geometry` (routes, reach, fit, rule packs,
+takeoff, georef and sun, water), `threshold.vision` (label_rooms, find_objects, contents), `threshold.aerial`
+(site_facts, ortho, elevation, detect, obliques), `threshold.sources` (plans, panoramas, CoStar records, index).
+
+**Ports.** 8787 is the lead's merged server. 8791 and 8796 are taken by other software on this machine. Pick a
+free port above 8800 for your own server.
 
 ## Run it
 
