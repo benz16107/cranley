@@ -311,6 +311,8 @@ export function Building({ sid }: { sid: string }) {
       void runTool('tour', { question: doc.brief?.text, findings: evidence.length ? evidence : undefined }, sid)
       return
     }
+    // while something plays, only its own drawing is on the building (a tour's path); the person's choice comes back after
+    setPick(kind && spec?.kind !== kind ? (kind === 'tour' && drawn.includes('tour') ? ['tour'] : []) : null)
     v.setView((x) => {
       const back = held.current ?? {}; held.current = null // the view the person had before the show set its own
       if (!kind || x.show?.kind === kind) return { ...x, ...back, show: null }
@@ -336,6 +338,7 @@ export function Building({ sid }: { sid: string }) {
     if (stopsKey === toured.current || busy) return
     toured.current = stopsKey
     if (!stops.length || performance.now() - born.current < 2500) return
+    setPick(['tour'])
     v.setView((x) => ({ ...x, mode: 'dollhouse', surface: bake.colour === 'ready' ? 'scan' : x.surface, show: { kind: 'tour', playing: true, stops } }))
   }, [stopsKey, busy]) // eslint-disable-line react-hooks/exhaustive-deps
 
