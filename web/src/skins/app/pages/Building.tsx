@@ -17,6 +17,7 @@ import { startTool } from '../shell/StartTool.tsx'
 import { DownloadReport } from '../report/DownloadReport.tsx'
 import { useIsPhone, useUi } from '../shell/store.ts'
 import { CompareScenes, WhatIfMenu, useWhatIf } from '../whatif/WhatIf.tsx'
+import { FurnishCard, FurnishMenu, useFurnish } from '../furnish/Furnish.tsx'
 
 const MODES: { id: SceneMode; label: string; icon: IconName; none: string }[] = [
   { id: 'dollhouse', label: '3D', icon: 'cube', none: '' }, { id: 'plan', label: 'Plan', icon: 'plan', none: '' },
@@ -295,6 +296,7 @@ export function Building({ sid }: { sid: string }) {
   }
   // What if: the renovated plan beside this one. A new what-if result opens the comparison; the person can close it.
   const wi = useWhatIf(sid)
+  const furnish = useFurnish(sid)
   const [compare, setCompare] = useState(false)
   const camera = useRef<((c: SceneCamera) => void) | null>(null)
   const showCompare = compare && !!wi.after
@@ -480,6 +482,8 @@ export function Building({ sid }: { sid: string }) {
             <div className="worktools" role="group" aria-label="Play on the building">
               <Seg<ShowKind | 'none'> label="Play on the building" value={spec?.kind ?? 'none'} onChange={(k) => play(k === 'none' ? null : k)} options={SHOWS} />
               {spec && <Transport spec={spec} sink={sink} set={setSpec} seek={seek} close={() => play(null)} />}
+              <span className="grow" />
+              <FurnishMenu sid={sid} off={v.mode === 'dollhouse' ? undefined : 'Furniture is placed in the 3D view'} />
             </div>
           )}
           <div className="scene-host">
@@ -491,13 +495,14 @@ export function Building({ sid }: { sid: string }) {
                 {(() => {
                   const scene = (
                     <SceneBoundary key={`${v.sceneKey}:${scheme}`} fallback={fault('The building view stopped on this scan.')}>
-                      <Scene {...v.sceneProps} className="app-scene" switcher={false} prepare onState={onScene} onShow={onShow} onCamera={(c) => camera.current?.(c)} />
+                      <Scene {...v.sceneProps} className="app-scene" switcher={false} prepare onState={onScene} onShow={onShow} onCamera={(c) => camera.current?.(c)} furnish={furnish} />
                     </SceneBoundary>
                   )
                   return <CompareScenes open={showCompare} sid={sid} after={wi.after} mode={v.mode} cameraRef={camera}>{scene}</CompareScenes>
                 })()}
               </Suspense>
             )}
+            <FurnishCard sid={sid} />
           </div>
         </section>
         </Fill>
