@@ -194,7 +194,9 @@ def render_floor_height(plan, flood_result, path):
         x0, y0, x1, y1 = shot["crop"]
         a2.imshow(im.crop((x0, y0, x1, y1)))
         a2.set_title(f"Drone {shot['photo'][-12:]}: {shot['ffh_m']:.2f} m threshold over ground at "
-                     f"{shot['distance_m']:.1f} m (laser check {shot['laser_check_m']:+.2f} m)", fontsize=8)
+                     f"{shot['distance_m']:.1f} m ({shot.get('distance_from', 'laser')} distance"
+                     + (f", laser check {shot['laser_check_m']:+.2f} m)" if shot.get("laser_check_m") is not None else ")"),
+                     fontsize=8)
     elif fl.get("grade"):
         z = [p["z"] for p in fl["grade"]["points"]]
         a2.plot(range(len(z)), [v - min(z) for v in z])
