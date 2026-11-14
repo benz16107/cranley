@@ -390,6 +390,11 @@ def floor_vs_footprint(plan: dict, claim: dict, scan: dict, p: dict, ev: dict) -
     if 0.8 <= ratio <= 1.2:
         return _c(claim, CONFIRMED, "medium", head, measured=round(expect), unit="ft2", layer="vexcel", method="lookup",
                   anchor=_geo(ev), media=ev.get("ortho_media") or [], ratio=ratio)
+    if ratio < 0.5:
+        return _c(claim, UNVERIFIABLE, "medium", head + "Vexcel draws buildings that touch, and attached parking decks, as "
+                  "one footprint, so a record this far under it more likely covers one of joined buildings.",
+                  measured=round(expect), unit="ft2", layer="vexcel", method="lookup", anchor=_geo(ev),
+                  media=ev.get("ortho_media") or [], ratio=ratio)
     if ratio > 2.5:
         return _c(claim, UNVERIFIABLE, "high", head + "The record is several times the building seen from above, so it "
                   "covers several buildings (an apartment community or a campus) and one footprint cannot check it.",
@@ -399,9 +404,10 @@ def floor_vs_footprint(plan: dict, claim: dict, scan: dict, p: dict, ev: dict) -
         return _c(claim, UNVERIFIABLE, "medium", head + f"The parcel has {n_struct} structures and the record may cover "
                   "all of them, while the footprint is the main one only.", measured=round(expect), unit="ft2",
                   layer="vexcel", method="lookup", anchor=_geo(ev), media=ev.get("ortho_media") or [], ratio=ratio)
-    return _c(claim, CONTRADICTED, "medium", head + ("The record is larger than the building seen from above."
-                                                     if ratio > 1 else "The record is smaller than the building seen "
-                                                     "from above: a partial record, or a building that grew."),
+    return _c(claim, CONTRADICTED, "medium" if ratio > 1 else "low",
+              head + ("The record is larger than the building seen from above." if ratio > 1 else
+                      "The record is smaller than the building seen from above: a partial record, a building that grew, "
+                      "or a neighbour joined to it in Vexcel's footprint."),
               measured=round(expect), unit="ft2", layer="vexcel", method="lookup", anchor=_geo(ev),
               media=ev.get("ortho_media") or [], ratio=ratio)
 
