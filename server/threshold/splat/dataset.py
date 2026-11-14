@@ -77,11 +77,11 @@ def order(panos: list[str], every: int) -> tuple[list[tuple[str, int]], int, set
 
 
 def build(sid: str, res: int = 1024, every: int = 8, view: str = "furnished", workers: int = 4) -> dict:
-    """Write images/, sparse/0/{cameras,images,points3D}.txt and dataset.json under splat/<sid>/. Returns the summary."""
+    """Write images/, sparse/0/{cameras,images,points3D}.txt and dataset.json under splat/<sid>/dataset/. Returns the summary."""
     plan = mp.plan(sid)
     panos = sorted(p["id"] for p in plan["panos"] if p.get("rotation"))
     by_id = {p["id"]: p for p in plan["panos"]}
-    out = ROOT / sid
+    out = dataset_dir(sid)
     img_dir, sparse = out / "images", out / "sparse" / "0"
     shutil.rmtree(img_dir, ignore_errors=True)
     img_dir.mkdir(parents=True)
@@ -116,4 +116,5 @@ def build(sid: str, res: int = 1024, every: int = 8, view: str = "furnished", wo
 
 
 def dataset_dir(sid: str) -> Path:
-    return ROOT / sid
+    """Brush reads every file under this folder (a lone .ply there becomes its starting point), so outputs live beside it."""
+    return ROOT / sid / "dataset"

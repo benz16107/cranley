@@ -11,43 +11,71 @@ import os
 import shutil
 import subprocess
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
 from PIL import Image
 
-from . import ROOT, spz
+from ..sources import matterport as mp
+from . import ROOT, carve, dataset, spz
 
 BRUSH = os.environ.get("BRUSH_BIN", str(Path.home() / ".local/share/brush-dl/brush-app-x86_64-unknown-linux-gnu/brush_app"))
 BRUSH_VERSION = "0.3.0"
 SHOTS = ROOT.parent / "shots" / "splat"
+GROWTH_STOP = 0.7  # of the steps; splats stop multiplying after this, so the last phase only refines
 IDENTITY = [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]]
 
 
-def run(sid: str, steps: int = 15000, sh_degree: int = 2, max_splats: int = 1_500_000, evals: int = 3) -> dict:
-    d = ROOT / sid
+def _brush(d: Path, out: Path, meta: dict, start: int, end: int, sh_degree: int, max_splats: int, eval_every: int,
+           growth_stop: int) -> None:
+    cmd = [BRUSH, str(d), "--start-iter", str(start), "--total-steps", str(end), "--max-resolution", str(meta["res"]),
+           "--sh-degree", str(sh_degree), "--max-splats", str(max_splats), "--growth-stop-iter", str(growth_stop),
+           "--export-every", str(end), "--export-path", str(out), "--export-name", f"phase_{end}.ply"]
+    if meta["eval_period"]:
+        cmd += ["--eval-split-every", str(meta["eval_period"]), "--eval-every", str(eval_every), "--eval-save-to-disk"]
+    with open(out / "brush.log", "a") as log:
+        subprocess.run(cmd, cwd=out, stdout=log, stderr=subprocess.STDOUT, check=True)
+
+
+def run(sid: str, steps: int = 15000, sh_degree: int = 2, max_splats: int = 1_500_000, phases: int = 3) -> dict:
+    """Train in `phases` Brush runs; after each, carve the free-space splats and start the next from what is left.
+    A last one-step run scores the carved result on the held-out sweeps."""
+    root, d = ROOT / sid, dataset.dataset_dir(sid)
     meta = json.loads((d / "dataset.json").read_text())
-    out = d / f"run_{steps}"
+    plan = mp.plan(sid)
+    panos = {p["id"]: p for p in plan["panos"] if p.get("rotation")}
+    centres = [p["position"] for k, p in panos.items() if k not in set(meta["held_out"])]  # never the held-out sweeps
+    surface = carve.depth_points(sid, plan, panos)
+    out = root / f"run_{steps}"
     shutil.rmtree(out, ignore_errors=True)
     out.mkdir()
-    every = max(1, steps // evals)
-    cmd = [BRUSH, str(d), "--total-steps", str(steps), "--max-resolution", str(meta["res"]),
-           "--sh-degree", str(sh_degree), "--max-splats", str(max_splats),
-           "--export-every", str(steps), "--export-path", str(out), "--export-name", "final.ply"]
-    if meta["eval_period"]:
-        cmd += ["--eval-split-every", str(meta["eval_period"]), "--eval-every", str(every), "--eval-save-to-disk"]
-    t0 = time.time()
-    with open(out / "brush.log", "w") as log:
-        subprocess.run(cmd, cwd=out, stdout=log, stderr=subprocess.STDOUT, check=True)
+    init = d / "init.ply"
+    init.unlink(missing_ok=True)
+    t0, carved = time.time(), []
+    ends = [round(steps * (i + 1) / phases) for i in range(phases)]
+    for start, end in zip([0, *ends], ends):
+        _brush(d, out, meta, start, end, sh_degree, max_splats, end - start, round(steps * GROWTH_STOP))
+        cols = spz.read_ply(out / f"phase_{end}.ply")
+        drop = carve.free_space(np.stack([cols["x"], cols["y"], cols["z"]], 1), surface, centres)
+        carved.append({"step": end, "splats": len(drop), "removed": int(drop.sum())})
+        spz.write_ply(init, {k: v[~drop] for k, v in cols.items()})
+    shutil.move(init, out / "carved.ply")
+    if meta["eval_period"]:  # score exactly what ships: start from the carved splats, one step, eval and export
+        spz.write_ply(init, spz.read_ply(out / "carved.ply"))
+        _brush(d, out, meta, steps, steps + 1, sh_degree, max_splats, 1, 0)
+        init.unlink()
+        shutil.move(out / f"phase_{steps + 1}.ply", out / "final.ply")
+    else:
+        shutil.move(out / "carved.ply", out / "final.ply")
     seconds = round(time.time() - t0)
     scores = {int(p.name.split("_")[1]): psnr_dir(p, d / "images") for p in sorted(out.glob("eval_*"))}
     last = scores.get(max(scores)) if scores else None
     sbs = side_by_side(sid, out / f"eval_{max(scores)}", d / "images") if scores else []
 
-    n = spz.ply_to_spz(out / "final.ply", d / "interior.spz")
-    shutil.copyfile(out / "final.ply", d / "interior.ply")
-    cols = spz.read_ply(d / "interior.ply")
+    n = spz.ply_to_spz(out / "final.ply", root / "interior.spz")
+    shutil.copyfile(out / "final.ply", root / "interior.ply")
+    cols = spz.read_ply(root / "interior.ply")
     xyz = np.stack([cols["x"], cols["y"], cols["z"]], 1)
     side = {
         "schema": "interior-splat/1", "sid": sid,
@@ -56,12 +84,13 @@ def run(sid: str, steps: int = 15000, sh_degree: int = 2, max_splats: int = 1_50
         "convention": "Splat positions are ScanPlan scan-frame metres (x, y on the floor, z up); to_scanplan is a "
                       "row-major 4x4 taking splat coordinates to the scan frame. No axis flip in the .spz or the .ply. "
                       "Place in the world with the plan's geo (ENU = Rz(yaw) p + translation).",
-        "files": {"spz": {"url": f"/api/scan/{sid}/interior-splat", "bytes": (d / "interior.spz").stat().st_size},
-                  "ply": {"url": f"/api/scan/{sid}/interior-splat?format=ply", "bytes": (d / "interior.ply").stat().st_size}},
+        "files": {"spz": {"url": f"/api/scan/{sid}/interior-splat", "bytes": (root / "interior.spz").stat().st_size},
+                  "ply": {"url": f"/api/scan/{sid}/interior-splat?format=ply", "bytes": (root / "interior.ply").stat().st_size}},
         "splats": n, "sh_degree": sh_degree,
         "bounds": {"min": np.percentile(xyz, 1, 0).round(3).tolist(), "max": np.percentile(xyz, 99, 0).round(3).tolist()},
         "trainer": {"name": "brush", "version": BRUSH_VERSION, "licence": "Apache-2.0", "steps": steps,
-                    "resolution": meta["res"], "max_splats": max_splats, "seconds": seconds},
+                    "resolution": meta["res"], "max_splats": max_splats, "seconds": seconds,
+                    "phases": phases, "carved": carved},
         "data": {"sweeps": meta["sweeps"], "images": meta["images"], "view": meta["view"],
                  "seed": {"source": meta["seed_source"], "points": meta["seed_points"]}},
         "eval": {"held_out_sweeps": meta["held_out"], "psnr_by_step": {str(k): v["mean"] for k, v in scores.items()},
@@ -69,9 +98,9 @@ def run(sid: str, steps: int = 15000, sh_degree: int = 2, max_splats: int = 1_50
                  "side_by_side": [str(p) for p in sbs], "reliability": "medium",
                  "note": "PSNR on cube faces of sweeps left out of training; renders sit at the sweep's own position, "
                          "so views far from any sweep are not measured."},
-        "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "created": datetime.now(UTC).isoformat(timespec="seconds"),
     }
-    (d / "interior.json").write_text(json.dumps(side, indent=1))
+    (root / "interior.json").write_text(json.dumps(side, indent=1))
     return side
 
 

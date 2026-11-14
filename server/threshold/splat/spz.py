@@ -32,6 +32,13 @@ def read_ply(path: Path) -> dict[str, np.ndarray]:
     return {k: a[:, i] for i, k in enumerate(props)}
 
 
+def write_ply(path: Path, cols: dict[str, np.ndarray]) -> None:
+    n = len(next(iter(cols.values())))
+    head = ["ply", "format binary_little_endian 1.0", f"element vertex {n}", *(f"property float {k}" for k in cols), "end_header"]
+    body = np.stack([np.asarray(v, np.float32) for v in cols.values()], 1)
+    Path(path).write_bytes(("\n".join(head) + "\n").encode() + body.astype("<f4").tobytes())
+
+
 def sh_degree(cols: dict) -> int:
     rest = sum(k.startswith("f_rest_") for k in cols)
     return {v * 3: d for d, v in SH_DIMS.items()}[rest]

@@ -99,6 +99,7 @@ def test_spz_round_trip():
     assert np.abs(xyz - np.stack([cols["x"], cols["y"], cols["z"]], 1)).max() < 1e-3
     assert np.abs(alpha - 1 / (1 + np.exp(-cols["opacity"]))).max() < 0.01
     assert np.abs(scale - np.stack([cols[f"scale_{i}"] for i in range(3)], 1)).max() < 0.04
+    assert np.abs((rgb / 255 - 0.5) / spz.COLOR_SCALE - np.stack([cols[f"f_dc_{i}"] for i in range(3)], 1)).max() < 0.03
     sign = np.where(q[:, :1] < 0, -1, 1)
     assert np.abs(rot - q[:, 1:] * sign).max() < 0.01
     # coefficient j of channel c is f_rest_{c * dims + j}

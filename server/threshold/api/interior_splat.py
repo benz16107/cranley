@@ -10,8 +10,8 @@ import json
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
-from ..splat import ROOT
 from ..sources.upstream import check
+from ..splat import ROOT
 from .data import _byte_range
 
 router = APIRouter(prefix="/api")
