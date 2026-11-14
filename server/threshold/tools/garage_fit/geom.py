@@ -27,6 +27,7 @@ SQUEEZE_M = 0.45           # beside the body: a person squeezes out of a half-op
 MIRROR_MARGIN_M = 0.15     # each side, driving in with mirrors out
 BODY_MARGIN_M = 0.05       # each side, mirrors folded, crawling in
 HEIGHT_FITS_M, HEIGHT_TIGHT_M = 0.10, 0.03
+DRIFT_M = 0.30             # a car may end up this far sideways of where it crossed the door, steering a little
 STEP_M = 0.05
 UNLABELLED = (None, "", "Other", "Storage", "Utility Room", "Unknown")
 
@@ -193,6 +194,12 @@ def gaps_for(n: int, gap: float, ramp: float) -> list[float]:
     return [gap] + [max(gap, ramp) for _ in range(n)]
 
 
+def lines_up(centre: float, span: float, doors: list[dict]) -> bool:
+    """Could a car parked with this centre have come through one of the doors with `span` to spare?"""
+    return any(d["lo"] + span / 2 - DRIFT_M - 1e-6 <= centre <= d["hi"] - span / 2 + DRIFT_M + 1e-6
+               and d["hi"] - d["lo"] >= span - 1e-6 for d in doors)
+
+
 def place(region, n: int, w: float, l: float, gaps: list[float], front: float, doors: list[dict], span: float,
           rear: float = REAR_M):
     """Lower-left (u, v) of each of n cars, w wide and l long, parked nose-in side by side with `gaps`, `front`
@@ -210,8 +217,7 @@ def place(region, n: int, w: float, l: float, gaps: list[float], front: float, d
     vmax = y0 + (0.6 if doors else y1 - y0 - bd)  # with a door, the car stops just inside it
     for v0 in np.arange(y0 + 0.003, min(vmax, y1 - bd) + 1e-9, 0.1):  # just inside: an edge on the wall reads as out
         for u0 in np.arange(x0 + 0.003, x1 - bw + 1e-9, STEP_M):
-            if doors and not all(any(d["lo"] - 1e-6 <= u0 + o + w / 2 - span / 2 and u0 + o + w / 2 + span / 2 <= d["hi"] + 1e-6
-                                     for d in doors) for o in offs):
+            if doors and not all(lines_up(u0 + o + w / 2, span, doors) for o in offs):
                 continue
             if contains(box(u0, v0, u0 + bw, v0 + bd)):
                 return [(u0 + o, v0 + rear) for o in offs]
@@ -231,8 +237,7 @@ def spread(region, cars: list[tuple], w: float, l: float, doors: list[dict], spa
         hi += STEP_M
     g = (hi - lo - n * w) / (n + 1)
     even = [(lo + g + i * (w + g), v0) for i in range(n)]
-    ok = not doors or all(any(d["lo"] <= u + w / 2 - span / 2 and u + w / 2 + span / 2 <= d["hi"] for d in doors)
-                          for u, _ in even)
+    ok = not doors or all(lines_up(u + w / 2, span, doors) for u, _ in even)
     return even if ok else cars
 
 

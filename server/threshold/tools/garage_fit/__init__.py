@@ -96,6 +96,8 @@ def assumptions(inputs: Inputs, d: Dims) -> list[Assumption]:
             Assumption(id="front", label="Ahead of the bumper to walk round", value=geom.FRONT_FITS_M, unit="m"),
             Assumption(id="mirrors", label="Each side between mirrors and door frame driving in",
                        value=geom.MIRROR_MARGIN_M, unit="m"),
+            Assumption(id="drift", label="Sideways shift between the door and the parked spot (steering in)",
+                       value=geom.DRIFT_M, unit="m"),
             Assumption(id="empty", label="Measured as an empty room: shelves, bins and freezers a Matterport scan does "
                        "not record take room too", value=True)]
 

@@ -58,7 +58,7 @@ def analyse(plan: dict, garage: dict, d: Dims, want: int | None) -> dict | None:
         tight, tight_cars = _most(region, d, doors, "tight")
         score = (tight, fits)
         if best is None or score > best["score"]:
-            best = {"score": score, "frame": f, "region": region, "fits": fits, "tight": tight,
+            best = {"score": score, "frame": f, "region": region, "raw": f.geom(s["clear"]), "fits": fits, "tight": tight,
                     "fits_cars": fits_cars, "tight_cars": tight_cars}
     f, region, doors = best["frame"], best["region"], s["doors"]
     n = want if want is not None else max(best["fits"], best["tight"], 1)
@@ -77,14 +77,14 @@ def analyse(plan: dict, garage: dict, d: Dims, want: int | None) -> dict | None:
         cars = geom.spread(region, cars, d.width, d.length, doors, lv["span"]) if not d.ramp else cars
     elif n:
         cars = geom.overflow(region, n, d.width, d.length)
-    size = geom.size_in(region, doors)
+    size = geom.size_in(best["raw"], doors)  # measured on the floor itself, not the 2 mm search allowance
     door_h, door_measured = geom.door_limit(doors)
     ceil = s["ceiling"]
     tops = [x for x in (door_h, ceil["value"]) if x]
     head = min(tops) if tops else None
     return {"survey": s, "frame": f, "region": region, "doors": doors, "fits": best["fits"], "tight": best["tight"],
             "n": n, "status": status, "cars": cars, "which": which,
-            "clear": geom.clearances(region, cars, d.width, d.length) if cars else [],
+            "clear": geom.clearances(best["raw"], cars, d.width, d.length) if cars else [],
             "width": size["width"], "depth": size["depth"], "door_line": size["door_line"],
             "door_width": max((x["width"] for x in doors), default=None), "door_height": door_h,
             "door_height_measured": door_measured, "ceiling": ceil["value"], "ceiling_measured": ceil["measured"],
