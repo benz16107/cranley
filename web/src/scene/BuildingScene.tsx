@@ -77,7 +77,7 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
 
       {state?.loading && <div className="th-loading" role="status" aria-label="Loading" style={mode === 'splat' ? { ['--p' as string]: state.splat.progress } : undefined} data-known={mode === 'splat'} />}
 
-      {model && mode !== 'plan' && mode !== 'splat' && (
+      {model && model.hasWalls && mode !== 'plan' && mode !== 'splat' && (
         <div className="th-inset" data-scene-ui>
           <FloorPlan plan={plan} model={model} overlays={overlays} floor={view.floor} compact pano={mode === 'pano' ? state?.pano : null} handle={insetHandle} onPick={pickFromPlan} />
         </div>

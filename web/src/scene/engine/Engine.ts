@@ -84,7 +84,7 @@ export class Engine {
 
     this.labels = new Labels(this.model)
     el.appendChild(this.labels.root)
-    this.roomLabels = plan.rooms.filter((r) => r.polygon.length > 2 && r.label !== 'Void').map((r) => {
+    this.roomLabels = this.model.plan.rooms.filter((r) => r.polygon.length > 2 && r.label !== 'Void').map((r) => {
       const c = centroid(r.polygon), f = this.model.floorOf.get(r.floor) ?? 0
       return {
         id: `room.${r.id}`, pos: [c[0], c[1], this.model.floorZ[f] + 0.05] as Vec3, floor: f, spanM: Math.sqrt(r.area ?? 4), minPx: r.label ? 62 : 74, modes: ['doll' as const], ride: r.height ?? this.model.floorH[f], elem: this.model.roomElem.get(r.id),
@@ -312,14 +312,16 @@ export class Engine {
     const el = this.el, rig = this.rig
     const onDown = (e: PointerEvent) => {
       if ((e.target as HTMLElement).closest('[data-scene-ui]')) return // rulers, sliders and pins handle themselves
-      el.setPointerCapture(e.pointerId)
       this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
       this.drag = { moved: 0, t: performance.now(), vx: 0, vy: 0, last: performance.now(), button: e.button }
       this.drift = false
     }
     const onMove = (e: PointerEvent) => {
       const prev = this.pointers.get(e.pointerId)
-      if (!prev) { if (e.pointerType === 'mouse') this.hoverAt = { x: e.clientX, y: e.clientY }; return }
+      if (!prev) { // plain hover; controls and the inset plan report their own
+        if (e.pointerType === 'mouse') this.hoverAt = (e.target as HTMLElement).closest('[data-scene-ui]') ? null : { x: e.clientX, y: e.clientY }
+        return
+      }
       const dx = e.clientX - prev.x, dy = e.clientY - prev.y, mode = this.view.mode
       const now = performance.now(), dtm = Math.max(1, now - this.drag.last); this.drag.last = now
       if (this.pointers.size === 2) { // pinch: the distance between two fingers sets the zoom
@@ -329,6 +331,7 @@ export class Engine {
       } else {
         this.drag.moved += Math.abs(dx) + Math.abs(dy)
         if (this.drag.moved < 4) { prev.x = e.clientX; prev.y = e.clientY; return } // hysteresis: a tap is not a drag
+        if (!el.hasPointerCapture(e.pointerId)) el.setPointerCapture(e.pointerId)   // only a drag takes the pointer; a tap still reaches the plan
         const pan = mode === 'plan' || this.drag.button !== 0 || e.shiftKey
         if (mode === 'pano') {
           const k = ((rig.pose.fov * Math.PI) / 180) / this.h // grab the photo: it follows the pointer

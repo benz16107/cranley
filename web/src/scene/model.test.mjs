@@ -1,7 +1,7 @@
 // Run: node --test src/scene/model.test.mjs   (from web/)
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { anchorPoint, buildModel, resolveStyles, roomAt, sightBlocked, wallBoxes } from './model.ts'
+import { anchorPoint, buildModel, outlineFromWalls, polygonArea, resolveStyles, roomAt, sightBlocked, wallBoxes } from './model.ts'
 
 // A hand-made 6 x 4 m plan: two rooms split by a wall at x = 3 with a 0.9 m doorway, and a window on the west wall.
 const wall = (id, a, b, rooms, openings = []) =>
@@ -66,4 +66,11 @@ test('lens colours rooms along the ramp', () => {
 test('a wall blocks the line of sight, a doorway does not', () => {
   assert.equal(sightBlocked(m, 'f', 1, 0.5, 5, 0.5), true)  // through the dividing wall
   assert.equal(sightBlocked(m, 'f', 1, 2, 5, 2), false)     // through the doorway at y = 2
+})
+
+test('a room outline is recovered from walls that include a dead-end divider', () => {
+  const sq = [[[0, 0], [4, 0]], [[4, 0], [4, 3]], [[4, 3], [2, 3]], [[2, 3], [0, 3]], [[0, 3], [0, 0]], [[2, 3], [2, 1.5]]] // last one sticks into the room
+  const poly = outlineFromWalls(sq)
+  assert.equal(poly.length, 5)
+  assert.equal(polygonArea(poly), 12)
 })

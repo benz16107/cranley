@@ -11,7 +11,7 @@ const CLEAR = 0.815 // metres: the usual clear width for a wheelchair
 
 export function sampleOverlays(plan: ScanPlan, on: Set<SampleKind>, waterDepth: number): Overlay[] {
   const m = buildModel(plan), out: Overlay[] = []
-  const rooms = plan.rooms.filter((r) => r.polygon.length > 2 && r.label !== 'Void')
+  const rooms = m.plan.rooms.filter((r) => r.polygon.length > 2 && r.label !== 'Void')
   const doors = plan.openings.filter((o) => o.type !== 'window' && o.width)
   const status = (w: number): Status => (w >= CLEAR ? 'pass' : w >= 0.7 ? 'warn' : 'fail')
 

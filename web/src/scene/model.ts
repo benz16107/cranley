@@ -13,7 +13,7 @@ export const STUB = 0.18        // metres a dimmed wall keeps, so the plan still
 const CAMERA_HEIGHT_GUESS = 1.45 // only used when a floor has no panoramas
 
 export interface Model {
-  plan: ScanPlan
+  plan: ScanPlan                // the plan as drawn: rooms that arrived without an outline get one derived from their walls
   floorZ: number[]              // elevation of each floor in scan z, index = position in plan.floors
   floorH: number[]              // typical room height per floor
   floorOf: Map<string, number>
@@ -28,7 +28,45 @@ export interface Model {
 
 const median = (v: number[]) => { const s = [...v].sort((a, b) => a - b); return s.length ? s[s.length >> 1] : NaN }
 
-export function buildModel(plan: ScanPlan): Model {
+/**
+ * A room's outline from its boundary walls, for rooms the ScanPlan left without a polygon. Those are rooms with a wall
+ * that sticks into them (a peninsula, a half-height divider): the dead end breaks a naive walk. Drop dead ends, then walk.
+ */
+export function outlineFromWalls(segs: [Vec2, Vec2][]): Vec2[] {
+  const key = (p: Vec2) => `${p[0]},${p[1]}`
+  let live = segs.filter((s) => key(s[0]) !== key(s[1]))
+  for (;;) {
+    const deg = new Map<string, number>()
+    for (const s of live) for (const p of s) deg.set(key(p), (deg.get(key(p)) ?? 0) + 1)
+    const next = live.filter((s) => deg.get(key(s[0]))! > 1 && deg.get(key(s[1]))! > 1)
+    if (next.length === live.length) break
+    live = next
+  }
+  const used = new Set<number>()
+  let best: Vec2[] = []
+  for (let i = 0; i < live.length; i++) {
+    if (used.has(i)) continue
+    const loop = [live[i][0], live[i][1]]
+    used.add(i)
+    while (key(loop[loop.length - 1]) !== key(loop[0])) {
+      const tail = key(loop[loop.length - 1])
+      const j = live.findIndex((s, k) => !used.has(k) && (key(s[0]) === tail || key(s[1]) === tail))
+      if (j < 0) break
+      used.add(j); loop.push(key(live[j][0]) === tail ? live[j][1] : live[j][0])
+    }
+    if (loop.length > 3 && key(loop[0]) === key(loop[loop.length - 1])) { loop.pop(); if (polygonArea(loop) > polygonArea(best)) best = loop }
+  }
+  return best
+}
+
+export function buildModel(source: ScanPlan): Model {
+  // Fill in outlines the plan lacks. The result must cover most of the room's stated area, or it is not trusted.
+  const wallOf = new Map(source.walls.map((w) => [w.id, w]))
+  const plan: ScanPlan = { ...source, rooms: source.rooms.map((r) => {
+    if (r.polygon.length > 2 || !r.walls?.length) return r
+    const poly = outlineFromWalls(r.walls.map((id) => wallOf.get(id)).filter((w): w is Wall => !!w).map((w) => [w.a, w.b]))
+    return poly.length > 2 && polygonArea(poly) >= 0.6 * (r.area ?? 0) ? { ...r, polygon: poly } : r
+  }) }
   const floorOf = new Map(plan.floors.map((f, i) => [f.id, i]))
   const panoZ = plan.floors.map((f) => median(plan.panos.filter((p) => p.floor === f.id).map((p) => p.position[2])))
   // The lowest floor sits at z = 0 in Matterport's frame; upper floors are offset by the tripod height difference.
@@ -60,7 +98,8 @@ export function buildModel(plan: ScanPlan): Model {
     openingElem: new Map(plan.openings.map((o, i) => [o.id, 1 + R + W + i])),
     wallById: new Map(plan.walls.map((w) => [w.id, w])),
     openingById: new Map(plan.openings.map((o) => [o.id, o])),
-    roomsByFloor: plan.floors.map((f) => plan.rooms.map((r, i) => [r, i] as const).filter(([r]) => r.floor === f.id && r.polygon.length > 2)
+    // "Void" is Matterport's label for shafts, wall cavities and open-to-below: enclosed by walls but not a floor
+    roomsByFloor: plan.floors.map((f) => plan.rooms.map((r, i) => [r, i] as const).filter(([r]) => r.floor === f.id && r.polygon.length > 2 && r.label !== 'Void')
       .sort((a, b) => polygonArea(b[0].polygon) - polygonArea(a[0].polygon)).map(([, i]) => i)),
     hasWalls: plan.walls.some((w) => w.type !== 'invisible'),
   }
@@ -188,10 +227,11 @@ export function anchorPoint(m: Model, a: Anchor): { point: Vec3; floor: number }
 
 const mix = (a: RGB, b: RGB, t: number): RGB => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]
 
-/** Colour for a lens value already normalised to 0..1. "status" runs fail, warn, pass from low to high. */
+/** Colour for a lens value already normalised to 0..1. "status" is three classes from low to high: fail, warn, pass
+ *  (blending red through amber to green gives browns that mean nothing). */
 export function rampColor(t: number, ramp: 'sequential' | 'status', pal: Palette): RGB {
   t = Math.min(1, Math.max(0, t))
-  if (ramp === 'status') return t < 0.5 ? mix(pal.fail, pal.warn, t * 2) : mix(pal.warn, pal.pass, t * 2 - 1)
+  if (ramp === 'status') return t < 1 / 3 ? pal.fail : t < 2 / 3 ? pal.warn : pal.pass
   return mix(pal.rampLo, pal.rampHi, t)
 }
 

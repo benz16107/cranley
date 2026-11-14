@@ -265,13 +265,17 @@ export class Dollhouse {
     const cv = document.createElement('canvas'); cv.width = gw; cv.height = gh
     const cx = cv.getContext('2d')!
     cx.fillStyle = '#000'; cx.fillRect(0, 0, gw, gh)
-    cx.filter = `blur(${(0.32 * ppm).toFixed(1)}px)`; cx.strokeStyle = '#fff'; cx.lineCap = 'round'
+    cx.strokeStyle = '#fff'; cx.lineCap = 'round'
     for (const wl of plan.walls) {
       if (wl.floor !== fid || wl.type === 'invisible') continue
       cx.lineWidth = ((wl.thickness || 0.1) + 0.34) * ppm
       cx.beginPath(); cx.moveTo((wl.a[0] - x0) * ppm, (y1 - wl.a[1]) * ppm); cx.lineTo((wl.b[0] - x0) * ppm, (y1 - wl.b[1]) * ppm); cx.stroke()
     }
-    const aoTex = new THREE.CanvasTexture(cv)
+    // blur once, after every wall is drawn: a filter on the stroking context would blur the whole canvas per wall
+    const soft = document.createElement('canvas'); soft.width = gw; soft.height = gh
+    const sx = soft.getContext('2d')!
+    sx.filter = `blur(${(0.32 * ppm).toFixed(1)}px)`; sx.drawImage(cv, 0, 0)
+    const aoTex = new THREE.CanvasTexture(soft)
     aoTex.minFilter = aoTex.magFilter = THREE.LinearFilter; aoTex.generateMipmaps = false
 
     const uniforms: Record<string, THREE.IUniform> = {

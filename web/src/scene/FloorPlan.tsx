@@ -82,7 +82,7 @@ export function FloorPlan({ plan, model, overlays = [], floor, measures, compact
   const body = useMemo(() => {
     if (!tok || !styles) return null
     const paper = tok.paper, ink = tok.ink
-    const rooms = plan.rooms.filter((r) => r.floor === fid && r.polygon.length > 2)
+    const rooms = m.roomsByFloor[fIdx].map((i) => m.plan.rooms[i])
     const walls = plan.walls.filter((w) => w.floor === fid)
     const water = known.find((o): o is Of<'water'> => o.kind === 'water' && typeof (o as Of<'water'>).level_m === 'number')
     const depth = water ? waterDepth(m, fIdx, water.level_m) : 0
@@ -94,12 +94,12 @@ export function FloorPlan({ plan, model, overlays = [], floor, measures, compact
             const s = styles[m.roomElem.get(r.id)!]
             if (s.alpha < 0.5) return null
             const base = mixHex(paper, tok.stage, s.wash * 0.9)
-            return <path key={r.id} d={`M${r.polygon.map((p) => `${n(p[0])} ${n(-p[1])}`).join('L')}Z`} fill={s.amt > 0.02 ? mixHex(paper, s.tint, Math.min(1, s.amt * 1.05)) : base}
+            return <path key={r.id} d={`M${r.polygon.map((p) => `${n(p[0])} ${n(-p[1])}`).join('L')}Z`} fill={s.amt > 0.02 ? mixHex(paper, s.tint, s.amt * 0.6) : base}
               stroke={s.outline ? hex(s.outline) : 'none'} className="fp-room" onPointerEnter={over({ kind: 'room', id: r.id, point: [0, 0, 0] })} onPointerLeave={over(null)}
               onClick={pick({ kind: 'room', id: r.id, point: [...centroid(r.polygon), m.floorZ[fIdx]] })} />
           })}
         </g>
-        {depth > 0.005 && <rect className="fp-water" x={b.minX - 1} y={-b.maxY - 1} width={b.maxX - b.minX + 2} height={b.maxY - b.minY + 2} fill={hex(tok.water)} />}
+        {depth > 0.005 && <rect className="fp-water" x={b.minX - 300} y={-b.maxY - 300} width={b.maxX - b.minX + 600} height={b.maxY - b.minY + 600} fill={hex(tok.water)} />}
         <g className="fp-walls">
           {walls.map((w) => {
             const s = styles[m.wallElem.get(w.id)!], L = w.length || 1, dx = (w.b[0] - w.a[0]) / L, dy = (w.b[1] - w.a[1]) / L, t = w.thickness || 0.1
@@ -111,7 +111,7 @@ export function FloorPlan({ plan, model, overlays = [], floor, measures, compact
             for (const sp of spans) { if (sp.s0 > cur) d += `M${at(cur)}L${at(sp.s0)}`; cur = Math.max(cur, sp.s1) }
             if (L + t / 2 > cur) d += `M${at(cur)}L${at(L + t / 2)}`
             // dimension text goes on the side away from the room when the wall has only one (an outside wall)
-            const own = w.rooms.length === 1 ? plan.rooms[m.roomElem.get(w.rooms[0])! - 1] : null
+            const own = w.rooms.length === 1 ? m.plan.rooms[m.roomElem.get(w.rooms[0])! - 1] : null
             const rc = own && own.polygon.length > 2 ? centroid(own.polygon) : null
             const side = rc && (rc[0] - w.a[0]) * -dy + (rc[1] - w.a[1]) * dx > 0 ? -1 : 1
             const colour = s.amt > 0.5 ? hex(s.tint) : s.height < 0.5 ? mixHex(ink, tok.stage, 0.62) : hex(ink)
@@ -142,7 +142,7 @@ export function FloorPlan({ plan, model, overlays = [], floor, measures, compact
           })}
         </g>
         <g className="fp-panos">
-          {plan.panos.filter((p) => p.floor === fid).map((p) => (
+          {plan.panos.filter((p) => p.floor === fid && (!compact || plan.panos.length <= 120 || p.id === pano)).map((p) => (
             <g key={p.id} transform={`translate(${n(p.position[0])} ${n(-p.position[1])})`} className={`fp-pano${p.id === pano ? ' fp-current' : ''}${hover?.kind === 'pano' && hover.id === p.id ? ' fp-hover' : ''}`}
               onPointerEnter={over({ kind: 'pano', id: p.id })} onPointerLeave={over(null)} onClick={pick({ kind: 'pano', id: p.id })}>
               <circle className="fp-unscale fp-hitdot" r={compact ? 4 : 7} /><circle className="fp-unscale fp-dot" r={p.id === pano ? 4 : compact ? 1.2 : 2.2} />
@@ -151,7 +151,7 @@ export function FloorPlan({ plan, model, overlays = [], floor, measures, compact
         </g>
         {!compact && (
           <g className="fp-labels">
-            {rooms.filter((r) => r.label !== 'Void' && styles[m.roomElem.get(r.id)!].alpha > 0.5).map((r) => {
+            {rooms.filter((r) => styles[m.roomElem.get(r.id)!].alpha > 0.5).map((r) => {
               const c = centroid(r.polygon)
               return (
                 <g key={r.id} transform={`translate(${n(c[0])} ${n(-c[1])})`} data-span={Math.sqrt(r.area ?? 4)} data-min={r.label ? 58 : 70}>
@@ -188,7 +188,7 @@ export function FloorPlan({ plan, model, overlays = [], floor, measures, compact
               return (
                 <g key={oi} transform={`translate(${n(bx.center[0])} ${n(-bx.center[1])}) rotate(${-(bx.yaw_deg ?? 0)})`} style={{ color: hex(statusColor(bx.status, tok)) }}>
                   <rect x={-bx.size[0] / 2} y={-bx.size[1] / 2} width={bx.size[0]} height={bx.size[1]} className="fp-box" />
-                  {!compact && <g className="fp-unscale" transform={`rotate(${bx.yaw_deg ?? 0})`}><Tag status={bx.status} text={`${bx.label ?? 'Object'}  ${bx.size[0].toFixed(2)} × ${bx.size[1].toFixed(2)} m`} y={-18} /></g>}
+                  {!compact && <g transform={`rotate(${bx.yaw_deg ?? 0})`}><g className="fp-unscale"><Tag status={bx.status} text={`${bx.label ?? 'Object'}  ${bx.size[0].toFixed(2)} × ${bx.size[1].toFixed(2)} m`} y={-22} /></g></g>}
                 </g>
               )
             }
@@ -200,7 +200,7 @@ export function FloorPlan({ plan, model, overlays = [], floor, measures, compact
                   <g key={`${oi}.${p.id}`} transform={`translate(${n(at.point[0])} ${n(-at.point[1])})`} className="fp-pin" data-status={p.status} onClick={pick({ kind: 'pin', id: p.id })}>
                     <g className="fp-unscale">
                       <PinMark status={p.status} r={compact ? 4 : 9} />
-                      {!compact && <><text className="fp-pin-n" textAnchor="middle" dy="0.34em">{i + 1}</text><text className="fp-pin-label" x={14} dy="0.34em">{p.label}</text></>}
+                      {!compact && <><text className="fp-pin-n" textAnchor="middle" dy="0.34em">{i + 1}</text><g transform={`translate(${14 + (p.label.length * 5.6 + 12) / 2} 0)`}><Tag status={null} text={p.label} y={0} sans /></g></>}
                     </g>
                   </g>
                 )
@@ -208,7 +208,7 @@ export function FloorPlan({ plan, model, overlays = [], floor, measures, compact
             }
             return null
           })}
-          {depth > 0.005 && !compact && rooms.filter((r) => r.label !== 'Void').sort((a, c) => (c.area ?? 0) - (a.area ?? 0)).slice(0, 3).map((r) => {
+          {depth > 0.005 && !compact && [...rooms].sort((a, c) => (c.area ?? 0) - (a.area ?? 0)).slice(0, 3).map((r) => {
             const c = centroid(r.polygon)
             return <g key={r.id} transform={`translate(${n(c[0])} ${n(-c[1])})`}><g className="fp-unscale"><Tag status={null} text={`depth ${fmtM(depth)}`} y={22} /></g></g>
           })}
@@ -234,13 +234,13 @@ function PinMark({ status, r }: { status: Status; r: number }) {
   return <circle className={cls} r={r} />
 }
 
-function Tag({ status, text, y }: { status: Status | null; text: string; y: number }) {
-  const w = text.length * 6.3 + (status ? 22 : 12)
+function Tag({ status, text, y, sans }: { status: Status | null; text: string; y: number; sans?: boolean }) {
+  const w = text.length * (sans ? 5.6 : 6.3) + (status ? 22 : 12)
   return (
     <g transform={`translate(${-w / 2} ${y - 9})`} className="fp-tag">
       <rect width={w} height={18} rx={3} />
       {status && <g transform="translate(10 9)"><PinMark status={status} r={3.5} /></g>}
-      <text x={status ? 18 : 6} y={9} dy="0.34em" className="fp-num">{text}</text>
+      <text x={status ? 18 : 6} y={9} dy="0.34em" className={sans ? 'fp-sans' : 'fp-num'}>{text}</text>
     </g>
   )
 }
