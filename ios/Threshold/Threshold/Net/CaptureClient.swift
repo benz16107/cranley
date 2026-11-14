@@ -80,6 +80,19 @@ nonisolated struct CaptureClient: Sendable {
     _ = try await ThresholdAPI(base: base).send("POST", "api/phone/\(token)/place", body: try JSONSerialization.data(withJSONObject: ["sid": sid]))
   }
 
+  /// A ceiling photo for the smoke alarm census: the report reads it and says whether an alarm shows.
+  @discardableResult
+  func sendCeilingPhoto(_ jpeg: Data, sid: String, room: String, roomName: String) async throws -> Reply {
+    guard let token else { throw NotLinked() }
+    let meta: [String: Any] = ["kind": "photo", "scan": sid, "room": room, "values": ["check": "smoke_alarm"],
+                               "note": "Ceiling of \(roomName), for the smoke alarm check", "device": "\(Device.model) threshold-ios/1",
+                               "taken": Date.now.timeIntervalSince1970]
+    let json = String(decoding: try JSONSerialization.data(withJSONObject: meta), as: UTF8.self)
+    let data = try await ThresholdAPI(base: base).send("POST", "api/phone/\(token)/capture",
+                                                       query: [URLQueryItem(name: "meta", value: json)], body: jpeg)
+    return (try? JSONDecoder().decode(Reply.self, from: data)) ?? Reply()
+  }
+
   /// Send one measurement as a capture record (capture/store.py `Meta`), with its photo as the request body.
   @discardableResult
   func send(_ m: Measurement) async throws -> Reply {

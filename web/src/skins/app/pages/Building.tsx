@@ -12,6 +12,7 @@ import { go, goScan } from '../lib/place.ts'
 import { FAMILIES, useTools, type ToolInfo } from '../lib/tools.ts'
 import { useScheme } from '../shell/theme.ts'
 import { startTool } from '../shell/StartTool.tsx'
+import { DownloadReport } from '../report/DownloadReport.tsx'
 import { useUi } from '../shell/store.ts'
 
 const MODES: { id: SceneMode; label: string; icon: IconName; none: string }[] = [
@@ -318,6 +319,7 @@ export function Building({ sid }: { sid: string }) {
         )}
         <RunToolMenu sid={sid} trigger={<button type="button" className="btn" disabled={!v.plan}><Icon name="play" size={13} />Run a tool<Icon name="down" size={11} /></button>} />
         <button type="button" className="btn" aria-pressed={v.kept} onClick={v.toggleKeep} disabled={!v.plan} title="Keep this scan in Buildings ( K )"><Icon name="keep" size={14} />{v.kept ? 'Kept' : 'Keep'}</button>
+        <DownloadReport workspace={doc.id} sid={sid} name={v.plan?.name} disabled={!runs.some((r) => r.status === 'done')} />
       </header>
 
       <div className="bld-body">
