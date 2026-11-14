@@ -58,7 +58,7 @@ def test_concurrent_writers_never_lose_an_op(ms):
         try:
             for j in range(6):
                 s.submit({"op": "shortlist.add", "sid": f"s{i}_{j}"}, by="user")
-        except Exception as e:  # pragma: no cover - reported below
+        except Exception as e:  # noqa: BLE001 - reported below
             errors.append(e)
 
     threads = [threading.Thread(target=write, args=(s, i)) for i, s in enumerate(sessions)]

@@ -56,7 +56,7 @@ def recall_lines(store, text: str | None, persona: str | None = None, exclude: s
     from .derive import lines
     try:
         return lines(store.recall(text, persona=persona, exclude=exclude, k=k, min_score=MIN_SCORE[store.vector_mode]))
-    except Exception:
+    except Exception:  # noqa: BLE001 - memory must never stop a turn
         return []
 
 

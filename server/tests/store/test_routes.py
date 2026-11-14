@@ -10,7 +10,7 @@ from threshold.api.app import app
 
 @pytest.fixture
 def client(ms, monkeypatch):
-    import threshold.store as store
+    from threshold import store
     monkeypatch.setenv("THRESHOLD_STORE", "mongo")
     monkeypatch.setattr(store, "connect", lambda *a, **k: ms)
     monkeypatch.setattr(agent_api, "_sessions", {})
@@ -26,8 +26,17 @@ def test_share_link_is_read_only_and_revocable(client):
     wid = client.post("/api/workspace?profile=pat").json()["doc"]["id"]
     client.post(f"/api/workspace/{wid}/ops", json={"op": "shortlist.add", "sid": "t1", "note": "near work"})
     link = client.post(f"/api/workspace/{wid}/share", json={"days": 1}).json()
-    view = client.get(f"/api/shared/{link['token']}").json()
+    raw = client.get(f"/api/shared/{link['token']}").text
+    view = json.loads(raw)
     assert view["readonly"] and view["seq"] == 1 and view["doc"]["shortlist"][0]["sid"] == "t1"
+    assert wid not in raw and view["doc"]["id"] == "shared"  # the viewer never learns the id the owner's routes take
+    with client.stream("GET", f"/api/shared/{link['token']}/live") as r:
+        lines = []
+        for line in r.iter_lines():
+            lines.append(line)
+            if '"seq"' in line:
+                break
+    assert wid not in "\n".join(lines) and '"seq": 1' in lines[-1]
     near = client.get(f"/api/shared/{link['token']}/shortlist?near=-95.369,29.7605&km=3").json()
     assert [r["sid"] for r in near] == ["t1"]
     assert client.post(f"/api/shared/{link['token']}/ops", json={}).status_code in (404, 405)  # no writes by link

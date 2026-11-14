@@ -15,6 +15,7 @@ A watcher fetches the view (its `seq`), then opens live with after=seq.
 from __future__ import annotations
 
 import asyncio
+import json
 import queue
 from collections.abc import Iterator
 
@@ -27,6 +28,7 @@ from .history import mongo_store, point
 
 router = APIRouter(prefix="/api")
 END = object()
+SHARED = "shared"
 
 
 def entries(s: Session, after: int) -> Iterator[dict | None]:
@@ -54,16 +56,24 @@ def entries(s: Session, after: int) -> Iterator[dict | None]:
         s.listeners.remove(q.put)
 
 
-def stream(request: Request, s: Session, after: int) -> StreamingResponse:
+def masked(data, id: str | None):
+    """`data` with the workspace id replaced: a link viewer who learned the id could write through the owner's
+    routes, so read-only means never showing it."""
+    return json.loads(json.dumps(data, default=str).replace(id, SHARED)) if id else data
+
+
+def stream(request: Request, s: Session, after: int, hide: bool = False) -> StreamingResponse:
+    hidden = s.base.id if hide else None
+
     async def events():
         it = entries(s, after)
         try:
-            yield _sse("workspace", {"id": s.base.id, "after": after})
+            yield _sse("workspace", masked({"id": s.base.id, "after": after}, hidden))
             while not await request.is_disconnected():
                 e = await asyncio.to_thread(next, it, END)
                 if e is END:
                     return
-                yield ": keep-alive\n\n" if e is None else _sse("op", e)
+                yield ": keep-alive\n\n" if e is None else _sse("op", masked(e, hidden))
         finally:
             try:
                 it.close()  # closes the change stream
@@ -97,17 +107,18 @@ def shared(token: str) -> dict:
     ln = link(token)
     s = session(ln["workspace"])
     s.sync()  # another server process may have written since this one loaded it
-    return {**view(s), "share": ln, "readonly": True}
+    return masked({**view(s), "share": {k: v for k, v in ln.items() if k != "workspace"}, "readonly": True}, s.base.id)
 
 
 @router.get("/shared/{token}/live")
 def shared_live(token: str, request: Request, after: int = Query(0, ge=0)) -> StreamingResponse:
-    return stream(request, session(link(token)["workspace"]), after)
+    return stream(request, session(link(token)["workspace"]), after, hide=True)
 
 
 @router.get("/shared/{token}/shortlist")
 def shared_shortlist(token: str, near: str | None = None, km: float | None = Query(None, gt=0, le=500)) -> list[dict]:
-    return mongo_store().shortlist_near(*point(near), km=km, workspace=link(token)["workspace"])
+    ws = link(token)["workspace"]
+    return masked(mongo_store().shortlist_near(*point(near), km=km, workspace=ws), ws)
 
 
 @router.delete("/workspace/{id}/share/{token}")

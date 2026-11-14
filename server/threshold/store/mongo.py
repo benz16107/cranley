@@ -269,12 +269,12 @@ class MongoStore:
                                                "facets": {f: {"type": "string", "path": f, "numBuckets": 12} for f in FACETS}}}
         if text:
             stage["highlight"] = {"path": SEARCH_FIELDS}
-        out = list(self.history.aggregate([
+        out = next(self.history.aggregate([
             {"$search": stage},
             {"$limit": max(1, min(limit, 50))},
             {"$project": {"_id": 0, "h": 0, "profile": 0, "score": {"$meta": "searchScore"},
                           **({"highlights": {"$meta": "searchHighlights"}} if text else {})}},
-            {"$facet": {"hits": [], "meta": [{"$replaceWith": "$$SEARCH_META"}, {"$limit": 1}]}}]))[0]
+            {"$facet": {"hits": [], "meta": [{"$replaceWith": "$$SEARCH_META"}, {"$limit": 1}]}}]))
         meta = (out["meta"] or [{}])[0]
         facets = {f: {b["_id"]: b["count"] for b in v["buckets"]} for f, v in (meta.get("facet") or {}).items()}
         return {"total": (meta.get("count") or {}).get("lowerBound", len(out["hits"])), "hits": out["hits"],
