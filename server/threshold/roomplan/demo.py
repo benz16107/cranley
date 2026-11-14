@@ -1,7 +1,9 @@
-"""A hand-made RoomPlan export of a made-up one-storey home, in exactly the format the iPhone sends (it decodes as
-Apple's `CapturedRoom` in the simulator). The app's demo mode and the converter tests both use it.
+"""Hand-made RoomPlan exports of a made-up one-storey home and a made-up small cafe, in exactly the format the iPhone
+sends (they decode as Apple's `CapturedRoom` in the simulator). The app's demo mode and the tests use them. Both are
+TEST DATA: no real place was scanned.
 
     uv run python -m threshold.roomplan.demo ../ios/Threshold/Threshold/Resources/DemoHome.json
+    uv run python -m threshold.roomplan.demo --cafe ../ios/Threshold/Threshold/Resources/DemoCafe.json
 
 Plan (metres, before the home is turned and moved like a real phone scan):
   Living Room 6 x 5 with the front door (0.91 m) | Kitchen 3.5 x 3 | Hallway 2.5 x 1.2 | Bathroom 2.5 x 1.8,
@@ -35,7 +37,38 @@ OBJECTS = [("sofa", 1.6, 0.6, 2.1, 0.9, 0.85, 0), ("table", 4.0, 3.0, 1.6, 0.9, 
 SECTIONS = [("livingRoom", 3.0, 2.5), ("kitchen", 1.75, 6.5), ("bedroom", 8.0, 2.0), ("bedroom", 8.0, 6.0), ("bathroom", 4.75, 7.1)]
 
 
-def home(turn_deg: float = 17.0, shift=(-3.2, 1.4), noise_m: float = 0.03, seed: int = 7) -> dict:
+# The cafe: a narrow street-front shop, 7 m of frontage and 12 m deep, like many on a small-town main street.
+#   Seating 7 x 7.5 with the street door (0.91 m) and the shop windows | Kitchen 4.2 x 4.5 behind it, through a 1.0 m
+#   opening, with the rear exit (0.86 m) | Restroom 2.8 x 2.2, door 0.76 m (narrower than a wheelchair needs) |
+#   Storage 2.8 x 2.3 off the kitchen, door 0.81 m.
+CAFE_WALLS = [((0, 0), (7, 0)), ((7, 0), (7, 12)), ((7, 12), (0, 12)), ((0, 12), (0, 0)),
+              ((0, 7.5), (7, 7.5)), ((4.2, 7.5), (4.2, 12)), ((4.2, 9.7), (7, 9.7))]
+CAFE_OPENINGS = [("door", 0, 1.5, 0.91, DOOR_H, 0.0), ("window", 0, 3.6, 2.4, 1.9, 0.45), ("window", 0, 6.0, 1.2, 1.9, 0.45),
+                 ("opening", 4, 2.6, 1.00, 2.10, 0.0), ("door", 4, 5.6, 0.76, DOOR_H, 0.0),
+                 ("door", 2, 2.0, 0.86, DOOR_H, 0.0), ("door", 5, 10.8, 0.81, DOOR_H, 0.0), ("window", 1, 4.0, 1.0, 1.2, 1.0)]
+CAFE_OBJECTS = [("table", 1.2, 4.0, 0.75, 0.75, 0.75, 0), ("chair", 1.2, 3.4, 0.45, 0.45, 0.85, 0),
+                ("chair", 1.2, 4.6, 0.45, 0.45, 0.85, 0), ("table", 2.9, 4.0, 0.75, 0.75, 0.75, 0),
+                ("chair", 2.9, 3.4, 0.45, 0.45, 0.85, 0), ("chair", 2.9, 4.6, 0.45, 0.45, 0.85, 0),
+                ("table", 3.6, 1.2, 2.4, 0.5, 0.95, 0),  # window bar
+                ("chair", 3.0, 0.8, 0.4, 0.4, 0.95, 0), ("chair", 4.2, 0.8, 0.4, 0.4, 0.95, 0),
+                ("sofa", 0.45, 6.1, 1.8, 0.8, 0.85, 90), ("table", 1.4, 6.1, 1.2, 0.6, 0.45, 90),
+                ("storage", 5.4, 6.9, 3.0, 0.7, 1.05, 0),  # the service counter with the pastry case
+                ("refrigerator", 6.6, 5.6, 0.7, 0.7, 1.9, 90),
+                ("stove", 0.45, 9.0, 0.76, 0.7, 0.9, 90), ("oven", 0.45, 10.1, 0.76, 0.7, 0.9, 90),
+                ("sink", 2.2, 7.85, 1.2, 0.6, 0.9, 0), ("dishwasher", 3.2, 7.85, 0.6, 0.6, 0.85, 0),
+                ("refrigerator", 3.8, 11.6, 0.75, 0.75, 1.9, 0), ("table", 2.1, 10.0, 1.8, 0.75, 0.9, 0),
+                ("toilet", 6.6, 8.6, 0.38, 0.7, 0.75, 90), ("sink", 5.3, 9.45, 0.5, 0.4, 0.85, 0),
+                ("storage", 6.65, 10.9, 0.6, 2.0, 2.0, 90), ("storage", 5.6, 11.65, 2.0, 0.6, 2.0, 0)]
+CAFE_SECTIONS = [("diningRoom", 3.5, 3.5), ("kitchen", 2.1, 9.8), ("bathroom", 5.6, 8.6)]
+
+
+def cafe(turn_deg: float = -24.0, shift=(1.1, -2.3), noise_m: float = 0.025, seed: int = 11) -> dict:
+    return home(turn_deg, shift, noise_m, seed, layout=(CAFE_WALLS, CAFE_OPENINGS, CAFE_OBJECTS, CAFE_SECTIONS, 12, 7))
+
+
+def home(turn_deg: float = 17.0, shift=(-3.2, 1.4), noise_m: float = 0.03, seed: int = 7, layout=None) -> dict:
+    WALLS, OPENINGS, OBJECTS, SECTIONS, depth, width = layout or (globals()["WALLS"], globals()["OPENINGS"],
+                                                                      globals()["OBJECTS"], globals()["SECTIONS"], 8, 10)
     rng = random.Random(seed)
     ids = lambda: str(uuid.UUID(int=rng.getrandbits(128))).upper()  # noqa: E731
     c, s = math.cos(math.radians(turn_deg)), math.sin(math.radians(turn_deg))
@@ -73,13 +106,14 @@ def home(turn_deg: float = 17.0, shift=(-3.2, 1.4), noise_m: float = 0.03, seed:
                 "dimensions": [w, h, d], "transform": transform(x, y, h / 2, yaw), "attributes": {}, "story": 0}
                for cat, x, y, w, d, h, yaw in OBJECTS]
     sections = [{"label": lab, "center": [world(x, y)[0], FLOOR_Y, world(x, y)[1]], "story": 0} for lab, x, y in SECTIONS]
-    floor = surface({"floor": {}}, 5, 4, 0, 10, 8, 0)
-    floor["dimensions"] = [10, 8, 0]
+    floor = surface({"floor": {}}, width / 2, depth / 2, 0, width, depth, 0)
+    floor["dimensions"] = [width, depth, 0]
     return {"version": 2, "identifier": ids(), "story": 0, "walls": walls, **out, "objects": objects,
             "floors": [], "sections": sections,
             "referenceOriginTransform": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]}
 
 
 if __name__ == "__main__":
-    text = json.dumps(home(), indent=1)
-    (open(sys.argv[1], "w").write(text + "\n") if len(sys.argv) > 1 else print(text))
+    args = [a for a in sys.argv[1:] if a != "--cafe"]
+    text = json.dumps(cafe() if "--cafe" in sys.argv else home(), indent=1)
+    (open(args[0], "w").write(text + "\n") if args else print(text))

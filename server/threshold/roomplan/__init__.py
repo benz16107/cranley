@@ -50,7 +50,7 @@ OBJECT_LABEL = {"storage": "Storage", "refrigerator": "Refrigerator", "stove": "
 ROOM_BY_OBJECT = [("toilet", "Bathroom"), ("bathtub", "Bathroom"), ("bed", "Bedroom"), ("stove", "Kitchen"),
                   ("oven", "Kitchen"), ("refrigerator", "Kitchen"), ("dishwasher", "Kitchen"),
                   ("washerDryer", "Laundry"), ("sofa", "Living Room"), ("television", "Living Room"),
-                  ("fireplace", "Living Room"), ("table", "Dining Room")]
+                  ("fireplace", "Living Room"), ("table", "Dining Room"), ("storage", "Storage")]
 
 
 class ExportError(ValueError):
