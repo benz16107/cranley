@@ -185,3 +185,11 @@ def test_share_links_expire(ms):
     old = ms.share("ws_x", days=-1)
     assert ms.shared(old["token"]) is None
     assert ms.unshare(link["token"]) and ms.shared(link["token"]) is None
+
+
+def test_an_op_whose_search_items_fail_still_counts(ms, monkeypatch):
+    """Once the log entry is stored the op happened: a failing derive must not tell the caller otherwise."""
+    s = Session.create(store=ms)
+    monkeypatch.setattr(ms, "derive", lambda d: (_ for _ in ()).throw(RuntimeError("embedding model offline")))
+    s.submit({"op": "tool.enable", "tool": "door_widths"}, by="user")
+    assert [e.seq for e in s.log] == [1] and [e.seq for e in Session.load(s.base.id, store=ms).log] == [1]

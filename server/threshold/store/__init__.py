@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import functools
+import threading
 from urllib.parse import urlsplit
 
 from ..config import env
@@ -32,8 +33,16 @@ def use_mongo() -> bool:
     return env().get("THRESHOLD_STORE", "files").lower() == "mongo"
 
 
-@functools.cache
+_connecting = threading.Lock()
+
+
 def connect(uri: str | None = None, db: str | None = None):
+    with _connecting:  # one MongoStore per deployment: two first requests must not both run setup()
+        return _connect(uri, db)
+
+
+@functools.cache
+def _connect(uri: str | None, db: str | None):
     from .mongo import MongoStore
     e = env()
     uri = uri or e.get("MONGODB_URI")
