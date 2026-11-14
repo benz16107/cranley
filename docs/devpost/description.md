@@ -30,7 +30,7 @@ The information to answer "will this work for me" exists: laser scans of the int
 5. **You can change the building.** "Widen this door": the renovate tool edits the plan, re-runs the checks and prices the work.
 6. **You take it with you.** A PDF report with numbered fixes and a list of what was not checked.
 
-The same workspace works for 35 kinds of user. A Houston homeowner watches Hurricane Harvey's measured water levels rise through their own house and gets the list of what to carry upstairs first. A fire captain gets a pre-plan with search routes and a smoke simulation run through NIST's CFAST model on the measured rooms. A car owner learns whether two trucks fit the garage. An office tenant tests whether the team fits, room by room.
+The same workspace works for 34 kinds of user. A Houston homeowner watches Hurricane Harvey's measured water levels rise through their own house and gets the list of what to carry upstairs first. A fire captain gets a pre-plan with search routes and a smoke simulation run through NIST's CFAST model on the measured rooms. A car owner learns whether two trucks fit the garage. An office tenant tests whether the team fits, room by room.
 
 ## What makes it different
 
