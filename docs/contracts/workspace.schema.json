@@ -1438,6 +1438,14 @@
             "planned"
           ],
           "type": "string"
+        },
+        "table": {
+          "default": [],
+          "description": "Columns of the run's own RankedTable: each row is a key k with metrics `k/<column.metric>`; the first cell's label names the row",
+          "items": {
+            "$ref": "#/$defs/TableColumn"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -2395,11 +2403,31 @@
           "type": "array"
         },
         "rows": {
-          "description": "Run ids, one per candidate building",
+          "description": "Run ids, one per candidate building; with `run`, row keys inside that run",
           "items": {
             "type": "string"
           },
           "type": "array"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A table inside one run's result (city_census groups): a cell is the metric `<row>/<column.metric>` of this run"
+        },
+        "labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "description": "With `run`: each row key's label",
+          "type": "object"
         }
       },
       "required": [
@@ -3165,6 +3193,31 @@
         "type"
       ],
       "title": "StepLog",
+      "type": "object"
+    },
+    "TableColumn": {
+      "additionalProperties": false,
+      "properties": {
+        "metric": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "better": {
+          "default": "higher",
+          "enum": [
+            "higher",
+            "lower"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "metric",
+        "label"
+      ],
+      "title": "TableColumn",
       "type": "object"
     },
     "ToolDisable": {

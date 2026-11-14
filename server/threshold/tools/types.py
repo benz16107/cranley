@@ -282,6 +282,12 @@ class Annotations(Strict):
     cost: Literal["fast", "slow"] = "fast"
 
 
+class TableColumn(Strict):
+    metric: str
+    label: str
+    better: Literal["higher", "lower"] = "higher"
+
+
 class Manifest(Strict):
     id: str
     title: str
@@ -296,3 +302,5 @@ class Manifest(Strict):
     annotations: Annotations = Annotations()
     examples: list[str] = []
     status: Literal["ready", "planned"] = "ready"
+    table: list[TableColumn] = Field([], description="Columns of the run's own RankedTable: each row is a key k with "
+                                                     "metrics `k/<column.metric>`; the first cell's label names the row")

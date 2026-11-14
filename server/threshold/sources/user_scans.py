@@ -18,11 +18,11 @@ from ..config import DATA
 from ..roomplan import convert
 
 ROOT = DATA / "user_scans"
-SID = re.compile(r"^u_[0-9a-f]{12}$")
+SID = re.compile(r"u_[0-9a-f]{12}")
 
 
 def owns(sid: str) -> bool:
-    return bool(SID.match(sid or ""))
+    return bool(SID.fullmatch(sid or ""))  # match with $ let "u_...\n" through
 
 
 def _dir(sid: str):

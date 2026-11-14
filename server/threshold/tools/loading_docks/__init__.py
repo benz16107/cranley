@@ -216,6 +216,7 @@ def agree(a: float | None, b: float | None) -> str:
 def run(ctx, inputs: Inputs) -> ToolResult:
     not_for_homes(inputs.scan, "loading docks")
     s = locate(ctx, inputs)
+    not_for_homes(inputs.scan, "loading docks", s)
     sv = survey(ctx, s, inputs.use_vision, inputs.inside)
     k, rec = s.key, sv["record"]
     if sv["footprint"] is None:

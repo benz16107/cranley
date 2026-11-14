@@ -155,6 +155,25 @@ def test_read_only_sql_refuses_writes_at_every_layer(schema):
     assert db.rows("SELECT count(*) AS n FROM scan")[0]["n"] == 3
 
 
+def test_reader_cannot_read_workspace_ids(schema):
+    # a workspace id gives write access to it, so the agent's SQL role must never see op_log or its chunks
+    record.record_op("ws_secret", {"seq": 1, "at": 1_763_000_100.0, "op": {"op": "brief.set", "by": "user"},
+                                   "undo": None, "cause": None})
+    record.flush()
+    assert db.rows("SELECT count(*) AS n FROM op_log WHERE workspace = 'ws_secret'")[0]["n"] == 1   # the owner sees it
+    with pytest.raises(ValueError, match="op_log"):
+        ask.run("SELECT workspace FROM op_log")
+    ask.run("SELECT 1")
+    c = ask._reader["con"]
+    chunks = [r["c"] for r in db.rows("SELECT show_chunks('threshold.op_log')::text AS c")]
+    assert chunks
+    for sql in ["SELECT workspace FROM threshold.op_log", *(f"SELECT workspace FROM {ch}" for ch in chunks)]:
+        with pytest.raises(pg8000.native.DatabaseError):
+            c.run(sql)
+        c.run("ROLLBACK")
+    assert ask.run("SELECT sum(ops) AS n FROM ops_hourly")["rows"][0][0] >= 1                       # counts stay readable
+
+
 def test_flood_runs_store_depth_series(schema):
     from datetime import UTC, datetime
 
@@ -195,6 +214,22 @@ def test_similar_rooms_uses_diskann_with_label_filter(schema):
     assert "room_text_embedding" in json.dumps(plan)
 
 
+def test_load_measures_refreshes_only_measures(schema, tmp_path, monkeypatch):
+    from threshold.facts import load
+    row = {"sid": "hand_a", "name": "A", "kind": "house", "walls": 1, "polygons": 1, "labels": 1, "panos": 3,
+           **{k: v for k, v in schema["measures"].items()}, "floor_area": 99.5}
+    ghost = {**row, "sid": "not_held"}
+    path = tmp_path / "m.sqlite"
+    mt.write([(row, [("hand_a", "d1", "doorway", 0.9, 0, None, "f1")]), (ghost, [])], {"built_at": "2026-11-14T09:00:00"}, path)
+    monkeypatch.setattr(mt, "DB", path)
+    rooms_before = db.rows("SELECT count(*) AS n FROM room")[0]["n"]
+    out = load.load_measures()
+    assert out["scans"] == 1
+    assert db.rows("SELECT floor_area FROM measures WHERE sid = 'hand_a'")[0]["floor_area"] == 99.5
+    assert db.rows("SELECT count(*) AS n FROM measures WHERE sid = 'not_held'")[0]["n"] == 0
+    assert db.rows("SELECT count(*) AS n FROM room")[0]["n"] == rooms_before          # rooms are not touched
+
+
 def test_drop_all_leaves_nothing(schema):
     db.drop_all(target="test")
     assert db.rows("SELECT to_regclass('threshold.fact') IS NULL AS gone")[0]["gone"]
@@ -212,3 +247,4 @@ def test_guards_keep_destructive_commands_off_the_cloud(monkeypatch, capsys):
     monkeypatch.setattr(db, "drop_all", lambda **k: called.append("drop"))
     assert cli.main(["load"]) == 1 and cli.main(["drop_all"]) == 1 and cli.main(["drop_all", "--target", "cloud"]) == 1
     assert cli.main(["drop_all", "--yes"]) == 1 and not called  # nothing ran without both the name and the yes
+

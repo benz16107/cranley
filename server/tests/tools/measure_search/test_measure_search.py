@@ -30,6 +30,9 @@ def test_search_ranks_and_explains(tmp_path, monkeypatch):
     monkeypatch.setattr(table, "DB", db)
     r = run_tool("measure_search", {"criteria": [{"measure": "bath_route_door", "op": ">=", "value": 0.81}]})
     assert r.scope.sid == "a" and r.checks[0].status == "pass" and r.findings[0].anchor.geo == (-95.4, 29.7)
+    picked = run_tool("measure_search", {"need": "step_free_bath"})            # a need is a fixed list of criteria
+    assert picked.verdict.status != "unknown" and "Step-free way to a bathroom" in picked.checks[0].rule
+    assert run_tool("measure_search", {}).verdict.status == "unknown"           # nothing asked: says what to give
 
 
 def test_parse_rejects_unknown_measures():
