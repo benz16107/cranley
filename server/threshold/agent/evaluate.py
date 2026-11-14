@@ -5,6 +5,7 @@ the summary, reasons and limits is one the person said.
     uv run python -m threshold.agent.evaluate            # replay the recorded model answers (what the test runs)
     uv run python -m threshold.agent.evaluate --live     # ask the live model once per brief and record the answers
     uv run python -m threshold.agent.evaluate --missing  # ask it only for briefs with no recorded answer yet
+    uv run python -m threshold.agent.evaluate --langsmith [--label x]  # the same run as a LangSmith experiment
 
 Briefs and expectations: tests/agent/composer_briefs.json. Recorded answers: tests/agent/composer_recorded.json.
 The table goes to $THRESHOLD_DATA_DIR/shots/agent/composer_eval[-<label>].md.
@@ -81,6 +82,30 @@ def run(model, parallel: int = 4) -> list[dict]:
         return list(ex.map(lambda b: score(b, model), briefs))
 
 
+DATASET = "threshold-composer"
+
+
+def langsmith_experiment(model, label: str = "") -> str:
+    """Run the briefs as a LangSmith experiment on the dataset `threshold-composer` (created from the briefs file the
+    first time), one feedback score per check, so prompt changes compare side by side. Returns the experiment name."""
+    from langsmith import Client, evaluate
+
+    from ..config import env
+    from .llm import tracing
+    tracing()
+    client = Client(api_key=env()["LANGSMITH_API_KEY"])
+    briefs = json.loads(BRIEFS.read_text())
+    if not client.has_dataset(dataset_name=DATASET):
+        ds = client.create_dataset(DATASET, description="One-sentence briefs for Threshold's composer, with the persona, "
+                                                         "tools and questions each should produce.")
+        client.create_examples(dataset_id=ds.id, examples=[{"inputs": {"brief": b}, "metadata": {"id": b["id"]}}
+                                                           for b in briefs])
+    checks = [(lambda k: lambda outputs: {"key": k, "score": int(outputs["checks"][k])})(k) for k in CHECKS]
+    res = evaluate(lambda inputs: score(inputs["brief"], model), data=DATASET, evaluators=checks,
+                   experiment_prefix=f"composer-{label or 'recorded'}", max_concurrency=4)
+    return res.experiment_name
+
+
 def table(rows: list[dict]) -> str:
     mark = lambda ok: "ok" if ok else "**FAIL**"  # noqa: E731
     lines = ["| id | persona | tools | questions | cannot | " + " | ".join(CHECKS) + " |", "|---" * (5 + len(CHECKS)) + "|"]
@@ -100,7 +125,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--live", action="store_true", help="ask the live model and record its answers")
     ap.add_argument("--label", default="", help="suffix for the saved table")
     ap.add_argument("--missing", action="store_true", help="ask the live model only for briefs not recorded yet")
+    ap.add_argument("--langsmith", action="store_true", help="run it as a LangSmith experiment")
     a = ap.parse_args(argv)
+    if a.langsmith:
+        from .llm import Claude
+        model = Claude() if a.live else Recorded(json.loads(RECORDED.read_text()))
+        print("experiment", langsmith_experiment(model, a.label or ("live" if a.live else "")))
+        return 0
     if a.live or a.missing:
         from .llm import Claude
         model = Recording(Claude(), json.loads(RECORDED.read_text()) if a.missing else None)
