@@ -78,8 +78,10 @@ def _parallel(fn, items):
 
 def label_rooms(plan: dict, rooms: list[str] | None = None, *, labels: list[str] | None = None,
                 context: str | None = None, hints: dict[str, str] | None = None,
-                examples: list[dict] | None = None) -> list[dict]:
-    """A room type for every room that has a panorama, from the panorama nearest its centre.
+                examples: list[dict] | None = None, views: int = 1, many: int = 4) -> list[dict]:
+    """A room type for every room that has a panorama, from the panorama nearest its centre. A room with at
+    least `many` panoramas (an open floor, a courtyard) is read from `views` of them in one call, the central
+    one and then those farthest apart, so one corridor view does not decide a large room.
 
     Homes (scans with Matterport labels) use Matterport's label set, and the model is not shown
     Matterport's label, so `agrees` is an honest check of one against the other. Other scans use a
@@ -95,26 +97,48 @@ def label_rooms(plan: dict, rooms: list[str] | None = None, *, labels: list[str]
     ref_imgs = [jpeg(mp.pano_face(e["sid"], e["pano"], e["face"], "2k"), 512) for e in examples]
     ref_note = "".join(f" Image {5 + i} is a reference: a room elsewhere in this property that a person labelled "
                        f"'{e['label']}'." for i, e in enumerate(examples))
-    schema = {"type": "object", "additionalProperties": False, "required": ["label", "confidence", "evidence_image", "reason"],
-              "properties": {"label": {"type": "string", "enum": labels}, "confidence": CONFIDENCE,
-                             "evidence_image": {"type": "integer", "enum": [1, 2, 3, 4]},
-                             "reason": {"type": "string", "description": "One short sentence naming what you saw."}}}
+    def schema(n_img: int) -> dict:
+        return {"type": "object", "additionalProperties": False, "required": ["label", "confidence", "evidence_image", "reason"],
+                "properties": {"label": {"type": "string", "enum": labels}, "confidence": CONFIDENCE,
+                               "evidence_image": {"type": "integer", "enum": list(range(1, n_img + 1))},
+                               "reason": {"type": "string", "description": "One short sentence naming what you saw."}}}
+
+    def spread(ps: list[dict], n: int) -> list[dict]:
+        chosen = ps[:1]
+        while len(chosen) < min(n, len(ps)):
+            chosen.append(max((p for p in ps if p not in chosen), key=lambda p: min(
+                math.dist(p["position"][:2], c["position"][:2]) for c in chosen)))
+        return chosen
 
     def one(room):
-        pano = room_panos(plan, room)[0]
-        prompt = (CUBE_NOTE.format(px=ROOM_PX, faces=_describe(faces)) + ref_note +
-                  " The camera stands inside one room of a " + ("home" if home else "commercial building") +
-                  (f" ({context})" if context else "") +
-                  ". What type of room is the camera standing in? Judge the room the camera is in, not rooms seen "
-                  "through doorways. Pick the image that shows it best." +
-                  (f" Measured facts about this room from the floor plan: {hints[room['id']]}. Use them as evidence "
-                   "alongside the images; what you see decides." if hints and hints.get(room["id"]) else ""))
-        a = ask(_faces(plan["sid"], pano["id"], faces, ROOM_PX) + ref_imgs, prompt, schema,
-                key=f"label_room/{plan['sid']}/{pano['id']}")
+        ps = room_panos(plan, room)
+        pick = spread(ps, views) if views > 1 and len(ps) >= many else ps[:1]
+        hint = (f" Measured facts about this room from the floor plan: {hints[room['id']]}. Use them as evidence "
+                "alongside the images; what you see decides." if hints and hints.get(room["id"]) else "")
+        where = " The camera stands inside one room of a " + ("home" if home else "commercial building") + \
+            (f" ({context})" if context else "")
+        if len(pick) == 1:
+            prompt = (CUBE_NOTE.format(px=ROOM_PX, faces=_describe(faces)) + ref_note + where +
+                      ". What type of room is the camera standing in? Judge the room the camera is in, not rooms seen "
+                      "through doorways. Pick the image that shows it best." + hint)
+            imgs = _faces(plan["sid"], pick[0]["id"], faces, ROOM_PX)
+        else:
+            n = len(pick)
+            prompt = (f"The images come from {n} camera positions inside the same large room, four horizontal views each, "
+                      f"looking in four directions 90 degrees apart: images 1-4 from the first position" +
+                      "".join(f", {4 * i + 1}-{4 * i + 4} from position {i + 1}" for i in range(1, n)) + "." +
+                      "".join(f" Image {4 * n + 1 + i} is a reference: a room elsewhere in this property that a person "
+                              f"labelled '{e['label']}'." for i, e in enumerate(examples)) + where +
+                      ". What is the main use of this room as a whole? A large room can hold corridors, desks and seating "
+                      "at once: name what most of its floor serves. Pick the image that shows it best." + hint)
+            imgs = [img for p in pick for img in _faces(plan["sid"], p["id"], faces, 512)]
+        a = ask(imgs + ref_imgs, prompt, schema(len(imgs)), key=f"label_room/{plan['sid']}/{pick[0]['id']}")
+        k = a["evidence_image"] - 1
+        pano = pick[k // 4]
         out = {"room": room["id"], "label": a["label"], "confidence": a["confidence"], "reason": a["reason"],
-               "evidence": {"sid": plan["sid"], "pano": pano["id"], "face": faces[a["evidence_image"] - 1]},
+               "evidence": {"sid": plan["sid"], "pano": pano["id"], "face": faces[k % 4]}, "views": len(pick),
                "source": {"layer": "model", "method": "vision", "confidence": a["confidence"],
-                          "note": f"Vision model on panorama {pano['id']} faces 1-4"}}
+                          "note": f"Vision model on {len(pick)} panorama{'s' if len(pick) > 1 else ''} of the room, faces 1-4"}}
         if home and labels is HOME_LABELS:
             mm = room.get("label")
             out["matterport_label"] = mm
