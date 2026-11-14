@@ -12,14 +12,14 @@ export type {
 
 // ---- the agent: compose, investigate, ask, run a tool. The server when it answers, scripted playback when not.
 export { compose, investigate, ask, runToolHere, runTool, runAction, startOver, answerPref } from './agent.ts'
-export { useCatalog, isLive } from './server.ts'
+export { useCatalog, isLive, share as shareWorkspace, type Shared } from './server.ts'
 export { useToolCatalog, type CatalogTool } from './tools.ts'
 export { NEEDS, TOOLS, type Need } from './fixtures/catalog.ts'
 export { onNotice, type Notice } from './notices.ts'
 
 // ---- places: the URL is the state of the view
 export { navigate, setQuery, useRoute, currentRoute, type Route } from './router.ts'
-export { LOOKS, type LookId } from './looks.ts'
+export { LOOKS, decodeSegment, type LookId } from './looks.ts'
 export type { SwitcherPlace } from './switcher.ts'
 
 // ---- buildings and the city map

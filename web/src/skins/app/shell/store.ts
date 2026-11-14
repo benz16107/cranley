@@ -24,7 +24,8 @@ type Ui = {
   setRail: (on: boolean) => void
 }
 export const useUi = create<Ui>((set) => ({
-  run: get('run', false), rail: get('rail', false), menu: false, keys: false, panel: null, start: null, nav: false,
+  // on a phone the agent panel is a drawer over the page: it opens when asked for, never because it was left open on a desk
+  run: get('run', false) && !window.matchMedia('(max-width: 760px)').matches, rail: get('rail', false), menu: false, keys: false, panel: null, start: null, nav: false,
   setRun: (run) => { put('run', run); set({ run }) },
   setRail: (rail) => { put('rail', rail); set({ rail }) },
 }))

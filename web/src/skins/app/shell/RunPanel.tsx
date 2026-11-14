@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Dialog } from '@base-ui/react/dialog'
 import { Switch } from '@base-ui/react/switch'
 import { Tabs } from '@base-ui/react/tabs'
-import { answerPref, compose, focusFinding, investigate, useWorkspace, userOp, type Pref, type Question, type Run } from '../../../core/index.ts'
+import { answerPref, compose, focusFinding, investigate, useCatalog, useWorkspace, userOp, type Pref, type Question, type Run } from '../../../core/index.ts'
 import { PanelView } from '../blocks/blocks.tsx'
 import { Empty, Icon, IconBtn, RunState, StatusGlyph, ToolKey } from '../design/ui.tsx'
 import { dur } from '../lib/format.ts'
@@ -189,6 +189,7 @@ export function RunPanel({ onClose }: { onClose: () => void }) {
   const canUndo = useWorkspace((s) => s.undoStack.length > 0), undo = useWorkspace((s) => s.undo)
   const [text, setText] = useState('')
   const [tab, setTab] = useState('plan')
+  const shared = useCatalog((s) => !!s.shared)
   const active = doc.plan.find((s) => s.status === 'active'), running = doc.runs.filter((r) => r.status === 'running')
   const open = doc.questions.filter((q) => q.answer == null).length
   const send = () => { if (text.trim()) { void askHere(text.trim()); setText('') } }
@@ -214,6 +215,7 @@ export function RunPanel({ onClose }: { onClose: () => void }) {
           </Tabs.Root>
         )}
       </div>
+      {shared ? <footer className="rp-foot"><p className="muted small">This is a read-only link. The plan, the runs and every finding can be opened; nothing can be asked or changed from here.</p></footer> : (
       <footer className="rp-foot">
         <form className="composer" onSubmit={(e) => { e.preventDefault(); send() }}>
           <textarea className="field" rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder="Ask the agent for a change or a check" aria-label="Ask the agent"
@@ -226,6 +228,7 @@ export function RunPanel({ onClose }: { onClose: () => void }) {
           {canUndo && <button className="btn sm quiet" onClick={undo} title="Undo your last change (Ctrl Z)"><Icon name="undo" size={13} />Undo</button>}
         </div>
       </footer>
+      )}
     </aside>
   )
 }

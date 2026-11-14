@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
 import { Tabs } from '@base-ui/react/tabs'
 import { toast } from 'sonner'
-import { focusFinding, investigate, useBuildings, useWorkspace, userOp, type Doc, type Run, type Status } from '../../../core/index.ts'
+import { focusFinding, investigate, shareWorkspace, useBuildings, useCatalog, useWorkspace, userOp, type Doc, type Run, type Status } from '../../../core/index.ts'
 import { PanelView } from '../blocks/blocks.tsx'
 import { DataTable, Empty, Icon, IconBtn, RunState, Seg, SourceChip, St, Stats, ToolKey, statusWord, type Col } from '../design/ui.tsx'
 import { ago, clock, dur, int } from '../lib/format.ts'
-import { forgetSeen, openSeen, statusOf, useSeen, type Seen } from '../lib/pending.ts'
+import { forgetSeen, leaveShared, openSeen, statusOf, useSeen, type Seen } from '../lib/pending.ts'
 import { goInvestigation, goScan } from '../lib/place.ts'
 import { family } from '../lib/tools.ts'
 import { Learned, QuestionForm, openRun } from '../shell/RunPanel.tsx'
@@ -122,7 +122,7 @@ function OverviewTab({ doc }: { doc: Doc }) {
           <p className="said">{doc.brief?.text ?? <span className="muted">No brief. Tools were run by hand.</span>}</p>
           {!!doc.brief?.limits?.length && <div className="note"><Icon name="info" size={13} /><div><b>What the tools here cannot do</b>{doc.brief.limits.map((l) => <p key={l}>{l}</p>)}</div></div>}
           {doc.questions.length > 0 && <div className="stack">{doc.questions.map((q) => <QuestionForm key={q.id} q={q} />)}</div>}
-          {doc.brief && doc.questions.length > 0 && !doc.plan.length && <div className="row"><button className="btn solid" disabled={open.length > 0} onClick={() => void investigate()}>{open.length ? `${open.length} left to answer` : 'Start the investigation'}</button>{open.length > 0 && <button className="btn" onClick={() => void investigate()}>Use the defaults</button>}</div>}
+          {doc.brief && doc.questions.length > 0 && !doc.plan.length && <div className="row"><button className="btn solid" disabled={open.length > 0} onClick={() => void investigate()}>{open.length ? `${open.length} left to answer` : 'Start the investigation'}</button>{open.length > 0 && open.every((q) => q.hint != null) && <button className="btn" onClick={() => void investigate()}>Use the defaults</button>}</div>}
         </div>
       </section>
       {notes.length > 0 ? (
@@ -141,11 +141,35 @@ function OverviewTab({ doc }: { doc: Doc }) {
   )
 }
 
+/** Copy a read-only link to the open investigation. The page's own address holds the workspace id, and whoever has
+    that can write, so it is never what is copied. The clipboard gets a promise: Safari only allows a copy that starts
+    inside the click, and the link takes a request to make. */
+async function copyLink() {
+  const made = shareWorkspace()
+  try {
+    if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) await navigator.clipboard.write([new ClipboardItem({ 'text/plain': made.then((m) => new Blob([m.url], { type: 'text/plain' })) })])
+    else await navigator.clipboard.writeText((await made).url)
+    const { expires } = await made
+    toast('Read-only link copied', { description: `Whoever opens it can look at everything and change nothing.${expires ? ` It works until ${clock(Date.parse(expires))}.` : ''}` })
+  } catch {
+    toast.error('No link was copied', { description: await made.then(() => 'The browser did not allow the copy.', (e: Error) => e.message) })
+  }
+}
+
 export function Investigation({ id }: { id: string }) {
   const doc = useWorkspace((s) => s.doc)
   const seen = useSeen((s) => s.all[id])
+  const shared = useCatalog((s) => s.shared)
   const [tab, setTab] = useState('overview')
   const runOpen = useUi((s) => s.run)
+  if (shared && shared.state !== 'ready') {
+    return (
+      <div className="page"><div className="inner">
+        {shared.state === 'loading' ? <div className="stack" role="status" aria-label="Opening the shared investigation">{[52, 34, 44, 28].map((w) => <span key={w} className="sk" style={{ width: `${w}%` }} />)}</div>
+          : <Empty icon="link" title="This link has expired or was revoked" action={<button className="btn" onClick={leaveShared}>Open Threshold</button>}>A read-only link works for a set number of days. Ask whoever sent it for a new one.</Empty>}
+      </div></div>
+    )
+  }
   if (id !== doc.id) {
     return (
       <div className="page"><div className="inner">
@@ -161,8 +185,8 @@ export function Investigation({ id }: { id: string }) {
   return (
     <div className="listpage">
       <header className="pagehead inv-head">
-        <div className="ttl"><h2 className="trunc">{doc.brief?.text ?? 'Untitled investigation'}</h2><p className="muted">{seen ? `First seen here ${clock(seen.first)} · last change ${ago(seen.last)}` : 'Not started'}</p></div>
-        <button className="btn" onClick={() => { void navigator.clipboard?.writeText(window.location.href).then(() => toast('Link copied', { description: 'It opens this page. The investigation itself stays in this browser until the server can share one.' })) }}><Icon name="link" size={13} />Copy link</button>
+        <div className="ttl"><h2 className="trunc">{doc.brief?.text ?? 'Untitled investigation'}</h2><p className="muted">{shared ? `Read-only link${shared.expires ? ` · works until ${clock(Date.parse(shared.expires))}` : ''}` : seen ? `First seen here ${clock(seen.first)} · last change ${ago(seen.last)}` : 'Not started'}</p></div>
+        <button className="btn" onClick={() => void copyLink()} title="Copy a link that lets someone look, not change anything"><Icon name="link" size={13} />Copy read-only link</button>
         <button className="btn" aria-pressed={runOpen} onClick={() => useUi.getState().setRun(!runOpen)}><Icon name="runs" size={14} />Agent panel</button>
       </header>
       <div className="inv-stats">

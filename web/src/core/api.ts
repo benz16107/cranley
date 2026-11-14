@@ -1,5 +1,7 @@
 import type { ScanPlan } from './types.ts'
 
+/** An id as one path segment: a `/`, `?` or `#` in it must not change which route is asked. */
+const seg = encodeURIComponent
 const plans = new Map<string, Promise<ScanPlan>>()
 /** One request per scan per session. The server caches on disk; this keeps the shared keys quiet. */
 export function fetchPlan(sid: string): Promise<ScanPlan> {
@@ -14,7 +16,7 @@ export function fetchPlan(sid: string): Promise<ScanPlan> {
   }
   return p
 }
-export const panoFace = (sid: string, pano: string, face = 1) => `/api/scan/${sid}/pano/${pano}/${face}.jpg?res=2k`
+export const panoFace = (sid: string, pano: string, face = 1) => `/api/scan/${seg(sid)}/pano/${seg(pano)}/${seg(String(face))}.jpg?res=2k`
 
 /* ---------- the rest of the data API (docs/ARCHITECTURE.md, Contract 2), as thin clients ----------
    Image helpers return a URL for an <img>; the others fetch JSON and reject with a sentence a person can read. */
@@ -27,11 +29,11 @@ const qs = (o: Record<string, string | number | boolean | null | undefined>) =>
   Object.entries(o).filter(([, v]) => v != null && v !== '').map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&')
 
 /** A whole panorama as one 2:1 image. `view: 'defurnished'` is the empty-room version where the scan has one. */
-export const panoEquirect = (sid: string, pano: string, w = 2048, view: 'furnished' | 'defurnished' = 'furnished') => `/api/scan/${sid}/pano/${pano}/equirect.jpg?w=${w}&view=${view}`
+export const panoEquirect = (sid: string, pano: string, w = 2048, view: 'furnished' | 'defurnished' = 'furnished') => `/api/scan/${seg(sid)}/pano/${seg(pano)}/equirect.jpg?w=${w}&view=${view}`
 /** A phone capture's picture: the photo itself, or frame `n` of a walk-through video for a ref `<id>#<n>`. */
-export const captureImage = (ref: string) => { const [id, n] = ref.split('#'); return n == null ? `/api/capture/${id}/file` : `/api/capture/${id}/frame/${n}.jpg` }
+export const captureImage = (ref: string) => { const [id, n] = ref.split('#'); return n == null ? `/api/capture/${seg(id)}/file` : `/api/capture/${seg(id)}/frame/${seg(n)}.jpg` }
 /** Matterport's own floor plan picture of one floor. */
-export const floorplanImage = (sid: string, floor: string, flags = 'photogramy') => `/api/scan/${sid}/floorplan/${floor}.jpg?flags=${flags}`
+export const floorplanImage = (sid: string, floor: string, flags = 'photogramy') => `/api/scan/${seg(sid)}/floorplan/${seg(floor)}.jpg?flags=${seg(flags)}`
 /** A north-up aerial photo patch, `size_m` metres across, centred on a point. */
 export const orthoImage = (lat: number, lon: number, size_m = 60, px = 1024) => `/api/aerial/ortho?${qs({ lat, lon, size_m, px })}`
 
@@ -41,10 +43,10 @@ export type ScanRow = { sid: string; name: string; kind: string; segment: string
 export const fetchScans = (filter: { q?: string; address?: string; city?: string; kind?: string; splat?: boolean; defurnished?: boolean; limit?: number; offset?: number } = {}) =>
   getJson<{ total: number; offset: number; scans: ScanRow[] }>(`/api/scans?${qs(filter)}`)
 /** The CoStar or listing record for a scan, with its `claims` list. Rejects when the scan has none. */
-export const fetchRecord = (sid: string) => getJson<Record<string, unknown>>(`/api/scan/${sid}/record`)
+export const fetchRecord = (sid: string) => getJson<Record<string, unknown>>(`/api/scan/${seg(sid)}/record`)
 /** Drone photos of a scan's building, with position and gimbal angles; each `name` loads from droneImage. */
-export const fetchDrone = (sid: string, n = 60) => getJson<Record<string, unknown>>(`/api/scan/${sid}/drone?n=${n}`)
-export const droneImage = (sid: string, name: string, w?: number) => `/api/scan/${sid}/drone/${encodeURIComponent(name)}${w ? `?w=${w}` : ''}`
+export const fetchDrone = (sid: string, n = 60) => getJson<Record<string, unknown>>(`/api/scan/${seg(sid)}/drone?n=${n}`)
+export const droneImage = (sid: string, name: string, w?: number) => `/api/scan/${seg(sid)}/drone/${seg(name)}${w ? `?w=${w}` : ''}`
 
 export type MeasureField = { label: string; unit: string; kind: string; description: string }
 export type MeasureHit = { sid: string; name: string; kind: string; city: string; address: string | null; lat: number | null; lon: number | null; score: number; why: string[]; values: Record<string, number | string | null> }

@@ -78,7 +78,8 @@ function Setup() {
       {settled && (
         <footer className="setup-go">
           <button className="btn solid" disabled={open.length > 0} onClick={() => void investigate()}>{open.length ? `${open.length} left to answer` : 'Start the investigation'}</button>
-          {open.length > 0 && <button className="btn" onClick={() => void investigate()}>Use the defaults</button>}
+          {/* only when every open question has a value on offer: with none, the button could only refuse */}
+          {open.length > 0 && open.every((q) => q.hint != null) && <button className="btn" onClick={() => void investigate()}>Use the defaults</button>}
           <span className="muted small">The agent searches, measures and ranks. Its plan and every run show in the agent panel and on the map.</span>
         </footer>
       )}
