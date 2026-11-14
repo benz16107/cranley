@@ -323,9 +323,9 @@ export function Building({ sid }: { sid: string }) {
           </div>
           <div className="scene-host">
             {v.error && fault(v.error)}
-            {!v.plan && !v.error && <div className="scene-state"><RunState state="running">Loading the plan</RunState></div>}
+            {!v.plan && !v.error && <div className="scene-state loading" role="status"><span className="sk" /><span className="sk" /><span className="muted small">Loading the plan</span></div>}
             {v.sceneProps && (
-              <Suspense fallback={<div className="scene-state"><RunState state="running">Loading the building view</RunState></div>}>
+              <Suspense fallback={<div className="scene-state loading" role="status"><span className="sk" /><span className="sk" /><span className="muted small">Loading the building view</span></div>}>
                 {/* keyed by scan and scheme: the scene builds its model for one plan and reads its colours when it mounts */}
                 <SceneBoundary key={`${v.sceneKey}:${scheme}`} fallback={fault('The building view stopped on this scan.')}>
                   <Scene {...v.sceneProps} className="app-scene" />

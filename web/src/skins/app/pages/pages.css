@@ -25,6 +25,10 @@
 @container (max-width: 560px) { .worktools .seg button span, .worktools .btn.quiet > .lbl { display: none; } .worktools .seg button { padding: 0 8px; } }
 .scene-host { position: relative; flex: 1; min-height: 0; overflow: hidden; }
 .scene-state { position: absolute; inset: 0; display: grid; place-content: center; }
+/* the building is coming: two bars where its outline will be, not a spinner */
+.scene-state.loading { justify-items: center; gap: 8px; }
+.scene-state.loading .sk { width: 180px; height: 12px; }
+.scene-state.loading .sk + .sk { width: 120px; }
 .insp { display: flex; flex-direction: column; min-height: 0; min-width: 0; border-left: 1px solid var(--rule); background: var(--pane); container-type: inline-size; }
 /* five tabs with their counts do not fit a narrow inspector: the counts go, the working ring stays */
 @container (max-width: 400px) { .insp > .tabs .count { display: none; } .insp > .tabs [role='tab'] { padding: 0 7px; } }

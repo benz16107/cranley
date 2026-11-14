@@ -4,6 +4,7 @@ import { currentRoute, fetchCaptures, fetchPlan, runTool, runToolHere, search, u
 import { Icon, ToolKey } from '../design/ui.tsx'
 import { clock } from '../lib/format.ts'
 import { goScan } from '../lib/place.ts'
+import { encode, problem } from '../lib/start.ts'
 import { family, useTools, type Field, type ToolInfo } from '../lib/tools.ts'
 import { useUi } from './store.ts'
 
@@ -15,35 +16,7 @@ export function startTool(t: Pick<ToolInfo, 'id' | 'form'>, sid?: string | null,
 }
 
 type Values = Record<string, string | boolean>
-const CRITERION = /^([\w.]+)\s*(>=|<=|==|!=|>|<)\s*(.+)$/
 const CAPTURE_KIND: Record<string, Capture['kind']> = { photo_measure: 'photo', walkthrough: 'video' }
-
-/** What is wrong with a field as typed, or null. */
-export function problem(f: Field, v: string | boolean | undefined): string | null {
-  if (f.kind === 'toggle') return null
-  const s = String(v ?? '').trim()
-  if (!s) return f.required ? 'Needed to run' : null
-  if (f.kind === 'number' || f.kind === 'reading') {
-    const n = Number(s)
-    if (!Number.isFinite(n) || (f.whole && !Number.isInteger(n))) return f.whole ? 'A whole number' : 'A number'
-    if (f.min != null && n < f.min) return `At least ${f.min}`
-    if (f.max != null && n > f.max) return `At most ${f.max}`
-  }
-  if (f.kind === 'point' && !/^-?\d+(\.\d+)?[,\s]+-?\d+(\.\d+)?$/.test(s)) return 'Latitude, then longitude: 29.7604, -95.3698'
-  if (f.kind === 'criteria' && s.split('\n').some((l) => l.trim() && !CRITERION.test(l.trim()))) return 'One per line, as: floors == 1'
-  return null
-}
-/** A field's value as the tool takes it; undefined leaves the input to the tool's default. */
-export function encode(f: Field, v: string | boolean | undefined): unknown {
-  if (f.kind === 'toggle') return v === (f.fallback ?? false) ? undefined : v
-  const s = String(v ?? '').trim()
-  if (!s || s === String(f.fallback ?? '')) return undefined
-  if (f.kind === 'number') return Number(s)
-  if (f.kind === 'reading') return [{ leq_dba: Number(s), seconds: 30 }] // one level typed in; the phone app sends one per room
-  if (f.kind === 'point') { const [lat, lon] = s.split(/[,\s]+/).map(Number); return [lon, lat] }
-  if (f.kind === 'criteria') return s.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => { const [, measure, op, value] = l.match(CRITERION)!; return { measure, op, value: Number.isFinite(Number(value)) ? Number(value) : value } })
-  return s
-}
 
 function ScanPick({ sid, onPick, optional }: { sid: string | null; onPick: (sid: string | null) => void; optional: boolean }) {
   const all = useBuildings((s) => s.all), doc = useWorkspace((s) => s.doc)
@@ -55,13 +28,13 @@ function ScanPick({ sid, onPick, optional }: { sid: string | null; onPick: (sid:
   }, [q, all, doc.shortlist, doc.runs]) // eslint-disable-line react-hooks/exhaustive-deps
   if (sid) {
     const r = row(sid)
-    return <div className="fld"><span>Building</span><div className="scanpick"><Icon name="building" /><span className="grow trunc"><b>{r.name}</b>{r.address && <span className="muted"> · {r.address}</span>}</span><button type="button" className="btn sm quiet" onClick={() => onPick(null)}>Change</button></div></div>
+    return <div className="fld"><span>Building</span><div className="scanpick"><Icon name="building" /><span className="grow trunc"><b>{r.name}</b>{r.address && r.address !== r.name && <span className="muted"> · {r.address}</span>}</span><button type="button" className="btn sm quiet" onClick={() => onPick(null)}>Change</button></div></div>
   }
   return (
     <div className="fld">
       <span>Building{optional && <small> · optional</small>}</span>
       <label className="inset"><Icon name="search" size={13} /><input className="field" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by address or scan name" aria-label="Find a building to run on" /></label>
-      {list.length > 0 ? <ul className="rows">{list.map((r) => <li key={r.sid}><button type="button" onClick={() => onPick(r.sid)}><Icon name="building" /><span className="grow trunc">{r.name}{r.address && <span className="muted"> · {r.address}</span>}</span></button></li>)}</ul>
+      {list.length > 0 ? <ul className="rows">{list.map((r) => <li key={r.sid}><button type="button" onClick={() => onPick(r.sid)}><Icon name="building" /><span className="grow"><span className="trunc">{r.name}</span>{r.address && r.address !== r.name && <span className="s">{r.address}</span>}</span></button></li>)}</ul>
         : <small>{q.trim().length >= 3 ? 'No address or scan name matches.' : 'Type three letters of an address. Scans this investigation has kept or measured are offered here.'}</small>}
     </div>
   )
@@ -73,7 +46,7 @@ function Control({ f, v, set, bad, plan, captures, toolId }: { f: Field; v: stri
   if (f.kind === 'toggle') return <label className="fld check"><input type="checkbox" checked={v === true} onChange={(e) => set(e.target.checked)} /><span>{f.label}{f.about && <small>{f.about}</small>}</span></label>
   let control
   if (f.kind === 'choice') control = <select id={id} className="field" value={s} onChange={(e) => set(e.target.value)} aria-invalid={!!bad || undefined}>{!f.required && f.fallback == null && <option value="">Any</option>}{f.options!.map((o) => <option key={o} value={o}>{o.replace(/_/g, ' ')}</option>)}</select>
-  else if (f.kind === 'room') control = <select id={id} className="field" value={s} onChange={(e) => set(e.target.value)} disabled={!plan} aria-invalid={!!bad || undefined}><option value="">{plan ? 'Choose a room' : 'Pick a building first'}</option>{plan?.rooms.map((r, i) => <option key={r.id} value={r.id}>{r.label ?? 'Room'} {i + 1}</option>)}</select>
+  else if (f.kind === 'room') control = <select id={id} className="field" value={s} onChange={(e) => set(e.target.value)} disabled={!plan} aria-invalid={!!bad || undefined}><option value="">{!plan ? 'Pick a building first' : f.required ? 'Choose a room' : 'Left to the tool'}</option>{plan?.rooms.map((r, i) => <option key={r.id} value={r.id}>{r.label ?? 'Room'} {i + 1}</option>)}</select>
   else if (f.kind === 'capture') {
     const kind = CAPTURE_KIND[toolId], list = (captures ?? []).filter((c) => c.file && (!kind || c.kind === kind))
     control = list.length ? <select id={id} className="field" value={s} onChange={(e) => set(e.target.value)} aria-invalid={!!bad || undefined}><option value="">{f.required ? `Choose a ${kind ?? 'capture'}` : 'None'}</option>{list.map((c) => <option key={c.id} value={c.id}>{c.kind}, {clock(c.at * 1000)}{c.note ? `, ${c.note.slice(0, 40)}` : ''}</option>)}</select>
@@ -104,6 +77,7 @@ function Form({ t, from, close }: { t: ToolInfo; from: string | null; close: () 
   const noScan = t.needsScan && !sid
   const ok = !noScan && t.fields.every((f) => !bad(f))
   const first = t.fields.filter((f) => f.first), more = t.fields.filter((f) => !f.first)
+  const aside = t.onScan && t.family === 'database' // a search across the city: a building only narrows it, so it sits with the other settings
   const control = (f: Field) => <Control key={f.id} f={f} v={vals[f.id]} set={(v) => setVals((x) => ({ ...x, [f.id]: v }))} bad={tried ? bad(f) : null} plan={plan} captures={captures} toolId={t.id} />
 
   async function run() {
@@ -129,10 +103,10 @@ function Form({ t, from, close }: { t: ToolInfo; from: string | null; close: () 
       </header>
       <div className="body stack">
         <p className="dim">{t.summary}</p>
-        {t.onScan && <ScanPick sid={sid} onPick={setSid} optional={!t.needsScan} />}
+        {t.onScan && !aside && <ScanPick sid={sid} onPick={setSid} optional={!t.needsScan} />}
         {tried && noScan && <small role="alert" style={{ color: 'var(--fail)' }}>Pick a building to run it on.</small>}
         {first.map(control)}
-        {more.length > 0 && <details className="more"><summary><Icon name="right" size={11} />More settings<span className="count">{more.length}</span></summary><div className="stack">{more.map(control)}</div></details>}
+        {(more.length > 0 || aside) && <details className="more"><summary><Icon name="right" size={11} />More settings<span className="count">{more.length + (aside ? 1 : 0)}</span></summary><div className="stack">{aside && <ScanPick sid={sid} onPick={setSid} optional />}{more.map(control)}</div></details>}
       </div>
       <footer>
         <span className="grow muted small">{t.slow ? 'Slow: seconds to minutes. It keeps running if you leave.' : 'Fast: a second or two.'}</span>
@@ -152,7 +126,8 @@ export function StartTool() {
     <Dialog.Root open={!!start && !!t} onOpenChange={(o) => !o && close()}>
       <Dialog.Portal>
         <Dialog.Backdrop className="backdrop" />
-        <Dialog.Popup className="dialog">{t && start && <Form key={`${t.id}:${start.sid ?? ''}`} t={t} from={start.sid} close={close} />}</Dialog.Popup>
+        {/* the first thing to fill in takes the focus, not the close button */}
+        <Dialog.Popup className="dialog" initialFocus={() => document.querySelector<HTMLElement>('.startform .body :is(input, select, textarea)')}>{t && start && <Form key={`${t.id}:${start.sid ?? ''}`} t={t} from={start.sid} close={close} />}</Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>
   )
