@@ -101,8 +101,17 @@ def area(plan: dict, claim: dict, scan: dict, p: dict) -> dict:
         why.append("Rooms the scan skipped (a garage, an attic room, a locked closet, a second floor) are the usual "
                    "cause when a scan measures less.")
     else:
-        why.append("The scan measures more than the record: a garage conversion, an enclosed patio or an addition "
-                   "counted in the scan, an out-of-date record, or a scan that runs into a neighbouring space.")
+        stairs = sum(r["m2"] for r in fa["counted"] if r["label"] == "Staircase")
+        big = [r for r in fa["counted"] if r["label"] == "unlabelled room" and r["m2"] >= 15]
+        if len(fa["floors"]) > 1 and stairs:
+            why.append(f"Stair rooms on {len(fa['floors'])} levels add {stairs * ms.M2_FT2:,.0f} ft², and a listing "
+                       "counts each flight once.")
+        if big:
+            why.append("Unlabelled rooms of " + ", ".join(f"{r['m2']:.0f} m²" for r in big) + " are counted; one may be "
+                       "a garage or storage room Matterport did not name.")
+        why.append("Otherwise the scan measures more than the record: a garage conversion, an enclosed patio, an "
+                   "addition or a guest suite counted in the scan, an out-of-date record, or a scan that runs into a "
+                   "neighbouring space.")
     conf = "medium" if ms.labels_ok(plan) else "low"
     if ratio < 0.6:
         why.append("The scan covers well under the stated area, which points to a partial scan more than a wrong figure.")
