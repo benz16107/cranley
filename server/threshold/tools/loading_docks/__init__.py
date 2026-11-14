@@ -12,7 +12,8 @@ from shapely.geometry import LineString, Point
 from ...aerial import detect as aerial_detect
 from ...aerial import site as aerial
 from ...geometry._plan import indoor_rooms
-from .. import Check, Finding, Metric, Source, ToolResult, Verdict, field, tool
+from ...sources import index
+from .. import Check, Finding, Metric, NotApplicable, Source, ToolResult, Verdict, field, tool
 from .._site import (
     Where,
     capture,
@@ -194,6 +195,8 @@ def survey(ctx, s, use_vision: bool = True, inside: bool = True) -> dict:
 def agree(a: float | None, b: float | None) -> str:
     if a is None or b is None:
         return "unknown"
+    if b == 0:  # a record of no doors is contradicted by any door seen
+        return "pass" if a == 0 else "warn"
     return "pass" if abs(a - b) <= max(2, 0.2 * b) else "warn"
 
 
@@ -211,6 +214,9 @@ def agree(a: float | None, b: float | None) -> str:
       overlays=["pins"], annotations={"cost": "slow"},
       examples=["How many dock doors does this warehouse have?", "Which side are the docks on?"])
 def run(ctx, inputs: Inputs) -> ToolResult:
+    if inputs.scan and (index.rows().get(inputs.scan) or {}).get("kind") in ("house", "apartment_unit"):
+        raise NotApplicable("This scan is a home, and loading docks belong to warehouses and other commercial buildings. "
+                            "Give a commercial property id or a point to check one.")
     s = locate(ctx, inputs)
     sv = survey(ctx, s, inputs.use_vision, inputs.inside)
     k, rec = s.key, sv["record"]
