@@ -124,7 +124,10 @@ def run_tool(tool_id: str, inputs: dict, ctx: ToolContext | None = None) -> Tool
             f"{'.'.join(map(str, x['loc']))}: {x['msg']}" for x in e.errors())) from None
     result = t.handler(ctx or ToolContext(), parsed)
     result.tool = tool_id
-    return ToolResult.model_validate(result.model_dump())  # re-check what the handler built
+    result = ToolResult.model_validate(result.model_dump())  # re-check what the handler built
+    from ..facts.record import record_result  # facts history (Tiger Data); a no-op without a database
+    record_result(tool_id, result)
+    return result
 
 
 __all__ = ["Place", "ScanScope", "Site", "Tool", "ToolContext", "ToolError", "field", "load", "manifests", "run_tool", "tool"]

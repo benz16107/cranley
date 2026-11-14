@@ -14,6 +14,8 @@ dependencies = [
   "anthropic>=2.8",
   "deepagents>=0.7.38",
   "langchain-anthropic>=1.7.10",
+  "pg8000>=1.31",
+  "fastembed>=0.5",
 ]
 
 [dependency-groups]
