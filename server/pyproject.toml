@@ -10,6 +10,8 @@ dependencies = [
   "numpy>=2.0",
   "shapely>=2.0",
   "pillow>=10.4",
+  "deepagents>=0.7.38",
+  "langchain-anthropic>=1.7.10",
 ]
 
 [dependency-groups]
