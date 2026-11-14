@@ -58,6 +58,9 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     site = ctx.site(inputs.place)
     scans = site.scans
     ctx.step(f"Found {len(scans)} scans at {site.address or site.key}")
+    if site.record and not (site.record.get("propertyApartment") or {}):
+        raise NotApplicable("The CoStar record is not an apartment community, so there are no floor plans or shared "
+                            "spaces to check scans against.")
     if scans and not site.record:
         raise NotApplicable(f"There is no CoStar property record for this place, so there is no list of floor plans or "
                             f"shared spaces to hold its {len(scans)} scan{'s' if len(scans) > 1 else ''} against.")

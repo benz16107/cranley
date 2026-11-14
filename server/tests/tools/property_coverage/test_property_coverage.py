@@ -14,8 +14,11 @@ def test_a_place_with_no_record_is_not_applicable():
 
 
 def test_a_record_lists_shared_spaces():
-    res = run_tool("property_coverage", {"place": {"scan": "h1"}}, ToolContext(sites=lambda p: site(p, {"id": 1})))
+    apt = {"id": 1, "propertyApartment": {"models": [{"id": 7, "numBeds": 1, "numBaths": 1}]}}
+    res = run_tool("property_coverage", {"place": {"scan": "h1"}}, ToolContext(sites=lambda p: site(p, apt)))
     assert res.verdict.status == "warn" and any(c.id.startswith("area.") for c in res.checks)
+    office = run_tool("property_coverage", {"place": {"scan": "h1"}}, ToolContext(sites=lambda p: site(p, {"id": 2})))
+    assert office.verdict.status == "unknown" and "not an apartment community" in office.verdict.text
 
 
 def test_a_phone_scan_resolves_without_a_location(monkeypatch):

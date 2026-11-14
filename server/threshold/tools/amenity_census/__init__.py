@@ -294,6 +294,9 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     status = "warn" if missing else "pass" if by_am else "unknown"
     text = (f"{address}: {len(by_am)} amenities seen in {len(read)} scans ({', '.join(sorted(by_am)) or 'none'}); "
             f"{len(set(by_am) & claims)} of {len(claims)} listed amenities confirmed.")
+    if not read:
+        text = (f"{address}: its {len(sids)} scan{'s are' if len(sids) != 1 else ' is a'} unit{'s' if len(sids) != 1 else ''}, "
+                f"none of a shared space, so the {len(claims)} amenities the listing names cannot be checked.")
     if missing:
         text += f" {len(missing)} claimed but not seen."
     if unlisted:
