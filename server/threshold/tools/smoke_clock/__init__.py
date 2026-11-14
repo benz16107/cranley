@@ -272,7 +272,8 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     beds = [r for r in live_rooms(plan) if r.get("label") == BEDROOM and polygons(plan).get(r["id"]) is not None]
     if not beds:
         return ToolResult(scope=scope, verdict=Verdict(status="unknown", text=(
-            "No room in this scan is typed as a bedroom, so there is no one to time.")))
+            "No room in this scan is typed as a bedroom, so there is no one to time. If it has bedrooms, run the "
+            "Room labeller first to type its rooms from the panoramas.")))
     exe = cfast_bin()
     if not exe:
         return ToolResult(scope=scope, verdict=Verdict(status="unknown", text=(
