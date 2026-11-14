@@ -1,7 +1,7 @@
 // The drone Gaussian splat, drawn by Spark in the same three.js scene. The file is 70 to 660 MB and its Gaussians are in
 // no spatial order, so a prefix is a fair sample of the whole: we read one stream and show 4 MB, then 24 MB, then 96 MB.
 import * as THREE from 'three'
-import { SparkRenderer, SplatMesh } from '@sparkjsdev/spark'
+import { SparkRenderer, SplatEdit, SplatEditSdf, SplatEditSdfType, SplatMesh } from '@sparkjsdev/spark'
 import { splatUrlDev } from '../dev/splatSource.ts'
 
 /** The one place that knows where a splat comes from. Swap the body for the data route once it lands. */
@@ -44,8 +44,42 @@ export function plyPrefix(buf: Uint8Array, len: number): Prefix | null {
   return { bytes: out, count, total, centre: new THREE.Vector3(0, 0, mid(zs)), radius: 26 }
 }
 
+/** Spark draws every splat in the scene through one renderer object. Whoever shows a splat first makes it. */
+export function sparkFor(renderer: THREE.WebGLRenderer, scene: THREE.Scene, onDirty: () => void): SparkRenderer {
+  const held = scene.userData as { spark?: SparkRenderer }
+  if (!held.spark) { held.spark = new SparkRenderer({ renderer, onDirty }); scene.add(held.spark) }
+  return held.spark
+}
+
+export interface CutBox { centre: number[]; half: number[] }
+/** Hides the Gaussians of one splat inside boxes and beyond a radius: the roof off a house, the haze off a horizon. */
+export class SplatCut {
+  private edit = new SplatEdit({ softEdge: 0.15 })
+  private pool: SplatEditSdf[] = []
+  private far = new SplatEditSdf({ type: SplatEditSdfType.SPHERE, opacity: 0, invert: true })
+  private key = ''
+  /** boxes: centres and half sizes in the splat's own frame. beyond: metres from `about`, 0 for no limit. */
+  set(mesh: SplatMesh | null, boxes: CutBox[], beyond = 0, about: number[] = [0, 0, 0]) {
+    if (!mesh) return
+    const on = boxes.length > 0 || beyond > 0
+    if (on && this.edit.parent !== mesh) mesh.add(this.edit); else if (!on) this.edit.removeFromParent()
+    const key = JSON.stringify([boxes, beyond, about, mesh.uuid])
+    if (key === this.key) return
+    this.key = key
+    while (this.pool.length < boxes.length) this.pool.push(new SplatEditSdf({ type: SplatEditSdfType.BOX, opacity: 0 }))
+    const used = this.pool.slice(0, boxes.length)
+    used.forEach((sdf, i) => { sdf.position.set(boxes[i].centre[0], boxes[i].centre[1], boxes[i].centre[2]); sdf.scale.set(boxes[i].half[0], boxes[i].half[1], boxes[i].half[2]) })
+    if (beyond > 0) { this.far.position.set(about[0], about[1], about[2]); this.far.radius = beyond }
+    this.edit.sdfs = [...used, ...(beyond > 0 ? [this.far] : [])]
+    for (const sdf of this.edit.sdfs) { if (sdf.parent !== this.edit) this.edit.add(sdf); sdf.updateMatrixWorld(true) }
+  }
+}
+
 export class SplatView {
   group = new THREE.Group()
+  cut = new SplatCut()
+  /** The mesh on show, for `cut`. It changes as more of the file arrives. */
+  get shown() { return this.mesh }
   centre = new THREE.Vector3(); radius = 26
   status: 'idle' | 'loading' | 'ready' | 'missing' = 'idle'
   progress = 0 // 0..1 of the bytes we mean to read
@@ -66,8 +100,7 @@ export class SplatView {
     if (this.status !== 'idle') return
     this.status = 'loading'; this.onChange()
     try {
-      this.spark = new SparkRenderer({ renderer: this.renderer, onDirty: () => this.onChange() })
-      this.scene.add(this.spark)
+      this.spark = sparkFor(this.renderer, this.scene, () => this.onChange())
       this.abort = new AbortController()
       const res = await fetch(await splatUrl(this.api, this.sid), { signal: this.abort.signal })
       if (!res.ok || !res.body) throw new Error(`splat ${res.status}`)
@@ -120,6 +153,6 @@ export class SplatView {
 
   dispose() {
     this.abort?.abort(); this.mesh?.dispose(); this.mesh = null
-    if (this.spark) { this.spark.removeFromParent(); (this.spark as unknown as { dispose?: () => void }).dispose?.() }
+    if (this.spark) { this.spark.removeFromParent(); (this.spark as unknown as { dispose?: () => void }).dispose?.(); delete (this.scene.userData as { spark?: SparkRenderer }).spark }
   }
 }

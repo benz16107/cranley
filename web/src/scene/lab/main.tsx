@@ -33,7 +33,7 @@ function Lab() {
   const [view, setView] = useState<View>({
     mode: (q.get('mode') as Mode) ?? 'dollhouse', cut: q.get('cut') ? Number(q.get('cut')) : null, explode: Number(q.get('explode') ?? 0),
     wipe: q.get('wipe') ? Number(q.get('wipe')) : null, measures: q.get('measures') === '1',
-    surface: q.get('surface') === 'scan' ? 'scan' : 'model', env: q.get('env') === 'aerial' ? 'aerial' : 'studio', style: q.get('style') === 'xray' ? 'xray' : 'solid',
+    surface: (['scan', 'splat'] as const).find((x) => x === q.get('surface')) ?? 'model', env: q.get('env') === 'aerial' ? 'aerial' : 'studio', style: q.get('style') === 'xray' ? 'xray' : 'solid',
     pose: q.get('pose') ? { bearing: Number(q.get('pose')!.split(',')[0]), pitch: Number(q.get('pose')!.split(',')[1]), range: Number(q.get('pose')!.split(',')[2]) || 'fit' } : undefined, // ?pose=bearing,pitch,range for repeatable screenshots
   })
   const [pick, setPick] = useState<Pick | null>(null)
@@ -54,7 +54,7 @@ function Lab() {
     if (view.cut != null) p.set('cut', String(view.cut)); if (view.explode) p.set('explode', String(view.explode))
     if (view.wipe != null) p.set('wipe', view.wipe.toFixed(2)); if (view.measures) p.set('measures', '1')
     if (on.has('water')) p.set('water', String(water))
-    if (view.surface === 'scan') p.set('surface', 'scan'); if (view.env === 'aerial') p.set('env', 'aerial'); if (view.style === 'xray') p.set('style', 'xray')
+    if (view.surface && view.surface !== 'model') p.set('surface', view.surface); if (view.env === 'aerial') p.set('env', 'aerial'); if (view.style === 'xray') p.set('style', 'xray')
     if (q.get('pose')) p.set('pose', q.get('pose')!)
     const pano = plan?.panos.find((x) => x.id === view.pano)?.label; if (pano && view.mode === 'pano') p.set('pano', pano)
     const fi = plan?.floors.findIndex((f) => f.id === view.floor) ?? -1; if (fi >= 0) p.set('floor', String(fi))

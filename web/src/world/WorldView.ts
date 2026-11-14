@@ -6,6 +6,10 @@ import * as THREE from 'three'
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js'
+import dracoJs from 'three/examples/jsm/libs/draco/gltf/draco_wasm_wrapper.js?url'
+import dracoWasm from 'three/examples/jsm/libs/draco/gltf/draco_decoder.wasm?url'
+import basisJs from 'three/examples/jsm/libs/basis/basis_transcoder.js?url'
+import basisWasm from 'three/examples/jsm/libs/basis/basis_transcoder.wasm?url'
 import type { Vec2 } from '../scene/types.ts'
 
 export interface Site {
@@ -20,7 +24,11 @@ export interface Site {
 }
 interface Terrain { width: number; height: number; bounds_enu: number[]; heights_cm_b64: string; ortho: { url: string; bounds_enu: number[] }[] }
 
-const DECODERS = '/vendor/three/' // Draco and Basis decoders, copied from three's own examples folder
+// The Draco and Basis decoders ship inside three. The loaders ask for them by file name under a folder; this hands
+// each name the address the bundler gave that file.
+const DECODERS: Record<string, string> = { 'draco_wasm_wrapper.js': dracoJs, 'draco_decoder.wasm': dracoWasm, 'basis_transcoder.js': basisJs, 'basis_transcoder.wasm': basisWasm }
+const decoders = new THREE.LoadingManager()
+decoders.setURLModifier((url) => DECODERS[url.split('/').pop() ?? ''] ?? url)
 const FADE_M = 300                // the surroundings dissolve into the stage past this distance from the building
 const RAD = Math.PI / 180
 const A = 6378137, E2 = 6.69437999014e-3 // WGS84
@@ -48,7 +56,7 @@ const FRAG_HEAD = /* glsl */ `
     float d = distance(vW.xy, uCentre);
     float n = hash(floor(vW.xy * 5.0));
     if (inside > 0.5 && n < uHole) discard;                    // the building dissolves in hand-sized blocks
-    if (uDisc > 0.0 && 1.0 - smoothstep(uDisc * 0.75, uDisc, d) > n) discard; // a ragged edge, so a splat blends into it
+    if (uDisc > 0.0 && 1.0 - smoothstep(uDisc * 0.9, uDisc, d) > n) discard;  // a short ragged edge under the splat's own soft one
     float l = dot(c, vec3(0.3, 0.59, 0.11));
     c = mix(c, mix(uStage, vec3(l), 0.55), uMute);            // quieter when a result is drawn on the building
     return mix(uStage, c, uShow * uIn * (1.0 - smoothstep(uFade * 0.7, uFade, d)));
@@ -135,7 +143,7 @@ export class WorldView {
     const cv = document.createElement('canvas'); cv.width = cv.height = 256
     const c = cv.getContext('2d')!
     c.fillStyle = '#000'; c.fillRect(0, 0, 256, 256)
-    c.fillStyle = c.strokeStyle = '#fff'; c.lineJoin = 'round'; c.lineWidth = (0.9 / w) * 256 // rooms stop at wall centre lines, eaves reach further
+    c.fillStyle = c.strokeStyle = '#fff'; c.lineJoin = 'round'; c.lineWidth = (3 / w) * 256 // 1.5 m wider all round: an aerial mesh draws walls as slopes, and the placing is good to a metre or two
     c.filter = `blur(${((0.5 / w) * 256).toFixed(1)}px)` // a soft edge, so the dissolve starts in the middle and ends at the eaves
     for (const r of rings) { c.beginPath(); r.forEach(([x, y], i) => c[i ? 'lineTo' : 'moveTo'](((x - x0) / w) * 256, (1 - (y - y0) / h) * 256)); c.closePath(); c.fill(); c.stroke() }
     const tex = new THREE.CanvasTexture(cv); tex.minFilter = tex.magFilter = THREE.LinearFilter; tex.generateMipmaps = false
@@ -144,7 +152,7 @@ export class WorldView {
   }
 
   private loadTiles(site: Site, scanFromEnu: THREE.Matrix4, list: { url: string }[]) {
-    const draco = new DRACOLoader().setDecoderPath(DECODERS), ktx = new KTX2Loader().setTranscoderPath(DECODERS).detectSupport(this.renderer)
+    const draco = new DRACOLoader(decoders), ktx = new KTX2Loader(decoders).detectSupport(this.renderer)
     const loader = new GLTFLoader().setDRACOLoader(draco).setKTX2Loader(ktx)
     const material = new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: TILE_FRAG })
     this.made.push(material, draco, ktx)

@@ -235,6 +235,7 @@ export function Building({ sid }: { sid: string }) {
   // The frame keeps the building left of the scene's cut control. Its negative edges say the ground may run off that
   // side: with no frame the scene's fit crops a room in a narrow picture, with a plain one the building sits small.
   useEffect(() => { v.setView((x) => ({ ...x, cut: x.cut === undefined ? 1.4 : x.cut, frame: { top: -20, right: 20, bottom: -20, left: -100 } })) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const [interior, setInterior] = useState(false) // this scan has an interior splat (the scene finds out)
   const [picked, setTab] = useState<string | null>(null)
   const tab = picked ?? (panels.length ? 'results' : 'overview') // until the person picks: results when there are any
 
@@ -305,6 +306,27 @@ export function Building({ sid }: { sid: string }) {
         <section className="work" aria-label="Building view">
           <div className="worktools">
             <Seg label="View" value={v.mode} onChange={v.setMode} options={MODES.map((m) => ({ id: m.id, label: m.label, icon: m.icon, disabled: !v.modes.includes(m.id), title: v.plan && !v.modes.includes(m.id) ? m.none : undefined }))} />
+            {/* What the building is drawn from and what stands round it. These edit the scene's view; the scene's own copy of the controls is switched off below. */}
+            {v.plan && (v.mode === 'dollhouse' || v.mode === 'splat') && (() => {
+              const placed = (v.plan as { geo?: { lat?: number | null } | null }).geo?.lat != null, doll = v.mode === 'dollhouse'
+              return (
+                <>
+                  {doll && <Seg label="Building drawn from" value={v.view.surface === 'splat' && !interior ? 'scan' : v.view.surface ?? 'model'} onChange={(surface) => v.setView((x) => ({ ...x, surface }))}
+                    options={[{ id: 'model', label: 'Measured', icon: 'ruler', title: 'Walls, doors and windows as measured in the plan' }, { id: 'scan', label: 'Photoreal', icon: 'camera', title: 'The scanned rooms in photo colour, baked from the panoramas' },
+                      ...(interior ? [{ id: 'splat' as const, label: 'Splat', icon: 'stack' as const, title: 'A Gaussian splat of the rooms, trained from the panoramas' }] : [])]} />}
+                  <Seg label="Surroundings" value={v.view.env ?? 'studio'} onChange={(env) => v.setView((x) => ({ ...x, env }))}
+                    options={[{ id: 'studio', label: 'Alone', icon: 'building' }, { id: 'aerial', label: 'On its site', icon: 'site', disabled: !placed, title: placed ? 'Its real surroundings, from the aerial survey' : 'This scan has no position, so it cannot be placed on its site' }]} />
+                  <MenuBtn trigger={<button type="button" className="btn quiet" aria-label="More ways to look at the building"><Icon name="more" size={14} /></button>}>
+                    <div className="mh">Look</div>
+                    <Menu.CheckboxItem checked={v.view.style === 'xray'} onCheckedChange={(yes) => v.setView((x) => ({ ...x, style: yes ? 'xray' : 'solid' }))}>
+                      <span className="mi-check"><Menu.CheckboxItemIndicator><Icon name="check" size={12} /></Menu.CheckboxItemIndicator></span>{doll ? 'Walls as glass (x-ray)' : 'Measured model inside the capture'}
+                    </Menu.CheckboxItem>
+                    {doll && <><hr />
+                      <Menu.Item onClick={() => v.setView((x) => ({ ...x, tour: (x.tour ?? 0) + 1 }))}>Fly in from above</Menu.Item></>}
+                  </MenuBtn>
+                </>
+              )
+            })()}
             <span className="grow" />
             {drawn.length > 0 && (
               <MenuBtn align="end" trigger={<button type="button" className="btn quiet" aria-label={`Overlays: ${on.length} of ${drawn.length} tools drawn on the building`}><Icon name={on.length ? 'eye' : 'eyeoff'} size={14} /><span className="lbl">Overlays</span><span className="count">{on.length} of {drawn.length}</span></button>}>
@@ -328,7 +350,7 @@ export function Building({ sid }: { sid: string }) {
               <Suspense fallback={<div className="scene-state loading" role="status"><span className="sk" /><span className="sk" /><span className="muted small">Loading the building view</span></div>}>
                 {/* keyed by scan and scheme: the scene builds its model for one plan and reads its colours when it mounts */}
                 <SceneBoundary key={`${v.sceneKey}:${scheme}`} fallback={fault('The building view stopped on this scan.')}>
-                  <Scene {...v.sceneProps} className="app-scene" />
+                  <Scene {...v.sceneProps} className="app-scene" switcher={false} onState={(s) => setInterior(s.interior.status !== 'none' && s.interior.status !== 'unknown')} />
                 </SceneBoundary>
               </Suspense>
             )}

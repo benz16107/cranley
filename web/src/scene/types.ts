@@ -86,20 +86,20 @@ export interface View {
   fit?: number
 
   // ---- what the building is drawn from and what stands around it. All optional; missing is the first value. ----
-  /** Dollhouse: 'model' draws the walls and openings measured in the plan; 'scan' draws Matterport's own scanned
-      mesh with colour from the panoramas (rooms, routes, pins and water still draw on it). */
-  surface?: 'model' | 'scan'
-  /** Dollhouse and splat: 'studio' is the building alone; 'aerial' stands it in its real surroundings (Vexcel's 3D
-      city mesh, or its surface model where there is none). The surroundings close over the model as the camera
-      pulls away. Needs plan.geo; without it the scene says so and stays in the studio. */
+  /** Dollhouse: 'model' draws the walls and openings measured in the plan; 'scan' draws the scanned mesh with
+      colour baked from the panoramas, our own photoreal dollhouse; 'splat' draws the interior Gaussian splat trained
+      from the panoramas where one exists (else it is 'scan'). Rooms, routes, pins and water draw on all three. */
+  surface?: 'model' | 'scan' | 'splat'
+  /** Dollhouse and splat: 'studio' is the building alone; 'aerial' stands it in its real surroundings: the drone
+      capture for the house and garden where there is one, and Vexcel's 3D city mesh (or its surface model) beyond.
+      The house is cut open at the cut height so the rooms show inside it, and closes over as the camera pulls away.
+      Needs plan.geo; without it the scene says so and stays in the studio. */
   env?: 'studio' | 'aerial'
   /** 'xray' draws the model's walls as glass, so a route or a failing room reads through them. In splat mode it
       shows the model inside the drone capture (the two share the scan frame). */
   style?: 'solid' | 'xray'
   /** Change this number to play the flight from above the neighbourhood down into a room. */
   tour?: number
-  /** Matterport's own viewer over the scene, starting in its dollhouse. Nothing of ours draws inside it. */
-  showcase?: boolean
 }
 
 /** What onCamera reports: the camera in the same units as `pose` and `fov`, and where `view.focus` is on screen. */

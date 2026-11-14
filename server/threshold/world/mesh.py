@@ -35,7 +35,7 @@ BAKE_VERSION = 2
 CANDIDATES = 6
 MARGIN = 1.0            # metres of mesh kept outside the plan's walls (the rest is the garden seen through windows)
 NEUTRAL = (204, 200, 192)
-MAGIC = b"THM1"
+MAGIC = b"THM2"
 
 _state: dict[str, dict] = {}
 
@@ -305,11 +305,21 @@ def prepared(sid: str) -> tuple[np.ndarray, np.ndarray, dict, dict]:
     return V, F, layout(V, F), plan
 
 
-def pack(V: np.ndarray, F: np.ndarray, uv: np.ndarray) -> bytes:
-    """MAGIC, triangle count, then per corner: position (3 float32), normal (3 int8 and a pad byte), uv (2 uint16)."""
+def floor_of(V: np.ndarray, F: np.ndarray, plan: dict) -> np.ndarray:
+    """Index into plan.floors for each triangle: the highest floor that starts below its middle."""
+    z = V[F].mean(1)[:, 2]
+    out = np.zeros(len(F), np.int8)
+    for i, fl in enumerate(plan["floors"]):
+        out[z >= (fl.get("elevation") or 0) - 0.4] = i
+    return out
+
+
+def pack(V: np.ndarray, F: np.ndarray, uv: np.ndarray, floor: np.ndarray) -> bytes:
+    """MAGIC, triangle count, then per corner: position (3 float32), normal (3 int8) and floor index (int8), uv (2 uint16)."""
     n = vertex_normals(V, F)[F].reshape(-1, 3)
     nb = np.zeros((len(n), 4), np.int8)
     nb[:, :3] = np.round(n * 127)
+    nb[:, 3] = np.repeat(floor, 3)
     return b"".join([MAGIC, struct.pack("<I", len(F)), V[F].astype("<f4").tobytes(), nb.tobytes(),
                      np.round(np.clip(uv, 0, 1) * 65535).astype("<u2").tobytes()])
 
@@ -318,10 +328,10 @@ def geometry(sid: str) -> bytes:
     check(sid, "sid")
 
     def make() -> bytes:
-        V, F, lay, _ = prepared(sid)
-        return pack(V, F, lay["uv"])
+        V, F, lay, plan = prepared(sid)
+        return pack(V, F, lay["uv"], floor_of(V, F, plan))
     with one_flight(f"mesh:{sid}"):
-        return cached(cache_path("mesh", sid, "mesh.bin"), make)
+        return cached(cache_path("mesh", sid, "mesh2.bin"), make)
 
 
 def bake(sid: str, progress=lambda done, total: None) -> dict:

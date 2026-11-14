@@ -1,16 +1,18 @@
 // The choices that are not a mode: what the building is drawn from, what stands around it, and how it is drawn.
-// The scene mounts it over the picture; a look may mount it in its own toolbar instead (<BuildingScene switcher={false}>).
-// It only edits the View, so it works wherever the view lives.
+// The scene mounts it over the picture; a look may mount its own controls instead (<BuildingScene switcher={false}>)
+// and edit the same View fields.
 import type { ScanPlan, View } from './types.ts'
 
 export interface ViewSwitcherProps {
   plan: Pick<ScanPlan, 'geo' | 'panos' | 'walls' | 'has'>
   view: View
   onChange: (v: View) => void
+  /** This scan has an interior splat, so "Splat" is offered. */
+  interior?: boolean
   className?: string
 }
 
-export function ViewSwitcher({ plan, view, onChange, className }: ViewSwitcherProps) {
+export function ViewSwitcher({ plan, view, onChange, interior, className }: ViewSwitcherProps) {
   const outside = view.mode === 'dollhouse' || view.mode === 'splat', doll = view.mode === 'dollhouse'
   if (!outside) return null
   const placed = !!(plan.geo as { lat?: number } | null | undefined)?.lat
@@ -20,16 +22,17 @@ export function ViewSwitcher({ plan, view, onChange, className }: ViewSwitcherPr
       {options.map(([id, name, tip]) => <button key={id} aria-pressed={value === id} disabled={!!off && id !== options[0][0]} title={tip} onClick={() => set(id)}>{name}</button>)}
     </div>
   )
+  const surface = view.surface === 'splat' && !interior ? 'scan' : view.surface ?? 'model'
   return (
     <div className={`th-views ${className ?? ''}`} data-scene-ui>
-      {doll && seg('Building', view.surface ?? 'model', [['model', 'Measured', 'Walls, doors and windows as measured in the plan'], ['scan', 'Scanned', "Matterport's scanned mesh, coloured from the panoramas"]], (surface) => onChange({ ...view, surface, showcase: false }))}
-      {seg('Around it', view.env ?? 'studio', [['studio', 'Nothing'], ['aerial', 'Real site', 'The real surroundings, from the aerial survey']], (env) => onChange({ ...view, env, showcase: false }), placed ? undefined : 'This scan has no position, so it cannot be placed on its site')}
-      {(view.surface ?? 'model') === 'model' && plan.walls.length > 0 && (
+      {doll && seg<NonNullable<View['surface']>>('Building', surface, [['model', 'Measured', 'Walls, doors and windows as measured in the plan'], ['scan', 'Photoreal', 'The scanned rooms in photo colour, baked from the panoramas'],
+        ...(interior ? [['splat', 'Splat', 'A Gaussian splat of the rooms, trained from the panoramas'] as ['splat', string, string]] : [])], (s) => onChange({ ...view, surface: s }))}
+      {seg('Around it', view.env ?? 'studio', [['studio', 'Nothing'], ['aerial', 'Real site', 'The real surroundings: the drone capture where there is one, and the aerial survey']], (env) => onChange({ ...view, env }), placed ? undefined : 'This scan has no position, so it cannot be placed on its site')}
+      {surface === 'model' && plan.walls.length > 0 && (
         <button className="th-toggle" aria-pressed={view.style === 'xray'} title={doll ? 'Walls as glass, so results read through them' : 'Show the measured model inside the drone capture'}
           onClick={() => onChange({ ...view, style: view.style === 'xray' ? 'solid' : 'xray' })}>X-ray</button>
       )}
-      {doll && plan.panos.length > 0 && <button className="th-toggle" title="Fly in from above and land in a room" onClick={() => onChange({ ...view, showcase: false, tour: (view.tour ?? 0) + 1 })}>Fly in</button>}
-      {doll && <button className="th-toggle" aria-pressed={!!view.showcase} title="Matterport's own dollhouse, floor plan and walk" onClick={() => onChange({ ...view, showcase: !view.showcase })}>Matterport</button>}
+      {doll && plan.panos.length > 0 && <button className="th-toggle" title="Fly in from above and land in a room" onClick={() => onChange({ ...view, tour: (view.tour ?? 0) + 1 })}>Fly in</button>}
     </div>
   )
 }

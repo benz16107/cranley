@@ -74,7 +74,10 @@ def test_cube_lookup_reads_the_face_a_direction_points_at():
 
 def test_pack_layout():
     V, F = _room()
-    data = mesh.pack(V, F, np.zeros((len(F), 3, 2), np.float32))
+    plan = {"floors": [{"elevation": 0.0}, {"elevation": 2.0}]}
+    floor = mesh.floor_of(V, F, plan)
+    assert floor[0] == 0 and floor[2] == 1  # the floor's triangles, then the ceiling's (above the second floor's start)
+    data = mesh.pack(V, F, np.zeros((len(F), 3, 2), np.float32), floor)
     assert data[:4] == mesh.MAGIC and len(data) == 8 + len(F) * 3 * (12 + 4 + 4)
 
 

@@ -25,8 +25,8 @@ def describe(sid: str) -> dict:
         "sid": sid, "available": True, "anchor": {"lat": lat, "lon": lon},
         "scan_to_enu": fr,
         "georef": {"verified": fr["verified"], "iou": (fit or {}).get("iou"), "residual_m": (fit or {}).get("residual_m"),
-                   "note": "Position and compass checked against the aerial footprint." if fr["verified"] else
-                   "Position is the scan's own GPS guess (typically 2 m and 3 degrees off); the footprint check did not pass."},
+                   "note": "Placed by fitting the plan to the aerial footprint." if fr["verified"] else
+                   "Placed by the scan's own GPS, typically 2 m off."},
         "footprint_enu": ring,
         "floor_above_ground_m": FLOOR_ABOVE_GROUND_M,
         "tiles3d": cover and {"url": f"/api/world/{sid}/tiles", "capture": cover["capture"], "copyright": cover["copyright"]},

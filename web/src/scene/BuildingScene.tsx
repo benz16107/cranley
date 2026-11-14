@@ -23,7 +23,7 @@ export interface BuildingSceneProps {
   /** Where /api lives. Empty means same origin. */
   api?: string
   className?: string
-  /** false leaves out the scene's own view switcher (surface, surroundings, x-ray, fly in, Matterport), for a look
+  /** false leaves out the scene's own view switcher (surface, surroundings, x-ray, fly in), for a look
       that mounts <ViewSwitcher> in its own toolbar. */
   switcher?: boolean
 }
@@ -93,20 +93,13 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
 
       {state?.loading && <div className="th-loading" role="status" aria-label="Loading" style={mode === 'splat' ? { ['--p' as string]: state.splat.progress } : undefined} data-known={mode === 'splat'} />}
 
-      {switcher && <ViewSwitcher plan={plan} view={view} onChange={change} className="th-views-in" />}
-      {view.showcase && (
-        <div className="th-showcase" data-scene-ui>
-          {/* Matterport's own viewer, by its public embed (no key; the scans are unlisted, not private). It opens on its dollhouse and flies in. Nothing of ours draws in it. */}
-          <iframe title="Matterport's own view of this scan" src={`https://my.matterport.com/show/?m=${encodeURIComponent(plan.sid)}&play=1&dh=1&title=0&brand=0&help=0&mls=2&search=0&hr=0&gt=0&vr=0&views=0&mt=0`} allow="xr-spatial-tracking; fullscreen" />
-          <button onClick={() => change({ ...view, showcase: false })}>Back to this view</button>
-        </div>
-      )}
-      {state && !view.showcase && (mode === 'dollhouse' || mode === 'splat') && (() => {
+      {switcher && <ViewSwitcher plan={plan} view={view} onChange={change} interior={!!state && state.interior.status !== 'none' && state.interior.status !== 'unknown'} className="th-views-in" />}
+      {state && (mode === 'dollhouse' || mode === 'splat') && (() => {
         const w = state.world, s = state.scan, lines: string[] = []
-        if (view.env === 'aerial') lines.push(w.status === 'loading' ? 'Loading the surroundings' : w.status === 'missing' ? `No surroundings for this scan. ${w.note}` : w.kind ? `Surroundings: Vexcel ${w.kind}${w.capture ? `, flown ${w.capture.slice(0, 7).replace('/', '-')}` : ''}. ${w.note}` : '')
-        if (view.surface === 'scan' && mode === 'dollhouse') lines.push(s.status === 'loading' ? 'Loading the scanned mesh' : s.status === 'missing' ? 'Matterport has no mesh for this scan.' : s.colour === 'baking' ? `Colouring the scanned mesh from its panoramas: ${Math.round(s.progress * 100)}%` : s.colour === 'none' && s.status === 'ready' ? 'The scanned mesh could not be coloured; showing its form.' : '')
+        if (view.env === 'aerial') lines.push(w.status === 'loading' ? 'Loading the surroundings' : w.status === 'missing' ? `No surroundings for this scan. ${w.note}` : w.kind ? `${state.site ? 'Drone capture round the house, ' : ''}Vexcel ${w.kind}${state.site ? ' beyond' : ''}${w.capture ? `, flown ${w.capture.slice(0, 7).replace('/', '-')}` : ''}. ${w.note}` : '')
+        if ((view.surface ?? 'model') !== 'model' && mode === 'dollhouse' && state.interior.status !== 'ready' && state.interior.status !== 'loading') lines.push(s.status === 'loading' ? 'Loading the scanned mesh' : s.status === 'missing' ? 'This scan has no scanned mesh; showing the measured model.' : s.colour === 'baking' ? `Colouring the scanned mesh from its panoramas: ${Math.round(s.progress * 100)}%` : s.colour === 'none' && s.status === 'ready' ? 'The scanned mesh could not be coloured; showing its form.' : '')
         const text = lines.filter(Boolean)
-        return text.length ? <p className="th-note th-note-layers">{text.map((t) => <span key={t}>{t}</span>)}{w.credit && view.env === 'aerial' && <span className="th-credit">{w.credit}</span>}</p> : null
+        return <>{text.length > 0 && <p className="th-note th-note-layers">{text.map((t) => <span key={t}>{t}</span>)}</p>}{w.credit && view.env === 'aerial' && w.status === 'ready' && <span className="th-credit">© Vexcel Imaging, Microsoft</span>}</>
       })()}
 
       {model && model.hasWalls && mode !== 'plan' && mode !== 'splat' && (
@@ -115,7 +108,7 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
         </div>
       )}
 
-      {mode === 'dollhouse' && (model?.hasWalls || view.surface === 'scan') && !view.showcase && (
+      {mode === 'dollhouse' && (model?.hasWalls || (view.surface ?? 'model') !== 'model') && (
         <label className="th-cut" data-scene-ui>
           <span className="th-cut-title">Cut</span>
           <input type="range" min={0.2} max={maxH} step={0.05} value={view.cut ?? maxH} aria-label="Cut-away height in metres"

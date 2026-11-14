@@ -21,7 +21,7 @@
 .bld-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) var(--insp-w); }
 .work { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--paper); }
 .work { container-type: inline-size; }
-.worktools { display: flex; align-items: center; gap: 6px; padding: 6px var(--s-3); border-bottom: 1px solid var(--rule); background: var(--pane); flex: none; }
+.worktools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px var(--s-3); border-bottom: 1px solid var(--rule); background: var(--pane); flex: none; }
 @container (max-width: 560px) { .worktools .seg button span, .worktools .btn.quiet > .lbl { display: none; } .worktools .seg button { padding: 0 8px; } }
 .scene-host { position: relative; flex: 1; min-height: 0; overflow: hidden; }
 .scene-state { position: absolute; inset: 0; display: grid; place-content: center; }
