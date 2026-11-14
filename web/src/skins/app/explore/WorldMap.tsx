@@ -269,6 +269,7 @@ export function WorldMap(props: Props) {
   useEffect(() => {
     if (!map || drawnStyle.current === styleKey) return
     drawnStyle.current = styleKey
+    for (const id of [...grid.current.keys()]) if (!on.includes(id)) grid.current.delete(id) // switched off: switching it on again asks afresh
     map.setStyle(styleFor(base, city, layers, on, grid.current))
     map.once('styledata', () => { draw(); loadGrid() })
   }, [styleKey, map]) // eslint-disable-line react-hooks/exhaustive-deps

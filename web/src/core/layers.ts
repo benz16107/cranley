@@ -44,11 +44,12 @@ export function fetchLayers(city: string, again = false): Promise<MapLayer[]> {
 /** A 'city' layer's file (or a grid layer's generalised copy): give it to a GeoJSON map source as its data. */
 export const layerCityUrl = (id: string, city: string) => `/api/layers/${encodeURIComponent(id)}/geojson?city=${city}`
 const tiles = new Map<string, Promise<LayerCollection>>()
-/** One tile of a 'grid' layer at the layer's own `grid_z`. Kept for the session. */
+/** One tile of a 'grid' layer at the layer's own `grid_z`. Kept for ten minutes here; past that the browser's own
+    cache answers for as long as the server allows that layer (a day, or a live layer's lifetime). */
 export function fetchLayerTile(id: string, z: number, x: number, y: number): Promise<LayerCollection> {
   const key = `${id}/${z}/${x}/${y}`
   let p = tiles.get(key)
-  if (!p) { p = get<LayerCollection>(`/api/layers/${encodeURIComponent(id)}/tile/${z}/${x}/${y}`); p.catch(() => tiles.delete(key)); tiles.set(key, p) }
+  if (!p) { p = get<LayerCollection>(`/api/layers/${encodeURIComponent(id)}/tile/${z}/${x}/${y}`); p.catch(() => tiles.delete(key)); tiles.set(key, p); setTimeout(() => tiles.delete(key), 600000) }
   return p
 }
 export const fetchWeather = (city: string) => get<Weather>(`/api/layers/weather?city=${city}`)
