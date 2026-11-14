@@ -7,14 +7,14 @@
 #   scripts/demo-up stop       stop it
 #   scripts/demo-up status     is it running, and is the model endpoint reachable
 #
-# What runs: scripts/demo-llm on 8892 (the model calls: live when the pool answers, recorded when not) and
+# What runs: scripts/demo-llm on 8899 (the model calls: live when the pool answers, recorded when not) and
 # scripts/demo-serve on 8890 (the API and the built web app). Workspaces are files; no database is needed.
 # Data comes from $THRESHOLD_DATA_DIR (default: the -data folder beside this checkout), filled by scripts/demo-sync.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DATA="${THRESHOLD_DATA_DIR:-$(dirname "$ROOT")/hackprinceton26-data}"
 RUN="$DATA/demo/run"
-PORT="${DEMO_PORT:-8890}" LLM="${DEMO_LLM_PORT:-8892}"
+PORT="${DEMO_PORT:-8890}" LLM="${DEMO_LLM_PORT:-8899}"
 MODE=auto
 export PATH="$HOME/.local/bin:/opt/homebrew/bin:$PATH"
 mkdir -p "$RUN"
