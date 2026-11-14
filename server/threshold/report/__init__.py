@@ -74,7 +74,8 @@ FIX = {
     "turning_space": "Clear a 60 in (1.5 m) circle: move tables, bins or shelving out of the turning space.",
     "egress_routes": "Keep the route to each exit clear and the exit doors unlocked from inside while people are in.",
     "fire_preplan": "Confirm this line on the walk-round and add it to the pre-plan.",
-    "life_safety_census": "Fit a smoke alarm on the ceiling of this room, or confirm the one there works.",
+    "life_safety_census": "Check whether this room needs a smoke alarm or a heat detector (kitchens usually take a heat "
+                          "detector), fit one, and test the ones there.",
     "daylight": "Check the room's use: a room people work in for long without a window needs good lighting and air.",
     "occupancy": "Ask the fire official for the posted occupant load, and keep seating within it.",
 }
@@ -231,7 +232,9 @@ def build(doc: Any, plan_of: Callable[[str], dict], captures: list[dict], *, kin
                          "metrics": res.get("metrics") or [], "checks": checks, "assumptions": res.get("assumptions") or [],
                          "findings": [f["id"] for f in found], "overlays": res.get("overlays") or []})
     # what people recorded on site that no tool owns (photos, notes)
-    phone_notes = [f for f in live if f["id"].startswith("phone:") and (not sid or (f.get("anchor") or {}).get("sid") in (sid, None))]
+    ceiling = {f"phone:{c['id']}" for c in captures if (c.get("values") or {}).get("check") == "smoke_alarm"}  # shown as the census
+    phone_notes = [f for f in live if f["id"].startswith("phone:") and f["id"] not in ceiling
+                   and (not sid or (f.get("anchor") or {}).get("sid") in (sid, None))]
 
     occ = {s: occupancy(p) for s, p in plans.items() if p} if spec and spec["occupancy"] else {}
     for s, o in occ.items():
@@ -310,23 +313,36 @@ def _fix_first(items: list[dict], tools: list[str]) -> list[dict]:
     return list(groups.values())[:12]
 
 
+TASK_WHAT = {"width": "Door clear width", "step": "Step or threshold height", "slope": "Ramp slope",
+             "alarm": "Smoke alarm photo", "floor_height": "Floor above the street", "heading": "Window facing"}
+SENSOR = {"arkit_lidar": "iPhone LiDAR", "barometer": "barometer", "compass": "compass", "tape": "tape measure"}
+
+
 def _measurement(c: dict, plans: dict) -> dict:
+    """One phone capture as a row: what was measured, where, the value with its error, how, and what it changed."""
     v = c.get("values") or {}
     val, unit = v.get("value_m"), v.get("unit") or "m"
-    what = (c.get("task") and "Task") or c.get("tool") or "Reading"
+    task = c.get("task") or ""  # "<kind>:<sid>:<opening or room>"
+    kind, ref = task.split(":")[0], task.rpartition(":")[2]
+    what = TASK_WHAT.get(kind) or (c.get("tool") or "Reading").replace("_", " ").capitalize()
     if v.get("baro_rise_m") is not None:
-        val, what = v["baro_rise_m"], "Floor above the street (barometer)"
+        val, what = v["baro_rise_m"], "Floor above the street"
     if c.get("heading_deg") is not None and val is None:
-        val, unit, what = c["heading_deg"], "°", "Window facing (compass)"
+        val, unit, what = c["heading_deg"], "°", "Window facing"
     plan = plans.get(c.get("scan") or "") or {}
-    room = next((r.get("label") for r in plan.get("rooms") or [] if r["id"] == c.get("room")), None)
-    opening = next((o for o in plan.get("openings") or [] if o["id"] == c.get("opening")), None)
-    where = room or (f"{opening['type']} {opening['id']}" if opening else "")
-    res = c.get("result") or {}
-    said = res.get("text") or (res.get("outcome") or {}).get("text") if isinstance(res, dict) else None
-    return {"id": c["id"], "what": (c.get("note") or what).split(", measured with")[0], "where": where,
-            "value": val, "unit": unit, "method": v.get("sensor") or ("tape" if val is not None else c.get("kind")),
-            "err_m": v.get("err_m"), "at": c.get("at"), "result": said, "photo": bool(c.get("file"))}
+    names = {r["id"]: r.get("label") or "a room" for r in plan.get("rooms") or []}
+    opening = next((o for o in plan.get("openings") or [] if o["id"] in (c.get("opening"), ref)), None)
+    if opening:
+        rooms = [names.get(r, "a room") for r in opening.get("rooms") or []]
+        where = " to ".join(rooms) + (" to outside" if len(rooms) == 1 else "")
+    else:
+        where = names.get(c.get("room") or "", "")
+    res = c.get("result") if isinstance(c.get("result"), dict) else {}
+    said = res.get("text") or (res.get("outcome") or {}).get("text")
+    sensor = v.get("sensor") or ("tape" if val is not None else None)
+    return {"id": c["id"], "what": what, "where": where, "value": val, "unit": unit,
+            "method": SENSOR.get(sensor, sensor or c.get("kind")), "err_m": v.get("err_m"), "at": c.get("at"),
+            "result": said, "photo": bool(c.get("file"))}
 
 
 def _alarms(captures: list[dict], plans: dict, alarm: Callable[[str], dict]) -> list[dict]:
@@ -367,7 +383,7 @@ def _not_checked(spec, sections, plans, items, doc, runs, sid) -> list[str]:
         if it["status"] == "unknown" and it["tool"] != "fire_preplan":
             out.append(f"{it['title']}: {it['detail']}")
     for sec in sections:
-        for c in sec["checks"]:
+        for c in sec["checks"] if sec["tool"] != "fire_preplan" else []:  # the pre-plan's lines are listed in full
             if c["status"] == "unknown":
                 out.append(f"{c['rule']}: the data could not answer it.")
         if sec["verdict"]["status"] == "unknown" and not sec["findings"]:

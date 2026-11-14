@@ -182,9 +182,12 @@ def plan_svg(plan: dict, floor: str, marks: list[tuple[int, str, list[float]]], 
         if r.get("area"):
             out.append(f'<text x="{x:.1f}" y="{y + 14:.1f}" font-size="10.5" text-anchor="middle" fill="#625d55" '
                        f'paint-order="stroke" stroke="#f6f3ed" stroke-width="4">{r["area"]:.1f} m² · {r["area"] / 0.09290304:,.0f} ft²</text>')
+    labels = [P(r["center"]) for r in plan["rooms"] if r["floor"] == floor and r.get("center") and r.get("label") != "Void"]
     placed: list[tuple[float, float]] = []
     for n, status, p in marks:
         x, y = P(p)
+        if any(abs(x - lx) < 40 and abs(y - ly) < 22 for lx, ly in labels):  # a room's own finding: above its name, not on it
+            y -= 30
         while any(math.dist((x, y), q) < 22 for q in placed):  # two findings at one door: set the second beside it
             x += 22
         placed.append((x, y))
@@ -242,7 +245,7 @@ def html_doc(report: dict, photo: Callable[[str], bytes] | None = None) -> str:
 
     fix_html = []
     for n, it in enumerate(fix, 1):
-        also = "".join(f'<div class="src">Also: {_e(a["title"])}. {_e(a["detail"])}</div>' for a in it["also"])
+        also = "".join(f'<div class="src">Also found by {_e(_tool_title(report, a["tool"]))}: {_e(a["title"])}.</div>' for a in it["also"])
         chk = it.get("check")
         need = ""
         if chk and chk.get("measured") is not None and chk.get("threshold") is not None:
@@ -341,7 +344,7 @@ The doors out give about {o['door_capacity']} people of exit width at 0.2 in per
             word = {"pass": "Alarm seen", "warn": "None seen", "unknown": "Not known"}[a["status"]]
             cards.append(f'<figure>{img}<figcaption><b>{_e(a["room_name"])}</b> {_pill(a["status"], word)}<br>{_e(a["what"])}'
                          f'</figcaption></figure>')
-        body.append(f'<section><h2>Smoke alarms, from ceiling photos</h2><p class="small mute">One photo per room, read by a vision '
+        body.append(f'<section style="break-inside:avoid"><h2>Smoke alarms, from ceiling photos</h2><p class="small mute">One photo per room, read by a vision '
                     f'model. "None seen" means the photo shows no alarm, not that there is none: check the room.</p>'
                     f'<div class="alarms">{"".join(cards)}</div></section>')
 
@@ -350,7 +353,7 @@ The doors out give about {o['door_capacity']} people of exit width at 0.2 in per
         for m in report["measured"]:
             err = f" ± {m['err_m'] * 100:.1f} cm" if m.get("err_m") else ""
             rows.append(f'<tr><td>{_e(m["what"])}</td><td>{_e(m["where"])}</td><td class="r num">{_e(value(m["value"], m["unit"]))}{_e(err)}</td>'
-                        f'<td>{_e(METHOD.get(m["method"], m["method"]) if m["method"] in METHOD else (m["method"] or "").replace("_", " "))}</td>'
+                        f'<td>{_e(m["method"] or "")}</td>'
                         f'<td>{_e(m["result"] or "")}</td></tr>')
         for f in report["phone_notes"]:
             rows.append(f'<tr><td>{_e(f["title"])}</td><td></td><td></td><td>{_e("photo" if f.get("media") else "note")}</td>'
@@ -371,6 +374,10 @@ The doors out give about {o['door_capacity']} people of exit width at 0.2 in per
     return (f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,'
             f'initial-scale=1"><title>{_e(title)}</title><style>{CSS}</style></head><body><main class="sheet">'
             + "".join(body) + "</main></body></html>")
+
+
+def _tool_title(report: dict, tool: str) -> str:
+    return next((s["title"] for s in report["sections"] if s["tool"] == tool), tool.replace("_", " "))
 
 
 def _long_date(iso: str) -> str:
