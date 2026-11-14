@@ -218,6 +218,7 @@ export function Building({ sid }: { sid: string }) {
   const scheme = useScheme()
   const runs = useMemo(() => doc.runs.filter((r) => r.sid === sid), [doc.runs, sid])
   const panels = useMemo(() => doc.panels.filter((p) => p.sid === sid), [doc.panels, sid])
+  const citywide = useMemo(() => doc.panels.filter((p) => !p.sid && (p.role ?? 'tool') === 'tool'), [doc.panels])
   const focused = doc.camera?.finding ? doc.findings.find((f) => f.id === doc.camera!.finding)?.tool : undefined
   // Which tools draw on the building. Left alone, it is the one result in view: the tool of the focused finding, else
   // the latest result. Five tools drawing at once cannot be read.
@@ -381,12 +382,15 @@ export function Building({ sid }: { sid: string }) {
                 </div>
               )
             })}
-            {panels.length === 0 && working.length === 0 && failed.length === 0 && (
+            {panels.length === 0 && working.length === 0 && failed.length === 0 && citywide.length === 0 && (
               <Empty icon="play" title="No results on this scan" action={<RunToolMenu sid={sid} trigger={<button type="button" className="btn solid">Run a tool<Icon name="down" size={11} /></button>} />}>
                 Pick a tool to measure this scan. Its result, checks and evidence appear here, and it draws on the building.
               </Empty>
             )}
             {[...panels].reverse().map((p) => <PanelView key={p.id} panel={p} open={p.id === inView?.id} onOpen={(o) => { setChosen(o ? p.id : null); setPick(null) }} />)}
+            {/* a rollup or a search run from here is about no one scan: it stays within reach, folded, under its own heading */}
+            {citywide.length > 0 && <h3 className="insp-h">Across the city, in this investigation<span className="count">{citywide.length}</span></h3>}
+            {[...citywide].reverse().map((p) => <PanelView key={p.id} panel={p} folded />)}
           </Tabs.Panel>
           <Tabs.Panel value="evidence" className="insp-body scroll"><Evidence findings={findings} /></Tabs.Panel>
           <Tabs.Panel value="record" className="insp-body scroll"><Record sid={sid} /></Tabs.Panel>

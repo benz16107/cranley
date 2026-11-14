@@ -61,6 +61,14 @@ function toBlocks(p: J, runs: Map<string, J>, ws: J, names: Names): Block[] {
       }
       case 'EvidenceStrip': out.push({ type: b.type, findings: b.findings ?? [] }); break
       case 'RankedTable': {
+        if (b.run) { // a table inside one run's result (a census's groups): rows are keys, a cell is that run's metric `<row>/<column>`
+          const ms = (runs.get(b.run)?.result?.metrics ?? []) as J[], cell = (k: string, c: J) => ms.find((m) => m.id === `${k}/${c.metric}`)
+          const cols = (b.columns ?? []) as J[], keys = ((b.rows ?? []) as string[]).filter((k) => cols.some((c) => cell(k, c)))
+          if (keys.length) out.push({ type: b.type, source: ms.find((m) => String(m.id).startsWith(`${keys[0]}/`))?.source ?? SRC,
+            columns: cols.map((c) => ({ id: c.metric, label: c.label, unit: keys.map((k) => cell(k, c)?.unit).find(Boolean) || undefined, better: c.better })),
+            rows: keys.map((k) => ({ id: k, label: b.labels?.[k] ?? cols.map((c) => cell(k, c)?.label).find(Boolean) ?? k, values: Object.fromEntries(cols.map((c) => [c.metric, cell(k, c)?.value ?? null])) })) })
+          break
+        }
         const rows = ((b.rows ?? []) as string[]).map((id) => runs.get(id)).filter((r): r is J => !!r?.result)
         const metric = (r: J, id: string) => (r.result.metrics as J[] | undefined)?.find((m) => m.id === id)
         if (rows.length) out.push({ type: b.type, source: rows[0].result.metrics?.[0]?.source ?? SRC,
