@@ -138,13 +138,18 @@ def transform(f, geom):
     return shapely.transform(geom, lambda xy: [f(x, y) for x, y in xy])
 
 
+def largest(geom):
+    """The biggest polygon of a shape that may be a MultiPolygon (a footprint with a detached shed)."""
+    return max(getattr(geom, "geoms", [geom]), key=lambda g: g.area)
+
+
 def generator_zone(footprint_wkt: str | None, parcel: dict | None, lat0: float, lon0: float) -> dict:
     """Where on the lot a generator stands at least 20 ft from every wall: the parcel minus a 6.1 m band round the
     house. The spot offered is the nearest point of that zone to the house (shortest cord run)."""
     if not footprint_wkt:
         return {"available": False, "reason": "No building footprint from Vexcel, so distances from the walls are unknown."}
     fwd, back = _local(lat0, lon0)
-    fp = transform(fwd, shapely_wkt.loads(footprint_wkt))
+    fp = transform(fwd, largest(shapely_wkt.loads(footprint_wkt)))
     lot = transform(fwd, shape(parcel)) if parcel else None
     lot_known = lot is not None and lot.area > fp.area
     if not lot_known:
@@ -153,7 +158,7 @@ def generator_zone(footprint_wkt: str | None, parcel: dict | None, lat0: float, 
     out = {"available": True, "lot_known": lot_known, "zone_area_m2": round(zone.area, 1),
            "house": mapping(transform(back, fp)), "lot": mapping(transform(back, lot))}
     if zone.is_empty or zone.area < 1.0:
-        far = max(fp.distance(Point(c)) for c in lot.exterior.coords)
+        far = max(fp.distance(Point(c)) for c in shapely.get_coordinates(lot))
         out.update(empty=True, zone=None, spot=None, farthest_m=round(far, 1))
         return out
     _, spot = nearest_points(fp.buffer(GENERATOR_M + 0.3), zone)

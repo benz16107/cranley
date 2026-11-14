@@ -110,3 +110,15 @@ def test_deep_water_drops_door_dams(setup, monkeypatch):
                  lambda s: None, memo=False)
     assert not any(c.id.startswith("dam:") for c in r.checks)
     assert any(f.title.startswith("No door dam") for f in r.findings)
+
+
+def test_generator_zone_with_a_multipolygon_lot():
+    lat0, lon0 = 29.78, -95.245
+    _, to_ll = prep._local(lat0, lon0)
+    ring = lambda pts: [list(to_ll(x, y)) for x, y in pts]  # noqa: E731
+    house_wkt = "MULTIPOLYGON(((" + ",".join(f"{a} {b}" for a, b in ring([(0, 0), (10, 0), (10, 10), (0, 10), (0, 0)])) + \
+        ")),((" + ",".join(f"{a} {b}" for a, b in ring([(20, 20), (21, 20), (21, 21), (20, 20)])) + ")))"
+    lot = {"type": "MultiPolygon", "coordinates": [[ring([(-3, -3), (13, -3), (13, 13), (-3, 13), (-3, -3)])],
+                                                   [ring([(30, 30), (31, 30), (31, 31), (30, 30)])]]}
+    z = prep.generator_zone(house_wkt, lot, lat0, lon0)
+    assert z["available"] and z["farthest_m"] > 0

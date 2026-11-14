@@ -123,6 +123,13 @@ def door_step(plan: dict) -> dict | None:
 
 # ---- Vexcel surface model ------------------------------------------------------------------------
 
+def footprint_xy(footprint_wkt: str, to_xy) -> Polygon:
+    """The footprint in local metres; of a MultiPolygon, the biggest part (the house, not a shed)."""
+    g = shapely_wkt.loads(footprint_wkt)
+    g = max(getattr(g, "geoms", [g]), key=lambda x: x.area)
+    return Polygon([to_xy(*c) for c in g.exterior.coords])
+
+
 def vexcel_eave(plan: dict, footprint_wkt: str | None, lat0: float, lon0: float,
                 dsm: Callable[[list[tuple[float, float]]], list[float]]) -> dict | None:
     floors = plan.get("floors") or []
@@ -132,7 +139,7 @@ def vexcel_eave(plan: dict, footprint_wkt: str | None, lat0: float, lon0: float,
     if not ceil:
         return None
     to_xy, to_ll = _local(lat0, lon0)
-    fp = Polygon([to_xy(*c) for c in shapely_wkt.loads(footprint_wkt).exterior.coords])
+    fp = footprint_xy(footprint_wkt, to_xy)
     inner, outer = fp.buffer(-0.8).exterior, fp.buffer(2.5).exterior
     pts_in = [inner.interpolate(d) for d in range(0, int(inner.length), 2)]
     pts_out = [outer.interpolate(d) for d in range(0, int(outer.length), 2)]
@@ -157,7 +164,7 @@ def ground_grade(footprint_wkt: str | None, lat0: float, lon0: float,
     if not footprint_wkt:
         return None
     to_xy, to_ll = _local(lat0, lon0)
-    fp = Polygon([to_xy(*c) for c in shapely_wkt.loads(footprint_wkt).exterior.coords])
+    fp = footprint_xy(footprint_wkt, to_xy)
     ring = fp.buffer(3.0).exterior
     pts = [ring.interpolate(d) for d in range(0, int(ring.length), 3)]
     z = dtm([to_ll(p.x, p.y) for p in pts])
@@ -267,7 +274,7 @@ def drone_threshold(sid: str, footprint_wkt: str | None, lat0: float, lon0: floa
         trace["reason"] = "No Vexcel footprint to tell which laser hits landed on the house."
         return [], trace
     to_xy, _ = _local(lat0, lon0)
-    fp = Polygon([to_xy(*c) for c in shapely_wkt.loads(footprint_wkt).exterior.coords])
+    fp = footprint_xy(footprint_wkt, to_xy)
     cands = drone_candidates(photos, fp, to_xy)
     trace["candidates"] = [p["name"] for p in cands]
     found = []
