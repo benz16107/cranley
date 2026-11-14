@@ -49,8 +49,8 @@ export const modelMaterial = new THREE.ShaderMaterial({
     void main() {
       mat3 im = mat3(instanceMatrix);
       vec3 n = normalize(mat3(modelMatrix) * (im * (normal / vec3(dot(im[0], im[0]), dot(im[1], im[1]), dot(im[2], im[2]))))); // right under a stretch
-      float lit = 0.74 + 0.26 * dot(n, normalize(vec3(-0.45, -0.62, 0.64)));
-      vCol = color.rgb * instanceColor * lit;
+      float lit = 0.70 + 0.30 * dot(n, normalize(vec3(-0.45, -0.62, 0.64)));
+      vCol = color.rgb * instanceColor * lit * mix(0.84, 1.0, smoothstep(-0.5, -0.1, position.z)); // a little darker toward the floor, as the walls are
       gl_Position = projectionMatrix * viewMatrix * modelMatrix * instanceMatrix * vec4(position, 1.0);
     }`,
   fragmentShader: /* glsl */ `varying vec3 vCol; void main() { gl_FragColor = vec4(vCol, 1.0); }`,

@@ -138,11 +138,16 @@ export class Overlays3D {
         if (shape) {
           holder.scale.set(b.size[0], b.size[1], b.size[2]); holder.updateMatrix(); holder.scale.set(1, 1, 1)
           const s = (stand[`${b.model}|${at.floor}`] ??= { geo: shape, floor: at.floor, at: [], tint: [] })
-          s.at.push(holder.matrix.clone()); s.tint.push(new THREE.Color(...tok.paper).lerp(new THREE.Color(col[0], col[1], col[2]), 0.3))
+          s.at.push(holder.matrix.clone()); s.tint.push(new THREE.Color(...tok.paper).lerp(new THREE.Color(col[0], col[1], col[2]), b.status === 'pass' ? 0 : 0.3)) // colour only where something needs a look; the outline still says pass
         }
         g.add(holder); this.made.push(holder, ...holder.children)
         const dims = `${b.size[0].toFixed(2)} × ${b.size[1].toFixed(2)} × ${b.size[2].toFixed(2)} m`
-        labels.push({ id: `box${oi}.${b.label ?? ''}.${b.status}.${b.size.join('x')}`, pos: [b.center[0], b.center[1], b.center[2] + b.size[2] / 2 + 0.12], floor: at.floor, make: () => chip('th-chip-box', b.status, h('span', 'th-chip-text', b.label ?? 'Object'), h('span', 'th-num', dims)) })
+        if (!b.quiet) labels.push({ id: `box${oi}.${b.label ?? ''}.${b.status}.${b.size.join('x')}`, pos: [b.center[0], b.center[1], b.center[2] + b.size[2] / 2 + 0.12], floor: at.floor, make: () => chip('th-chip-box', b.status, h('span', 'th-chip-text', b.label ?? 'Object'), h('span', 'th-num', dims)) })
+      } else if (ov.kind === 'marks') { // the scene's own, never a tool's: dimension lines and zones round a placed piece (furnish.ts)
+        const k = ov as unknown as { floor: number; id: string; lines: { points: Vec3[]; status: Status }[]; chips: { point: Vec3; text: string; status: Status }[] }
+        const g = doll.floorGroups[k.floor], fz = m.floorZ[k.floor]
+        for (const l of k.lines) this.cased(g, l.points.flatMap((q) => [q[0], q[1], q[2] - fz]), statusColor(l.status, tok), 2)
+        for (const c of k.chips) labels.push({ id: `mark.${k.id}.${c.text}.${c.status}`, pos: c.point, floor: k.floor, make: () => chip('th-chip-measure', c.status === 'unknown' ? null : c.status, h('span', 'th-num', c.text)) })
       } else if (ov.kind === 'pins') {
         const pins = (ov as Of<'pins'>).pins ?? []
         pins.forEach((p, i) => {

@@ -1,12 +1,13 @@
 // <BuildingScene plan overlays view onPick />: everything that shows a building. The shell never reaches into three.js.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Engine, type FrameInfo, type SceneState } from './engine/Engine.ts'
+import { furnish as checkFurniture, standAt } from './furnish.ts'
 import { FloorPlan, type FloorPlanHandle } from './FloorPlan.tsx'
 import { isKnownOverlay, type Model } from './model.ts'
 import { ShowLayer } from './show/ShowPanel.tsx'
 import type { ShowState } from './show/types.ts'
 import { useSceneLink } from './store.ts'
-import type { CameraInfo, Overlay, Pick, ScanPlan, View } from './types.ts'
+import type { CameraInfo, Furnish, Overlay, Pick, Placed, ScanPlan, Vec3, View } from './types.ts'
 import { ViewSwitcher } from './ViewSwitcher.tsx'
 import './scene.css'
 
@@ -35,13 +36,20 @@ export interface BuildingSceneProps {
   /** false leaves out the scene's own view switcher (surface, surroundings, x-ray, fly in), for a look
       that mounts <ViewSwitcher> in its own toolbar. */
   switcher?: boolean
+  /** Furniture a person is trying out, in the 3D view: each piece is drawn as its model at its exact size, can be
+      dragged on the floor (R turns the selected one, Delete removes it), and is checked on every frame of the drag
+      against the walls, the door swings and its room's wheelchair turning circle. All of it is worked out in the
+      browser from the plan. Leave it out and the scene has no furniture. */
+  furnish?: Furnish | null
 }
 type Of<K extends string> = Extract<Overlay, { kind: K }>
 const NO_OVERLAYS: Overlay[] = []
+const NO_PIECES: Placed[] = []
+type Stood = Placed & { center: Vec3 }
 const DEFAULT_VIEW: View = { mode: 'dollhouse' }
 const niceLength = (m: number) => [0.5, 1, 2, 5, 10, 20, 50].find((v) => v >= m) ?? 100
 
-export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = DEFAULT_VIEW, onPick, onViewChange, onCamera, onState, onShow, api = '', className, switcher = true, prepare = false }: BuildingSceneProps) {
+export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = DEFAULT_VIEW, onPick, onViewChange, onCamera, onState, onShow, api = '', className, switcher = true, prepare = false, furnish = null }: BuildingSceneProps) {
   const host = useRef<HTMLDivElement>(null), engine = useRef<Engine | null>(null)
   const planLayer = useRef<HTMLDivElement>(null), planHandle = useRef<FloorPlanHandle>(null), insetHandle = useRef<FloorPlanHandle>(null)
   const scaleBar = useRef<HTMLDivElement>(null), scaleText = useRef<HTMLSpanElement>(null)
@@ -51,8 +59,8 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
   const [view, setView] = useState(viewProp)
   const [seen, setSeen] = useState(viewProp)
   if (seen !== viewProp) { setSeen(viewProp); setView(viewProp) } // the outside can always say "look here"
-  const cb = useRef({ onPick, onViewChange, onCamera, onState, onShow })
-  useEffect(() => { cb.current = { onPick, onViewChange, onCamera, onState, onShow } })
+  const cb = useRef({ onPick, onViewChange, onCamera, onState, onShow, furnish })
+  useEffect(() => { cb.current = { onPick, onViewChange, onCamera, onState, onShow, furnish } })
   const playing = view.show?.kind ?? null, shown = !!playing
   useEffect(() => { if (!playing) cb.current.onShow?.(null) }, [playing])
   const change = useCallback((v: View) => { setView(v); cb.current.onViewChange?.(v) }, [])
@@ -75,6 +83,38 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
     return () => { e.dispose(); engine.current = null }
   }, [plan, api, change, prepare])
   useEffect(() => { engine.current?.setOverlays(overlays) }, [overlays, model])
+
+  // ---- furniture: the pieces as given, or as they are mid-drag; checked here so only the scene redraws while one moves ----
+  const [carried, setCarried] = useState<Placed[] | null>(null), held = useRef<Placed[] | null>(null)
+  const given = furnish?.items ?? NO_PIECES, pieces = carried ?? given, picked = furnish?.selected ?? null
+  useEffect(() => { // a new piece arrives without a place: it stands where the camera is looking, clear of the last one put there
+    const e = engine.current
+    if (!e || !given.some((p) => !p.center)) return
+    const at = e.standPoint(), stood = given.filter((p) => p.center)
+    cb.current.furnish?.onChange(given.map((p) => {
+      if (p.center) return p
+      const c = standAt(e.model, at.floor, at.x, at.y, p.size)
+      while (stood.some((q) => Math.hypot(q.center![0] - c[0], q.center![1] - c[1]) < 0.3)) c[0] += 0.4
+      const placed = { ...p, center: c }
+      stood.push(placed)
+      return placed
+    }))
+  }, [given, model])
+  const furnishing = !!furnish
+  const furnished = useMemo(() => {
+    const stood = pieces.filter((p): p is Stood => !!p.center)
+    return model && furnishing ? { stood, ...checkFurniture(model, stood, picked) } : null
+  }, [model, pieces, picked, furnishing])
+  useEffect(() => { if (furnished) cb.current.furnish?.onReport?.(furnished.checks) }, [furnished])
+  useEffect(() => {
+    engine.current?.setFurnish(furnished && {
+      items: furnished.stood, own: furnished.overlays,
+      onMove: (id, x, y) => { held.current = (held.current ?? cb.current.furnish?.items ?? []).map((p) => (p.id === id && p.center ? { ...p, center: [x, y, p.center[2]] } : p)); setCarried(held.current) },
+      onDrop: () => { if (held.current) cb.current.furnish?.onChange(held.current); held.current = null; setCarried(null) }, // one render: the given pieces take over where the drag left them
+      onSelect: (id) => { if (id !== (cb.current.furnish?.selected ?? null)) cb.current.furnish?.onSelect?.(id) },
+    })
+  }, [furnished, model])
+  const drawn = useMemo(() => (furnished ? [...overlays, ...furnished.overlays.filter((o) => o.kind === 'box')] : overlays), [overlays, furnished])
   useEffect(() => { engine.current?.setView(view) }, [view, model])
 
   const lens = useMemo(() => overlays.find((o): o is Of<'lens'> => o.kind === 'lens' && isKnownOverlay(o) && !!(o as Of<'lens'>).legend), [overlays])
@@ -95,11 +135,15 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
       onKeyDown={(e) => {
         if (e.target !== e.currentTarget) return // sliders and buttons keep their own keys
         const k: Record<string, [number, number, number]> = { ArrowLeft: [-1, 0, 0], ArrowRight: [1, 0, 0], ArrowUp: [0, -1, 0], ArrowDown: [0, 1, 0], '+': [0, 0, -1], '=': [0, 0, -1], '-': [0, 0, 1] }
-        if (e.key === 'Escape' && mode === 'pano') change({ ...view, mode: 'dollhouse' })
+        const piece = furnish && given.find((p) => p.id === picked)
+        if (piece && (e.key === 'r' || e.key === 'R')) furnish.onChange(given.map((p) => (p === piece ? { ...p, yaw_deg: (p.yaw_deg + (e.shiftKey ? -15 : 15) + 360) % 360 } : p)))
+        else if (piece && (e.key === 'Delete' || e.key === 'Backspace')) { furnish.onChange(given.filter((p) => p !== piece)); furnish.onSelect?.(null) }
+        else if (piece && e.key === 'Escape') furnish.onSelect?.(null)
+        else if (e.key === 'Escape' && mode === 'pano') change({ ...view, mode: 'dollhouse' })
         else if (k[e.key]) { engine.current?.step(...k[e.key]); e.preventDefault() }
       }}>
       <div ref={planLayer} className="th-plan">
-        {model && <FloorPlan plan={plan} model={model} overlays={overlays} floor={view.floor} measures={view.measures} pano={state?.pano} driven handle={planHandle} onPick={pickFromPlan} />}
+        {model && <FloorPlan plan={plan} model={model} overlays={drawn} floor={view.floor} measures={view.measures} pano={state?.pano} driven handle={planHandle} onPick={pickFromPlan} />}
         <div className="th-scalebar"><div ref={scaleBar} /><span ref={scaleText} className="th-num" /></div>
       </div>
 
@@ -119,7 +163,7 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
 
       {model && model.hasWalls && mode !== 'plan' && mode !== 'splat' && !shown && (
         <div className="th-inset" data-scene-ui>
-          <FloorPlan plan={plan} model={model} overlays={overlays} floor={view.floor} compact pano={mode === 'pano' ? state?.pano : null} handle={insetHandle} onPick={pickFromPlan} />
+          <FloorPlan plan={plan} model={model} overlays={drawn} floor={view.floor} compact pano={mode === 'pano' ? state?.pano : null} handle={insetHandle} onPick={pickFromPlan} />
         </div>
       )}
 

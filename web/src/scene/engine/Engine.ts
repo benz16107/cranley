@@ -3,11 +3,12 @@ import * as THREE from 'three'
 import { anchorKey, buildModel, centroid, interiorTest, isKnownOverlay, resolveStyles, STUB, type Model } from '../model.ts'
 import { useSceneLink } from '../store.ts'
 import { readTokens, type Tokens } from '../tokens.ts'
-import type { Anchor, CameraInfo, Mode, Overlay, Pano, Pick, ScanPlan, Vec3, View } from '../types.ts'
+import type { Anchor, CameraInfo, Mode, Overlay, Pano, Pick, Placed, ScanPlan, Vec3, View } from '../types.ts'
 import { anchorPoint } from '../model.ts'
 import { Dollhouse } from './dollhouse.ts'
 import { h, Labels, type LabelSpec } from './labels.ts'
 import { Overlays3D } from './overlays.ts'
+import { floorUnder } from '../furnish.ts'
 import { azOfBearing, bearingOfAz, freeRect, lookAngles } from './camera.ts'
 import { PanoView } from './pano.ts'
 import { easeInOut, reducedMotion, Rig } from './rig.ts'
@@ -51,6 +52,14 @@ export interface EngineOpts {
   onShow?: (s: ShowState) => void
 }
 
+export interface Furnishing {
+  items: (Placed & { center: Vec3 })[]
+  own: Overlay[]
+  onMove: (id: string, x: number, y: number) => void
+  onDrop: () => void
+  onSelect: (id: string | null) => void
+}
+
 const DOLL_FOV = 32, PLAN_FOV = 14, PANO_FOV = 76, PANO_FOV_MIN = 34, PANO_FOV_MAX = 96, SPLAT_DIST = 58
 const AERIAL_MAX_DIST = 560 // metres: far enough to see the block, near enough that the fetched tiles stay few
 const SPLAT_CLEAR_M = 34    // the drone capture is good to about here; the surroundings take over beyond it
@@ -79,6 +88,9 @@ export class Engine {
   private tour = 0 // the step of the flight in from above that is playing; 0 is none
   private opened = { cur: 1, goal: 1 } // real surroundings: 1 the building is cut out and the model stands in the gap, 0 it is whole
   private overlays: Overlay[] = []
+  /** Furniture a person is placing (furnish.ts): the pieces, what the scene itself draws for them, and what a drag reports. */
+  private furnishing: Furnishing | null = null
+  private carrying: { id: string; dx: number; dy: number; z: number } | null = null
   private overlayLabels: LabelSpec[] = []
   private roomLabels: LabelSpec[]
   private w = 1; private h = 1
@@ -166,12 +178,21 @@ export class Engine {
     this.rawOverlays = overlays
     // Contract 4: unknown kinds are ignored. A flood being played draws the water itself, so a tool's level waits.
     this.overlays = overlays.filter((o) => isKnownOverlay(o) && !(this.shows.ownsWater && o.kind === 'water'))
-    this.overlayLabels = this.overlays3d.set(this.overlays, !!this.view.measures, this.eye())
+    this.overlayLabels = this.overlays3d.set(this.furnishing ? [...this.overlays, ...this.furnishing.own] : this.overlays, !!this.view.measures, this.eye())
     this.syncLabels()
     this.markCurrent()
     this.applyStyles()
     this.world.setMute(this.overlays.length ? 0.4 : 0) // a result on the building: the surroundings step back
     this.invalidate()
+  }
+
+  setFurnish(f: Furnishing | null) { this.furnishing = f; if (!f) this.carrying = null; this.setOverlays(this.rawOverlays) }
+  /** Where a new piece of furniture stands: under the middle of the picture, on the floor that is showing. */
+  standPoint(): { floor: number; x: number; y: number } {
+    const t = this.rig.goal.target, m = this.model
+    let floor = this.view.floor != null ? m.floorOf.get(this.view.floor) ?? m.groundFloor : m.groundFloor
+    if (this.view.floor == null) m.floorZ.forEach((z, i) => { if (t.z >= z - 0.3) floor = i })
+    return { floor, x: t.x, y: t.y }
   }
 
   private syncLabels() { this.labels.sync([...this.roomLabels, ...this.overlayLabels, ...this.shows.labels]); this.invalidate() }
@@ -554,7 +575,27 @@ export class Engine {
     if (this.view.mode === 'splat' || this.planPresence.cur > 0.5) return null // the plan picks through its own SVG
     return this.doll.pick(this.ray(x, y), { pano: this.view.mode === 'pano' })
   }
+  /** The placed piece under the pointer: the pointer's ray against each piece's box, nearest first. */
+  private pieceAt(x: number, y: number) {
+    if (!this.furnishing || this.view.mode !== 'dollhouse') return null
+    const ray = this.ray(x, y), hit = new THREE.Vector3()
+    let best: Furnishing['items'][number] | null = null, near = Infinity
+    for (const p of this.furnishing.items) {
+      const f = floorUnder(this.model, p), half = new THREE.Vector3(p.size[0] / 2, p.size[1] / 2, p.size[2] / 2)
+      const inv = new THREE.Matrix4().makeRotationZ((p.yaw_deg * Math.PI) / 180).setPosition(p.center[0], p.center[1], p.center[2] + this.doll.floorZ(f) - this.model.floorZ[f]).invert()
+      const local = ray.clone().applyMatrix4(inv)
+      if (!local.intersectBox(new THREE.Box3(half.clone().negate(), half), hit)) continue
+      const d = hit.distanceTo(local.origin)
+      if (d < near) { near = d; best = p }
+    }
+    return best && { piece: best, z: this.doll.floorZ(floorUnder(this.model, best)) }
+  }
+  private floorHit(x: number, y: number, z: number): [number, number] | null {
+    const r = this.ray(x, y), t = (z - r.origin.z) / r.direction.z
+    return Number.isFinite(t) && t > 0 ? [r.origin.x + r.direction.x * t, r.origin.y + r.direction.y * t] : null
+  }
   private hover(x: number, y: number) {
+    if (this.pieceAt(x, y)) { useSceneLink.getState().setHover(null); this.el.style.cursor = 'grab'; return }
     const p = this.pickAt(x, y)
     useSceneLink.getState().setHover(p)
     this.el.style.cursor = p && (p.kind === 'pano' || this.view.mode !== 'pano') ? 'pointer' : ''
@@ -564,11 +605,24 @@ export class Engine {
     const el = this.el, rig = this.rig
     const onDown = (e: PointerEvent) => {
       if ((e.target as HTMLElement).closest('[data-scene-ui]')) return // rulers, sliders and pins handle themselves
+      const got = e.button === 0 && !e.shiftKey && this.pointers.size === 0 ? this.pieceAt(e.clientX, e.clientY) : null
+      const at = got && this.floorHit(e.clientX, e.clientY, got.z)
+      if (got && at) { // a placed piece is picked up; the camera stays where it is
+        this.carrying = { id: got.piece.id, dx: got.piece.center[0] - at[0], dy: got.piece.center[1] - at[1], z: got.z }
+        this.furnishing!.onSelect(got.piece.id); el.setPointerCapture(e.pointerId); el.style.cursor = 'grabbing'
+        this.drift = false; this.orbiting = false; this.tour = 0
+        return
+      }
       this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
       this.drag = { moved: 0, t: performance.now(), vx: 0, vy: 0, last: performance.now(), button: e.button }
       this.drift = false; this.orbiting = false; this.tour = 0; this.shows.touched()
     }
     const onMove = (e: PointerEvent) => {
+      if (this.carrying) {
+        const c = this.carrying, at = this.floorHit(e.clientX, e.clientY, c.z)
+        if (at) this.furnishing?.onMove(c.id, at[0] + c.dx, at[1] + c.dy)
+        return
+      }
       const prev = this.pointers.get(e.pointerId)
       if (!prev) { // plain hover; controls and the inset plan report their own
         if (e.pointerType === 'mouse') this.hoverAt = (e.target as HTMLElement).closest('[data-scene-ui]') ? null : { x: e.clientX, y: e.clientY }
@@ -605,6 +659,7 @@ export class Engine {
       prev.x = e.clientX; prev.y = e.clientY
     }
     const onUp = (e: PointerEvent) => {
+      if (this.carrying) { this.carrying = null; el.style.cursor = 'grab'; this.furnishing?.onDrop(); return }
       if (!this.pointers.delete(e.pointerId)) return
       const tap = this.drag.moved < 4 && performance.now() - this.drag.t < 450
       if (tap && this.drag.button === 0) this.click(e.clientX, e.clientY, e.detail >= 2)
@@ -642,6 +697,7 @@ export class Engine {
   }
 
   private click(x: number, y: number, double: boolean) {
+    this.furnishing?.onSelect(null) // a tap that was not on a piece lets go of the selected one
     const p = this.pickAt(x, y)
     if (!p) { if (this.planPresence.cur < 0.5) useSceneLink.getState().setSelected(null); return }
     this.emitPick(p)
