@@ -26,3 +26,15 @@ def test_a_phone_scan_resolves_without_a_location(monkeypatch):
     monkeypatch.setattr(index, "rows", lambda: {})
     s = default_site(Place(scan="u_000000000000"))
     assert s.lat is None and s.sids == ["u_000000000000"]
+
+
+def test_a_scan_of_a_property_reads_the_property_record():
+    apt = {"id": 1, "propertyApartment": {"models": [{"id": 7, "numBeds": 1, "numBaths": 1}]}}
+
+    def sites(p):
+        if p.property_id:
+            return Site(p, 29.7, -95.4, "1 Test St", "Houston", 5, ["h1", "g1"], "test",
+                        [{"sid": "h1", "name": "1BR 1BA", "kind": "apartment_unit"}, {"sid": "g1", "name": "Gym", "kind": "amenity"}], apt)
+        return Site(p, 29.7, -95.4, "1 Test St", "Houston", 5, ["h1"], "test", [{"sid": "h1", "name": "1BR 1BA", "kind": "apartment_unit"}])
+    res = run_tool("property_coverage", {"place": {"scan": "h1"}}, ToolContext(sites=sites))
+    assert {m.id: m.value for m in res.metrics}["scans"] == 2 and any(c.id == "area.fitness" and c.status == "pass" for c in res.checks)

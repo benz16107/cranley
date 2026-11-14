@@ -56,6 +56,9 @@ def _beds_baths(name: str) -> tuple[float | None, float | None]:
       blocks=["VerdictHeader", "MetricRow", "CheckList", "StepLog"], personas=["apartment_manager", "costar_researcher"])
 def run(ctx, inputs: Inputs) -> ToolResult:
     site = ctx.site(inputs.place)
+    if site.property_id and not site.record:  # a scan place carries its property id but not the property's record
+        whole = ctx.site(Place(property_id=site.property_id))
+        site.sids, site.scans, site.record = whole.sids, whole.scans, whole.record
     scans = site.scans
     ctx.step(f"Found {len(scans)} scans at {site.address or site.key}")
     if site.record and not (site.record.get("propertyApartment") or {}):
