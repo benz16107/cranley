@@ -325,7 +325,7 @@ def score_flood(z: dict, mode: str) -> Cell:
     elif "0.2" in sub:
         s, txt = 60.0, f"In FEMA's 0.2% annual chance zone ({zone}, shaded)"
     else:
-        s, txt = 100.0, f"Outside FEMA's mapped flood hazard areas ({zone or 'no mapped zone'})"
+        s, txt = 100.0, f"Outside FEMA's 1% annual chance flood zones ({zone or 'the layer maps only those zones'})"
     if mode == "any":
         return Cell("flood", zone or "none", None, None, "unknown", txt + "; flood risk is not scored", FEMA, s)
     return Cell("flood", zone or "none", s, None, status_of(s), txt, FEMA, s)
