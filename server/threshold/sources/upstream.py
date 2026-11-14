@@ -116,7 +116,7 @@ _FILE = re.compile(r"^[A-Za-z0-9_.-]{1,96}$")
 
 def check(value: str, kind: str = "id") -> str:
     """Return value when it is a plain scan id ("sid"), id ("id") or file name ("file"); else raise LookupError (a 404)."""
-    ok = {"sid": _SID, "id": _ID, "file": _FILE}[kind].match(value) and ".." not in value
+    ok = {"sid": _SID, "id": _ID, "file": _FILE}[kind].fullmatch(value) and ".." not in value
     if not ok:
         raise LookupError(f"no such {kind}: {value[:40]!r}")
     return value
