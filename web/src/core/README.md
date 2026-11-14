@@ -60,6 +60,7 @@ switcher lands on the same moment. Name places only; the look in the address bar
 | `/` | the front door | |
 | `/map` | the city map | `city` (`hou`, `la`), `kind`, `drone`, `empty`, `rooms`, `b` (selected building id) |
 | `/scan/<sid>` | one scan in the building view | `f` (focused finding id), `v` (scene mode), `p` (panorama position), `b`, `city` |
+| `/shared/<token>` | a read-only link to someone's workspace | |
 
 ```ts
 useRoute(): { path: '/' | '/map' | '/scan'; sid: string | null; q: URLSearchParams }   // re-renders on change
@@ -92,7 +93,7 @@ userOp(op)                                       // the person changes the works
 | `panels` | `Panel { id, tool, title, role?, scope?, sid?, run?, blocks }`; `role` is `'tool'` (also when missing), `'summary'` (the agent's closing note), `'ranking'` or `'note'` | one panel each, built from the twelve blocks |
 | `findings` | `Finding { id, title, status, detail?, anchor, source, media? } & { tool, run? }` | evidence; `anchor` is where it is in the building or on the map |
 | `overlays` | `{ id, tool, sid?, overlay }` | drawn in the scene (core does this) and on the map (you do this, from `useMapModel().geo`) |
-| `prefs` | `Pref { key, label, value, from, by }` | "what I have learned", each with an undo |
+| `prefs` | `Pref { key, label, value, unit?, from, by }`: `label` names the setting, `value` is its value, `from` is the sentence that says where it came from | "what I have learned", each with an undo |
 | `shortlist` | `ShortlistItem { sid, name, address, note? }` | the kept scans |
 | `camera` | `{ anchor, finding?, by }` | `finding` is the current one: mark it in every list that shows it |
 
@@ -152,7 +153,18 @@ answerPref(q, answer)        // only for a question answered after the work bega
 NEEDS, TOOLS                 // the front door's starting points and their tools, for when no server answers
 useToolCatalog(): CatalogTool[]     // every tool there is to add (the server's list, planned ones last)
 useCatalog((s) => s.live)    // true: the agent server answers. false: scripted playback. null: not known yet
+shareWorkspace(days?)        // { url, expires }: a read-only link to the open workspace. Rejects with a sentence when
+                             // the server cannot make one (it needs the database store). Never copy the page address
+                             // for someone else: it holds the workspace id, and whoever has the id can write
+useCatalog((s) => s.shared)  // set on a read-only link: { state: 'loading' | 'ready' | 'gone', expires? }. null otherwise
 ```
+
+**A read-only link** opens at `/shared/<token>` in any look. Core shows that workspace in `doc` and keeps it up to date;
+it is never written. Every change a person tries (an op, a tool run, a new brief) is refused with a notice and the
+server's document is put back, so a look need not guard each control. A look should say the page is read-only, offer
+the way out (load its own front door again), and may hide what cannot work there. `doc.id` is `"shared"` on such a page.
+
+```ts```
 
 **Receiving agent operations.** You do not subscribe to a stream. Core reads the server's events and the document
 changes; you re-render from `doc`. To animate an arrival, compare with the previous render (a tool that was not in

@@ -72,6 +72,10 @@ export async function investigate() {
     if (open.some((q) => q.hint == null)) { notify('Answer the questions first.', { description: 'The tools cannot run without them.' }); return }
     for (const q of open) dispatch({ op: 'question.answer', by: 'user', id: q.id, answer: q.hint! })
     await server.settled() // the answers are on the server before the turn reads them, however long that takes
+    // The composing turn may still be streaming, and with no question open it goes on to investigate by itself.
+    // Wait for it; if a plan is there when it ends, the work has started and a second turn would repeat it.
+    await server.idle()
+    if (doc().plan.length) return
     void serverTurn()
     return
   }

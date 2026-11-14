@@ -44,6 +44,8 @@ export const serverDoc = () => ws
 export const remembered = () => !!id || !!token
 /** Every user op made so far is on the server. */
 export const settled = () => writes.idle()
+/** No turn is streaming (or queued) any more. */
+export const idle = () => turns.idle()
 /** A read-only link takes no change. Says so once per attempt and puts the server's document back. */
 export function refused(): boolean {
   if (!token) return false
@@ -126,7 +128,7 @@ const ensure = single(async (): Promise<boolean> => {
 export async function post(ops: J | J[]): Promise<boolean> {
   if (!(await ensure())) return false
   const asked = fresh.now()
-  const r = await fetch(`/api/workspace/${id}/ops`, { method: 'POST', headers: json, body: JSON.stringify(ops) }).catch(() => null)
+  const r = await fetch(`/api/workspace/${encodeURIComponent(id!)}/ops`, { method: 'POST', headers: json, body: JSON.stringify(ops) }).catch(() => null)
   if (asked !== fresh.now()) return false // start-over while it was on its way: nothing to say about the old workspace
   if (!r?.ok) { notify.error('The server did not take that change.', { description: r ? ((await r.json().catch(() => ({}))) as J).detail : 'It is not answering.' }); void sync(); return false }
   show(await r.json(), asked)
@@ -156,14 +158,17 @@ function follow(asked: number, after: number, quiet = 45_000): Promise<void> {
     const path = token ? `/api/shared/${encodeURIComponent(token)}/live` : id ? `/api/workspace/${encodeURIComponent(id)}/live` : null
     if (!path || typeof EventSource === 'undefined') { resolve(); return }
     const es = new EventSource(`${path}?after=${Math.max(0, after)}`)
-    let idle: ReturnType<typeof setTimeout> | undefined
+    let idle: ReturnType<typeof setTimeout> | undefined, heard = Date.now()
     const stop = () => { clearTimeout(idle); es.close(); resolve() }
+    // Nothing says "the turn ended" on this stream, so the document does: every plan step done and nothing working,
+    // 20 s after the last op (a turn's next step can take that long to announce itself). With no plan yet, `quiet`.
+    const over = () => { const plan = (ws?.plan as J[] | undefined) ?? []; return !working() && (plan.length > 0 && plan.every((p) => p.status === 'completed') ? true : Date.now() - heard >= quiet) }
     const settle = () => {
       clearTimeout(idle)
       if (quiet === Infinity) return // a link is followed for as long as the page is open
-      idle = setTimeout(() => void sync().then(() => (asked === fresh.now() && working() ? settle() : stop())), quiet)
+      idle = setTimeout(() => void sync().then(() => (asked !== fresh.now() || over() ? stop() : settle())), Math.min(quiet, 20_000))
     }
-    es.addEventListener('op', () => { if (asked !== fresh.now()) { stop(); return } soon(); settle() })
+    es.addEventListener('op', () => { if (asked !== fresh.now()) { stop(); return } heard = Date.now(); soon(); settle() })
     settle()
   })
 }
@@ -225,7 +230,7 @@ export async function runTool(tool: string, sid: string | null, inputs: J = {}):
   if (setup.length && !(await post(setup))) return
   const poll = setInterval(() => void sync(), 900) // the run and its steps show while the request is open
   // wait=2: a tool that takes longer answers { status: 'running' } and finishes on the server (see below)
-  const r = await fetch(`/api/tools/${tool}/run?workspace=${id}&wait=2`, { method: 'POST', headers: json,
+  const r = await fetch(`/api/tools/${encodeURIComponent(tool)}/run?workspace=${encodeURIComponent(id!)}&wait=2`, { method: 'POST', headers: json,
     body: JSON.stringify({ ...(!sid ? {} : 'scan' in props ? { scan: sid } : 'place' in props ? { place: { scan: sid } } : {}), ...inputs }) }).catch(() => null)
   clearInterval(poll)
   let out: J = r?.ok ? await r.json() : { error: r ? `The server answered ${r.status}.` : 'The server is not answering.' }
