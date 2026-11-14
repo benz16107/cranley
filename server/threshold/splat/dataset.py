@@ -27,6 +27,7 @@ from ..vision.projection import face_basis, quat_matrix
 from . import ROOT, seed, virtual
 
 FACES = range(6)
+MIN_VALID = 0.2  # a virtual view with less of its pixels valid is left out
 
 
 def face_pose(position, rotation, face: int) -> tuple[np.ndarray, np.ndarray]:
@@ -123,19 +124,24 @@ def build(sid: str, res: int = 1024, every: int = 8, view: str = "furnished", wo
             src = virtual.Sources(T, train_ids, {k: v for k, v in mid.items() if k[0] in train_ids})
             cams = virtual.cameras(src, train_ids, np.random.default_rng(0))
     vcam = {f"{p}-v": (c, R) for p, c, R in cams}
-    seq, period, held = order(panos, every, [(k, f) for k in vcam for f in (1, 2, 3, 4)])
+    views = {}  # rendered before ordering: a view with almost nothing valid is dropped (Brush fails to load one)
+    for k, (c, Rv) in vcam.items():
+        for f in (1, 2, 3, 4):
+            img, m = virtual.render(T, src, c, Rv, f, virtual_res, exclude=k[:-2])
+            if m.mean() >= MIN_VALID:
+                views[(k, f)] = (img, m)
+    seq, period, held = order(panos, every, list(views))
 
     lines, masked = [], []
     for i, (p, f) in enumerate(seq):
         name = f"{i:05d}_{p}_{f}"
-        if p in vcam:
-            c, Rv = vcam[p]
-            img, m = virtual.render(T, src, c, Rv, f, virtual_res, exclude=p[:-2])
+        if (p, f) in views:
+            img, m = views[(p, f)]
             mask_dir.mkdir(exist_ok=True)
             Image.fromarray(img).save(img_dir / f"{name}.jpg", quality=94)
             Image.fromarray((m * 255).astype(np.uint8)).save(mask_dir / f"{name}.png")
             masked.append(float(m.mean()))
-            lines.append(_line(i, *virtual._pose(c, Rv, f), 2, f"{name}.jpg"))
+            lines.append(_line(i, *virtual._pose(*vcam[p], f), 2, f"{name}.jpg"))
         else:
             face((p, f))[1].resize((res, res), Image.LANCZOS).save(img_dir / f"{name}.jpg", quality=94)
             lines.append(_line(i, *face_pose(by_id[p]["position"], by_id[p]["rotation"], f), 1, f"{name}.jpg"))
