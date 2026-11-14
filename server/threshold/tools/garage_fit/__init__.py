@@ -143,7 +143,7 @@ def no_garage(ctx, plan: dict, sid: str, scope, base: list) -> ToolResult:
                         "a lifted truck or roof box, and room for a workbench, EV charger, motorcycle, bikes or a "
                         "squat rack. Draws the vehicles parked as boxes. With search_city, searches every scanned "
                         "house in Houston or Los Angeles for a garage that fits `count` of the vehicle.",
-      personas=["car_owner"], requires=[{"layer": "matterport.walls"}, {"layer": "matterport.rooms"}],
+      personas=["car_owner", "wheelchair_van_owner", "rv_boat_owner", "home_gym_builder"], requires=[{"layer": "matterport.walls"}, {"layer": "matterport.rooms"}],
       blocks=["VerdictHeader", "MetricRow", "CheckList", "FloorPlanMini", "RankedTable", "AssumptionChips", "StepLog",
               "ActionBar"],
       overlays=["box", "rule"],

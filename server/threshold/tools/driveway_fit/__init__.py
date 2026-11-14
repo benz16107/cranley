@@ -96,7 +96,7 @@ def _run_inside(geom_m, p0, u, cap: float = 60.0, step: float = 0.25) -> float:
                         "door or house to the parcel line, paved width on the orthophoto, how many cars park on it "
                         "(5.2 x 2.5 m each), and whether a long vehicle from the garage_fit table (trailer, boat, RV, "
                         "truck) fits on it without sticking into the sidewalk. Aerial estimates, labelled medium or low.",
-      personas=["car_owner"], requires=[{"layer": "vexcel.ortho"}, {"layer": "vexcel.property"}],
+      personas=["car_owner", "wheelchair_van_owner", "rv_boat_owner"], requires=[{"layer": "vexcel.ortho"}, {"layer": "vexcel.property"}],
       blocks=["VerdictHeader", "MetricRow", "CheckList", "EvidenceStrip", "AssumptionChips", "StepLog"],
       overlays=["pins", "route", "box"], annotations={"cost": "slow"},
       examples=["How many cars fit on the driveway?", "Can I park my boat trailer off the street here?"])

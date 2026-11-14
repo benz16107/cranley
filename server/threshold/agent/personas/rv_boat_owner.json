@@ -1,0 +1,19 @@
+{
+  "id": "rv_boat_owner",
+  "title": "RV or boat owner",
+  "who": "Keeps a boat, trailer or motorhome and needs it off the street: driveway length, and whether the garage door is tall enough.",
+  "tools": [
+    "driveway_fit",
+    "garage_fit"
+  ],
+  "thresholds": {
+    "driveway.vehicle": "boat_20ft",
+    "garage.vehicle": "boat_20ft",
+    "garage.count": 1,
+    "garage.uses": []
+  },
+  "layout": {
+    "view": "map",
+    "lead_tool": "driveway_fit"
+  }
+}
