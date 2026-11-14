@@ -31,4 +31,6 @@ class Claude:
         self.max_tokens = max_tokens
 
     def structured(self, system: str, user: str, schema: type[T]) -> T:
-        return chat(self.max_tokens).with_structured_output(schema).invoke([("system", system), ("human", user)])
+        # json_schema, not forced tool calling: the endpoint's model refuses forced tool use with thinking on
+        return chat(self.max_tokens).with_structured_output(schema, method="json_schema").invoke(
+            [("system", system), ("human", user)])

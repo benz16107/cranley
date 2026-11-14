@@ -1,0 +1,1003 @@
+{
+ "A hurricane is coming to Houston this weekend; what in my house would flood?": {
+  "cannot": [
+   "Nothing here forecasts how deep the water will actually get at your address this weekend, so check official flood and storm surge forecasts.",
+   "Nothing here tells you whether or when to evacuate, so follow guidance from local emergency officials."
+  ],
+  "persona": "houston_homeowner_storm",
+  "stated": [],
+  "summary": "A Houston homeowner with a hurricane coming this weekend who wants to know which parts of the house would flood and what to move.",
+  "tools": [
+   {
+    "id": "flood_rehearsal",
+    "reason": "This shows you, room by room, which parts of your house a given water depth would reach."
+   },
+   {
+    "id": "valuables_height",
+    "reason": "This lists what sits below that water line and where the higher ground inside your house is, so you know what to move and where."
+   },
+   {
+    "id": "room_census",
+    "reason": "This gives you a clear list of your rooms and their sizes to plan around before the storm."
+   },
+   {
+    "id": "roof_facts",
+    "reason": "This shows your roof's shape, material and condition, so you can judge how it may hold up to hurricane wind and rain."
+   }
+  ]
+ },
+ "As the property manager, which parts of our community have no scan yet?": {
+  "cannot": [],
+  "persona": "apartment_manager",
+  "stated": [],
+  "summary": "A property manager who wants to know which parts of their community have not been scanned yet.",
+  "tools": [
+   {
+    "id": "property_coverage",
+    "reason": "It shows you which of your community's floor plans and shared spaces have a scan and which have none."
+   },
+   {
+    "id": "room_census",
+    "reason": "For the parts that are scanned, it shows you which rooms each space has and which still lack a type."
+   }
+  ]
+ },
+ "Compare our three floor plans on room sizes.": {
+  "cannot": [],
+  "persona": "apartment_manager",
+  "stated": [],
+  "summary": "Someone with three floor plans in their property who wants to compare them on room sizes.",
+  "tools": [
+   {
+    "id": "room_census",
+    "reason": "You get the rooms in each floor plan and how big each kind is, so you can set the three plans next to each other."
+   },
+   {
+    "id": "unit_compare",
+    "reason": "You can rank your three floor plans side by side on room sizes once this tool is available."
+   },
+   {
+    "id": "property_coverage",
+    "reason": "You can confirm that all three floor plans have a scan before you compare them."
+   }
+  ]
+ },
+ "Does the house match what the policy application says about rooms and square footage?": {
+  "cannot": [
+   "None of these tools reads the policy application itself, so you will need to compare its stated rooms and square footage by hand."
+  ],
+  "persona": "insurance_underwriter",
+  "stated": [],
+  "summary": "An underwriter checking whether the house's rooms and square footage match what the policy application states.",
+  "tools": [
+   {
+    "id": "room_census",
+    "reason": "You get the rooms this house actually has and how big each kind is, so you can check them against the rooms and square footage on the application."
+   },
+   {
+    "id": "record_vs_reality",
+    "reason": "You can set the recorded rooms and areas against what the scan measured to spot where they disagree."
+   }
+  ]
+ },
+ "Film location scout: I need a big open room with daylight and space to park two trucks.": {
+  "cannot": [
+   "Nothing here measures how much parking area the site has for your two trucks."
+  ],
+  "persona": "none",
+  "stated": [],
+  "summary": "A film location scout looking for a big open room with daylight and space to park two trucks.",
+  "tools": [
+   {
+    "id": "room_census",
+    "reason": "You can see which rooms the space has and how big each kind is, to spot a large open room."
+   },
+   {
+    "id": "daylight",
+    "reason": "You get an estimate of daylight in each room from its windows and orientation."
+   },
+   {
+    "id": "truck_access",
+    "reason": "You can check whether trucks can approach and turn at the site."
+   },
+   {
+    "id": "door_widths",
+    "reason": "You can check which doorways your gear and equipment can pass through."
+   }
+  ]
+ },
+ "Firefighter here: where would we stretch a hose line in this apartment complex?": {
+  "cannot": [
+   "Nothing here calculates hose lengths or stretch distances from the apparatus or standpipe connection to each unit.",
+   "Nothing here confirms standpipe locations, outlet pressures or hydrant positions from verified records."
+  ],
+  "persona": "fire_captain",
+  "stated": [],
+  "summary": "A firefighter pre-planning an apartment complex who needs to know where a hose line could be stretched.",
+  "tools": [
+   {
+    "id": "fire_preplan",
+    "reason": "This is central to your question: it builds a pre-incident plan with entries, standpipes, utilities and apparatus access for stretching a line, though it is still planned."
+   },
+   {
+    "id": "egress_routes",
+    "reason": "It traces the path from every room to the exits and its narrowest point, which approximates the corridors and stairs you would advance a line along."
+   },
+   {
+    "id": "door_widths",
+    "reason": "It measures every doorway now, so you can see where a charged line and crew would pinch at a door."
+   },
+   {
+    "id": "room_census",
+    "reason": "It shows which rooms each unit has and how big they are, so you know the layout you would be moving into."
+   },
+   {
+    "id": "property_coverage",
+    "reason": "For a whole complex, it shows which buildings, floor plans and shared spaces have a scan and which have no data to plan from."
+   }
+  ]
+ },
+ "I dispatch 53-foot trailers to this warehouse; can they get in and dock?": {
+  "cannot": [
+   "Nothing here confirms dock height, dock levelers, or whether a dock is open and can be booked at a given time."
+  ],
+  "persona": "truck_dispatcher",
+  "stated": [],
+  "summary": "A dispatcher sending 53-foot trailers to a warehouse who needs to know whether they can get onto the site and dock.",
+  "tools": [
+   {
+    "id": "truck_access",
+    "reason": "It checks the approach and turning room on site from aerial imagery, so you can tell whether your 53-foot trailers can get in."
+   },
+   {
+    "id": "loading_docks",
+    "reason": "It finds the loading docks and dock doors so you know where your trailers can back in."
+   },
+   {
+    "id": "door_widths",
+    "reason": "It measures the doorways inside so you can see which ones a pallet passes once a trailer is docked."
+   }
+  ]
+ },
+ "I manage an apartment community and want to know how accessible our units are.": {
+  "cannot": [],
+  "persona": "apartment_manager",
+  "stated": [],
+  "summary": "You manage an apartment community and want to know how accessible your units are.",
+  "tools": [
+   {
+    "id": "door_widths",
+    "reason": "You can see every doorway in each unit and which ones are too narrow for a wheelchair."
+   },
+   {
+    "id": "room_census",
+    "reason": "You get a clear list of the rooms in each unit and their sizes, so you know what you are assessing."
+   },
+   {
+    "id": "property_coverage",
+    "reason": "You can check which of your floor plans and shared spaces have been scanned and which still need one."
+   },
+   {
+    "id": "step_free_route",
+    "reason": "You would see whether a route from each unit's entrance reaches every room without steps or tight spots."
+   },
+   {
+    "id": "bathroom_clearance",
+    "reason": "You would learn whether each unit's bathroom has the floor space and door swing a wheelchair user needs."
+   },
+   {
+    "id": "unit_compare",
+    "reason": "You could rank your units side by side on accessibility to see which ones work best."
+   }
+  ]
+ },
+ "I organise a tenant union and want to document whether units match what the landlord advertises.": {
+  "cannot": [
+   "Collecting and archiving the landlord's original adverts as they change over time is something you will need to do yourselves.",
+   "Turning the findings into a formal evidence pack for a rent tribunal or legal claim is not handled here."
+  ],
+  "persona": "none",
+  "stated": [],
+  "summary": "A tenant union organiser who wants to document whether the building's units match what the landlord advertises.",
+  "tools": [
+   {
+    "id": "record_vs_reality",
+    "reason": "This compares what the landlord's listing claims with what the scan actually measured, room by room, which is the core of what you want to document."
+   },
+   {
+    "id": "room_census",
+    "reason": "This gives you a clear record of which rooms each unit really has and how big each kind is, ready to set against the advert."
+   },
+   {
+    "id": "unit_compare",
+    "reason": "This lets you line up several tenants' units side by side to show whether mismatches are one-offs or a pattern across the building."
+   },
+   {
+    "id": "property_coverage",
+    "reason": "This shows which units and shared spaces have been scanned so far, so you know whose homes are still undocumented."
+   }
+  ]
+ },
+ "I teach piano and I'm moving my studio; the grand piano has to get in and the room should be quiet.": {
+  "cannot": [
+   "None of these tools can tell you how quiet a room is or how much outside noise reaches it."
+  ],
+  "persona": "furniture_mover",
+  "stated": [],
+  "summary": "A piano teacher moving their studio who needs the grand piano to get in and a quiet room to teach in.",
+  "tools": [
+   {
+    "id": "door_widths",
+    "reason": "You will see every doorway on the way in and which ones are too narrow for your grand piano."
+   },
+   {
+    "id": "furniture_fit",
+    "reason": "You can test whether the piano's size passes along the route to the studio room and fits once it is inside."
+   },
+   {
+    "id": "room_census",
+    "reason": "You get a list of the rooms and how big each one is, so you can pick one with space for the piano and your students."
+   }
+  ]
+ },
+ "I underwrite homeowners policies and need roof condition and flood exposure for this house.": {
+  "cannot": [
+   "Nothing here gives the official flood zone designation or the claims history for the address."
+  ],
+  "persona": "insurance_underwriter",
+  "stated": [],
+  "summary": "A homeowners insurance underwriter who needs this house's roof condition and flood exposure to price the policy.",
+  "tools": [
+   {
+    "id": "roof_facts",
+    "reason": "You get the roof's shape, material and condition from aerial imagery, which is the first thing you asked for."
+   },
+   {
+    "id": "flood_rehearsal",
+    "reason": "You can see which rooms a given water depth would reach from ground elevation, so you can judge flood exposure."
+   },
+   {
+    "id": "room_census",
+    "reason": "You get a ready list of the rooms and their sizes, so you know what is exposed when you weigh roof and water damage."
+   },
+   {
+    "id": "record_vs_reality",
+    "reason": "You can check whether what was built matches what is on record before you price the risk."
+   }
+  ]
+ },
+ "I use a wheelchair and I'm looking at apartments in Houston.": {
+  "cannot": [
+   "Finding which Houston apartments are available to rent and meet your needs in the first place."
+  ],
+  "persona": "wheelchair_user",
+  "stated": [],
+  "summary": "You use a wheelchair and are looking at apartments in Houston, and need every door, route and bathroom to work for you.",
+  "tools": [
+   {
+    "id": "door_widths",
+    "reason": "Flags every doorway in a unit that is too narrow for your wheelchair to pass through."
+   },
+   {
+    "id": "room_census",
+    "reason": "Shows you which rooms each apartment has and how big they are, so you can judge the layout."
+   },
+   {
+    "id": "step_free_route",
+    "reason": "Marks any steps or tight spots between the entrance and each room once it is available."
+   },
+   {
+    "id": "turning_space",
+    "reason": "Checks whether you can turn your wheelchair around in each room once it is available."
+   },
+   {
+    "id": "bathroom_clearance",
+    "reason": "Checks whether the bathroom floor space and door swing work for your wheelchair once it is available."
+   }
+  ]
+ },
+ "I want a bright apartment with lots of closet space.": {
+  "cannot": [],
+  "persona": "renter_listing",
+  "stated": [],
+  "summary": "Someone looking to rent who wants a bright apartment with plenty of closet space.",
+  "tools": [
+   {
+    "id": "daylight",
+    "reason": "You want a bright place, so this estimates how much daylight each room gets from its windows and orientation."
+   },
+   {
+    "id": "storage_space",
+    "reason": "You want lots of closet space, so this totals the closet and storage area in the apartment."
+   },
+   {
+    "id": "room_census",
+    "reason": "This shows you which rooms the apartment has and how big each kind is, so you can spot closets and storage rooms right away."
+   },
+   {
+    "id": "record_vs_reality",
+    "reason": "This checks whether the listing's claims about rooms and features match what was actually measured."
+   }
+  ]
+ },
+ "I want to open a daycare and need to know how many children this space can legally hold.": {
+  "cannot": [
+   "Nothing here applies your local childcare licensing or building code rules to turn floor area and exits into a legal child count; your licensing agency or a code official sets that.",
+   "Nothing here checks outdoor play area, restroom fixture counts or other requirements that licensing may also use to cap enrollment."
+  ],
+  "persona": "none",
+  "stated": [],
+  "summary": "Someone planning to open a daycare who needs to know how many children this space can legally hold.",
+  "tools": [
+   {
+    "id": "room_census",
+    "reason": "You get each room and its floor area, which is the starting point for working out how many children each room can hold under your licensing rules."
+   },
+   {
+    "id": "door_widths",
+    "reason": "You can see every doorway's width, which licensing and fire inspectors check when judging safe exits for children and staff."
+   },
+   {
+    "id": "egress_routes",
+    "reason": "You can trace the exit path from every room and spot its narrowest point, which bears on how many occupants the space can safely hold."
+   }
+  ]
+ },
+ "I'm a CoStar researcher checking whether our record for this property is still right.": {
+  "cannot": [],
+  "persona": "costar_researcher",
+  "stated": [],
+  "summary": "A CoStar researcher checking whether the property record still matches what is there now.",
+  "tools": [
+   {
+    "id": "record_vs_reality",
+    "reason": "You can compare the CoStar record against what the scan measured, room by room and area by area."
+   },
+   {
+    "id": "room_census",
+    "reason": "You get the rooms this space has, how big each kind is, and which ones have no type yet."
+   },
+   {
+    "id": "property_coverage",
+    "reason": "You can see which floor plans and shared spaces of the property have a scan, so you know what your check covers."
+   },
+   {
+    "id": "room_labeller",
+    "reason": "You can fill in types for unlabelled rooms so the record you enrich is complete."
+   }
+  ]
+ },
+ "I'm a chef opening a restaurant and need to know if this space can take a commercial kitchen.": {
+  "cannot": [
+   "Nothing here checks whether the space has the ventilation, exhaust and fire suppression a commercial kitchen hood needs.",
+   "Nothing here checks the gas, electrical capacity, plumbing or grease trap a commercial kitchen requires.",
+   "Nothing here checks whether zoning, health code or permits allow a restaurant kitchen in this space."
+  ],
+  "persona": "none",
+  "stated": [],
+  "summary": "A chef opening a restaurant who needs to know whether this space can take a commercial kitchen.",
+  "tools": [
+   {
+    "id": "room_census",
+    "reason": "You can see which rooms this space has and how big each one is, to judge where a kitchen, prep and storage could go."
+   },
+   {
+    "id": "door_widths",
+    "reason": "You can check whether the doorways are wide enough to bring in large kitchen equipment like ranges, walk-in panels and hoods."
+   },
+   {
+    "id": "egress_routes",
+    "reason": "You can see the exit path from each room and its narrowest point, which matters for a busy kitchen and dining room."
+   },
+   {
+    "id": "loading_docks",
+    "reason": "You can find where deliveries and dock doors are, so you know how supplies would reach the kitchen."
+   }
+  ]
+ },
+ "I'm a fire captain pre-planning this office building.": {
+  "cannot": [
+   "Nothing here locates standpipes, sprinkler connections or fire alarm panels for you."
+  ],
+  "persona": "fire_captain",
+  "stated": [],
+  "summary": "A fire captain pre-planning an office building who needs entries, egress, hazards and the route in.",
+  "tools": [
+   {
+    "id": "fire_preplan",
+    "reason": "This builds your pre-incident plan with entries, egress, hazards, utilities and apparatus access in one place."
+   },
+   {
+    "id": "egress_routes",
+    "reason": "This traces the exit path from every room and shows you its narrowest point."
+   },
+   {
+    "id": "door_widths",
+    "reason": "This measures every doorway so you can see which ones are tight for crews, hose lines or evacuees."
+   },
+   {
+    "id": "room_census",
+    "reason": "This tells you which rooms the office has and which have no type, so you know what you are walking into."
+   }
+  ]
+ },
+ "I'm a manual wheelchair user and need a bathroom I can actually turn around in.": {
+  "cannot": [],
+  "persona": "wheelchair_user",
+  "stated": [],
+  "summary": "A manual wheelchair user who needs a bathroom with enough room to turn around in.",
+  "tools": [
+   {
+    "id": "bathroom_clearance",
+    "reason": "This checks whether the bathroom floor space and door swing leave you room to get in and manoeuvre in your wheelchair."
+   },
+   {
+    "id": "turning_space",
+    "reason": "This checks whether the bathroom and other rooms have a clear turning circle so you can turn around."
+   },
+   {
+    "id": "door_widths",
+    "reason": "This measures the bathroom door and every other doorway and flags any too narrow for your wheelchair."
+   },
+   {
+    "id": "step_free_route",
+    "reason": "This shows whether you can reach the bathroom from the entrance without steps or tight spots."
+   },
+   {
+    "id": "room_census",
+    "reason": "This tells you which rooms are bathrooms and how big each one is, so you know which to look at closely."
+   }
+  ]
+ },
+ "I'm a mover quoting a job; I need to know if a 90 cm wide piano passes the hallway.": {
+  "cannot": [
+   "Checking the hallway's own width and its turns, not just its doorways, until route testing is available."
+  ],
+  "persona": "furniture_mover",
+  "stated": [
+   {
+    "key": "access.door_width_m",
+    "quote": "90 cm wide"
+   }
+  ],
+  "summary": "A mover quoting a job who needs to know whether a 90 cm wide piano will pass through the hallway.",
+  "tools": [
+   {
+    "id": "door_widths",
+    "reason": "You can see every doorway on the way in and which ones are too narrow for your 90 cm wide piano."
+   },
+   {
+    "id": "furniture_fit",
+    "reason": "You can test whether the piano passes along the hallway route to its room and fits once inside."
+   },
+   {
+    "id": "room_census",
+    "reason": "You can see which rooms the place has and how big each is, so you know where the piano can go."
+   }
+  ]
+ },
+ "I'm a wedding photographer scouting a venue for a ceremony and portraits.": {
+  "cannot": [
+   "Nothing here judges how a space looks on camera, such as backdrops, decor or scenic views.",
+   "Nothing here tells you how light changes through the day at the time of the ceremony.",
+   "Nothing here covers outdoor grounds or gardens for portraits."
+  ],
+  "persona": "none",
+  "stated": [],
+  "summary": "A wedding photographer scouting a venue for where to hold the ceremony and shoot portraits.",
+  "tools": [
+   {
+    "id": "room_census",
+    "reason": "You can see which rooms the venue has and how big each one is, to pick spaces for the ceremony and portraits."
+   },
+   {
+    "id": "daylight",
+    "reason": "You can estimate how much natural light each room gets from its windows and orientation, which shapes where portraits will look best."
+   }
+  ]
+ },
+ "I'm about to sign a lease; does the listing match the actual apartment?": {
+  "cannot": [
+   "Nothing here checks the condition of the apartment, such as appliances, damage, pests or noise, so you would still need to look at that in person before you sign."
+  ],
+  "persona": "renter_listing",
+  "stated": [],
+  "summary": "You're about to sign a lease and want to know whether the listing matches the actual apartment.",
+  "tools": [
+   {
+    "id": "room_census",
+    "reason": "This lists the rooms the scan found and how big each kind is, so you can check them against what the listing promises."
+   },
+   {
+    "id": "record_vs_reality",
+    "reason": "This compares the listing directly with what the scan measured, room by room and feature by feature, which is exactly your question (it is still being built)."
+   },
+   {
+    "id": "daylight",
+    "reason": "Listings often call rooms bright or sunny, and this estimates how much daylight each room actually gets (it is still being built)."
+   },
+   {
+    "id": "storage_space",
+    "reason": "This totals the closet and storage area so you can see whether the listing's storage claims hold up (it is still being built)."
+   }
+  ]
+ },
+ "I'm quoting commercial property insurance for this warehouse.": {
+  "cannot": [
+   "Assessing fire protection such as sprinklers, alarms and construction class for commercial rating.",
+   "Evaluating stored contents, hazardous materials or business occupancy risk."
+  ],
+  "persona": "insurance_underwriter",
+  "stated": [],
+  "summary": "An underwriter quoting commercial property insurance for a warehouse who needs to price its risk.",
+  "tools": [
+   {
+    "id": "roof_facts",
+    "reason": "You get the roof's shape, material and condition from aerial imagery, a key driver of the property premium."
+   },
+   {
+    "id": "flood_rehearsal",
+    "reason": "You can see which parts of the warehouse a given water depth would reach to judge flood exposure."
+   },
+   {
+    "id": "record_vs_reality",
+    "reason": "You can check whether what was built matches the recorded areas and features you are insuring."
+   },
+   {
+    "id": "room_census",
+    "reason": "You get a ready breakdown of the spaces in the warehouse and their sizes to support your valuation."
+   }
+  ]
+ },
+ "If we get water in the house, what should I carry upstairs first?": {
+  "cannot": [
+   "None of these tools can judge which of your belongings matter most to you, such as documents, medicines or keepsakes, so that order is yours to set."
+  ],
+  "persona": "houston_homeowner_storm",
+  "stated": [],
+  "summary": "A homeowner worried about water getting into the house who wants to know what to carry upstairs first.",
+  "tools": [
+   {
+    "id": "valuables_height",
+    "reason": "This lists what sits below a water line and where the higher ground inside your home is, so you know what to move up first."
+   },
+   {
+    "id": "flood_rehearsal",
+    "reason": "This shows, room by room, which parts of your home a given water depth would reach, so you can prioritise the lowest rooms."
+   },
+   {
+    "id": "room_census",
+    "reason": "This gives you a ready list of the rooms in your home so you can walk through each one when deciding what to move."
+   }
+  ]
+ },
+ "Is my roof going to hold up in the storm?": {
+  "cannot": [
+   "Nothing here can predict whether your roof will survive this particular storm's winds or rate its structural strength; a roofer or inspector would need to look at it.",
+   "Nothing here tracks the storm itself or tells you when to leave, so follow your local emergency officials for that."
+  ],
+  "persona": "houston_homeowner_storm",
+  "stated": [],
+  "summary": "A homeowner with a storm coming who wants to know whether their roof will hold up.",
+  "tools": [
+   {
+    "id": "roof_facts",
+    "reason": "This reads your roof's shape, material and visible condition from aerial imagery, which is the closest thing here to judging how it may fare."
+   },
+   {
+    "id": "flood_rehearsal",
+    "reason": "If the storm brings water as well as wind, this shows which rooms a given water depth would reach."
+   },
+   {
+    "id": "valuables_height",
+    "reason": "This lists what sits below a water line and where higher ground inside is, so you know what to move if the roof leaks or water rises."
+   },
+   {
+    "id": "room_census",
+    "reason": "This gives you a ready list of your rooms to plan from as you prepare."
+   }
+  ]
+ },
+ "Label the rooms in these office scans; they all just say Other.": {
+  "cannot": [],
+  "persona": "none",
+  "stated": [],
+  "summary": "Someone with office scans whose rooms are all typed 'Other' and who needs them labelled.",
+  "tools": [
+   {
+    "id": "room_census",
+    "reason": "You can see every room in each scan and exactly which ones still have no type, so you know what needs labelling."
+   },
+   {
+    "id": "room_labeller",
+    "reason": "This tool is planned rather than ready, but once available it would label your unlabelled rooms from the panoramas and learn from any corrections you make."
+   }
+  ]
+ },
+ "My dad had a hip replacement and can't do stairs anymore.": {
+  "cannot": [
+   "Nothing here checks for grab bars, handrails, or slippery floors that matter for someone recovering from hip surgery."
+  ],
+  "persona": "older_adult_family",
+  "stated": [],
+  "summary": "Someone whose dad had a hip replacement and can no longer manage stairs, looking for a home he can move around safely.",
+  "tools": [
+   {
+    "id": "stairs_count",
+    "reason": "This shows you how many floors and stairs sit between the entrance and the bedrooms, so you can spot places your dad couldn't manage."
+   },
+   {
+    "id": "step_free_route",
+    "reason": "This traces a route from the entrance to each room and marks any steps along the way, so you know whether your dad can reach everything without climbing."
+   },
+   {
+    "id": "bathroom_clearance",
+    "reason": "This checks whether the bathroom has enough floor space and door swing in case your dad uses a walker or other aid while he recovers."
+   },
+   {
+    "id": "door_widths",
+    "reason": "This measures every doorway so you can see which ones might be tight if your dad uses a walker or wheelchair."
+   },
+   {
+    "id": "room_census",
+    "reason": "This lists the rooms in the home so you can see whether there's a bedroom and bathroom he could use."
+   }
+  ]
+ },
+ "My power chair is 70 cm wide; can I get into every room of this unit?": {
+  "cannot": [],
+  "persona": "wheelchair_user",
+  "stated": [
+   {
+    "key": "access.door_width_m",
+    "quote": "70 cm wide"
+   }
+  ],
+  "summary": "A power chair user who wants to know whether they can get into every room of this unit.",
+  "tools": [
+   {
+    "id": "door_widths",
+    "reason": "This measures every doorway and flags any too narrow for your power chair."
+   },
+   {
+    "id": "room_census",
+    "reason": "This lists every room in the unit so you can see which ones you need to reach."
+   },
+   {
+    "id": "step_free_route",
+    "reason": "Once ready, this will trace a route from the entrance to each room and mark steps and narrow points along the way."
+   },
+   {
+    "id": "turning_space",
+    "reason": "Once ready, this will check whether you have room to turn your chair inside each room."
+   },
+   {
+    "id": "bathroom_clearance",
+    "reason": "Once ready, this will check whether the bathroom floor space and door swing work for your chair."
+   }
+  ]
+ },
+ "Our church needs a hall that seats 150 for Sunday services.": {
+  "cannot": [
+   "Nothing here works out how many seats a hall holds in rows with aisles for your 150 people.",
+   "Nothing here checks whether the hall's permitted occupancy for public gatherings allows a congregation of 150."
+  ],
+  "persona": "none",
+  "stated": [],
+  "summary": "A church looking for a hall that can seat 150 people for Sunday services.",
+  "tools": [
+   {
+    "id": "room_census",
+    "reason": "You can see which rooms the space has and how big each one is, to spot a hall large enough for your congregation."
+   },
+   {
+    "id": "door_widths",
+    "reason": "You can check that the doorways are wide enough for people to come and go comfortably, including anyone using a wheelchair."
+   },
+   {
+    "id": "egress_routes",
+    "reason": "You can see the exit path from the main hall and its narrowest point, which matters when a full congregation leaves at once."
+   }
+  ]
+ },
+ "Our engine company wants to know the exits and the narrowest egress door here.": {
+  "cannot": [],
+  "persona": "fire_captain",
+  "stated": [],
+  "summary": "An engine company pre-planning this building that needs its exits and the narrowest egress door.",
+  "tools": [
+   {
+    "id": "door_widths",
+    "reason": "You can see every doorway measured here and spot the narrowest one on the way out."
+   },
+   {
+    "id": "egress_routes",
+    "reason": "You get the exit path traced from every room along with its narrowest point."
+   },
+   {
+    "id": "fire_preplan",
+    "reason": "You can gather entries, egress, hazards and apparatus access into one pre-incident plan."
+   },
+   {
+    "id": "room_census",
+    "reason": "You get a quick picture of which rooms the building holds so nothing is missed in the walk-through."
+   }
+  ]
+ },
+ "Our startup needs at least three meeting rooms and good daylight.": {
+  "cannot": [],
+  "persona": "office_tenant",
+  "stated": [],
+  "summary": "A startup choosing office space that needs at least three meeting rooms and good daylight.",
+  "tools": [
+   {
+    "id": "room_census",
+    "reason": "You can see which rooms the space has and how big each is, so you can count the rooms that could serve as meeting rooms."
+   },
+   {
+    "id": "office_fit",
+    "reason": "You get an estimate of how many meeting rooms and desks the plan holds for your team, to check it meets your three-room minimum."
+   },
+   {
+    "id": "daylight",
+    "reason": "You get a per-room daylight estimate from window area and orientation, so you can judge whether the space is bright enough."
+   }
+  ]
+ },
+ "The listing says two bedrooms and a big living room; is that true?": {
+  "cannot": [],
+  "persona": "renter_listing",
+  "stated": [],
+  "summary": "A prospective renter checking whether the listing's two bedrooms and big living room match the actual place.",
+  "tools": [
+   {
+    "id": "room_census",
+    "reason": "You can see which rooms the place really has and how big each kind is, including the bedrooms and living room."
+   },
+   {
+    "id": "record_vs_reality",
+    "reason": "You can compare the listing's claims directly against what the scan measured, room by room."
+   }
+  ]
+ },
+ "We have a toddler and a newborn; is this house safe to move around in?": {
+  "cannot": [
+   "Nothing here spots childproofing hazards such as open outlets, low windows, sharp edges or unsecured furniture.",
+   "Nothing here checks railings, balusters or the gaps a small child could slip through.",
+   "Nothing here assesses outdoor dangers such as pools, ponds or access to the street."
+  ],
+  "persona": "older_adult_family",
+  "stated": [],
+  "summary": "Parents of a toddler and a newborn who want to know whether this house is safe for their little ones to move around in.",
+  "tools": [
+   {
+    "id": "stairs_count",
+    "reason": "Stairs are a main fall risk for a toddler, so this shows how many floors and stairs lie between the entrance and the bedrooms."
+   },
+   {
+    "id": "step_free_route",
+    "reason": "This marks steps and narrow points on the way to each room, so you can see where your toddler might trip or need a gate."
+   },
+   {
+    "id": "door_widths",
+    "reason": "This checks every doorway so you know where a stroller or pram can pass and which doors are tight."
+   },
+   {
+    "id": "room_census",
+    "reason": "This lists the rooms and their sizes so you can picture where the children will sleep and play."
+   }
+  ]
+ },
+ "We're a robotics startup testing a robot vacuum in real homes and need the tight spots and door thresholds.": {
+  "cannot": [
+   "Nothing here measures the height of door thresholds or floor transitions your vacuum has to climb.",
+   "Nothing here finds the clearance under furniture or the gaps between furniture where a vacuum can wedge itself."
+  ],
+  "persona": "none",
+  "stated": [],
+  "summary": "A robotics startup testing a robot vacuum in real homes that needs to find the tight spots and door thresholds it must handle.",
+  "tools": [
+   {
+    "id": "door_widths",
+    "reason": "You get every doorway measured, so you can flag the ones too narrow for your vacuum to pass."
+   },
+   {
+    "id": "room_census",
+    "reason": "You see which rooms each home has and how big they are, so you can plan coverage and compare test homes."
+   },
+   {
+    "id": "step_free_route",
+    "reason": "You can trace routes from room to room with steps and narrow points marked, which shows where your vacuum may get stuck."
+   }
+  ]
+ },
+ "We're a team of 25 looking for office space in Los Angeles.": {
+  "cannot": [
+   "None of these tools searches for available office listings in Los Angeles or compares rent and lease terms."
+  ],
+  "persona": "office_tenant",
+  "stated": [],
+  "summary": "A team of 25 looking for office space in Los Angeles that fits everyone.",
+  "tools": [
+   {
+    "id": "office_fit",
+    "reason": "It estimates how many desks and meeting rooms a plan holds for your team of 25."
+   },
+   {
+    "id": "room_census",
+    "reason": "It shows you which rooms each office has and how big each kind is, so you can compare spaces."
+   },
+   {
+    "id": "door_widths",
+    "reason": "It measures every doorway so you can check access for your team and for moving furniture in."
+   },
+   {
+    "id": "daylight",
+    "reason": "It estimates how much daylight each room gets, which matters for a comfortable workspace."
+   }
+  ]
+ },
+ "We're choosing a home for my mother, who is 85 and uses a walker.": {
+  "cannot": [
+   "Nothing here checks for handrails, grab bars or slippery or uneven flooring that could cause a fall.",
+   "Nothing here judges lighting along hallways and stairs for safe walking at night."
+  ],
+  "persona": "older_adult_family",
+  "stated": [],
+  "summary": "Choosing a home for your mother, who uses a walker, and you need her to move around it safely.",
+  "tools": [
+   {
+    "id": "door_widths",
+    "reason": "You can see every doorway and spot any that would be a squeeze for your mother's walker."
+   },
+   {
+    "id": "step_free_route",
+    "reason": "You can check whether she can walk from the entrance to each room without meeting a step or a tight spot."
+   },
+   {
+    "id": "stairs_count",
+    "reason": "You will know how many stairs stand between the front door and the bedrooms."
+   },
+   {
+    "id": "bathroom_clearance",
+    "reason": "You can check whether the bathroom has enough floor space and door swing for her to use it with her walker."
+   },
+   {
+    "id": "room_census",
+    "reason": "You get a quick overview of which rooms the home has and how big each one is."
+   }
+  ]
+ },
+ "We're moving a king bed and a fridge into the bedroom on the second floor.": {
+  "cannot": [
+   "Nothing here checks whether the bed and fridge can tilt and turn on the staircase and its landings."
+  ],
+  "persona": "furniture_mover",
+  "stated": [],
+  "summary": "You're moving a king bed and a fridge up to a second-floor bedroom and need to know they'll fit through.",
+  "tools": [
+   {
+    "id": "door_widths",
+    "reason": "Measures every doorway on the way to the bedroom and flags any too narrow for the bed or the fridge."
+   },
+   {
+    "id": "furniture_fit",
+    "reason": "Tests whether the bed and fridge can travel the route up to the bedroom and fit inside once there."
+   },
+   {
+    "id": "room_census",
+    "reason": "Shows the bedroom and other rooms with their sizes so you can see where the bed and fridge will go."
+   },
+   {
+    "id": "stairs_count",
+    "reason": "Counts the stairs between the entrance and the second-floor bedroom so you can plan the carry."
+   }
+  ]
+ },
+ "What changed in this building since the record was last updated?": {
+  "cannot": [
+   "Nothing here can tell you when a change happened or why, only that the current scan differs from the record."
+  ],
+  "persona": "costar_researcher",
+  "stated": [],
+  "summary": "Someone checking a property record who wants to know what has changed in the building since that record was last updated.",
+  "tools": [
+   {
+    "id": "record_vs_reality",
+    "reason": "This compares the record with what the scan measured, so you can see which rooms, areas and features no longer match."
+   },
+   {
+    "id": "room_census",
+    "reason": "This lists the rooms the scan found and how big each kind is, so you have a current inventory to set against the record."
+   },
+   {
+    "id": "property_coverage",
+    "reason": "This shows which floor plans and shared spaces have a scan, so you know which parts of the building the comparison can actually speak to."
+   }
+  ]
+ },
+ "Where do our delivery trucks unload at this building?": {
+  "cannot": [],
+  "persona": "truck_dispatcher",
+  "stated": [],
+  "summary": "Someone sending delivery trucks to this building who needs to know where they unload.",
+  "tools": [
+   {
+    "id": "loading_docks",
+    "reason": "This finds the loading docks and dock doors so you know exactly where your trucks unload."
+   },
+   {
+    "id": "truck_access",
+    "reason": "This checks the approach and turning room so your trucks can actually reach the unloading spot."
+   },
+   {
+    "id": "door_widths",
+    "reason": "This measures the doorways your deliveries pass through after unloading and flags any too narrow for your load."
+   }
+  ]
+ },
+ "Will a pallet jack carrying a 1.2 m wide load fit through the back doors?": {
+  "cannot": [],
+  "persona": "truck_dispatcher",
+  "stated": [
+   {
+    "key": "access.door_width_m",
+    "quote": "1.2 m wide"
+   }
+  ],
+  "summary": "Someone moving a pallet jack with a 1.2 m wide load who needs to know whether it fits through the back doors.",
+  "tools": [
+   {
+    "id": "door_widths",
+    "reason": "You can see every doorway measured, including the back doors, with any too narrow for your load flagged."
+   },
+   {
+    "id": "furniture_fit",
+    "reason": "You can test whether a load your size passes along the route through the back doors to where it needs to go."
+   }
+  ]
+ },
+ "Will my sofa fit through the doors of this apartment?": {
+  "cannot": [],
+  "persona": "furniture_mover",
+  "stated": [],
+  "summary": "Someone moving a sofa into an apartment who wants to know if it will fit through the doors.",
+  "tools": [
+   {
+    "id": "door_widths",
+    "reason": "You can see every doorway's width and which ones are too narrow for your sofa."
+   },
+   {
+    "id": "furniture_fit",
+    "reason": "You can test whether your sofa passes along the route to its room and fits inside once there."
+   },
+   {
+    "id": "room_census",
+    "reason": "You can see which rooms the apartment has and how big each is, so you know where the sofa can go."
+   }
+  ]
+ },
+ "Will this suite seat 40 people with room to grow?": {
+  "cannot": [
+   "Nothing here checks occupancy limits or code requirements for how many people the suite is permitted to hold.",
+   "Nothing here projects lease terms or expansion options into neighbouring space when you outgrow the suite."
+  ],
+  "persona": "office_tenant",
+  "stated": [],
+  "summary": "An office tenant checking whether this suite can seat a team of 40 with room to grow.",
+  "tools": [
+   {
+    "id": "office_fit",
+    "reason": "This estimates how many desks and meeting rooms the plan holds for your team of 40 and beyond, which is the heart of your question."
+   },
+   {
+    "id": "room_census",
+    "reason": "You can see which rooms the suite has and how big each kind is, to judge open space against meeting and support rooms."
+   },
+   {
+    "id": "daylight",
+    "reason": "This estimates daylight per room so you can tell which areas will work well for desks as the team grows."
+   }
+  ]
+ }
+}

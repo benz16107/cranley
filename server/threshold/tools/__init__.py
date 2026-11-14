@@ -1,11 +1,15 @@
 """Tools: a manifest plus a handler each. How to add one: tools/README.md."""
 
+from .places import Site
 from .registry import ToolContext, ToolError, field, load, manifests, run_tool, tool
 from .types import (
     Action,
+    AddressScope,
     Assumption,
     Check,
     Finding,
+    GeoAnchor,
+    GeoScope,
     Legend,
     LensOverlay,
     Manifest,
@@ -13,7 +17,9 @@ from .types import (
     OpeningAnchor,
     Pin,
     PinsOverlay,
+    Place,
     PointAnchor,
+    PropertyScope,
     Requirement,
     RoomAnchor,
     RuleOverlay,
@@ -26,9 +32,12 @@ from .types import (
 
 __all__ = [
     "Action",
+    "AddressScope",
     "Assumption",
     "Check",
     "Finding",
+    "GeoAnchor",
+    "GeoScope",
     "Legend",
     "LensOverlay",
     "Manifest",
@@ -36,12 +45,15 @@ __all__ = [
     "OpeningAnchor",
     "Pin",
     "PinsOverlay",
+    "Place",
     "PointAnchor",
+    "PropertyScope",
     "Requirement",
     "RoomAnchor",
     "RuleOverlay",
     "ScanScope",
     "SelectOpenings",
+    "Site",
     "Source",
     "ToolContext",
     "ToolError",

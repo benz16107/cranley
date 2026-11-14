@@ -8,13 +8,14 @@ from typing import Any
 
 from fastapi import APIRouter, Body, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ..agent import prefs
+from ..agent.budget import Budget
 from ..agent.catalog import catalog
 from ..agent.investigator import Investigation, attach, turn
 from ..agent.workspace import Rejected, Session
-from ..tools import ToolError, run_tool
+from ..tools import Place, ToolError, run_tool
 
 router = APIRouter(prefix="/api")
 _sessions: dict[str, Session] = {}
@@ -58,11 +59,19 @@ def tool_run(tool_id: str, inputs: dict[str, Any] = Body(default={}), workspace:
         raise HTTPException(400, str(e)) from None
 
 
+class BudgetIn(BaseModel):
+    model_calls: int = Field(40, ge=1, le=120)
+    tool_runs: int = Field(40, ge=1, le=200)
+    parallel: int = Field(4, ge=1, le=8)
+
+
 class TurnIn(BaseModel):
     workspace: str | None = None
     text: str | None = None
     sids: list[str] | None = None
+    places: list[Place] | None = Field(None, description="Properties, addresses or points to look at without a scan")
     profile: str = "default"
+    budget: BudgetIn | None = None
 
 
 def _sse(event: str, data: Any) -> str:
@@ -71,7 +80,8 @@ def _sse(event: str, data: Any) -> str:
 
 @router.post("/agent/turn")
 def agent_turn(body: TurnIn) -> StreamingResponse:
-    """Events: `workspace` {id} first, then one `op` per log entry as it applies, then `done` or `error`."""
+    """Events: `workspace` {id} first, then one `op` per log entry as it applies (tool steps arrive as `run.progress`
+    while a tool runs), then `done` (with the turn's `budget`: limits, what it used, what stopped it) or `error`."""
     if body.workspace:
         s = session(body.workspace)
     else:
@@ -83,7 +93,9 @@ def agent_turn(body: TurnIn) -> StreamingResponse:
 
     def work():
         try:
-            q.put(("done", turn(s, body.text, body.sids)))
+            b = Budget(**body.budget.model_dump()) if body.budget else None
+            q.put(("done", turn(s, body.text, body.sids, places=[p.model_dump(exclude_none=True) for p in body.places]
+                                if body.places else None, budget=b)))
         except Exception as e:  # the stream must end with a reason, whatever failed
             q.put(("error", {"message": f"{type(e).__name__}: {e}"}))
 

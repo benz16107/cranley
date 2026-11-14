@@ -1,10 +1,11 @@
-"""Contract 5: the workspace document, its sixteen operations, a pure reducer, the validator that cleans agent
+"""Contract 5: the workspace document, its operations, a pure reducer, the validator that cleans agent
 ops, an append-only log with undo, and JSON persistence under $THRESHOLD_DATA_DIR/workspaces/.
 
 The agent and the user change a workspace only through `Session.submit(op)`. The web app renders `doc`.
 """
 from __future__ import annotations
 
+import fcntl
 import json
 import re
 import threading
@@ -25,6 +26,7 @@ from ..tools.types import (
     Overlay,
     PanoAnchor,
     PinsOverlay,
+    Place,
     PointAnchor,
     RoomAnchor,
     Status,
@@ -146,6 +148,7 @@ MapBlock = Literal["PinSet", "ParcelFill", "Extrusion", "ReachRing", "RouteLine"
 class Scope(Strict):
     sids: list[str] = []
     address: str | None = None
+    places: list[Place] = Field(default=[], description="Places without a scan: CoStar properties, addresses, points")
 
 
 class Brief(Strict):
@@ -154,6 +157,7 @@ class Brief(Strict):
     persona: str | None = None
     scope: Scope = Scope()
     facts: dict[str, Any] = Field(default={}, description="Answers keyed by preference key (x-pref)")
+    limits: list[str] = Field(default=[], description="What the workspace cannot do for this person, said to them")
 
 
 class Question(Strict):
@@ -178,6 +182,7 @@ class Run(Strict):
     id: str
     tool: str
     sid: str | None = None
+    place: Place | None = Field(None, description="Where the run looked when it is not one scan (property, address, point)")
     inputs: dict[str, Any] = {}
     inputs_from: dict[str, str] = Field(default={}, description="input -> preference key it came from")
     plan_step: str | None = None
@@ -216,7 +221,7 @@ class Layer(Strict):
 
 class WsOverlay(Strict):
     id: str
-    sid: str
+    sid: str | None = Field(None, description="Scan whose frame the overlay is in; null for map-only pins with geo anchors")
     overlay: Overlay
     tool: str | None = None
     run: str | None = None
@@ -248,6 +253,8 @@ class Pref(Strict):
     value: Any
     reason: str = Field("", description="The event it came from, said to the person")
     cause: int | None = Field(None, description="Log seq of the op it was learned from")
+    because: str | None = Field(None, description="Key of the preference it was derived from (a label correction "
+                                                  "that spread); forgetting that one forgets this")
     by: By = "user"
     at: float | None = None
 
@@ -279,7 +286,7 @@ class Workspace(Strict):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
 
-# ---- The sixteen operations ----
+# ---- The operations ----
 
 class OpBase(Strict):
     by: By = "agent"
@@ -293,6 +300,7 @@ class BriefSet(OpBase):
     persona: str | None = None
     scope: Scope | None = None
     facts: dict[str, Any] | None = None
+    limits: list[str] | None = None
 
 
 class QuestionAsk(OpBase):
@@ -322,6 +330,12 @@ class ToolDisable(OpBase):
 class RunStart(OpBase):
     op: Literal["run.start"] = "run.start"
     record: Run
+
+
+class RunProgress(OpBase):
+    op: Literal["run.progress"] = "run.progress"
+    id: str = Field(description="Run id")
+    step: str = Field(description="One step the tool reported while running; appended to the run's steps")
 
 
 class RunFinish(OpBase):
@@ -371,6 +385,7 @@ class PrefSet(OpBase):
     value: Any = Field(description="null removes the preference")
     reason: str = ""
     cause: int | None = None
+    because: str | None = None
 
 
 class ShortlistAdd(OpBase):
@@ -384,7 +399,7 @@ class ShortlistRemove(OpBase):
     sid: str
 
 
-OP_TYPES = (BriefSet, QuestionAsk, QuestionAnswer, ToolEnable, ToolDisable, RunStart, RunFinish, FindingAdd, LayerUpsert,
+OP_TYPES = (BriefSet, QuestionAsk, QuestionAnswer, ToolEnable, ToolDisable, RunStart, RunProgress, RunFinish, FindingAdd, LayerUpsert,
             OverlayUpsert, PanelUpsert, CameraFocus, PlanSet, PrefSet, ShortlistAdd, ShortlistRemove)
 Op = Annotated[Union[OP_TYPES], Field(discriminator="op")]  # a tuple needs Union[]
 OP = TypeAdapter(Op)
@@ -416,7 +431,7 @@ def apply(doc: Workspace, op: BaseModel, at: float | None = None) -> Workspace:
     d.updated = at
     match op:
         case BriefSet():
-            for k in ("text", "summary", "persona", "scope"):
+            for k in ("text", "summary", "persona", "scope", "limits"):
                 if getattr(op, k) is not None:
                     setattr(d.brief, k, getattr(op, k))
             if op.facts:
@@ -438,6 +453,10 @@ def apply(doc: Workspace, op: BaseModel, at: float | None = None) -> Workspace:
                     t.reason = op.reason or t.reason
         case RunStart():
             _upsert(d.runs, op.record.model_copy(update={"started": op.record.started or at}))
+        case RunProgress():
+            for r in d.runs:
+                if r.id == op.id and r.status == "running":
+                    r.steps = [*r.steps, op.step]
         case RunFinish():
             for r in d.runs:
                 if r.id == op.id:
@@ -459,9 +478,11 @@ def apply(doc: Workspace, op: BaseModel, at: float | None = None) -> Workspace:
             if op.value is None:
                 d.prefs.pop(op.key, None)
             else:
-                d.prefs[op.key] = Pref(key=op.key, value=op.value, reason=op.reason, cause=op.cause, by=op.by, at=at)
+                d.prefs[op.key] = Pref(key=op.key, value=op.value, reason=op.reason, cause=op.cause,
+                                       because=op.because, by=op.by, at=at)
+            label_sid = op.key.split(".")[1] if op.key.startswith(("label.", "doubt.")) and op.key.count(".") >= 2 else None
             for r in d.runs:
-                if r.status == "done" and op.key in r.inputs_from.values():
+                if r.status == "done" and (op.key in r.inputs_from.values() or (label_sid and r.sid == label_sid)):
                     r.stale = True
         case ShortlistAdd():
             _upsert(d.shortlist, ShortlistItem(sid=op.sid, note=op.note, by=op.by), key="sid")
@@ -482,7 +503,8 @@ class Rejected(ValueError):
 
 
 def known_sids(doc: Workspace) -> set[str]:
-    return set(doc.brief.scope.sids) | {r.sid for r in doc.runs if r.sid}
+    return (set(doc.brief.scope.sids) | {r.sid for r in doc.runs if r.sid} | {p.scan for p in doc.brief.scope.places if p.scan}
+            | {s for r in doc.runs if r.result and hasattr(r.result.scope, "sids") for s in r.result.scope.sids})
 
 
 def anchor_ok(a: Any, doc: Workspace, plans: Callable[[str], dict]) -> bool:
@@ -506,6 +528,45 @@ def anchor_ok(a: Any, doc: Workspace, plans: Callable[[str], dict]) -> bool:
         case PointAnchor():
             return True
     return False
+
+
+def bind(doc: Workspace, blk, tools: set[str]) -> tuple[Any, str | None]:
+    """Keep only the parts of a block that name something in the workspace. Returns (block or None, note)."""
+    runs = {r.id: r for r in doc.runs}
+    result = runs[blk.run].result if getattr(blk, "run", None) else None
+    metric_ids = {m.id for m in result.metrics} if result else set()
+    match blk:
+        case MetricRow() | MiniChart():
+            keep = [m for m in blk.metrics if m in metric_ids]
+            if not keep:
+                return None, f"dropped {blk.type}: none of its metrics are in run {blk.run}"
+            return blk.model_copy(update={"metrics": keep}), None if keep == blk.metrics else f"{blk.type}: dropped unknown metrics"
+        case CheckList() if blk.checks is not None:
+            keep = [c for c in blk.checks if result and c in {x.id for x in result.checks}]
+            return (blk.model_copy(update={"checks": keep}), None) if keep else (None, "dropped CheckList: no such checks")
+        case EvidenceStrip():
+            have = {f.id for f in doc.findings if not f.superseded_by}
+            keep = [f for f in blk.findings if f in have]
+            if not keep:
+                return None, "dropped EvidenceStrip: no such findings"
+            return blk.model_copy(update={"findings": keep}), None if keep == blk.findings else "EvidenceStrip: dropped unknown findings"
+        case RankedTable():
+            rows = [r for r in blk.rows if r in runs and runs[r].result]
+            if not rows:
+                return None, "dropped RankedTable: no finished runs"
+            have = {m.id for m in runs[rows[0]].result.metrics}
+            cols = [c for c in blk.columns if c.metric in have]
+            if not cols:
+                return None, "dropped RankedTable: its metrics are not in those runs"
+            return blk.model_copy(update={"rows": rows, "columns": cols}), None
+        case FloorPlanMini():
+            if blk.sid not in known_sids(doc):
+                return None, f"dropped FloorPlanMini: unknown scan {blk.sid}"
+            keep = [o for o in blk.overlays if o in {x.id for x in doc.overlays}]
+            return blk.model_copy(update={"overlays": keep}), None if keep == blk.overlays else "FloorPlanMini: dropped unknown overlays"
+        case Controls() if blk.tool not in tools:
+            return None, f"dropped Controls: unknown tool {blk.tool}"
+    return blk, None
 
 
 def _unique(existing: set[str], wanted: str) -> str:
@@ -536,7 +597,11 @@ def clean(doc: Workspace, raw: dict | BaseModel, plans: Callable[[str], dict], t
             if isinstance(blk, Note) and MEASURE.search(blk.text):
                 notes.append("dropped Note: a measurement in model text")
                 continue
-            kept.append(blk.model_dump())
+            blk, why = bind(doc, blk, tools)
+            if why:
+                notes.append(why)
+            if blk is not None:
+                kept.append(blk.model_dump())
         if not kept:
             raise Rejected("panel has no valid blocks")
         raw["panel"]["blocks"] = kept
@@ -564,7 +629,9 @@ def clean(doc: Workspace, raw: dict | BaseModel, plans: Callable[[str], dict], t
             raise Rejected("camera anchor names something that does not exist")
         case OverlayUpsert():
             o = op.overlay
-            if o.sid not in known_sids(doc):
+            if o.sid is None and not isinstance(o.overlay, PinsOverlay):
+                raise Rejected(f"a {o.overlay.kind} overlay needs a scan")
+            if o.sid is not None and o.sid not in known_sids(doc):
                 raise Rejected(f"overlay on unknown scan {o.sid}")
             if isinstance(o.overlay, PinsOverlay):
                 o.overlay.pins = [p for p in o.overlay.pins if anchor_ok(p.anchor, doc, plans)]
@@ -588,13 +655,19 @@ def clean(doc: Workspace, raw: dict | BaseModel, plans: Callable[[str], dict], t
 
 # ---- Log, undo, persistence ----
 
-def replay(base: Workspace, log: list[LogEntry]) -> Workspace:
-    undone = {e.undo for e in log if e.undo is not None}
+def undone_seqs(log: list[LogEntry], upto: int | None = None) -> set[int]:
+    """Seqs undone by the log (up to entry `upto`), with everything learned from them."""
+    undone = {e.undo for e in log if e.undo is not None and (upto is None or e.seq <= upto)}
     changed = True
     while changed:  # an undone op takes the preferences learned from it along
         before = len(undone)
         undone |= {e.seq for e in log if e.cause in undone}
         changed = len(undone) != before
+    return undone
+
+
+def replay(base: Workspace, log: list[LogEntry]) -> Workspace:
+    undone = undone_seqs(log)
     doc = base
     for e in log:
         if e.op is not None and e.seq not in undone:
@@ -619,6 +692,8 @@ class Session:
         self.listeners: list[Callable[[LogEntry], None]] = []
         self.plans: Callable[[str], dict] | None = None  # set by the agent; used to check anchors
         self.tools: set[str] | None = None
+        self.sites: Callable | None = None  # place resolver for tools; None means the default (scan index, CoStar)
+        self.siblings: Callable[[str], list[str]] | None = None  # sid -> scans of the same property
 
     # persistence
     @property
@@ -631,11 +706,38 @@ class Session:
         tmp.write_text(json.dumps({"id": self.base.id, "profile": self.base.profile, "created": self.base.created,
                                    "log": [e.model_dump(mode="json", by_alias=True) for e in self.log]}))
         tmp.replace(self.path)
-        # shortcut: the profile is this workspace's prefs, last write wins; two live workspaces on one profile
-        # overwrite each other. Merge by key with timestamps when there are real users.
+        self.save_profile()
+
+    def touched(self) -> dict[str, float]:
+        """Preference key -> when this workspace last changed it (a pref.set, or an undo that removed one)."""
+        out: dict[str, float] = {}
+        by_seq = {e.seq: e for e in self.log}
+        for e in self.log:
+            if isinstance(e.op, PrefSet):
+                out[e.op.key] = max(out.get(e.op.key, 0), e.at)
+            if e.undo is not None:
+                for seq in undone_seqs(self.log, e.seq) - undone_seqs(self.log, e.seq - 1):
+                    if isinstance(getattr(by_seq.get(seq), "op", None), PrefSet):
+                        out[by_seq[seq].op.key] = max(out.get(by_seq[seq].op.key, 0), e.at)
+        return out
+
+    def save_profile(self) -> None:
+        """Merge this workspace's preferences into its profile key by key: a key this workspace changed is written
+        unless another workspace on the profile changed it later. A removed key stays as a dated deletion, so an
+        older copy elsewhere cannot bring it back."""
         prof = self.root / "profiles" / f"{self.base.profile}.json"
         prof.parent.mkdir(exist_ok=True)
-        prof.write_text(json.dumps({k: v.model_dump(mode="json") for k, v in self.doc.prefs.items()}))
+        with open(prof.with_suffix(".lock"), "w") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)  # other processes and threads on the same profile wait here
+            data = json.loads(prof.read_text()) if prof.exists() else {}
+            for key, at in self.touched().items():
+                if (data.get(key) or {}).get("at", 0) > at:
+                    continue
+                p = self.doc.prefs.get(key)
+                data[key] = {**p.model_dump(mode="json"), "at": at} if p else {"key": key, "value": None, "at": at}
+            tmp = prof.with_suffix(".tmp")
+            tmp.write_text(json.dumps(data))
+            tmp.replace(prof)
 
     @classmethod
     def load(cls, id: str, root=None) -> Session:
@@ -651,8 +753,9 @@ class Session:
         s = cls(new_id("ws"), profile, root=root)
         prof = s.root / "profiles" / f"{profile}.json"
         for p in (json.loads(prof.read_text()).values() if prof.exists() else []):
-            s.submit(PrefSet(by="system", key=p["key"], value=p["value"],
-                             reason=p.get("reason") or "From an earlier session"))
+            if p.get("value") is not None:  # a dated deletion
+                s.submit(PrefSet(by="system", key=p["key"], value=p["value"], because=p.get("because"),
+                                 reason=p.get("reason") or "From an earlier session"))
         s.save()
         return s
 
@@ -684,7 +787,7 @@ class Session:
             before = self.doc
             entries = [self._append(parsed, cause=cause)]
             if parsed.by == "user":
-                for learned in prefs.derive(before, parsed):
+                for learned in prefs.derive(before, parsed, self.plans, self.siblings):
                     entries.append(self._append(learned, cause=entries[0].seq))
             self.save()
             return entries

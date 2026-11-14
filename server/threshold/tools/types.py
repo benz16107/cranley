@@ -4,9 +4,10 @@ Every model forbids unknown fields, so a typo in a tool fails at the tool, not i
 """
 from __future__ import annotations
 
+import re
 from typing import Annotated, Any, Literal, Union
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class Strict(BaseModel):
@@ -204,13 +205,50 @@ class ScanScope(Strict):
 
 class AddressScope(Strict):
     address: str
+    geo: Point2 | None = Field(None, description="[lon, lat] the address resolved to")
 
 
 class ScansScope(Strict):
     sids: list[str]
 
 
-Scope = Union[ScanScope, AddressScope, ScansScope]
+class PropertyScope(Strict):
+    property_id: int = Field(description="CoStar PropertyId")
+    sids: list[str] = Field([], description="The property's scans the result covers")
+
+
+class GeoScope(Strict):
+    geo: Point2 = Field(description="[lon, lat]")
+
+
+Scope = Union[ScanScope, AddressScope, ScansScope, PropertyScope, GeoScope]
+
+
+class Place(Strict):
+    """Where a tool runs when it does not need a scan: a scan id, a CoStar property id (all its scans), an address,
+    or a point. Give one; `ctx.site(place)` resolves it to coordinates, address, property and scans."""
+    scan: str | None = None
+    property_id: int | None = None
+    address: str | None = None
+    geo: Point2 | None = Field(None, description="[lon, lat]")
+
+    @model_validator(mode="after")
+    def _one(self):
+        if not any(v is not None for v in (self.scan, self.property_id, self.address, self.geo)):
+            raise ValueError("a place needs a scan, property_id, address or geo")
+        if self.geo and not (-180 <= self.geo[0] <= 180 and -90 <= self.geo[1] <= 90):
+            raise ValueError("geo is [lon, lat]")
+        return self
+
+    def key(self) -> str:
+        """Stable id for finding ids and panels: scan id, p<property>, a<address words>, or g<lon>,<lat>."""
+        if self.scan:
+            return self.scan
+        if self.property_id is not None:
+            return f"p{self.property_id}"
+        if self.address:
+            return "a" + "-".join(re.findall(r"[a-z0-9]+", self.address.lower()))
+        return f"g{self.geo[0]:.5f},{self.geo[1]:.5f}"
 
 
 class ToolResult(Strict):

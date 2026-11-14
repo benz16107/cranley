@@ -13,6 +13,7 @@ export interface WorkspaceContract {
     | ToolEnable
     | ToolDisable
     | RunStart
+    | RunProgress
     | RunFinish
     | FindingAdd
     | LayerUpsert
@@ -82,10 +83,34 @@ export interface Brief {
   facts?: {
     [k: string]: unknown;
   };
+  /**
+   * What the workspace cannot do for this person, said to them
+   */
+  limits?: string[];
 }
 export interface Scope {
   sids?: string[];
   address?: string | null;
+  /**
+   * Places without a scan: CoStar properties, addresses, points
+   */
+  places?: Place[];
+}
+/**
+ * Where a tool runs when it does not need a scan: a scan id, a CoStar property id (all its scans), an address,
+ * or a point. Give one; `ctx.site(place)` resolves it to coordinates, address, property and scans.
+ *
+ * This interface was referenced by `WorkspaceContract`'s JSON-Schema
+ * via the `definition` "Place".
+ */
+export interface Place {
+  scan?: string | null;
+  property_id?: number | null;
+  address?: string | null;
+  /**
+   * [lon, lat]
+   */
+  geo?: [unknown, unknown] | null;
 }
 /**
  * This interface was referenced by `WorkspaceContract`'s JSON-Schema
@@ -129,6 +154,10 @@ export interface Run {
   id: string;
   tool: string;
   sid?: string | null;
+  /**
+   * Where the run looked when it is not one scan (property, address, point)
+   */
+  place?: Place | null;
   inputs?: {
     [k: string]: unknown;
   };
@@ -157,7 +186,7 @@ export interface Run {
  */
 export interface ToolResult {
   tool?: string;
-  scope: ScanScope | AddressScope | ScansScope;
+  scope: ScanScope | AddressScope | ScansScope | PropertyScope | GeoScope;
   verdict: Verdict;
   metrics?: Metric[];
   checks?: Check[];
@@ -179,6 +208,10 @@ export interface ScanScope {
  */
 export interface AddressScope {
   address: string;
+  /**
+   * [lon, lat] the address resolved to
+   */
+  geo?: [unknown, unknown] | null;
 }
 /**
  * This interface was referenced by `WorkspaceContract`'s JSON-Schema
@@ -186,6 +219,33 @@ export interface AddressScope {
  */
 export interface ScansScope {
   sids: string[];
+}
+/**
+ * This interface was referenced by `WorkspaceContract`'s JSON-Schema
+ * via the `definition` "PropertyScope".
+ */
+export interface PropertyScope {
+  /**
+   * CoStar PropertyId
+   */
+  property_id: number;
+  /**
+   * The property's scans the result covers
+   */
+  sids?: string[];
+}
+/**
+ * This interface was referenced by `WorkspaceContract`'s JSON-Schema
+ * via the `definition` "GeoScope".
+ */
+export interface GeoScope {
+  /**
+   * [lon, lat]
+   *
+   * @minItems 2
+   * @maxItems 2
+   */
+  geo: [unknown, unknown];
 }
 /**
  * This interface was referenced by `WorkspaceContract`'s JSON-Schema
@@ -520,7 +580,10 @@ export interface Layer {
  */
 export interface WsOverlay {
   id: string;
-  sid: string;
+  /**
+   * Scan whose frame the overlay is in; null for map-only pins with geo anchors
+   */
+  sid?: string | null;
   overlay: LensOverlay | RuleOverlay | PinsOverlay | RouteOverlay | WaterOverlay | BoxOverlay;
   tool?: string | null;
   run?: string | null;
@@ -767,6 +830,10 @@ export interface Pref {
    * Log seq of the op it was learned from
    */
   cause?: number | null;
+  /**
+   * Key of the preference it was derived from (a label correction that spread); forgetting that one forgets this
+   */
+  because?: string | null;
   by?: "agent" | "user" | "system";
   at?: number | null;
 }
@@ -797,6 +864,7 @@ export interface BriefSet {
   facts?: {
     [k: string]: unknown;
   } | null;
+  limits?: string[] | null;
 }
 /**
  * This interface was referenced by `WorkspaceContract`'s JSON-Schema
@@ -805,6 +873,10 @@ export interface BriefSet {
 export interface Scope1 {
   sids?: string[];
   address?: string | null;
+  /**
+   * Places without a scan: CoStar properties, addresses, points
+   */
+  places?: Place[];
 }
 /**
  * This interface was referenced by `WorkspaceContract`'s JSON-Schema
@@ -874,6 +946,26 @@ export interface RunStart {
   run?: string | null;
   op: "run.start";
   record: Run;
+}
+/**
+ * This interface was referenced by `WorkspaceContract`'s JSON-Schema
+ * via the `definition` "RunProgress".
+ */
+export interface RunProgress {
+  by?: "agent" | "user" | "system";
+  /**
+   * Agent turn or tool run this op belongs to
+   */
+  run?: string | null;
+  op: "run.progress";
+  /**
+   * Run id
+   */
+  id: string;
+  /**
+   * One step the tool reported while running; appended to the run's steps
+   */
+  step: string;
 }
 /**
  * This interface was referenced by `WorkspaceContract`'s JSON-Schema
@@ -992,6 +1084,7 @@ export interface PrefSet {
   };
   reason?: string;
   cause?: number | null;
+  because?: string | null;
 }
 /**
  * This interface was referenced by `WorkspaceContract`'s JSON-Schema
@@ -1035,6 +1128,7 @@ export interface LogEntry {
         | ToolEnable
         | ToolDisable
         | RunStart
+        | RunProgress
         | RunFinish
         | FindingAdd
         | LayerUpsert
@@ -1144,4 +1238,8 @@ export interface Brief1 {
   facts?: {
     [k: string]: unknown;
   };
+  /**
+   * What the workspace cannot do for this person, said to them
+   */
+  limits?: string[];
 }

@@ -51,6 +51,28 @@
       "properties": {
         "address": {
           "type": "string"
+        },
+        "geo": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "[lon, lat] the address resolved to"
         }
       },
       "required": [
@@ -243,7 +265,8 @@
           "$ref": "#/$defs/Scope",
           "default": {
             "sids": [],
-            "address": null
+            "address": null,
+            "places": []
           }
         },
         "facts": {
@@ -251,6 +274,14 @@
           "default": {},
           "description": "Answers keyed by preference key (x-pref)",
           "type": "object"
+        },
+        "limits": {
+          "default": [],
+          "description": "What the workspace cannot do for this person, said to them",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         }
       },
       "title": "Brief",
@@ -334,6 +365,20 @@
             {
               "additionalProperties": true,
               "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "limits": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
             },
             {
               "type": "null"
@@ -968,6 +1013,30 @@
       "title": "GeoAnchor",
       "type": "object"
     },
+    "GeoScope": {
+      "additionalProperties": false,
+      "properties": {
+        "geo": {
+          "description": "[lon, lat]",
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "type": "array"
+        }
+      },
+      "required": [
+        "geo"
+      ],
+      "title": "GeoScope",
+      "type": "object"
+    },
     "Layer": {
       "additionalProperties": false,
       "properties": {
@@ -1155,6 +1224,7 @@
                   "question.answer": "#/$defs/QuestionAnswer",
                   "question.ask": "#/$defs/QuestionAsk",
                   "run.finish": "#/$defs/RunFinish",
+                  "run.progress": "#/$defs/RunProgress",
                   "run.start": "#/$defs/RunStart",
                   "shortlist.add": "#/$defs/ShortlistAdd",
                   "shortlist.remove": "#/$defs/ShortlistRemove",
@@ -1181,6 +1251,9 @@
                 },
                 {
                   "$ref": "#/$defs/RunStart"
+                },
+                {
+                  "$ref": "#/$defs/RunProgress"
                 },
                 {
                   "$ref": "#/$defs/RunFinish"
@@ -1825,6 +1898,69 @@
       "title": "PinsOverlay",
       "type": "object"
     },
+    "Place": {
+      "additionalProperties": false,
+      "description": "Where a tool runs when it does not need a scan: a scan id, a CoStar property id (all its scans), an address,\nor a point. Give one; `ctx.site(place)` resolves it to coordinates, address, property and scans.",
+      "properties": {
+        "scan": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "property_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "geo": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "[lon, lat]"
+        }
+      },
+      "title": "Place",
+      "type": "object"
+    },
     "PlanSet": {
       "additionalProperties": false,
       "properties": {
@@ -1948,6 +2084,18 @@
           "default": null,
           "description": "Log seq of the op it was learned from"
         },
+        "because": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Key of the preference it was derived from (a label correction that spread); forgetting that one forgets this"
+        },
         "by": {
           "default": "user",
           "enum": [
@@ -2025,6 +2173,17 @@
             }
           ],
           "default": null
+        },
+        "because": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -2033,6 +2192,28 @@
         "op"
       ],
       "title": "PrefSet",
+      "type": "object"
+    },
+    "PropertyScope": {
+      "additionalProperties": false,
+      "properties": {
+        "property_id": {
+          "description": "CoStar PropertyId",
+          "type": "integer"
+        },
+        "sids": {
+          "default": [],
+          "description": "The property's scans the result covers",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "property_id"
+      ],
+      "title": "PropertyScope",
       "type": "object"
     },
     "Question": {
@@ -2385,6 +2566,18 @@
           ],
           "default": null
         },
+        "place": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Place"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Where the run looked when it is not one scan (property, address, point)"
+        },
         "inputs": {
           "additionalProperties": true,
           "default": {},
@@ -2569,6 +2762,52 @@
       "title": "RunFinish",
       "type": "object"
     },
+    "RunProgress": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "default": "agent",
+          "enum": [
+            "agent",
+            "user",
+            "system"
+          ],
+          "type": "string"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Agent turn or tool run this op belongs to"
+        },
+        "op": {
+          "const": "run.progress",
+          "default": "run.progress",
+          "type": "string"
+        },
+        "id": {
+          "description": "Run id",
+          "type": "string"
+        },
+        "step": {
+          "description": "One step the tool reported while running; appended to the run's steps",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "step",
+        "op"
+      ],
+      "title": "RunProgress",
+      "type": "object"
+    },
     "RunStart": {
       "additionalProperties": false,
       "properties": {
@@ -2658,6 +2897,14 @@
             }
           ],
           "default": null
+        },
+        "places": {
+          "default": [],
+          "description": "Places without a scan: CoStar properties, addresses, points",
+          "items": {
+            "$ref": "#/$defs/Place"
+          },
+          "type": "array"
         }
       },
       "title": "Scope",
@@ -3058,6 +3305,12 @@
             },
             {
               "$ref": "#/$defs/ScansScope"
+            },
+            {
+              "$ref": "#/$defs/PropertyScope"
+            },
+            {
+              "$ref": "#/$defs/GeoScope"
             }
           ]
         },
@@ -3259,9 +3512,11 @@
             "persona": null,
             "scope": {
               "address": null,
+              "places": [],
               "sids": []
             },
-            "facts": {}
+            "facts": {},
+            "limits": []
           }
         },
         "questions": {
@@ -3473,7 +3728,16 @@
           "type": "string"
         },
         "sid": {
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Scan whose frame the overlay is in; null for map-only pins with geo anchors"
         },
         "overlay": {
           "discriminator": {
@@ -3537,7 +3801,6 @@
       },
       "required": [
         "id",
-        "sid",
         "overlay"
       ],
       "title": "WsOverlay",
@@ -3563,6 +3826,7 @@
           "question.answer": "#/$defs/QuestionAnswer",
           "question.ask": "#/$defs/QuestionAsk",
           "run.finish": "#/$defs/RunFinish",
+          "run.progress": "#/$defs/RunProgress",
           "run.start": "#/$defs/RunStart",
           "shortlist.add": "#/$defs/ShortlistAdd",
           "shortlist.remove": "#/$defs/ShortlistRemove",
@@ -3589,6 +3853,9 @@
         },
         {
           "$ref": "#/$defs/RunStart"
+        },
+        {
+          "$ref": "#/$defs/RunProgress"
         },
         {
           "$ref": "#/$defs/RunFinish"

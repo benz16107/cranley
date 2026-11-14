@@ -17,7 +17,8 @@ from typing import Any
 from pydantic import BaseModel, Field, ValidationError
 
 from ..config import DATA
-from .types import Manifest, ScanScope, ToolResult
+from .places import Site, default_site
+from .types import Manifest, Place, ScanScope, ToolResult
 
 
 class ToolError(Exception):
@@ -47,6 +48,7 @@ class ToolContext:
     plans: Callable[[str], dict] = default_plan
     on_step: Callable[[str], None] | None = None
     steps: list[str] = dc_field(default_factory=list)
+    sites: Callable[[Place], Site] = default_site
 
     def plan(self, sid: str) -> dict:
         try:
@@ -54,8 +56,17 @@ class ToolContext:
         except LookupError as e:
             raise ToolError(f"No scan {sid}: {e}") from None
 
+    def site(self, place: Place | dict) -> Site:
+        """Coordinates, address, CoStar property and scans of a place (scan, property, address or point)."""
+        place = place if isinstance(place, Place) else Place.model_validate(place)
+        try:
+            return self.sites(place)
+        except LookupError as e:
+            raise ToolError(str(e).strip("'\"")) from None
+
     def step(self, text: str) -> None:
-        """Report one progress step; the workspace shows it in the run's StepLog."""
+        """Report one progress step. It reaches the workspace as it happens (`run.progress`) and shows in the
+        run's StepLog."""
         self.steps.append(text)
         if self.on_step:
             self.on_step(text)
@@ -110,4 +121,4 @@ def run_tool(tool_id: str, inputs: dict, ctx: ToolContext | None = None) -> Tool
     return ToolResult.model_validate(result.model_dump())  # re-check what the handler built
 
 
-__all__ = ["ScanScope", "Tool", "ToolContext", "ToolError", "field", "load", "manifests", "run_tool", "tool"]
+__all__ = ["Place", "ScanScope", "Site", "Tool", "ToolContext", "ToolError", "field", "load", "manifests", "run_tool", "tool"]

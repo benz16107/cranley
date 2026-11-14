@@ -65,3 +65,24 @@ def test_removed_tools_leave_the_enum():
     d = apply(Workspace(id="w"), PrefSet(key="tool.off.room_census", value=True))
     user, ids = prompt("x", d)
     assert "room_census" not in ids and "removed these before" in user
+
+
+def test_a_stated_size_is_read_from_the_persons_words():
+    from threshold.agent.composer import from_quote
+    text = "Will my 90 cm wide piano and a 36 inch dresser fit?"
+    assert from_quote("90 cm wide", text, "m") == 0.9 and from_quote("36 inch", text, "m") == 0.914
+    assert from_quote("95 cm", text, "m") is None            # not what they said
+    assert from_quote("90 cm wide piano and a 36 inch", text, "m") is None  # two sizes: ambiguous
+    assert from_quote("90 cm", text, None) is None            # the input is not a length in metres
+
+
+def test_composer_prefills_a_stated_size_and_says_what_it_cannot_do():
+    class Said(Fake):
+        def structured(self, system, user, schema):
+            return schema(persona="none", summary="A mover with a piano.", cannot=["Floor load ratings."],
+                          tools=[{"id": "door_widths", "reason": "Every door on the way."}],
+                          stated=[{"key": "access.door_width_m", "quote": "90 cm wide"}])
+    ops = compose("Does a 90 cm wide piano pass?", Workspace(id="w"), Said(None, []))
+    assert ops[0].persona is None and ops[0].limits == ["Floor load ratings."]
+    q = next(o.question for o in ops if isinstance(o, QuestionAsk))
+    assert q.answer == 0.9 and not q.answered

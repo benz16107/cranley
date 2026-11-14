@@ -5,6 +5,7 @@
   "tools": [
     "room_census",
     "door_widths",
+    "property_coverage",
     "unit_compare",
     "record_vs_reality"
   ],
