@@ -102,6 +102,7 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
         const w = state.world, s = state.scan, lines: string[] = []
         if (view.env === 'aerial') lines.push(w.status === 'loading' ? 'Loading the surroundings' : w.status === 'missing' ? `No surroundings for this scan. ${w.note}` : w.kind ? `${state.site ? 'Drone capture round the house, ' : ''}Vexcel ${w.kind}${state.site ? ' beyond' : ''}${w.capture ? `, flown ${w.capture.slice(0, 7).replace('/', '-')}` : ''}. ${w.note}` : '')
         if ((view.surface ?? 'model') !== 'model' && mode === 'dollhouse' && state.interior.status !== 'ready' && state.interior.status !== 'loading') lines.push(s.status === 'loading' ? 'Loading the scanned mesh' : s.status === 'missing' ? 'This scan has no scanned mesh; showing the measured model.' : s.colour === 'baking' ? `Colouring the scanned mesh from its panoramas: ${Math.round(s.progress * 100)}%` : s.colour === 'none' && s.status === 'ready' ? 'The scanned mesh could not be coloured; showing its form.' : '')
+        if (mode === 'splat' && view.env === 'aerial' && state.splat.splats) lines.unshift(`Drone capture: a sample, ${(state.splat.splats / 1e6).toFixed(2)}M of its ${(state.splat.total / 1e6).toFixed(1)}M Gaussians.`)
         const text = lines.filter(Boolean)
         return <>{text.length > 0 && <p className="th-note th-note-layers">{text.map((t) => <span key={t}>{t}</span>)}</p>}{w.credit && view.env === 'aerial' && w.status === 'ready' && <span className="th-credit">© Vexcel Imaging, Microsoft</span>}</>
       })()}
@@ -151,7 +152,7 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
         </div>
       )}
 
-      {mode === 'splat' && state && (
+      {mode === 'splat' && state && view.env !== 'aerial' && (
         <p className="th-note">
           {state.splat.status === 'missing' ? 'No drone capture for this scan.'
             : state.splat.splats ? <>Drone capture: <span className="th-num">{(state.splat.splats / 1e6).toFixed(2)}M</span> of <span className="th-num">{(state.splat.total / 1e6).toFixed(1)}M</span> Gaussians loaded, a sample</>

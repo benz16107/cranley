@@ -1,5 +1,5 @@
 // The drone Gaussian splat, drawn by Spark in the same three.js scene. The file is 70 to 660 MB and its Gaussians are in
-// no spatial order, so a prefix is a fair sample of the whole: we read one stream and show 4 MB, then 24 MB, then 96 MB.
+// no spatial order, so a prefix is a fair sample of the whole: we read one stream and show 4 MB, then 24 MB, then 72 MB.
 import * as THREE from 'three'
 import { SparkRenderer, SplatEdit, SplatEditSdf, SplatEditSdfType, SplatMesh } from '@sparkjsdev/spark'
 import { splatUrlDev } from '../dev/splatSource.ts'
@@ -11,7 +11,9 @@ export async function splatUrl(api: string, sid: string): Promise<string> {
   return ok ? route : splatUrlDev(sid)
 }
 
-const STAGES_MB = [4, 24, 96]
+// 72 MB is about 1.1 million Gaussians. 96 MB (1.48 million) dropped a small house seen close, inside its
+// surroundings, to 45 frames a second on a Radeon 780M; the picture is filled by them and the fill is the cost.
+const STAGES_MB = [4, 24, 72]
 
 interface Prefix { bytes: Uint8Array; count: number; total: number; centre: THREE.Vector3; radius: number }
 
@@ -48,7 +50,9 @@ export function plyPrefix(buf: Uint8Array, len: number, stray?: (x: number, y: n
 /** Spark draws every splat in the scene through one renderer object. Whoever shows a splat first makes it. */
 export function sparkFor(renderer: THREE.WebGLRenderer, scene: THREE.Scene, onDirty: () => void): SparkRenderer {
   const held = scene.userData as { spark?: SparkRenderer }
-  if (!held.spark) { held.spark = new SparkRenderer({ renderer, onDirty }); scene.add(held.spark) }
+  // Each Gaussian is drawn out to sqrt(6) standard deviations (Spark's default is sqrt(8)) and no wider than 256 px:
+  // a quarter less of the screen to fill per Gaussian, which is what a close view of a capture is short of.
+  if (!held.spark) { held.spark = new SparkRenderer({ renderer, onDirty, maxStdDev: Math.sqrt(6), maxPixelRadius: 256 }); scene.add(held.spark) }
   return held.spark
 }
 

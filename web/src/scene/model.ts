@@ -324,24 +324,27 @@ export function sightBlocked(m: Model, floorId: string, ax: number, ay: number, 
 }
 
 /**
- * A test for "inside the rooms": true for a point well within some room's outline (0.35 m clear of the building's
- * outer edge) and between the lowest floor and the top ceiling. A drone capture never saw in there, so whatever it
- * has at such a point is a stray; its outer walls and roof are outside this volume and stay.
+ * A test for "inside the rooms": true for a point well within some room's outline (0.35 m clear of that floor's
+ * outer edge) and between that room's floor and its floor's ceiling. A drone capture never saw in there, so whatever
+ * it has at such a point is a stray; its outer walls and roof are outside this volume and stay. It is kept floor by
+ * floor: over a single-storey wing the volume stops at that wing's ceiling, not at the top storey's.
  */
 export function interiorTest(m: Model, cell = 0.15, clear = 0.35): (x: number, y: number, z: number) => boolean {
   const b = m.bounds, w = Math.max(1, Math.ceil((b.maxX - b.minX) / cell)), h = Math.max(1, Math.ceil((b.maxY - b.minY) / cell))
-  const polys = m.roomsByFloor.flatMap((list) => list.map((i) => m.plan.rooms[i].polygon))
-  const inRoom = (x: number, y: number) => polys.some((p) => pointInPolygon(x, y, p))
-  const grid = new Uint8Array(w * h)
-  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
-    const x = b.minX + (i + 0.5) * cell, y = b.minY + (j + 0.5) * cell
-    grid[j * w + i] = inRoom(x, y) && inRoom(x + clear, y) && inRoom(x - clear, y) && inRoom(x, y + clear) && inRoom(x, y - clear) ? 1 : 0
-  }
-  const top = m.floorZ.length - 1, z0 = m.floorZ[0] - 0.15, z1 = m.floorZ[top] + m.floorH[top] - 0.1
+  const floors = m.roomsByFloor.map((list, f) => {
+    const polys = list.map((i) => m.plan.rooms[i].polygon)
+    const inRoom = (x: number, y: number) => polys.some((p) => pointInPolygon(x, y, p))
+    const grid = new Uint8Array(w * h)
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      const x = b.minX + (i + 0.5) * cell, y = b.minY + (j + 0.5) * cell
+      grid[j * w + i] = inRoom(x, y) && inRoom(x + clear, y) && inRoom(x - clear, y) && inRoom(x, y + clear) && inRoom(x, y - clear) ? 1 : 0
+    }
+    return { grid, z0: m.floorZ[f] - 0.15, z1: m.floorZ[f] + m.floorH[f] - 0.1 }
+  })
   return (x, y, z) => {
-    if (z < z0 || z > z1) return false
     const i = Math.floor((x - b.minX) / cell), j = Math.floor((y - b.minY) / cell)
-    return i >= 0 && i < w && j >= 0 && j < h && grid[j * w + i] === 1
+    if (i < 0 || i >= w || j < 0 || j >= h) return false
+    return floors.some((f) => z >= f.z0 && z <= f.z1 && f.grid[j * w + i] === 1)
   }
 }
 
