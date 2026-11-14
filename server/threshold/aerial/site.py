@@ -189,6 +189,11 @@ def _heights(kind: str, lonlats: list[tuple[float, float]]) -> tuple[list[float]
     return zs,{"collection": (r.get("collection") or [None])[0], "layer": (r.get("layer") or [None])[0]}
 
 
+def heights(kind: str, lonlats: list[tuple[float, float]]) -> tuple[list[float], dict]:
+    """Vexcel heights in metres at many (lon, lat) points in one request: kind "dsm" (surface) or "dtm" (ground)."""
+    return _heights(kind, lonlats)
+
+
 GROUND_NOTE = ("Vexcel's bare-ground model (DTM) is a wide-area collection and its surface model (DSM) a city collection. "
                "On open ground they disagreed by 0.6 m (a Houston warehouse lot) to 1.6 m (a Houston house), DTM higher, "
                "so DSM minus DTM is not a reliable height. For a building's height use site_facts roof_height")
