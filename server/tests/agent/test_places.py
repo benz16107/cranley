@@ -184,3 +184,38 @@ def test_custom_panel_binds_to_workspace_data_only(ws):
     assert panel.blocks[1].metrics == ["narrowest"] and panel.blocks[2].findings == [real]
     assert panel.blocks[3].overlays == ["door_widths:t1:0"] and len(out["dropped"]) == 7
     assert "error" in inv.compose_panel("Empty", [{"type": "Note", "text": "Door is 2 ft."}])
+
+
+def test_agent_tools_expose_their_arguments(ws):
+    inv = Investigation(ws)
+    args = {t.name: set(t.args_schema.model_json_schema()["properties"]) for t in inv.search_tools() + inv.property_tools()}
+    assert {"city", "kind", "drone", "empty_room_view"} <= args["find_scans"]
+    assert {"property_type", "tenant", "max_rent", "elevator"} <= args["find_properties"] and "rows" not in args["find_properties"]
+    assert args["consider"] == {"scans", "property_ids", "addresses", "points"} and args["rank"] == {"candidates", "reasons"}
+    assert {"tool_id", "property_id", "kinds"} <= args["run_on_property"]
+
+
+def test_search_shortlist_compare_turn(session, monkeypatch):
+    """A wheelchair user with no building: the agent searches, adds candidates, investigates each, ranks, shortlists."""
+    monkeypatch.setattr(search, "find_properties", lambda **kw: {"matched": 1, "properties": [{"property_id": 7}]})
+    session.sites = sites
+    session.submit(BriefSet(by="user", persona="wheelchair_user", text="I use a wheelchair, apartments in Houston",
+                            summary="Wheelchair user"))
+    session.submit(ToolEnable(tool="door_widths"))
+    model = Scripted(messages=iter([
+        call("find_properties", {"city": "Houston", "property_type": "Multifamily", "elevator": True}, 1),
+        call("consider", {"scans": ["t1", "t2"], "property_ids": [7]}, 2),
+        AIMessage(content="", tool_calls=[
+            {"name": "task", "args": {"description": "Check doors on t1", "subagent_type": "building"}, "id": "c3", "type": "tool_call"}]),
+        call("door_widths", {"scan": "t1"}, 4), AIMessage(content="door_widths:t1:o1 matters."),
+        call("task", {"description": "Check doors on t2", "subagent_type": "building"}, 5),
+        call("door_widths", {"scan": "t2"}, 6), AIMessage(content="door_widths:t2:o1 matters."),
+        call("rank", {"candidates": ["t2", "t1"], "reasons": ["Fewer narrow doors.", "Bedroom door is tight."]}, 7),
+        call("shortlist", {"scan": "t2", "note": "Best fit for your chair"}, 8),
+        AIMessage(content="Start with the second unit.")]))
+    out = turn(session, agent_model=model)
+    assert out["status"] == "done" and out["budget"]["used"]["tool_runs"] == 2
+    assert session.doc.brief.scope.sids == ["t1", "t2"] and session.doc.brief.scope.places[0].property_id == 7
+    ranked = next(p for p in session.doc.panels if p.id == "agent:ranked")
+    assert [session.doc.runs[[r.id for r in session.doc.runs].index(x)].sid for x in ranked.blocks[0].rows] == ["t2", "t1"]
+    assert [s.sid for s in session.doc.shortlist] == ["t2"]

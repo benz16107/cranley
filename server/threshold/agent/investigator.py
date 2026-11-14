@@ -73,6 +73,17 @@ def short(text: str, n: int = 280) -> str:
     return text[:cut + 1] if cut > 0 else text[:n - 1] + "…"
 
 
+def as_tool(fn: Callable, name: str, description: str, skip: tuple = ()):
+    """A LangChain tool whose arguments come from `fn`'s signature and whose reply is JSON."""
+    from langchain_core.tools import StructuredTool
+    fields = {n: (Any if p.annotation is inspect.Parameter.empty else p.annotation,
+                  Field(... if p.default is inspect.Parameter.empty else p.default))
+              for n, p in inspect.signature(fn, eval_str=True).parameters.items()
+              if n not in skip and p.kind not in (p.VAR_KEYWORD, p.VAR_POSITIONAL)}
+    return StructuredTool.from_function(func=lambda **kw: json.dumps(fn(**kw), default=str), name=name,
+                                        description=description, args_schema=create_model(f"{name}_args", **fields))
+
+
 def target(run: Run) -> str:
     """What a run looked at, as a key: its scan id, else its place's key."""
     return run.sid or (run.place.key() if run.place else "")
@@ -476,27 +487,16 @@ class Investigation:
         from langchain_core.tools import StructuredTool
 
         from . import search
-        j = lambda fn: lambda **kw: json.dumps(fn(**kw), default=str)  # noqa: E731
-        out = [StructuredTool.from_function(j(search.find_scans), name="find_scans",
-                                            description=search.find_scans.__doc__ + " Also: city, text (words in name or "
-                                            "address), address, property_id, drone (a drone capture exists), "
-                                            "empty_room_view (a defurnished view exists), splat, limit (at most 25)."),
-               StructuredTool.from_function(j(lambda **kw: search.find_properties(**kw)), name="find_properties",
-                                            args_schema=create_model("find_properties_args", **{
-                                                n: (p.annotation if n == "limit" else p.annotation, Field(p.default))
-                                                for n, p in inspect.signature(search.find_properties, eval_str=True).parameters.items()
-                                                if n != "rows"}),
-                                            description=search.find_properties.__doc__ + " Rows carry record facts "
-                                            "(units, elevators, walk-up, year built, rent range): use them to choose, "
-                                            "never quote them."),
-               StructuredTool.from_function(j(self.consider), name="consider",
-                                            description="Add found buildings to the workspace before investigating them: "
-                                            "scan ids, CoStar property ids, addresses, or points [lon, lat]."),
-               StructuredTool.from_function(j(self.rank), name="rank",
-                                            description="Show the ranked comparison: candidates (scan ids or p<property "
-                                            "id>) best first, and one plain reason each, without numbers."),
-               StructuredTool.from_function(j(self.compose_panel), name="compose_panel",
-                                            description=PANEL_HELP)]
+        out = [as_tool(search.find_scans, "find_scans", (search.find_scans.__doc__ or "") + " text: words in the name or "
+                       "address. drone: a drone capture exists. empty_room_view: a defurnished view exists. At most 25 rows."),
+               as_tool(search.find_properties, "find_properties", (search.find_properties.__doc__ or "") + " Rows carry record "
+                       "facts (units, elevators, walk-up, year built, rent range): use them to choose, never quote them.",
+                       skip=("rows",)),
+               as_tool(self.consider, "consider", "Add found buildings to the workspace before investigating them: "
+                       "scan ids, CoStar property ids, addresses, or points [lon, lat]."),
+               as_tool(self.rank, "rank", "Show the ranked comparison: candidates (scan ids or p<property id>) best "
+                       "first, and one plain reason each, without numbers."),
+               as_tool(self.compose_panel, "compose_panel", PANEL_HELP)]
         route = search.measures_route()
         if route:
             out.append(StructuredTool.from_function(
@@ -508,20 +508,14 @@ class Investigation:
         return out
 
     def property_tools(self) -> list:
-        from langchain_core.tools import StructuredTool
-        j = lambda fn: lambda **kw: json.dumps(fn(**kw), default=str)  # noqa: E731
-        return [StructuredTool.from_function(j(self.property_scans), name="property_scans",
-                                             description="List one property's scans grouped by kind."),
-                StructuredTool.from_function(j(self.fan_out), name="run_on_property",
-                                             description="Run one ready scan tool over a property's scans (filter by "
-                                                         "kinds, e.g. apartment_unit or amenity, or by scan ids). Runs a "
-                                                         f"few at a time, at most {self.budget.max_fan_out} scans, and "
-                                                         "adds one property-level result."),
-                StructuredTool.from_function(j(lambda property_id: self.run("property_coverage",
-                                                                            {"place": {"property_id": property_id}})),
-                                             name="coverage",
-                                             description="Which floor plans and shared spaces of the property no scan "
-                                                         "covers.")]
+        return [as_tool(self.property_scans, "property_scans", "List one property's scans grouped by kind."),
+                as_tool(self.fan_out, "run_on_property", "Run one ready scan tool over a property's scans (filter by "
+                        "kinds, e.g. apartment_unit or amenity, or by scan ids). Runs a few at a time, at most "
+                        f"{self.budget.max_fan_out} scans, and adds one property-level result."),
+                as_tool(self.coverage, "coverage", "Which floor plans and shared spaces of the property no scan covers.")]
+
+    def coverage(self, property_id: int) -> dict:
+        return self.run("property_coverage", {"place": {"property_id": property_id}})
 
     def prompt(self, request: str | None) -> str:
         d = self.s.doc
