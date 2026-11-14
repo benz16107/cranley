@@ -166,6 +166,11 @@ def write_input(plan: dict, fire: dict, doors_closed: bool, growth: float, peak_
     comp, info = compartments(plan)
     if fire["id"] not in comp:
         raise ToolError(f"The fire room ({name(fire)}) is too small to model; pick another room.")
+    # rooms no doorway or stair joins to the fire only leak to outside: leaving them out changes nothing but the run
+    # time (a two-storey scan with no stairs carried 12 idle compartments of 23)
+    linked = reachable(plan, comp, comp[fire["id"]])
+    comp = {k: v for k, v in comp.items() if v in linked}
+    info = {k: v for k, v in info.items() if k in linked}
     holes = _stair_holes(plan, comp)
     z = floor_z(plan)
     for up, down, _ in holes:  # CFAST needs the lower ceiling to meet the upper floor at a ceiling vent
@@ -355,8 +360,8 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     ctx.step(f"Fire in {where(fire)}: {inputs.growth} growth to {inputs.peak_kw:.0f} kW" + moved)
     from concurrent.futures import ThreadPoolExecutor
     cases = {closed: write_input(plan, fire, closed, a, inputs.peak_kw) for closed in (False, True)}
-    comp = cases[False][1]
-    linked = reachable(plan, comp, comp[fire["id"]])
+    comp = comp0  # every compartment, before write_input leaves out those the fire cannot reach
+    linked = reachable(plan, comp, comp[fire["id"]]) if fire["id"] in comp else set()
     cut_off = [r for r in beds if r["id"] in comp and comp[r["id"]] not in linked]
     if len(cut_off) == len([r for r in beds if r["id"] in comp]):
         raise NotApplicable(f"In the scan's wall graph no doorway joins the {name(fire).lower()} to any bedroom (a door "
@@ -371,7 +376,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     results = {closed: (runs[closed], cases[closed][1]) for closed in cases}
     ctx.step(f"Ran CFAST twice (bedroom doors open, then closed) on {len(set(cases[False][1].values()))} "
              "compartments")
-    beds = [r for r in beds if r["id"] in cases[False][1]]
+    beds = [r for r in beds if r["id"] in comp0]
     checks, findings, metrics = [], [], []
     lens = {False: {}, True: {}}
     limit_s = inputs.escape_min * 60

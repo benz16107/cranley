@@ -81,3 +81,12 @@ def test_the_default_fire_room_is_one_whose_smoke_reaches_a_bedroom():
     counts = {"lr": 1, "fam": 4}                                       # a kitchen reaching more beats a living room
     p["rooms"][1]["label"] = "Kitchen"
     assert sc._pick_fire(p, None, lambda r: counts.get(r["id"], 0))["id"] == "fam"
+
+
+def test_rooms_the_fire_cannot_reach_are_left_out_of_the_model():
+    from ..conftest import make_plan
+    p = make_plan("two_parts", [("lr", 0, 0, 5, 4, "Living Room"), ("b", 5, 0, 8, 4, "Bedroom"),
+                                ("up", 20, 0, 24, 4, "Bedroom"), ("up2", 24, 0, 28, 4, "Living Room")],
+                  doors=[("lr", "b", 0.8), ("up", "up2", 0.8)])
+    text, comp = sc.write_input(p, next(r for r in p["rooms"] if r["id"] == "lr"), False, 0.047, 2000)
+    assert set(comp) == {"lr", "b"} and text.count("&COMP ") == 2 and text.count("&DEVC ") == 1
