@@ -57,10 +57,10 @@ function verdict(c: Check): string {
   const t = c.turning, said: string[] = []
   if (c.through) said.push('It stands in a wall.')
   if (c.doors.length) said.push(`It stands where ${c.doors.length > 1 ? `${c.doors.length} doors swing` : 'a door swings'}.`)
-  if (t?.blocked) said.push(`It leaves no room to turn a wheelchair here: the largest clear circle is ${num(t.after)} m and a turn needs ${num(t.need)} m.`)
+  if (t?.blocked) said.push(`It leaves no room to turn a wheelchair here: the largest clear circle is ${num(t.after)} m and a turn needs ${t.need} m.`)
   if (said.length) return said.join(' ')
   if (!c.room) return 'It is outside every room in the scan.'
-  return t && t.before < t.need ? `Clear of walls and doors. This room is too small for a ${num(t.need)} m wheelchair turn even when empty.` : 'Clear of walls and doors, and a wheelchair can still turn in this room.'
+  return t && t.before < t.need ? `Clear of walls and doors. This room is too small for a ${t.need} m wheelchair turn even when empty.` : 'Clear of walls and doors, and a wheelchair can still turn in this room.'
 }
 
 /** The selected piece: what it blocks, its room on each side, and the three things to do with it. */

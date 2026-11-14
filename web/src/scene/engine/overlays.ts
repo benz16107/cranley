@@ -129,11 +129,13 @@ export class Overlays3D {
         holder.position.set(b.center[0], b.center[1], b.center[2] - m.floorZ[at.floor]); holder.rotation.z = ((b.yaw_deg ?? 0) * Math.PI) / 180
         // With a model, the model is the object and the box stays as a faint outline of exactly what was measured.
         const shape = typeof b.model === 'string' ? modelGeometry(b.model, this.onModels) : null
+        const foot = !!shape && !!b.quiet && b.status === 'pass' // a placed piece with nothing wrong: its outline on the floor is enough
         const geo = new THREE.BoxGeometry(b.size[0], b.size[1], b.size[2])
-        const fill = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ transparent: true, opacity: shape ? 0.07 : 0.2, depthWrite: false }))
-        fill.material.color.setRGB(col[0], col[1], col[2], THREE.SRGBColorSpace); fill.renderOrder = 6
-        const edges = new THREE.EdgesGeometry(geo)
-        const pts = Array.from(edges.getAttribute('position').array); edges.dispose()
+        const fill = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ transparent: true, opacity: foot ? 0 : shape ? 0.07 : 0.2, depthWrite: false }))
+        fill.material.color.setRGB(col[0], col[1], col[2], THREE.SRGBColorSpace); fill.renderOrder = 6; fill.visible = !foot
+        const edges = new THREE.EdgesGeometry(geo), hx = b.size[0] / 2, hy = b.size[1] / 2, z = 0.02 - b.size[2] / 2
+        const pts = foot ? [-hx, -hy, z, hx, -hy, z, hx, -hy, z, hx, hy, z, hx, hy, z, -hx, hy, z, -hx, hy, z, -hx, -hy, z] : Array.from(edges.getAttribute('position').array)
+        edges.dispose()
         holder.add(fill, this.line(pts, tok.paper, shape ? 3.5 : 5, { segments: true, opacity: shape ? 0.7 : 0.9, order: 7 }), this.line(pts, col, shape ? 1.5 : 2, { segments: true, order: 8 }))
         if (shape) {
           holder.scale.set(b.size[0], b.size[1], b.size[2]); holder.updateMatrix(); holder.scale.set(1, 1, 1)
