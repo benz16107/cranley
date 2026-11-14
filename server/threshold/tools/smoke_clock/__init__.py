@@ -86,11 +86,12 @@ def _pick_fire(plan: dict, want: str | None, reaches=lambda r: 1) -> dict | None
         if hit is None:
             raise ToolError(f"No room '{want}' in this scan. Rooms: " + ", ".join(sorted({name(r) for r in rooms})))
         return hit
+    order = ("Living Room", "Family Room", "Kitchen")
     for keep in (reaches, lambda r: 1):
-        for label in ("Living Room", "Family Room", "Kitchen"):
-            hit = [(n, r) for r in rooms if r.get("label") == label and (n := keep(r))]
-            if hit:
-                return max(hit, key=lambda x: (x[0], polygons(plan)[x[1]["id"]].area))[1]
+        hit = [(n, -order.index(r["label"]), polygons(plan)[r["id"]].area, r) for r in rooms
+               if r.get("label") in order and (n := keep(r))]
+        if hit:  # most bedrooms reached, then living room over family room over kitchen, then the largest
+            return max(hit, key=lambda x: x[:3])[3]
     return max(rooms, key=lambda r: polygons(plan)[r["id"]].area, default=None)
 
 

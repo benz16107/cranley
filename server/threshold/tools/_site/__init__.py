@@ -71,13 +71,15 @@ class Site:
 
 
 HOME_TYPES = ("single_family", "multi_family", "mobile_home")  # Vexcel building_type values that are homes
+HOME_MAX_M2 = 2000
 
 
 def not_for_homes(scan: str | None, what: str, site: Site | None = None) -> None:
     """Truck tools on a house or an apartment unit: say so instead of reading docks off a home. With no scan, the
     site's Vexcel building type decides (a bare point on a house)."""
     home = (scan and (index.rows().get(scan) or {}).get("kind") in ("house", "apartment_unit")) or \
-        (site is not None and not scan and fact(site, "building_type") in HOME_TYPES)
+        (site is not None and not scan and fact(site, "building_type") in HOME_TYPES
+         and (fact(site, "footprint_area") or 0) < HOME_MAX_M2)  # Vexcel calls a 40,000 m2 campus "single_family"
     if home:
         raise NotApplicable(f"This {'scan' if scan else 'place'} is a home, and {what} belong to warehouses and other "
                             "commercial buildings. Give a commercial property id or a point to check one.")

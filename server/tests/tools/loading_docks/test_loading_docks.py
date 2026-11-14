@@ -60,3 +60,5 @@ def test_a_bare_point_on_a_house_is_not_applicable(offline):  # noqa: F811
     for tool in ("truck_access", "loading_docks"):
         r = run_tool(tool, {"lat": 29.7, "lon": -95.4, "use_vision": False})
         assert r.verdict.status == "unknown" and "place is a home" in r.verdict.text
+    offline.setattr(site, "site_facts", lambda lat, lon: facts({"building_type": "single_family", "footprint_area": 40880.0}))
+    assert "home" not in run_tool("loading_docks", {"lat": 29.7, "lon": -95.4, "use_vision": False}).verdict.text

@@ -78,3 +78,6 @@ def test_the_default_fire_room_is_one_whose_smoke_reaches_a_bedroom():
     beds = {comp["b"]}
     pick = sc._pick_fire(p, None, lambda r: len(sc.reachable(p, comp, comp[r["id"]]) & beds))
     assert pick["id"] == "fam" and sc._pick_fire(p, None)["id"] == "lr"
+    counts = {"lr": 1, "fam": 4}                                       # a kitchen reaching more beats a living room
+    p["rooms"][1]["label"] = "Kitchen"
+    assert sc._pick_fire(p, None, lambda r: counts.get(r["id"], 0))["id"] == "fam"
