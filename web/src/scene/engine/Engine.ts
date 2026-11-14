@@ -42,6 +42,8 @@ export interface EngineOpts {
   onFrame: (f: FrameInfo) => void
   /** The camera, whenever it changes by more than half a pixel or a tenth of a degree, and once when a flight ends. */
   onCamera?: (c: CameraInfo) => void
+  /** Ask the server at once to colour the scanned mesh in the background (state.scan reports it). */
+  prepare?: boolean
 }
 
 const DOLL_FOV = 32, PLAN_FOV = 14, PANO_FOV = 76, PANO_FOV_MIN = 34, PANO_FOV_MAX = 96, SPLAT_DIST = 58
@@ -119,6 +121,7 @@ export class Engine {
     const du = this.doll.uniforms
     this.scan = new ScanMesh(opts.api, plan.sid, this.tokens, { uCut: du.uCut, uFloorShow: du.uFloorShow, uFloorZ: du.uFloorZ, base: this.model.floorZ })
     this.scan.onChange = layerChanged
+    if (opts.prepare) this.scan.prepare()
     this.interior = new InteriorSplat(this.renderer, this.scene, opts.api, plan.sid)
     this.interior.onChange = layerChanged
     this.scene.add(this.world.group, this.pano.group, this.doll.group, this.scan.group, this.overlays3d.group, this.splat.group, this.interior.group)
@@ -171,7 +174,8 @@ export class Engine {
     if (v.mode === 'splat') rig.limits.maxDist = aerial ? AERIAL_MAX_DIST : 160
     const was = !!prev && prev.env === 'aerial' && (prev.mode === 'dollhouse' || prev.mode === 'splat')
     if (prev && aerial !== was && v.mode === prev.mode) { // step back to take the surroundings in, or return to the building
-      if (v.mode === 'dollhouse') rig.flyTo(this.withPose(aerial ? { ...this.dollPose(), dist: Math.max(this.dollPose().dist * 1.7, 70), pol: 1.02, az: rig.goal.az } : { ...this.dollPose(), az: rig.goal.az }), 1100)
+      // far enough to take the surroundings in, and inside the distance at which the building closes (2.1 times the fit)
+      if (v.mode === 'dollhouse') rig.flyTo(this.withPose(aerial ? { ...this.dollPose(), dist: this.dollPose().dist * 1.7, pol: 1.02, az: rig.goal.az } : { ...this.dollPose(), az: rig.goal.az }), 1100)
       else rig.flyTo({ dist: aerial ? 120 : this.splatDist() }, 1100)
     }
     if (prev && v.tour != null && v.tour !== prev.tour) this.startTour()

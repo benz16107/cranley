@@ -7,7 +7,6 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from ..aerial.vexcel import VexcelError
 from ..sources import matterport as mp
-from ..sources.upstream import cache_path
 from ..world import mesh, site, splatfit, terrain, tiles3d
 
 router = APIRouter(prefix="/api/world")
@@ -75,7 +74,7 @@ def scan_mesh_status(sid: str, start: bool = True) -> dict:
 def scan_mesh_atlas(sid: str) -> Response:
     if _call(mesh.status, sid, False)["state"] != "ready":
         raise HTTPException(404, "the atlas is not baked yet")
-    return Response(cache_path("mesh", sid, "atlas.jpg").read_bytes(), media_type="image/jpeg", headers=DAY)
+    return Response(mesh.path(sid, "atlas.jpg").read_bytes(), media_type="image/jpeg", headers=DAY)
 
 
 @router.get("/{sid}/splat-fit")

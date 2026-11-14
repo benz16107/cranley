@@ -23,6 +23,10 @@ export interface BuildingSceneProps {
   /** Where /api lives. Empty means same origin. */
   api?: string
   className?: string
+  /** true asks the server, as soon as the scene mounts, to colour the scanned mesh in the background; `onState`
+      then reports `scan.colour` ('unknown', then 'baking' with `scan.progress`, 'ready' or 'none'). Without it the
+      question is only asked when the photoreal surface is first shown. */
+  prepare?: boolean
   /** false leaves out the scene's own view switcher (surface, surroundings, x-ray, fly in), for a look
       that mounts <ViewSwitcher> in its own toolbar. */
   switcher?: boolean
@@ -32,7 +36,7 @@ const NO_OVERLAYS: Overlay[] = []
 const DEFAULT_VIEW: View = { mode: 'dollhouse' }
 const niceLength = (m: number) => [0.5, 1, 2, 5, 10, 20, 50].find((v) => v >= m) ?? 100
 
-export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = DEFAULT_VIEW, onPick, onViewChange, onCamera, onState, api = '', className, switcher = true }: BuildingSceneProps) {
+export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = DEFAULT_VIEW, onPick, onViewChange, onCamera, onState, api = '', className, switcher = true, prepare = false }: BuildingSceneProps) {
   const host = useRef<HTMLDivElement>(null), engine = useRef<Engine | null>(null)
   const planLayer = useRef<HTMLDivElement>(null), planHandle = useRef<FloorPlanHandle>(null), insetHandle = useRef<FloorPlanHandle>(null)
   const scaleBar = useRef<HTMLDivElement>(null), scaleText = useRef<HTMLSpanElement>(null)
@@ -57,11 +61,11 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
       }
       insetHandle.current?.cone(f.look)
     }
-    const e = new Engine(host.current!, plan, { api, onPick: (p) => cb.current.onPick?.(p), onViewChange: change, onState: (st) => { setState(st); cb.current.onState?.(st) }, onFrame, onCamera: (c) => cb.current.onCamera?.(c) })
+    const e = new Engine(host.current!, plan, { api, onPick: (p) => cb.current.onPick?.(p), onViewChange: change, onState: (st) => { setState(st); cb.current.onState?.(st) }, onFrame, onCamera: (c) => cb.current.onCamera?.(c), prepare })
     engine.current = e; setModel(e.model)
     useSceneLink.setState({ hover: null, selected: null })
     return () => { e.dispose(); engine.current = null }
-  }, [plan, api, change])
+  }, [plan, api, change, prepare])
   useEffect(() => { engine.current?.setOverlays(overlays) }, [overlays, model])
   useEffect(() => { engine.current?.setView(view) }, [view, model])
 

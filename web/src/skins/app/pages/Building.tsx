@@ -2,7 +2,7 @@ import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from '
 import { Tabs } from '@base-ui/react/tabs'
 import {
   Scene, SceneBoundary, fetchRecord, focusFinding, panoFace, useBuildingView, useBuildings, useWorkspace,
-  type Doc, type SceneMode, type ScanPlan, type Status,
+  type Doc, type SceneMode, type SceneState, type ScanPlan, type Status,
 } from '../../../core/index.ts'
 import { PanelView } from '../blocks/blocks.tsx'
 import { Copy, Empty, Icon, IconBtn, Menu, MenuBtn, RunState, Seg, SourceChip, St, Stats, StatusGlyph, ToolKey, type IconName } from '../design/ui.tsx'
@@ -236,6 +236,23 @@ export function Building({ sid }: { sid: string }) {
   // side: with no frame the scene's fit crops a room in a narrow picture, with a plain one the building sits small.
   useEffect(() => { v.setView((x) => ({ ...x, cut: x.cut === undefined ? 1.4 : x.cut, frame: { top: -20, right: 20, bottom: -20, left: -100 } })) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [interior, setInterior] = useState(false) // this scan has an interior splat (the scene finds out)
+  // The photoreal view on its site is this look's opening view of a building, when it is ready the moment the
+  // building opens. If it is still being made, the building opens as measured, the toolbar says quietly how far
+  // along it is, and the person switches when they like: what they are looking at never changes under them.
+  const [baked, setBake] = useState<{ sid: string; colour: SceneState['scan']['colour']; progress: number }>({ sid, colour: 'unknown', progress: 0 })
+  const bake = baked.sid === sid ? baked : { colour: 'unknown' as const, progress: 0 } // what is known of this scan's bake
+  const opened = useRef<string | null>(null), chose = useRef<string | null>(null) // the scan whose opening view is settled; the scan on which the person picked a view themselves
+  const onScene = (s: SceneState) => {
+    setInterior(s.interior.status !== 'none' && s.interior.status !== 'unknown')
+    setBake((b) => (b.sid === sid && b.colour === s.scan.colour && b.progress === s.scan.progress ? b : { sid, colour: s.scan.colour, progress: s.scan.progress }))
+    if (s.scan.colour === 'unknown' || opened.current === sid) return
+    opened.current = sid
+    const plan = v.plan
+    if (s.scan.colour !== 'ready' || chose.current === sid || !plan) return
+    // on its site only where the placing can be trusted: fitted to the aerial footprint, or tied to its own drone capture
+    const sited = (plan as { geo?: { lat?: number | null } | null }).geo?.lat != null && (!!plan.quality?.georef || plan.has.splat)
+    v.setView((x) => ({ ...x, surface: 'scan', env: sited ? 'aerial' : x.env }))
+  }
   const [picked, setTab] = useState<string | null>(null)
   const tab = picked ?? (panels.length ? 'results' : 'overview') // until the person picks: results when there are any
 
@@ -311,11 +328,12 @@ export function Building({ sid }: { sid: string }) {
               const placed = (v.plan as { geo?: { lat?: number | null } | null }).geo?.lat != null, doll = v.mode === 'dollhouse'
               return (
                 <>
-                  {doll && <Seg label="Building drawn from" value={v.view.surface === 'splat' && !interior ? 'scan' : v.view.surface ?? 'model'} onChange={(surface) => v.setView((x) => ({ ...x, surface }))}
+                  {doll && <Seg label="Building drawn from" value={v.view.surface === 'splat' && !interior ? 'scan' : v.view.surface ?? 'model'} onChange={(surface) => { chose.current = sid; v.setView((x) => ({ ...x, surface })) }}
                     options={[{ id: 'model', label: 'Measured', icon: 'ruler', title: 'Walls, doors and windows as measured in the plan' }, { id: 'scan', label: 'Photoreal', icon: 'camera', title: 'The scanned rooms in photo colour, baked from the panoramas' },
                       ...(interior ? [{ id: 'splat' as const, label: 'Splat', icon: 'stack' as const, title: 'A Gaussian splat of the rooms, trained from the panoramas' }] : [])]} />}
-                  <Seg label="Surroundings" value={v.view.env ?? 'studio'} onChange={(env) => v.setView((x) => ({ ...x, env }))}
+                  <Seg label="Surroundings" value={v.view.env ?? 'studio'} onChange={(env) => { chose.current = sid; v.setView((x) => ({ ...x, env })) }}
                     options={[{ id: 'studio', label: 'Alone', icon: 'building' }, { id: 'aerial', label: 'On its site', icon: 'site', disabled: !placed, title: placed ? 'Its real surroundings, from the aerial survey' : 'This scan has no position, so it cannot be placed on its site' }]} />
+                  {doll && bake.colour === 'baking' && <span className="muted small" role="status" title="The photoreal view of this building is being made from its panoramas. Nothing changes until you choose it.">Photoreal {Math.round(bake.progress * 100)}%</span>}
                   <MenuBtn trigger={<button type="button" className="btn quiet" aria-label="More ways to look at the building"><Icon name="more" size={14} /></button>}>
                     <div className="mh">Look</div>
                     <Menu.CheckboxItem checked={v.view.style === 'xray'} onCheckedChange={(yes) => v.setView((x) => ({ ...x, style: yes ? 'xray' : 'solid' }))}>
@@ -350,7 +368,7 @@ export function Building({ sid }: { sid: string }) {
               <Suspense fallback={<div className="scene-state loading" role="status"><span className="sk" /><span className="sk" /><span className="muted small">Loading the building view</span></div>}>
                 {/* keyed by scan and scheme: the scene builds its model for one plan and reads its colours when it mounts */}
                 <SceneBoundary key={`${v.sceneKey}:${scheme}`} fallback={fault('The building view stopped on this scan.')}>
-                  <Scene {...v.sceneProps} className="app-scene" switcher={false} onState={(s) => setInterior(s.interior.status !== 'none' && s.interior.status !== 'unknown')} />
+                  <Scene {...v.sceneProps} className="app-scene" switcher={false} prepare onState={onScene} />
                 </SceneBoundary>
               </Suspense>
             )}
