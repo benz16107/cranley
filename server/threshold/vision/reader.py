@@ -125,6 +125,86 @@ def label_rooms(plan: dict, rooms: list[str] | None = None, *, labels: list[str]
     return _parallel(one, todo)
 
 
+def _peek_view(plan: dict, room: dict, max_m: float = 8.0) -> tuple[dict, int, float, float] | None:
+    """The best outside panorama to see into a room no panorama stands in: one that looks squarely at one of the
+    room's doorways from 1 to `max_m` metres away. Without a wall graph, the nearest panorama to the room's
+    centre. Returns (pano, face, u, v) with (u, v) in ROOM_PX pixels of the face, or None."""
+    walls = {w["id"]: w for w in plan.get("walls") or []}
+    targets = []
+    for o in plan.get("openings") or []:
+        if o["type"] != "window" and room["id"] in (o.get("rooms") or []) and o.get("center"):
+            w = walls.get(o.get("wall"))
+            n = None
+            if w:
+                dx, dy = w["b"][0] - w["a"][0], w["b"][1] - w["a"][1]
+                n = np.array([-dy, dx]) / (math.hypot(dx, dy) or 1)
+            targets.append((np.array(o["center"], float), n))
+    if not targets and room.get("center"):
+        targets.append((np.array(room["center"], float), None))
+    best = None
+    for p in plan["panos"]:
+        if not p.get("rotation") or p.get("floor") != room.get("floor"):
+            continue
+        xy = np.array(p["position"][:2], float)
+        for c, n in targets:
+            v = c - xy
+            d = float(np.linalg.norm(v))
+            if not 1.0 <= d <= max_m:
+                continue
+            square = abs(float(v @ n)) / d if n is not None else 1.0
+            score = d / max(square, 0.2)
+            if best is None or score < best[0]:
+                best = (score, p, c)
+    if not best:
+        return None
+    _, p, c = best
+    face, u, v = pj.point_to_face_pixel([c[0], c[1], p["position"][2]], p["position"], ROOM_PX, p["rotation"])
+    return (p, face, u, v) if 1 <= face <= 4 else None
+
+
+def peek_rooms(plan: dict, rooms: list[str], *, labels: list[str] | None = None, context: str | None = None,
+               hints: dict[str, str] | None = None) -> list[dict]:
+    """Label rooms that no panorama stands in, through a doorway, from the panorama outside that looks most
+    squarely at it. The doorway is ringed in red on the one face sent. A room seen from outside is never called
+    with high confidence: high becomes medium. Same shape as `label_rooms`, plus `peek: True`."""
+    from PIL import Image, ImageDraw
+    import io
+
+    labels = labels or COMMERCIAL_LABELS
+    schema = {"type": "object", "additionalProperties": False, "required": ["label", "confidence", "visible", "reason"],
+              "properties": {"label": {"type": "string", "enum": labels}, "confidence": CONFIDENCE,
+                             "visible": {"type": "boolean", "description": "Can you see into the ringed room at all?"},
+                             "reason": {"type": "string", "description": "One short sentence naming what you saw."}}}
+    by_id = {r["id"]: r for r in plan["rooms"]}
+
+    def one(rid):
+        view = _peek_view(plan, by_id[rid])
+        if not view:
+            return None
+        pano, face, u, v = view
+        im = Image.open(io.BytesIO(jpeg(mp.pano_face(plan["sid"], pano["id"], face, "2k"), ROOM_PX))).convert("RGB")
+        ImageDraw.Draw(im).ellipse([u - 45, v - 45, u + 45, v + 45], outline=(255, 0, 0), width=5)
+        buf = io.BytesIO()
+        im.save(buf, "JPEG", quality=88)
+        prompt = ("The image is one horizontal face of a 360-degree panorama, taken from outside the room in question. "
+                  "The red ring marks the doorway into that room. What type of room lies through the ringed doorway? "
+                  "Judge only that room, from what is visible through the doorway (furniture, fixtures, finishes, size). "
+                  "If the door is closed or you cannot see in, say visible false and use low confidence. "
+                  "The building is a " + ("home" if labels is HOME_LABELS else "commercial building") +
+                  (f" ({context})" if context else "") + "." +
+                  (f" Measured facts about that room from the floor plan: {hints[rid]}." if hints and hints.get(rid) else ""))
+        a = ask([buf.getvalue()], prompt, schema, key=f"peek_room/{plan['sid']}/{rid}")
+        conf = "medium" if a["confidence"] == "high" else a["confidence"]
+        if not a["visible"]:
+            conf = "low"
+        return {"room": rid, "label": a["label"], "confidence": conf, "reason": a["reason"], "peek": True,
+                "evidence": {"sid": plan["sid"], "pano": pano["id"], "face": face},
+                "source": {"layer": "model", "method": "vision", "confidence": conf,
+                           "note": f"Vision model through a doorway, from panorama {pano['id']} face {face}"}}
+
+    return [x for x in _parallel(one, rooms) if x]
+
+
 FLOOR_FINISHES = ["carpet", "hardwood or wood-look", "tile or stone", "polished or sealed concrete", "vinyl or linoleum",
                   "rubber or gym flooring", "outdoor paving or deck", "artificial turf or grass", "cannot tell"]
 
