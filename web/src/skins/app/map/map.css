@@ -1,10 +1,7 @@
 /* Explore: a filter bar over the map and the table of the same buildings. */
 .ex { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.ex-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(400px, 44%); }
-.ex[data-view='map'] .ex-body { grid-template-columns: minmax(0, 1fr); }
-.ex[data-view='map'] .ex-side { display: none; }
-.ex[data-view='table'] .ex-body { grid-template-columns: minmax(0, 1fr); }
-.ex[data-view='table'] .ex-map { display: none; }
+.ex-body { flex: 1; min-height: 0; } /* a split: the map and the list (design/split.tsx); a layout of one shows that one alone */
+.ex-body[data-plain] { display: grid; grid-template-columns: minmax(0, 1fr); }
 .ex-map { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--paper); }
 /* two classes: the map library puts `position: relative` on its container with one, and its stylesheet can load after this one */
 .ex-map > .citymap { position: absolute; inset: 0; }
@@ -52,9 +49,7 @@
 .presets button { text-align: left; padding: 5px 6px; margin: 0 -6px; border-radius: var(--r-1); line-height: 1.35; }
 @media (hover: hover) and (pointer: fine) { .presets button:hover { background: var(--pane-2); } }
 
-@media (max-width: 1100px) { .ex-body { grid-template-columns: minmax(0, 1fr) minmax(360px, 48%); } }
 @media (max-width: 760px) {
-  .ex-body { grid-template-columns: minmax(0, 1fr) !important; }
   .ex[data-view='map'] .ex-side, .ex[data-view='table'] .ex-map { display: none; }
   .ex-float { left: 8px; right: 8px; top: auto; bottom: 64px; width: auto; max-height: 52%; }
   .maplegend { bottom: 26px; } /* clear of the look switcher's tab */

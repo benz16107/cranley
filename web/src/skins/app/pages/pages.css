@@ -18,7 +18,7 @@
 
 /* ---------- building ---------- */
 .bld { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.bld-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) var(--insp-w); }
+.bld-body { flex: 1; min-height: 0; } /* a split: the 3D view and the inspector (design/split.tsx) */
 .work { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--paper); }
 .work { container-type: inline-size; }
 .worktools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px var(--s-3); border-bottom: 1px solid var(--rule); background: var(--pane); flex: none; }
@@ -86,7 +86,6 @@
   --scene-pass: #5fd39a; --scene-warn: #f0b24a; --scene-fail: #ff8a7d; --scene-unknown: #8597ad; --scene-on-status: #0e1a2a; --scene-on-warn: #0e1a2a;
 }
 
-@media (max-width: 1180px) { .bld-body { grid-template-columns: minmax(0, 1fr) 360px; } }
 @media (max-width: 760px) {
   .page > .inner { padding: var(--s-4) var(--s-4) var(--s-7); }
   .bld { overflow-y: auto; display: block; }

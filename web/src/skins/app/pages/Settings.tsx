@@ -34,7 +34,9 @@ export function Settings() {
   const live = useCatalog((s) => s.live), tools = useToolCatalog()
   const seen = useSeen((s) => Object.keys(s.all).length)
   const { rail, setRail } = useUi()
-  const clear = (prefix: string) => { try { for (const k of Object.keys(localStorage)) if (k.startsWith(prefix)) localStorage.removeItem(k) } catch { /* nothing kept */ } window.location.reload() }
+  // layout choices share the prefix of the list of investigations: resetting the layout leaves that list alone
+  const LIST = 'threshold.app.investigations'
+  const clear = (prefix: string) => { try { for (const k of Object.keys(localStorage)) if (k.startsWith(prefix) && (prefix === LIST || k !== LIST)) localStorage.removeItem(k) } catch { /* nothing kept */ } window.location.reload() }
   return (
     <div className="page"><div className="inner narrow settings">
       <section className="card">
@@ -64,8 +66,8 @@ export function Settings() {
           <p>The building data belongs to those providers and is shown under the event’s terms, so do not copy it out of the app. The service is offered as it is, with no warranty.</p>
         </div>
         <div className="set"><div><b>Open investigation</b><p className="row"><span className="num">{id || 'none'}</span>{id && <Copy text={id} label="Copy the id" />}</p></div></div>
-        <div className="set"><div><b>Investigations listed in this browser</b><p>{seen} listed. Clearing the list does not delete them from the server.</p></div><button className="btn" disabled={!seen} onClick={() => clear('threshold.app.investigations')}>Clear the list</button></div>
-        <div className="set"><div><b>Layout choices</b><p>Table columns, the sidebar and the agent panel.</p></div><button className="btn" onClick={() => clear('threshold.app.')}>Reset</button></div>
+        <div className="set"><div><b>Investigations listed in this browser</b><p>{seen} listed. Clearing the list does not delete them from the server.</p></div><button className="btn" disabled={!seen} onClick={() => clear(LIST)}>Clear the list</button></div>
+        <div className="set"><div><b>Layout choices</b><p>Panel sizes, table columns, the narrow sidebar and whether the agent panel is open. Drag the edge of any panel to resize it; double-click the edge to put it back.</p></div><button className="btn" onClick={() => clear('threshold.app.')}>Reset</button></div>
       </section>
       <section className="card">
         <header><h2>Keyboard</h2></header>

@@ -1,17 +1,16 @@
 /* The shell: sidebar, top bar, page, and the agent's run panel beside any page. */
-.app { display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr); grid-template-rows: var(--bar-h) minmax(0, 1fr); height: 100dvh; overflow: hidden; }
-.app[data-rail] { grid-template-columns: 52px minmax(0, 1fr); }
-.app[data-run] { grid-template-columns: var(--side-w) minmax(0, 1fr) var(--run-w); }
-.app[data-run][data-rail] { grid-template-columns: 52px minmax(0, 1fr) var(--run-w); }
+.app { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+/* The frame is a split (design/split.tsx): sidebar, page, agent panel, sized by the edges between them. On a phone
+   it is plain: the top bar over the page, and the other two are drawers. */
+.frame { flex: 1; min-height: 0; }
+.frame[data-plain] { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--bar-h) minmax(0, 1fr); }
 .skip { position: absolute; left: 8px; top: -40px; z-index: 80; background: var(--ink); color: var(--pane); padding: 6px 10px; border-radius: var(--r-1); }
 .skip:focus { top: 8px; }
-.main { grid-column: 2; grid-row: 2; min-height: 0; min-width: 0; background: var(--pane); display: flex; flex-direction: column; outline: 0; }
+.main { min-height: 0; min-width: 0; background: var(--pane); display: flex; flex-direction: column; outline: 0; }
 
-/* three columns of tools beside a scene is tight below a wide desktop: the inspector and the run panel give way */
-@media (max-width: 1700px) { .app[data-run] { --run-w: 344px; --insp-w: 352px; } }
 
 /* ---------- sidebar ---------- */
-.side { grid-row: 1 / -1; grid-column: 1; display: flex; flex-direction: column; min-height: 0; background: var(--paper); border-right: 1px solid var(--rule); padding: 8px; gap: 8px; overflow: hidden; }
+.side { display: flex; flex-direction: column; min-height: 0; background: var(--paper); border-right: 1px solid var(--rule); padding: 8px; gap: 8px; overflow: hidden; }
 .side .ws { display: flex; align-items: center; gap: 8px; width: 100%; height: 40px; padding: 0 6px; border-radius: var(--r-1); color: var(--ink-3); flex: none; }
 .side .ws .mk { display: grid; place-items: center; width: 26px; height: 26px; border-radius: var(--r-1); background: var(--ink); color: var(--paper); flex: none; }
 .side .ws .grow { display: grid; line-height: 1.25; }
@@ -45,7 +44,7 @@
 .side[data-rail] .who { padding: 0; justify-content: center; flex: none; width: 100%; }
 
 /* ---------- top bar ---------- */
-.top { grid-column: 2; grid-row: 1; display: flex; align-items: center; gap: var(--s-2); min-width: 0; padding: 0 var(--s-3) 0 var(--s-4); background: var(--pane); border-bottom: 1px solid var(--rule); }
+.top { flex: none; height: var(--bar-h); display: flex; align-items: center; gap: var(--s-2); min-width: 0; padding: 0 var(--s-3) 0 var(--s-4); background: var(--pane); border-bottom: 1px solid var(--rule); }
 .crumbs { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; color: var(--ink-3); }
 .crumbs button { color: var(--ink-2); white-space: nowrap; max-width: 200px; overflow: hidden; text-overflow: ellipsis; height: 28px; flex: 0 1 auto; min-width: 48px; }
 .crumbs button:first-child { flex: none; }
@@ -61,7 +60,7 @@
 .rs[data-state='ask'] { color: var(--accent); font-weight: 560; }
 
 /* ---------- the run panel ---------- */
-.run { grid-column: 3; grid-row: 1 / -1; display: flex; flex-direction: column; min-height: 0; min-width: 0; background: var(--pane); border-left: 1px solid var(--rule); }
+.run { display: flex; flex-direction: column; min-height: 0; min-width: 0; background: var(--pane); border-left: 1px solid var(--rule); }
 .rp-head { display: flex; align-items: center; gap: var(--s-3); height: var(--bar-h); padding: 0 6px 0 var(--s-4); border-bottom: 1px solid var(--rule); flex: none; }
 .rp-head h2 { font-size: var(--text-sm); }
 .rp-body { flex: 1; min-height: 0; }
@@ -146,8 +145,6 @@
 .rundrawer .grip { margin: 8px auto 0; flex: none; }
 .rundrawer .run { border-left: 0; flex: 1; }
 @media (max-width: 760px) {
-  .app, .app[data-rail], .app[data-run] { grid-template-columns: minmax(0, 1fr); }
-  .top, .main { grid-column: 1; }
   .top { padding: 0 var(--s-2) 0 var(--s-1); gap: 4px; }
   .find { width: var(--ctl-h); padding: 0; justify-content: center; background: none; border-color: transparent; }
   .find .grow, .find .kbd { display: none; }

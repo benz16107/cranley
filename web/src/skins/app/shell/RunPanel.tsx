@@ -5,6 +5,8 @@ import { Tabs } from '@base-ui/react/tabs'
 import { answerPref, compose, focusFinding, investigate, useCatalog, useWorkspace, userOp, type Pref, type Question, type Run } from '../../../core/index.ts'
 import { PanelView } from '../blocks/blocks.tsx'
 import { Empty, Icon, IconBtn, RunState, StatusGlyph, ToolKey } from '../design/ui.tsx'
+import { Sheet } from '../design/split.tsx'
+import { sheetFocus } from '../lib/split.ts'
 import { dur } from '../lib/format.ts'
 import { askHere } from '../lib/pending.ts'
 import { goScan } from '../lib/place.ts'
@@ -243,9 +245,9 @@ export function PanelDrawer() {
     <Dialog.Root open={!!panel} onOpenChange={(o) => !o && useUi.setState({ panel: null })}>
       <Dialog.Portal>
         <Dialog.Backdrop className="backdrop" />
-        <Dialog.Popup className="drawer" aria-label={panel?.title}>
+        <Dialog.Popup className="drawerwrap" aria-label={panel?.title} initialFocus={sheetFocus}>
           {panel && (
-            <>
+            <Sheet>
               <header>
                 <ToolKey id={panel.tool} title={tool?.title ?? panel.title} />
                 <Dialog.Title render={<h2 className="trunc" />}><b>{panel.title}</b>{panel.scope && <span className="muted"> · {panel.scope}</span>}</Dialog.Title>
@@ -253,7 +255,7 @@ export function PanelDrawer() {
                 <Dialog.Close render={<button className="btn icon quiet" aria-label="Close" />}><Icon name="close" /></Dialog.Close>
               </header>
               <div className="body"><PanelView panel={panel} bare /></div>
-            </>
+            </Sheet>
           )}
         </Dialog.Popup>
       </Dialog.Portal>

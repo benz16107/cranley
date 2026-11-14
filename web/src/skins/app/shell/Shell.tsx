@@ -4,6 +4,7 @@ import { Tooltip } from '@base-ui/react/tooltip'
 import { Drawer } from 'vaul'
 import { currentRoute, setQuery, useWorkspace } from '../../../core/index.ts'
 import { Icon } from '../design/ui.tsx'
+import { Edge, Fill, Pane, Split } from '../design/split.tsx'
 import { go, usePlace } from '../lib/place.ts'
 import '../lib/pending.ts' // keeps the index of investigations seen in this browser
 import { useBuildings } from '../../../core/index.ts'
@@ -88,10 +89,17 @@ export function Shell() {
     <Tooltip.Provider delay={450} closeDelay={0}>
       <div className="app" data-page={place.page} data-rail={rail || undefined} data-run={(run && !phone) || undefined}>
         <a className="skip" href="#main">Skip to the page</a>
-        {!phone && <Sidebar />}
-        <Topbar />
-        <main className="main" id="main" tabIndex={-1}>{page}</main>
-        {run && !phone && <RunPanel onClose={() => setRun(false)} />}
+        {/* Sidebar, page and agent panel resize by the edges between them. The narrow sidebar is a fixed 52 px. */}
+        <Split className="frame" off={phone}>
+          {!phone && (rail ? <Pane key="rail" id="rail" size={52} fixed><Sidebar /></Pane> : <Pane key="side" id="side" size={224} min={184} max={400}><Sidebar /></Pane>)}
+          {!phone && !rail && <Edge key="side-edge" of="side" label="Resize the sidebar" />}
+          <Fill key="work" id="work" min={360}>
+            <Topbar />
+            <main className="main" id="main" tabIndex={-1}>{page}</main>
+          </Fill>
+          {run && !phone && <Edge key="run-edge" of="run" label="Resize the agent panel" />}
+          {run && !phone && <Pane key="run" id="run" size={window.innerWidth <= 1700 ? 344 : 372} min={300} max={720}><RunPanel onClose={() => setRun(false)} /></Pane>}
+        </Split>
 
         {phone && (
           <Drawer.Root open={nav} onOpenChange={(o) => useUi.setState({ nav: o })} direction="left">

@@ -46,7 +46,13 @@ a tool a person works in all day. Tokens are in `tokens.css`, shared classes in 
 11. **Words.** Sentence case. Plain sentences, the person's words ("doorway", not "opening"), no exclamation marks.
     A message about a failure says what to do next. When something is not connected, the page says so.
 12. **Components come from what is installed**: Base UI (menu, popover, tooltip, tabs, dialog, switch, slider), cmdk,
-    Sonner, Vaul. Icons are Phosphor regular (`icons.ts`), one set.
+    Sonner, Vaul, react-resizable-panels. Icons are Phosphor regular (`icons.ts`), one set.
+13. **Panels resize by their edges** (`design/split.tsx`, on react-resizable-panels): the sidebar, the agent panel, a
+    building's inspector, Explore's list and a drawer's sheet. No handle is drawn. The 8 px on the line two panes
+    share take the pointer, and an accent line shows there under the pointer, during a drag and for keyboard focus
+    (arrow keys, Home, End). A pane keeps its pixels when the window changes, is remembered per browser under
+    `threshold.app.size.<id>`, and goes back to its designed size on a double click. A new side panel is a `<Pane>`
+    in a `<Split>`, never a fixed grid column. On a phone a split is off and nothing drags.
 
 ## The design tells checklist
 

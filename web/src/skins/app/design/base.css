@@ -167,6 +167,22 @@ button.chip[aria-pressed='true'] { background: var(--accent-wash); border-color:
 .kv dt { color: var(--ink-3); font-size: var(--text-xs); }
 .kv dd { min-width: 0; overflow-wrap: anywhere; }
 
+/* ---------- resizable panes (split.tsx) ---------- */
+/* A pane's own box: what is in it fills it. */
+.pane { display: flex; flex-direction: column; height: 100%; min-width: 0; min-height: 0; }
+.pane > :last-child { flex: 1; min-height: 0; }
+/* An edge takes no room and draws nothing: 8 px to catch the pointer, laid over the line the panes already share.
+   Six of them lie on the pane after the line and two on the one before, whose scrollbar ends there (the page's,
+   beside the agent panel). The accent line shows only under the pointer, while dragging, and for the keyboard's focus. */
+.edge { position: relative; z-index: 3; flex: none; outline: 0; touch-action: none; }
+.edge[aria-orientation='vertical'] { width: 8px; margin-inline: -2px -6px; }
+.edge[aria-orientation='horizontal'] { height: 8px; margin-block: -2px -6px; }
+.edge::after { content: ''; position: absolute; background: var(--accent); opacity: 0; transition: opacity var(--dur-1) ease; }
+.edge[aria-orientation='vertical']::after { inset-block: 0; left: 1px; width: 2px; }
+.edge[aria-orientation='horizontal']::after { inset-inline: 0; top: 1px; height: 2px; }
+/* :hover as well: an edge that kept the focus after a drag reports that, not the pointer on it */
+.edge:is(:hover, [data-separator='hover'], [data-separator='active'], :focus-visible)::after { opacity: 1; }
+
 .backdrop { position: fixed; inset: 0; background: light-dark(rgb(24 33 43 / 0.28), rgb(0 0 0 / 0.5)); transition: opacity var(--dur-3) ease; z-index: 40; }
 .backdrop[data-starting-style], .backdrop[data-ending-style] { opacity: 0; }
 .dialog { position: fixed; z-index: 41; left: 50%; top: 14vh; translate: -50% 0; width: min(560px, calc(100vw - 32px)); max-height: 72vh; display: flex; flex-direction: column;
@@ -176,9 +192,16 @@ button.chip[aria-pressed='true'] { background: var(--accent-wash); border-color:
 .dialog > header h2 { flex: 1; font-size: var(--text-md); }
 .dialog > .body { padding: var(--s-4); overflow-y: auto; }
 /* a panel that slides in from the right over the page, for one run's result */
-.drawer { position: fixed; z-index: 41; inset: 0 0 0 auto; width: min(480px, 100vw); display: flex; flex-direction: column; background: var(--pane); box-shadow: var(--lift);
+/* A drawer's popup covers the window and passes a click beside the sheet to the backdrop; the sheet is a pane that
+   resizes by its left edge (split.tsx `Sheet`). */
+.drawerwrap { position: fixed; z-index: 41; inset: 0; display: flex; pointer-events: none; outline: 0;
   transition: translate var(--dur-3) var(--ease-sheet), opacity var(--dur-3) ease; }
-.drawer[data-starting-style], .drawer[data-ending-style] { translate: 24px 0; opacity: 0; }
+.drawerwrap[data-starting-style], .drawerwrap[data-ending-style] { translate: 24px 0; opacity: 0; }
+.sheet { flex: 1; min-width: 0; }
+.sheet[data-plain] { display: flex; }
+.sheet .edge { pointer-events: auto; }
+.drawer { display: flex; flex-direction: column; min-width: 0; height: 100%; background: var(--pane); box-shadow: var(--lift); pointer-events: auto; }
+.sheet[data-plain] > .drawer { width: 100%; }
 .drawer > header { display: flex; align-items: center; gap: var(--s-2); height: var(--bar-h); padding: 0 8px 0 16px; border-bottom: 1px solid var(--rule); flex: none; }
 .drawer > header h2 { flex: 1; min-width: 0; }
 .drawer > .body { overflow-y: auto; flex: 1; }
