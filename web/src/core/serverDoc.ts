@@ -42,6 +42,20 @@ export function toQuestion(q: J): Question {
   }
 }
 
+/** A check as it stands now. A run's result does not change, but a finding it names may since have been settled on
+    site with the phone (its source layer is then `phone`): the check takes that finding's status. It takes the value
+    measured there too when the workspace holds exactly one for that place and in the check's unit
+    (`site.<kind>:<sid>:<opening or room>`); with none, or two (a width and a step at one doorway), the scan's figure
+    stays and `site.measured` says so. Nothing is read out of text. */
+export function settled(c: J, ws: J): J {
+  const f = ((ws.findings ?? []) as J[]).find((x) => (c.findings ?? []).includes(x.id) && !x.superseded_by && x.source?.layer === 'phone')
+  if (!f) return c
+  const place = f.anchor?.opening ?? f.anchor?.room, tail = place && f.anchor?.sid ? `:${f.anchor.sid}:${place}` : null
+  const here = tail ? Object.entries((ws.prefs ?? {}) as Record<string, J>).filter(([k, p]) => k.startsWith('site.') && k.endsWith(tail) && typeof p?.value?.value === 'number' && (p.value.unit ?? '') === (c.unit ?? '')) : []
+  const one = here.length === 1
+  return { ...c, status: f.status, measured: one ? here[0][1].value.value : c.measured, site: { scan: c.measured ?? null, measured: one } }
+}
+
 function toBlocks(p: J, runs: Map<string, J>, ws: J, names: Names): Block[] {
   const out: Block[] = []
   const pick = (all: J[] | undefined, ids: string[]) => ids.map((id) => all?.find((m) => m.id === id)).filter((m): m is J => !!m)
@@ -54,8 +68,9 @@ function toBlocks(p: J, runs: Map<string, J>, ws: J, names: Names): Block[] {
         break
       case 'MetricRow': { const ms = pick(res?.metrics, b.metrics ?? []); if (ms.length) out.push({ type: b.type, metrics: ms as never }); break }
       case 'CheckList': {
-        const cs = ((res?.checks ?? []) as J[]).filter((c) => (!b.checks || b.checks.includes(c.id)) && (!b.status || b.status.includes(c.status)))
-          .sort((x, y) => WORST[x.status as Status] - WORST[y.status as Status]).map((c) => ({ ...c, findings: c.findings ?? [] }))
+        // settled first: a check the phone turned to pass is filtered and ordered by what it is now
+        const cs = ((res?.checks ?? []) as J[]).map((c) => settled({ ...c, findings: c.findings ?? [] }, ws)).filter((c) => (!b.checks || b.checks.includes(c.id)) && (!b.status || b.status.includes(c.status)))
+          .sort((x, y) => WORST[x.status as Status] - WORST[y.status as Status])
         if (cs.length) out.push({ type: b.type, checks: cs as never })
         break
       }
@@ -64,7 +79,7 @@ function toBlocks(p: J, runs: Map<string, J>, ws: J, names: Names): Block[] {
         if (b.run) { // a table inside one run's result (a census's groups): rows are keys, a cell is that run's metric `<row>/<column>`
           const ms = (runs.get(b.run)?.result?.metrics ?? []) as J[], cell = (k: string, c: J) => ms.find((m) => m.id === `${k}/${c.metric}`)
           const cols = (b.columns ?? []) as J[], keys = ((b.rows ?? []) as string[]).filter((k) => cols.some((c) => cell(k, c)))
-          if (keys.length) out.push({ type: b.type, source: ms.find((m) => String(m.id).startsWith(`${keys[0]}/`))?.source ?? SRC,
+          if (keys.length) out.push({ type: b.type, title: b.title || undefined, source: ms.find((m) => String(m.id).startsWith(`${keys[0]}/`))?.source ?? SRC,
             columns: cols.map((c) => ({ id: c.metric, label: c.label, unit: keys.map((k) => cell(k, c)?.unit).find(Boolean) || undefined, better: c.better })),
             rows: keys.map((k) => ({ id: k, label: b.labels?.[k] ?? cols.map((c) => cell(k, c)?.label).find(Boolean) ?? k, values: Object.fromEntries(cols.map((c) => [c.metric, cell(k, c)?.value ?? null])) })) })
           break

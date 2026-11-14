@@ -43,6 +43,10 @@ export type Check = {
   standard?: string | null; findings: string[]
   /** 'claim': `threshold` is what a record or a listing says, not a limit to meet. Missing means 'limit'. */
   kind?: 'limit' | 'claim'
+  /** Set when the check was settled on site with the phone after the tool ran: `status` is then the on-site result.
+      `scan` is the figure the tool measured from the scan; `measured` says whether `Check.measured` is now the value
+      taken on site (true) or still the scan's (false: the site result came without a figure for this place). */
+  site?: { scan: number | null; measured: boolean }
 }
 /** kind 'phone': `ref` is a capture id (or `<id>#<n>` for a video frame); its picture is `captureImage(ref)`. */
 export type Media = { kind: 'pano' | 'ortho' | 'drone' | 'phone'; ref: string; box?: [number, number, number, number] | null }
@@ -71,7 +75,7 @@ export type Block =
   | { type: 'MetricRow'; metrics: Metric[] }
   | { type: 'CheckList'; checks: Check[] }
   | { type: 'EvidenceStrip'; findings: string[] }
-  | { type: 'RankedTable'; columns: { id: string; label: string; unit?: string; better?: 'higher' | 'lower' }[]; rows: { id: string; label: string; anchor?: Anchor; status?: Status; values: Record<string, number | null> }[]; source: Source }
+  | { type: 'RankedTable'; /** what the table is of, when the tool says ("City census by zip code") */ title?: string; columns: { id: string; label: string; unit?: string; better?: 'higher' | 'lower' }[]; rows: { id: string; label: string; anchor?: Anchor; status?: Status; values: Record<string, number | null> }[]; source: Source }
   | { type: 'MiniChart'; title: string; unit: string; bars: { label: string; value: number; status?: Status }[]; mark?: { value: number; label: string }; source: Source }
   | { type: 'FloorPlanMini'; sid: string }
   | { type: 'Controls'; controls: { id: string; label: string; kind: 'slider' | 'toggle' | 'select'; value: number | boolean | string; min?: number; max?: number; step?: number; unit?: string; options?: string[] }[] }

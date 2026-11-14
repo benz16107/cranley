@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { prefName, toDoc, toQuestion, toServerOp, type Manifest } from './serverDoc.ts'
+import { prefName, settled, toDoc, toQuestion, toServerOp, type Manifest } from './serverDoc.ts'
 import { apply, inverse } from './reducer.ts'
 
 const src = { layer: 'matterport', method: 'geometry', confidence: 'high' }
@@ -93,14 +93,38 @@ test('a ranked table inside one run (a census by group) reads its cells from tha
   const m = (id: string, label: string, value: number | null, unit = '') => ({ id, label, value, unit, source: src })
   const census = { id: 'ws_2', runs: [{ id: 'r_c', tool: 'city_census', status: 'done', result: { verdict: { status: 'pass', text: 'Two groups.' },
     metrics: [m('groups', 'Groups', 2), m('g0/share', 'home', 33, '%'), m('g0/scans', 'home', 120), m('g1/share', 'office', 44.4, '%'), m('g1/scans', 'office', 9)] } }],
-    panels: [{ id: 'panel:city_census:', title: 'City census', tool: 'city_census', run: 'r_c', blocks: [{ type: 'RankedTable', run: 'r_c', rows: ['g1', 'g0', 'g9'], labels: { g1: 'Offices' },
+    panels: [{ id: 'panel:city_census:', title: 'City census', tool: 'city_census', run: 'r_c', blocks: [{ type: 'RankedTable', title: 'City census by property type', run: 'r_c', rows: ['g1', 'g0', 'g9'], labels: { g1: 'Offices' },
       columns: [{ metric: 'share', label: 'Share', better: 'higher' }, { metric: 'scans', label: 'Scans', better: 'higher' }, { metric: 'median', label: 'Median' }] }] }] }
   const [table] = toDoc(census, [], manifests, names).panels[0].blocks
-  assert.deepEqual(table, { type: 'RankedTable', source: src,
+  assert.deepEqual(table, { type: 'RankedTable', title: 'City census by property type', source: src,
     columns: [{ id: 'share', label: 'Share', unit: '%', better: 'higher' }, { id: 'scans', label: 'Scans', unit: undefined, better: 'higher' }, { id: 'median', label: 'Median', unit: undefined, better: undefined }],
     rows: [ // the tool's order is kept; a row the block labels takes that label, the other its metric's; a key with no metric is left out
       { id: 'g1', label: 'Offices', values: { share: 44.4, scans: 9, median: null } },
       { id: 'g0', label: 'home', values: { share: 33, scans: 120, median: null } }] })
   // and a table whose run has no such metrics draws nothing, as before
   assert.deepEqual(toDoc({ ...census, panels: [{ id: 'p', title: 't', blocks: [{ type: 'RankedTable', run: 'r_c', rows: ['x'], columns: [{ metric: 'share', label: 'Share' }] }] }] }, [], manifests, names).panels[0].blocks, [])
+})
+
+test('a check follows its finding once the phone has settled it on site', () => {
+  const check = (id: string, measured: number) => ({ id, rule: `Doorway ${id}`, measured, threshold: 0.815, unit: 'm', status: 'warn', findings: [`doors:s1:${id}`] })
+  const finding = (id: string, status: string, layer: string, more = {}) => ({ id: `doors:s1:${id}`, title: id, status, detail: '', anchor: { sid: 's1', opening: id }, source: { layer, method: layer === 'phone' ? 'manual' : 'geometry', confidence: 'high' }, tool: 'doors', run: 'r1', ...more })
+  const site = (value: number, unit = 'm') => ({ value: { verdict: 'contradicted', status: 'pass', value, unit }, by: 'user' })
+  const doc = { id: 'ws_3',
+    runs: [{ id: 'r1', tool: 'doors', sid: 's1', status: 'done', result: { verdict: { status: 'warn', text: 'Three doorways are close to the limit.' }, metrics: [], checks: [check('a', 0.832), check('b', 0.79), check('c', 0.8), check('d', 0.81)] } }],
+    findings: [finding('a', 'pass', 'phone'), finding('b', 'warn', 'matterport'), finding('c', 'fail', 'phone'), finding('d', 'pass', 'phone', { superseded_by: 'r2' })],
+    prefs: { 'site.width:s1:a': site(0.84), 'site.width:s1:c': site(0.78), 'site.step:s1:c': site(0.02), 'site.width:s1:b': site(0.9), 'site.slope:s1:a': site(4, '%') },
+    panels: [{ id: 'panel:doors:s1', title: 'Door widths', tool: 'doors', run: 'r1', blocks: [{ type: 'CheckList', run: 'r1', checks: null, status: null }] }] }
+  const [list] = toDoc(doc, [], manifests, names).panels[0].blocks
+  assert.equal(list.type, 'CheckList')
+  const rows = list.type === 'CheckList' ? list.checks.map((c) => [c.id, c.status, c.measured, c.site]) : []
+  assert.deepEqual(rows, [ // worst first, by what each check is now
+    ['c', 'fail', 0.8, { scan: 0.8, measured: false }], // settled on site, but a width and a step are both held for this doorway: no figure is guessed
+    ['b', 'warn', 0.79, undefined], // its finding is still the scan's: an on-site value alone changes nothing
+    ['d', 'warn', 0.81, undefined], // the phone's finding was superseded by a later run
+    ['a', 'pass', 0.84, { scan: 0.832, measured: true }]]) // the 0.83 m caution is now the 0.84 m measured at the door (the slope there is in %, not this check's unit)
+  // a block that lists only cautions no longer lists the door the phone passed
+  const only = toDoc({ ...doc, panels: [{ ...doc.panels[0], blocks: [{ type: 'CheckList', run: 'r1', checks: null, status: ['warn'] }] }] }, [], manifests, names).panels[0].blocks[0]
+  assert.deepEqual(only.type === 'CheckList' && only.checks.map((c) => c.id), ['b', 'd'])
+  // a check with no finding, and a workspace with no findings or prefs at all, pass through
+  assert.deepEqual(settled({ id: 'x', status: 'warn', measured: 1, unit: 'm' }, {}), { id: 'x', status: 'warn', measured: 1, unit: 'm' })
 })
