@@ -4,6 +4,7 @@ the summary, reasons and limits is one the person said.
 
     uv run python -m threshold.agent.evaluate            # replay the recorded model answers (what the test runs)
     uv run python -m threshold.agent.evaluate --live     # ask the live model once per brief and record the answers
+    uv run python -m threshold.agent.evaluate --missing  # ask it only for briefs with no recorded answer yet
 
 Briefs and expectations: tests/agent/composer_briefs.json. Recorded answers: tests/agent/composer_recorded.json.
 The table goes to $THRESHOLD_DATA_DIR/shots/agent/composer_eval[-<label>].md.
@@ -41,10 +42,12 @@ class Recorded:
 
 
 class Recording:
-    def __init__(self, model):
-        self.model, self.answers = model, {}
+    def __init__(self, model, answers: dict | None = None):
+        self.model, self.answers = model, dict(answers or {})
 
     def structured(self, system, user, schema):
+        if _text(user) in self.answers:
+            return schema.model_validate(self.answers[_text(user)])
         out = self.model.structured(system, user, schema)
         self.answers[_text(user)] = out.model_dump(mode="json")
         return out
@@ -96,10 +99,11 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--live", action="store_true", help="ask the live model and record its answers")
     ap.add_argument("--label", default="", help="suffix for the saved table")
+    ap.add_argument("--missing", action="store_true", help="ask the live model only for briefs not recorded yet")
     a = ap.parse_args(argv)
-    if a.live:
+    if a.live or a.missing:
         from .llm import Claude
-        model = Recording(Claude())
+        model = Recording(Claude(), json.loads(RECORDED.read_text()) if a.missing else None)
         rows = run(model)
         RECORDED.write_text(json.dumps(model.answers, indent=1, sort_keys=True) + "\n")
     else:

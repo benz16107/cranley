@@ -1,8 +1,20 @@
 """Small hand-made plans; no sponsor data and no network."""
 import pytest
 
+from threshold.agent.catalog import catalog
 from threshold.agent.investigator import attach
 from threshold.agent.workspace import Session
+from threshold.tools.types import Manifest
+
+UNBUILT = "not_built_yet"  # a planned tool that stays planned, whatever real tools get built
+
+
+@pytest.fixture(autouse=True, scope="session")
+def planned_stub():
+    catalog()[UNBUILT] = Manifest(id=UNBUILT, title="Not built yet", summary="A planned tool.",
+                                  model_description="A planned tool.", status="planned")
+    yield
+    catalog().pop(UNBUILT, None)
 
 
 def make_plan(sid="t1"):

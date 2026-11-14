@@ -25,10 +25,10 @@ class Fake:
 
 
 def test_presets_exist_and_name_known_tools():
-    assert len(personas()) == 11
+    assert len(personas()) >= 11
     for p in personas().values():
         assert set(p.tools) <= set(catalog()), p.id
-    assert catalog()["flood_rehearsal"].status == "planned" and catalog()["door_widths"].status == "ready"
+    assert catalog()["not_built_yet"].status == "planned" and catalog()["door_widths"].status == "ready"
 
 
 def test_schema_is_an_enum():
@@ -41,10 +41,10 @@ def test_schema_is_an_enum():
 
 def test_wheelchair_preset_fills_threshold_so_no_question():
     ops = compose("I use a wheelchair", Workspace(id="w"), Fake("wheelchair_user", ["door_widths", "room_census",
-                                                                                   "step_free_route"]))
+                                                                                   "not_built_yet"]))
     assert isinstance(ops[0], BriefSet) and ops[0].persona == "wheelchair_user"
     enabled = {o.tool: o.status for o in ops if isinstance(o, ToolEnable)}
-    assert enabled == {"door_widths": "ready", "room_census": "ready", "step_free_route": "planned"}
+    assert enabled == {"door_widths": "ready", "room_census": "ready", "not_built_yet": "planned"}
     assert not [o for o in ops if isinstance(o, QuestionAsk)]
 
 

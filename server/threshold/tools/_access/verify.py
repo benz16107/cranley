@@ -19,31 +19,13 @@ from ...sources.index import rows
 from .. import ToolContext, run_tool
 from .draw import COL, _font, save_example
 
-SCANS = {  # sid: why it is here
-    "<scan-id>": "house, Los Angeles, one floor",
-    "<scan-id>": "house, Houston, two floors",
-    "<scan-id>": "house, Houston, two floors, a 7 cm door width on a route",
-    "<scan-id>": "house, Los Angeles, a data-error door width on a route",
-    "<scan-id>": "house, Houston",
-    "<scan-id>": "apartment, Los Angeles",
-    "<scan-id>": "apartment, Houston",
-    "<scan-id>": "apartment, Los Angeles",
-    "<scan-id>": "apartment, Houston, no wall graph",
-    "<scan-id>": "apartment, Los Angeles, no wall graph",
-    "<scan-id>": "office, Houston, no room labels",
-}
-VISION = {"<scan-id>", "<scan-id>", "<scan-id>", "<scan-id>", "<scan-id>", "<scan-id>"}
-TOOLS = {  # id: (extra inputs, the scan whose result is the example)
-    "step_free_route": ({}, "<scan-id>"),
-    "turning_space": ({}, "<scan-id>"),
-    "bathroom_clearance": ({}, "<scan-id>"),
-    "stairs_count": ({}, "<scan-id>"),
-    "aging_in_place": ({}, "<scan-id>"),
-    "furniture_fit": ({"object": "refrigerator"}, "<scan-id>"),
-    "stretcher_route": ({}, "<scan-id>"),
-    "robot_fit": ({}, "<scan-id>"),
-    "curb_to_door": ({}, "<scan-id>"),
-}
+# Which real scans to run, and why, is sponsor data: it lives in the data folder, never in git.
+# {"scans": {sid: why}, "vision": [sid], "examples": {tool id: sid}}
+_PICK = json.loads((DATA / "fixtures" / "verify_access.json").read_text())
+SCANS: dict[str, str] = _PICK["scans"]
+VISION = set(_PICK["vision"])
+EXTRA = {"furniture_fit": {"object": "refrigerator"}}
+TOOLS = {t: (EXTRA.get(t, {}), sid) for t, sid in _PICK["examples"].items()}  # id: (extra inputs, the example scan)
 PANO_TOOLS = {"step_free_route", "bathroom_clearance", "stairs_count", "aging_in_place", "curb_to_door"}
 SEARCHES = {
     "wheelchair_one_floor": [{"measure": "bath_route_door", "op": ">=", "value": 0.81},

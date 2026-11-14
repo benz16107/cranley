@@ -296,6 +296,34 @@
    }
   ]
  },
+ "I use a wheelchair and want to search every home you have for ones I could live in without renovating.": {
+  "cannot": [],
+  "persona": "wheelchair_home_search",
+  "stated": [],
+  "summary": "A wheelchair user searching every available home for ones they can live in as-is, without renovating.",
+  "tools": [
+   {
+    "id": "measure_search",
+    "reason": "You can search all the homes at once by measured door widths, turning space and steps to find the ones that work for your wheelchair."
+   },
+   {
+    "id": "step_free_route",
+    "reason": "You can see, for each promising home, whether there is a step-free route from the entrance to every room you need and where the narrowest point is."
+   },
+   {
+    "id": "bathroom_clearance",
+    "reason": "You can check whether each bathroom has the door width, turning room, toilet clearance and step-free shower you need without changes."
+   },
+   {
+    "id": "turning_space",
+    "reason": "You can confirm each room has enough clear space for you to turn around in your wheelchair."
+   },
+   {
+    "id": "curb_to_door",
+    "reason": "You can check whether you can get from parking to the front door without steps."
+   }
+  ]
+ },
  "I want a bright apartment with lots of closet space.": {
   "cannot": [],
   "persona": "renter_listing",
@@ -644,6 +672,36 @@
    }
   ]
  },
+ "My mother is moving in with us and I need to know if this house is safe for an older person to get around.": {
+  "cannot": [
+   "Nothing here can judge loose rugs, lighting levels, clutter or slippery floors, so those still need a walk-through in person."
+  ],
+  "persona": "aging_in_place_planner",
+  "stated": [],
+  "summary": "Your mother is moving in with you and you want to know if your house is safe for her to get around.",
+  "tools": [
+   {
+    "id": "aging_in_place",
+    "reason": "This walks through the fall-prevention checklist floor by floor, including clear paths, stairs and the night path from bed to bathroom."
+   },
+   {
+    "id": "stairs_count",
+    "reason": "This shows how many floors and steps stand between the entrance and the bedrooms, and any steps at doorways she could trip on."
+   },
+   {
+    "id": "step_free_route",
+    "reason": "This traces the route from the entrance to the rooms she will use and tells you where a step or narrow spot gets in the way."
+   },
+   {
+    "id": "bathroom_clearance",
+    "reason": "This checks each bathroom for room to move, wall space for grab bars, and whether the shower has a step."
+   },
+   {
+    "id": "stretcher_route",
+    "reason": "This tells you whether paramedics could carry a stretcher from the entrance to her bedroom if she ever needed help."
+   }
+  ]
+ },
  "My power chair is 70 cm wide; can I get into every room of this unit?": {
   "cannot": [],
   "persona": "wheelchair_user",
@@ -757,6 +815,34 @@
    {
     "id": "record_vs_reality",
     "reason": "You can compare the listing's claims directly against what the scan measured, room by room."
+   }
+  ]
+ },
+ "We design a wheeled home robot and want to know what share of real homes it can get around.": {
+  "cannot": [],
+  "persona": "robot_maker",
+  "stated": [],
+  "summary": "You design a wheeled home robot and want to know what share of real homes it can get around.",
+  "tools": [
+   {
+    "id": "robot_fit",
+    "reason": "This shows which rooms your robot can reach and turn in across many homes, and which single change to its size gains the most."
+   },
+   {
+    "id": "measure_search",
+    "reason": "This lets you search many homes by measured door widths, turning space and steps to see how common each limit is."
+   },
+   {
+    "id": "turning_space",
+    "reason": "This finds the largest clear circle in each room so you can check it against your robot's turning circle."
+   },
+   {
+    "id": "door_widths",
+    "reason": "This measures every doorway so you can see which ones are too narrow for your robot's width."
+   },
+   {
+    "id": "stairs_count",
+    "reason": "This finds steps at doorways and between floors, which a wheeled robot cannot climb past."
    }
   ]
  },

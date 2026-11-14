@@ -34,8 +34,8 @@ def script():
 def ready(session):
     session.submit(BriefSet(by="user", scope=Scope(sids=["t1"]), persona="wheelchair_user", text="wheelchair",
                             summary="Wheelchair user"))
-    for t in ("door_widths", "room_census", "step_free_route"):
-        session.submit(ToolEnable(tool=t, status="planned" if t == "step_free_route" else "ready"))
+    for t in ("door_widths", "room_census", "not_built_yet"):
+        session.submit(ToolEnable(tool=t, status="planned" if t == "not_built_yet" else "ready"))
 
 
 def test_run_emits_bound_ops_and_compact_summary(session):
@@ -58,7 +58,7 @@ def test_run_emits_bound_ops_and_compact_summary(session):
 def test_planned_and_out_of_scope_and_missing_inputs(session):
     ready(session)
     inv = Investigation(session)
-    assert inv.run("step_free_route", {})["skipped"]
+    assert inv.run("not_built_yet", {})["skipped"]
     assert "not in this workspace" in inv.run("room_census", {"scan": "t2"})["error"]
     session.submit({"op": "brief.set", "persona": "furniture_mover"}, by="user")
     assert "missing" in inv.run("door_widths", {"scan": "t1"})["error"]
@@ -74,7 +74,7 @@ def test_deepagents_turn_streams_plan_runs_and_focus(session):
     assert names[0] == "run.start" and ops[1].status == "skipped"  # the planned tool
     assert names.count("plan.set") == 2
     runs = [o for o in ops if o.op == "run.start"]
-    assert [r.record.tool for r in runs] == ["step_free_route", "door_widths", "room_census"]
+    assert [r.record.tool for r in runs] == ["not_built_yet", "door_widths", "room_census"]
     assert runs[1].record.plan_step == "s1"
     assert ops[[i for i, n in enumerate(names) if n == "camera.focus"][-1]].reason == "Bedroom door"
     assert session.doc.panels[-1].id == "agent:summary"
