@@ -25,7 +25,7 @@ from collections.abc import Callable
 
 from PIL import Image
 from shapely import wkt as shapely_wkt
-from shapely.geometry import Point, Polygon
+from shapely.geometry import LineString, Point, Polygon
 
 from ...geometry._plan import floor_z, polygons, room_floor_z
 
@@ -194,18 +194,44 @@ def _jpeg(im: Image.Image, px: int) -> bytes:
     return buf.getvalue()
 
 
+# Drones without calibrated intrinsics in their metadata: focal length in px of the full-size image, from the
+# camera's published 35 mm equivalent over the sensor diagonal (Mavic 3: Hasselblad L2D-20c, 24 mm, 5280 x 3956).
+FOCAL_BY_PRODUCT = {"DJIMavic3": (24 * math.hypot(5280, 3956) / 43.27, 5280, 3956)}
+
+
+def intrinsics(p: dict) -> dict | None:
+    if p.get("focal_px"):
+        return {"focal_px": p["focal_px"], "cx_px": p["cx_px"], "cy_px": p["cy_px"], "intrinsics": "calibrated"}
+    f = FOCAL_BY_PRODUCT.get(p.get("product") or "")
+    return {"focal_px": f[0], "cx_px": f[1] / 2, "cy_px": f[2] / 2, "intrinsics": "published"} if f else None
+
+
+def wall_distance(p: dict, fp_xy: Polygon, to_xy) -> tuple[float, str] | None:
+    """Horizontal distance to the house along the optical axis: the laser's, else the GPS ray to the footprint."""
+    cam = to_xy(p["lon"], p["lat"])
+    if p.get("lrf_lat") is not None and p.get("lrf_m"):
+        hit = to_xy(p["lrf_lon"], p["lrf_lat"])
+        return (math.dist(cam, hit), "laser") if fp_xy.buffer(1.5).contains(Point(hit)) else None
+    b = math.radians(p["gimbal_yaw_deg"])
+    ray = LineString([cam, (cam[0] + 60 * math.sin(b), cam[1] + 60 * math.cos(b))])
+    x = ray.intersection(fp_xy.exterior)
+    pts = [Point(c) for g in getattr(x, "geoms", [x]) for c in getattr(g, "coords", [])]
+    return (min(Point(cam).distance(q) for q in pts), "gps") if pts else None
+
+
 def drone_candidates(photos: list[dict], fp_xy: Polygon, to_xy) -> list[dict]:
-    """Low, near-level RTK photos whose laser hit the house, one per side, lowest first."""
+    """Low, near-level photos aimed at the house, one per side, lowest first; RTK and laser ones first."""
     ok = []
     for p in photos:
-        if None in (p.get("focal_px"), p.get("lrf_m"), p.get("lrf_lat"), p.get("alt"), p.get("gimbal_pitch_deg")):
+        if None in (p.get("alt"), p.get("gimbal_pitch_deg"), p.get("lat"), p.get("gimbal_yaw_deg")):
             continue
-        if p["alt"] > 6 or not -25 <= p["gimbal_pitch_deg"] <= 5 or p.get("gps_status") not in ("RTK", None):
+        if p["alt"] > 6 or not -25 <= p["gimbal_pitch_deg"] <= 5:
             continue
-        if not fp_xy.buffer(1.5).contains(Point(to_xy(p["lrf_lon"], p["lrf_lat"]))):
+        k, d = intrinsics(p), wall_distance(p, fp_xy, to_xy)
+        if k is None or d is None or d[0] > 40:
             continue
-        ok.append(p)
-    ok.sort(key=lambda p: (p["alt"], abs(p["gimbal_pitch_deg"])))
+        ok.append({**p, **k, "wall_m": d[0], "wall_source": d[1]})
+    ok.sort(key=lambda p: (p["wall_source"] != "laser", p["alt"], abs(p["gimbal_pitch_deg"])))
     out, yaws = [], []
     for p in ok:
         if all(abs((p["gimbal_yaw_deg"] - y + 180) % 360 - 180) > 25 for y in yaws):
@@ -219,8 +245,7 @@ def drone_heights(photo: dict, img_w: int, u: float, v_thr: float, v_gnd: float,
     s = img_w / (2 * photo["cx_px"])
     f, cx, cy = photo["focal_px"] * s, photo["cx_px"] * s, photo["cy_px"] * s
     cam = to_xy(photo["lon"], photo["lat"])
-    hit = to_xy(photo["lrf_lon"], photo["lrf_lat"])
-    d_h = math.dist(cam, hit)
+    d_h = photo.get("wall_m") or math.dist(cam, to_xy(photo["lrf_lon"], photo["lrf_lat"]))
     phi = math.atan2(u - cx, f)
     d = d_h / math.cos(phi)                         # wall taken as square to the view, near the image centre
 
@@ -229,8 +254,9 @@ def drone_heights(photo: dict, img_w: int, u: float, v_thr: float, v_gnd: float,
     bearing = math.radians(photo["gimbal_yaw_deg"]) + phi
     door_xy = (cam[0] + d * math.sin(bearing), cam[1] + d * math.cos(bearing))
     lrf_pred = photo["alt_abs"] + d_h * math.tan(math.radians(photo["gimbal_pitch_deg"]))
+    check = photo["lrf_alt_abs"] - lrf_pred if photo.get("lrf_alt_abs") is not None else None
     return {"threshold_abs": alt(v_thr), "ground_abs": alt(v_gnd), "distance_m": d, "focal_scaled": f,
-            "door_xy": door_xy, "laser_check_m": photo["lrf_alt_abs"] - lrf_pred}
+            "door_xy": door_xy, "laser_check_m": check}
 
 
 def drone_threshold(sid: str, footprint_wkt: str | None, lat0: float, lon0: float, *, photos: list[dict],
@@ -280,23 +306,31 @@ def drone_threshold(sid: str, footprint_wkt: str | None, lat0: float, lon0: floa
         v_gnd = box[1] + (gnd["y0"] + gnd["y1"]) / 2 / cs
         h = drone_heights(p, full.width, u, v_thr, v_gnd, to_xy)
         sig_px = BOX_ERR * CROP_PX / cs
+        ffh = h["threshold_abs"] - h["ground_abs"] - THRESHOLD_TO_FLOOR_M
         sig = h["distance_m"] * sig_px / h["focal_scaled"] * math.sqrt(2)
-        t.update(ffh_m=round(h["threshold_abs"] - h["ground_abs"] - THRESHOLD_TO_FLOOR_M, 3), err_m=round(sig, 3),
-                 distance_m=round(h["distance_m"], 2), laser_check_m=round(h["laser_check_m"], 3),
+        if p["wall_source"] == "gps":  # about 2 m of GPS and footprint error in the distance, 3% in a published focal
+            sig = math.hypot(sig, abs(ffh) * 2.0 / max(h["distance_m"], 1), abs(ffh) * 0.03)
+        t.update(ffh_m=round(ffh, 3), err_m=round(sig, 3), distance_m=round(h["distance_m"], 2),
+                 distance_from=p["wall_source"], intrinsics=p["intrinsics"],
+                 laser_check_m=round(h["laser_check_m"], 3) if h["laser_check_m"] is not None else None,
                  crop=[round(x) for x in box])
         found.append((p, h, sig, t))
     if not found:
         trace["reason"] = trace.get("reason") or ("No low drone photo aimed at the house showed a door with the ground "
-                                                  "beside it." if cands else "No low, level drone photo whose laser hit the house.")
+                                                  "beside it." if cands else "No low, level drone photo aimed at the "
+                                                  "house with a known focal length.")
         return [], trace
     ffh = [t["ffh_m"] for *_, t in found]
     spread = statistics.pstdev(ffh) if len(ffh) > 1 else 0.0
     err = max(spread, math.sqrt(statistics.fmean(s ** 2 for _, _, s, _ in found)), 0.03)
-    conf = "high" if len(found) >= 2 and spread < 0.08 else "medium"
+    laser = all(p["wall_source"] == "laser" for p, *_ in found)
+    conf = "high" if laser and len(found) >= 2 and spread < 0.08 else "medium"
     out = [_est("drone_pixels", statistics.fmean(ffh), err, conf,
-                f"{len(found)} RTK drone photo(s) facing a door: the model marked the threshold and the ground at the "
-                "foot of the wall; the calibrated focal length and the laser distance to the wall turn those rows "
-                "into heights. Assumes the wall is square to the view.",
+                f"{len(found)} drone photo(s) facing a door: the model marked the threshold and the ground at the foot "
+                "of the wall; the focal length and the distance to the wall turn those rows into heights. "
+                + ("Calibrated focal length and laser distance (RTK drone)." if laser else
+                   "Distance from the GPS position to the Vexcel footprint along the view, focal length from the "
+                   "camera's published specification.") + " Assumes the wall is square to the view.",
                 photos=[t["photo"] for *_, t in found])]
     # Ground from laser hits that landed near the door, outside the house, from steeper photos.
     _, h0, *_ = found[0]

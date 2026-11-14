@@ -15,14 +15,14 @@ import statistics
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-from matplotlib.patches import Polygon as MplPolygon  # noqa: E402
-from PIL import Image  # noqa: E402
-from shapely.geometry import shape  # noqa: E402
+import matplotlib.pyplot as plt
+from matplotlib.patches import Polygon as MplPolygon
+from PIL import Image
+from shapely.geometry import shape
 
-from ...config import DATA  # noqa: E402
-from ...geometry._plan import polygons  # noqa: E402
-from .. import ToolContext, run_tool  # noqa: E402
+from ...config import DATA
+from ...geometry._plan import polygons
+from .. import ToolContext, run_tool
 
 OUT = DATA / "shots" / "tools"
 STATUS = {"pass": "#3b7d4f", "warn": "#d08a1e", "fail": "#b3362c", "unknown": "#777777"}
@@ -76,7 +76,7 @@ def render_flood(plan, r, path):
                     if poly is not None and next(x["floor"] for x in plan["rooms"] if x["id"] == rid) == fl:
                         c = poly.representative_point()
                         ax.annotate(p.label, (c.x, c.y), xytext=(0, 12), textcoords="offset points", ha="center",
-                                    fontsize=8, color="white", bbox=dict(boxstyle="circle", fc=STATUS[p.status], ec="none"))
+                                    fontsize=8, color="white", bbox={"boxstyle": "circle", "fc": STATUS[p.status], "ec": "none"})
         ax.set_title(next(f.get("label") or f["id"] for f in plan["floors"] if f["id"] == fl), fontsize=9)
     fig.suptitle(wrap(r.verdict.text, 120), fontsize=9)
     fig.savefig(path, dpi=130, bbox_inches="tight")
@@ -126,7 +126,7 @@ def render_plan(plan, r, path):
                 if hasattr(p.anchor, "point") and p.label.isdigit() and int(p.label) <= 15:
                     x, y, _ = p.anchor.point
                     a1.annotate(p.label, (x, y), fontsize=7, color="white", ha="center",
-                                bbox=dict(boxstyle="circle", fc="#b3362c", ec="none"))
+                                bbox={"boxstyle": "circle", "fc": "#b3362c", "ec": "none"})
     a1.set_title("Blue squares: windows to board. Amber diamonds: doors to sandbag. Numbers: carry order", fontsize=8)
     gen = next((f for f in r.findings if f.id.endswith(":generator")), None)
     lat, lon = plan["geo"]["lat"], plan["geo"]["lon"]
