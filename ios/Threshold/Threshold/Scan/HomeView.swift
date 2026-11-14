@@ -48,7 +48,7 @@ struct HomeView: View {
             NavigationLink(value: scan.sid) {
               VStack(alignment: .leading, spacing: 2) {
                 Text(scan.name ?? scan.sid)
-                Text(scan.created.map { String($0.prefix(16)).replacingOccurrences(of: "T", with: " ") } ?? scan.sid)
+                Text(scan.created.flatMap { try? Date($0, strategy: .iso8601) }?.formatted(date: .abbreviated, time: .shortened) ?? scan.sid)
                   .font(.footnote).foregroundStyle(.secondary).monospacedDigit()
               }
             }
@@ -76,6 +76,7 @@ struct HomeView: View {
     do {
       let result = try await app.api.uploadScan(export: export, name: name ?? self.name, kind: kind, address: nil, geo: geo,
                                                 workspace: nil)
+      app.mine.append(result.sid)
       if app.workspace != nil { try? await app.capture.place(result.sid) }  // the scan joins the linked workspace's buildings
       await app.refreshScans()
       path = [result.sid]
