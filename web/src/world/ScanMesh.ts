@@ -89,8 +89,8 @@ export class ScanMesh {
   private async load() {
     this.status = 'loading'; this.onChange()
     try {
-      // v is the file layout's number: the answer is cached for a day, so a new layout needs a new address
-      const buf = await fetch(`${this.api}/api/world/${this.sid}/mesh?v=6`).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`mesh ${r.status}`))))
+      // v is the file layout's number. The server makes the browser check on its copy before reusing it.
+      const buf = await fetch(`${this.api}/api/world/${this.sid}/mesh?v=7`).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`mesh ${r.status}`))))
       if (this.gone) return
       const head = new DataView(buf)
       if (new TextDecoder().decode(buf.slice(0, 4)) !== 'THM2') throw new Error('not a mesh')
@@ -117,8 +117,7 @@ export class ScanMesh {
     const st = await fetch(`${this.api}/api/world/${this.sid}/mesh/status`).then((r) => (r.ok ? r.json() : { state: 'none' })).catch(() => ({ state: 'none' }))
     if (this.gone) return
     if (st.state === 'ready') {
-      // the atlas only fits the mesh it was baked for, and both are cached for a day: name the bake in the address
-      this.atlas = `${this.api}/api/world/${this.sid}/mesh/atlas.jpg?v=${st.version}-${st.triangles}`
+      this.atlas = `${this.api}/api/world/${this.sid}/mesh/atlas.jpg?v=${st.version}-${st.triangles}-${st.atlas_px}`
       this.colour = 'ready'; this.progress = 1; this.paint()
     } else if (st.state === 'baking') {
       this.colour = 'baking'; this.progress = st.progress ?? 0
