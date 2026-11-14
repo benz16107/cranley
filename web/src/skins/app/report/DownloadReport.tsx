@@ -34,7 +34,8 @@ export function DownloadReport({ workspace, sid, name, disabled }: { workspace: 
   const [busy, setBusy] = useState(false)
   const run = (kind: string, label: string) => {
     setBusy(true)
-    const file = `${(name || 'Threshold').replace(/[^\w ]+/g, '').trim() || 'Threshold'} ${label}.pdf`
+    const base = (name || 'Threshold').replace(/[^\w ]+/g, '').trim() || 'Threshold'
+    const file = `${base.toLowerCase().includes(label.toLowerCase()) ? base : `${base} ${label}`}.pdf`
     toast.promise(save(reportUrl(workspace, { kind, sid }), file).finally(() => setBusy(false)), {
       loading: `Printing the ${label.toLowerCase()}`,
       success: `Saved ${file}`,
