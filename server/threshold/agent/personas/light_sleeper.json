@@ -1,0 +1,18 @@
+{
+  "id": "light_sleeper",
+  "title": "Light sleeper or night-shift worker",
+  "who": "Sleeps lightly or by day and is choosing the bedroom furthest from road, rail and aircraft noise.",
+  "tools": [
+    "quiet_rooms",
+    "noise_level",
+    "daylight",
+    "room_census"
+  ],
+  "thresholds": {
+    "noise.windows_open": false
+  },
+  "layout": {
+    "view": "plan",
+    "lead_tool": "quiet_rooms"
+  }
+}

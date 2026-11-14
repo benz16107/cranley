@@ -75,5 +75,8 @@
   {"id": "quake-gas", "brief": "How do we get ready for the big one? I don't even know where our gas shutoff is.", "persona": ["la_quake_prep"], "must": [["quake_ready"]], "never": ["flood_rehearsal"]},
   {"id": "plants-office-room", "brief": "Which room in this house gets the most sun for my plants, and where should my desk go so the screen has no glare?", "persona": ["room_chooser"], "must": [["sun_rooms"]], "never": ["fire_preplan"]},
   {"id": "solar-payback", "brief": "Would solar panels on my roof pay for themselves, and how many would fit?", "persona": ["solar_homeowner"], "must": [["solar_roof"]], "never": ["flood_rehearsal"]},
-  {"id": "la-defensible-space", "brief": "After the LA fires I want to know what to clear around my house and whether I'm in a fire hazard zone.", "persona": ["la_fire_homeowner"], "must": [["wildfire_space"]], "never": ["flood_rehearsal"]}
+  {"id": "la-defensible-space", "brief": "After the LA fires I want to know what to clear around my house and whether I'm in a fire hazard zone.", "persona": ["la_fire_homeowner"], "must": [["wildfire_space"]], "never": ["flood_rehearsal"]},
+  {"id": "signals-remote-worker", "brief": "I work from home: I need strong Wi-Fi and a quiet room for my office.", "persona": ["remote_worker"], "must": [["wifi_coverage"], ["quiet_rooms", "noise_level"]], "never": ["fire_preplan", "truck_access"]},
+  {"id": "signals-security", "brief": "We're a family planning home security cameras. Where should they go so every door is watched?", "persona": ["home_security_family"], "must": [["camera_coverage"]], "never": ["fire_preplan", "truck_access"]},
+  {"id": "signals-light-sleeper", "brief": "I work night shifts and sleep during the day. Which bedroom is furthest from road and plane noise?", "persona": ["light_sleeper"], "must": [["quiet_rooms"]], "never": ["truck_access", "loading_docks"]}
 ]
