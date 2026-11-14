@@ -11,7 +11,7 @@ import re
 
 from pydantic import BaseModel
 
-from .. import Check, Finding, GeoAnchor, Metric, Place, Source, ToolResult, Verdict, field, tool
+from .. import Check, Finding, GeoAnchor, Metric, NotApplicable, Place, Source, ToolResult, Verdict, field, tool
 
 RECORD = Source(layer="costar", method="lookup", confidence="high", note="Floor plans from the CoStar property record")
 NAMES = Source(layer="matterport", method="lookup", confidence="medium", note="Matched on scan names")
@@ -58,6 +58,9 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     site = ctx.site(inputs.place)
     scans = site.scans
     ctx.step(f"Found {len(scans)} scans at {site.address or site.key}")
+    if scans and not site.record:
+        raise NotApplicable(f"There is no CoStar property record for this place, so there is no list of floor plans or "
+                            f"shared spaces to hold its {len(scans)} scan{'s' if len(scans) > 1 else ''} against.")
     apt = ((site.record or {}).get("propertyApartment") or {})
     models = apt.get("models") or []
     checks, covered_sids = [], set()
