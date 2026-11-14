@@ -1,6 +1,6 @@
 // One canvas, one camera, four views. The engine owns three.js; React (BuildingScene.tsx) only hands it props.
 import * as THREE from 'three'
-import { anchorKey, buildModel, centroid, isKnownOverlay, resolveStyles, STUB, type Model } from '../model.ts'
+import { anchorKey, buildModel, centroid, interiorTest, isKnownOverlay, resolveStyles, STUB, type Model } from '../model.ts'
 import { useSceneLink } from '../store.ts'
 import { readTokens, type Tokens } from '../tokens.ts'
 import type { Anchor, CameraInfo, Mode, Overlay, Pano, Pick, ScanPlan, Vec3, View } from '../types.ts'
@@ -107,7 +107,7 @@ export class Engine {
     this.overlays3d = new Overlays3D(this.model, this.tokens, this.doll, (p) => this.emitPick(p))
     this.pano = new PanoView(opts.api, plan.sid, plan.has.defurnished)
     this.pano.onLoad = () => { this.invalidate(); this.pushState() }
-    this.splat = new SplatView(this.renderer, this.scene, opts.api, plan.sid)
+    this.splat = new SplatView(this.renderer, this.scene, opts.api, plan.sid, interiorTest(this.model))
     this.splat.onChange = () => {
       if (this.view.mode === 'splat' && this.splat.splats && !this.splatAimed) { this.splatAimed = true; this.rig.flyTo({ target: this.splat.centre.clone() }, 700) } // flyTo keeps the orbit distance; a nudge would freeze the move mid-way
       this.invalidate(); this.pushState()
@@ -414,7 +414,7 @@ export class Engine {
     // mesh dissolves and the model rises in the gap. A splat brings its own ground, so the surroundings clear a disc.
     const aerial = this.aerial, site = this.site, surface = mode === 'dollhouse' ? this.view.surface ?? 'model' : 'model'
     const splatIn = surface === 'splat' && this.interior.status !== 'none' && this.interior.status !== 'unknown'
-    const scanOn = surface === 'scan' || (surface === 'splat' && !splatIn) // no interior splat for this scan: the scanned mesh is the photoreal one
+    const scanOn = surface === 'scan' || (surface === 'splat' && this.interior.status === 'none') // no interior splat for this scan: the scanned mesh is the photoreal one
     // It opens and closes as a short move of its own when the camera crosses a distance (with some slack, so resting
     // near the line does not flicker), never part-way: a half-dissolved house reads as a fault.
     const o = this.opened, line = this.dollPose().dist * 2.1

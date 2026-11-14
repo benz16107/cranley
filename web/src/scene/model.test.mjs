@@ -1,7 +1,7 @@
 // Run: node --test src/scene/model.test.mjs   (from web/)
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { anchorPoint, buildModel, outlineFromWalls, polygonArea, resolveStyles, roomAt, sightBlocked, wallBoxes } from './model.ts'
+import { anchorPoint, buildModel, interiorTest, outlineFromWalls, polygonArea, resolveStyles, roomAt, sightBlocked, wallBoxes } from './model.ts'
 
 // A hand-made 6 x 4 m plan: two rooms split by a wall at x = 3 with a 0.9 m doorway, and a window on the west wall.
 const wall = (id, a, b, rooms, openings = []) =>
@@ -73,4 +73,13 @@ test('a room outline is recovered from walls that include a dead-end divider', (
   const poly = outlineFromWalls(sq)
   assert.equal(poly.length, 5)
   assert.equal(polygonArea(poly), 12)
+})
+
+test('interiorTest: inside the rooms and under the ceiling, but not near the outer walls, above them or outside', () => {
+  const m = buildModel(plan), inside = interiorTest(m), top = m.floorH[0]
+  assert.equal(inside(1.5, 2, 1), true)            // the middle of the west room
+  assert.equal(inside(3, 2, 1), true)              // on the wall between the two rooms: still inside the building
+  assert.equal(inside(0.1, 2, 1), false)           // against the outer wall, where a capture's own wall stands
+  assert.equal(inside(1.5, 2, top + 0.5), false)   // the roof
+  assert.equal(inside(-2, 2, 1), false)            // the garden
 })
