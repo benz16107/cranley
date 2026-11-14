@@ -134,7 +134,8 @@ def beds(plan: dict, claim: dict, scan: dict, p: dict, ev: dict) -> dict:
         b = {"available": True, "count": n, "rooms": [x["room"] for x in labels if x["label"] == "Bedroom"], "maybe": [],
              "vision": True}
     if not b["available"]:
-        return _c(claim, UNVERIFIABLE, "high", b["reason"] + " Run the deep check to label rooms from the panoramas.")
+        return _c(claim, UNVERIFIABLE, "high", b["reason"] + ("" if "merged" in b["reason"] or "drew" in b["reason"]
+                                                              else " Run the deep check to label rooms from the panoramas."))
     n, want = b["count"], claim["value"]
     layer, method = ("model", "vision") if b.get("vision") else ("matterport", "lookup")
     pins = b["rooms"]
@@ -160,7 +161,8 @@ def baths(plan: dict, claim: dict, scan: dict, p: dict, ev: dict) -> dict:
         return _wrong_scope(claim, scan)
     b = ms.bathrooms(plan, ev.get("fixtures"))
     if not b["available"]:
-        return _c(claim, UNVERIFIABLE, "high", b["reason"] + " Run the deep check to label rooms from the panoramas.")
+        return _c(claim, UNVERIFIABLE, "high", b["reason"] + ("" if "merged" in b["reason"] or "drew" in b["reason"]
+                                                              else " Run the deep check to label rooms from the panoramas."))
     want = float(claim["value"])
     full, half = b["full"], b["half"]
     pins = [r for g in b["groups"] for r in g["rooms"]]

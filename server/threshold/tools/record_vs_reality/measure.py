@@ -91,9 +91,29 @@ def _links(plan: dict) -> list[tuple[str, str]]:
     return [tuple(link["rooms"]) for link in g.get("links") or []] if g["available"] else []
 
 
+SMALL_ROOMS = {"Bathroom": 20.0, "Closet": 15.0, "Pantry": 15.0, "Laundry": 20.0, "Hallway": 40.0}
+
+
+def segmentation(plan: dict) -> str | None:
+    """Why the scan's split into rooms cannot be trusted for room counts, or None. A small-room label on a large
+    area, or a sizeable home drawn as one or two rooms, means Matterport merged rooms."""
+    for r in plan["rooms"]:
+        cap = SMALL_ROOMS.get(r.get("label"))
+        if cap and (r.get("area") or 0) > cap:
+            return (f"Matterport drew a {r['label'].lower()} of {r['area']:.0f} m², so it merged several rooms into one "
+                    "and room counts from this scan are unreliable.")
+    walled = [r for r in plan["rooms"] if r.get("walls") and r.get("label") != "Void"]
+    area = sum(r.get("area") or 0 for r in walled)
+    if area >= 50 and len(walled) < 3:
+        return f"Matterport drew {area:.0f} m² as {len(walled)} rooms, so room counts from this scan are unreliable."
+    return None
+
+
 def bedrooms(plan: dict) -> dict:
     if not labels_ok(plan):
         return {"available": False, "reason": "Matterport did not label this scan's rooms."}
+    if why := segmentation(plan):
+        return {"available": False, "reason": why}
     rooms = [r for r in plan["rooms"] if r.get("label") == "Bedroom" and (r.get("area") or 0) >= BEDROOM_MIN_M2]
     maybe = [r for r in plan["rooms"] if r.get("label") in ("Office", "Den", "Bonus Room", "Loft", "Family Room", "Game Room")]
     living = sorted((r for r in plan["rooms"] if r.get("label") == "Living Room"), key=lambda r: -(r.get("area") or 0))
@@ -108,6 +128,8 @@ def bathrooms(plan: dict, fixtures: dict[str, set[str]] | None = None) -> dict:
     panorama was read), half when it was read and none was seen, and otherwise judged by its size."""
     if not labels_ok(plan):
         return {"available": False, "reason": "Matterport did not label this scan's rooms."}
+    if why := segmentation(plan):
+        return {"available": False, "reason": why}
     baths = {r["id"]: r for r in plan["rooms"] if r.get("label") == "Bathroom" and (r.get("area") or 0) > 0.5}
     groups = _union(list(baths), _links(plan))
     out = []

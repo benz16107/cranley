@@ -147,3 +147,11 @@ def test_condo_stories_are_the_buildings():
     rec["claims"]["stories"]["value"] = 4
     c = by_key(audit(make_home(), rec)["comparisons"])["stories"]
     assert c["verdict"] == "cannot verify" and "building" in c["reason"]
+
+
+def test_merged_rooms_make_room_counts_unverifiable():
+    plan = make_home()
+    next(r for r in plan["rooms"] if r["id"] == "L")["label"] = "Bathroom"  # a 30 m2 "bathroom"
+    c = by_key(audit(plan, HOME_RECORD)["comparisons"])
+    assert c["beds"]["verdict"] == "cannot verify" and "merged" in c["beds"]["reason"]
+    assert c["baths"]["verdict"] == "cannot verify"
