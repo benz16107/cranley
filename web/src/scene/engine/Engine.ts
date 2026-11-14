@@ -11,6 +11,7 @@ import { Overlays3D } from './overlays.ts'
 import { azOfBearing, bearingOfAz, freeRect, lookAngles } from './camera.ts'
 import { PanoView } from './pano.ts'
 import { easeInOut, reducedMotion, Rig } from './rig.ts'
+import { inputPrefs, isTrackpad, SPEED } from './input.ts'
 import { SplatView } from './splat.ts'
 import { InteriorSplat } from '../../world/InteriorSplat.ts'
 import { ScanMesh } from '../../world/ScanMesh.ts'
@@ -559,14 +560,16 @@ export class Engine {
       if (this.pointers.size === 2) { // pinch: the distance between two fingers sets the zoom
         const other = [...this.pointers.entries()].find(([id]) => id !== e.pointerId)![1]
         const d0 = Math.hypot(prev.x - other.x, prev.y - other.y), d1 = Math.hypot(e.clientX - other.x, e.clientY - other.y)
-        if (d0 > 0 && d1 > 0) rig.nudge((g) => { if (mode === 'pano') g.fov *= d0 / d1; else g.dist *= d0 / d1 })
+        const z = d0 > 0 && d1 > 0 ? (d0 / d1) ** SPEED[inputPrefs.zoom] : 1
+        if (z !== 1) rig.nudge((g) => { if (mode === 'pano') g.fov *= z; else g.dist *= z })
       } else {
         this.drag.moved += Math.abs(dx) + Math.abs(dy)
         if (this.drag.moved < 4) { prev.x = e.clientX; prev.y = e.clientY; return } // hysteresis: a tap is not a drag
         if (!el.hasPointerCapture(e.pointerId)) el.setPointerCapture(e.pointerId)   // only a drag takes the pointer; a tap still reaches the plan
         const pan = mode === 'plan' || this.drag.button !== 0 || e.shiftKey
         if (mode === 'pano') {
-          const k = ((rig.pose.fov * Math.PI) / 180) / this.h // grab the photo: it follows the pointer
+          const sign = inputPrefs.lookDir === 'drag' ? 1 : -1 // drag: the photo follows the pointer; turn: the camera does
+          const k = sign * SPEED[inputPrefs.look] * ((rig.pose.fov * Math.PI) / 180) / this.h
           rig.nudge((g) => { g.az += dx * k; g.pol -= dy * k })
           this.drag.vx = (dx * k) / dtm * 1000; this.drag.vy = (-dy * k) / dtm * 1000
         } else if (pan) {
@@ -575,8 +578,9 @@ export class Engine {
           if (mode !== 'plan') up.setZ(0).normalize().multiplyScalar(1 / Math.max(0.3, Math.cos(rig.pose.pol))) // slide along the floor
           rig.nudge((g) => g.target.addScaledVector(right, -dx / s).addScaledVector(up, dy / s))
         } else {
-          rig.nudge((g) => { g.az -= dx * 0.0052; g.pol -= dy * 0.0052 })
-          this.drag.vx = (-dx * 0.0052) / dtm * 1000; this.drag.vy = (-dy * 0.0052) / dtm * 1000
+          const r = 0.0052 * SPEED[inputPrefs.look]
+          rig.nudge((g) => { g.az -= dx * r; g.pol -= dy * r })
+          this.drag.vx = (-dx * r) / dtm * 1000; this.drag.vy = (-dy * r) / dtm * 1000
         }
       }
       prev.x = e.clientX; prev.y = e.clientY
@@ -592,8 +596,17 @@ export class Engine {
     const onWheel = (e: WheelEvent) => {
       if ((e.target as HTMLElement).closest('[data-scene-ui]')) return
       e.preventDefault(); this.drift = false; this.orbiting = false; this.tour = 0
-      const mode = this.view.mode, k = Math.exp(e.deltaY * 0.0014)
-      if (mode === 'pano') { rig.nudge((g) => (g.fov += e.deltaY * 0.035)); return }
+      // A trackpad pinch arrives as a wheel event with ctrlKey and deltas about a tenth of a scroll's, so it gets its own gain.
+      const pinch = e.ctrlKey, pad = !pinch && isTrackpad(e), zs = SPEED[inputPrefs.zoom]
+      const mode = this.view.mode, k = Math.exp(e.deltaY * (pinch ? 0.012 : 0.0014) * zs)
+      if (mode === 'pano') {
+        if (pad) { // two fingers look around, the same way a drag does
+          const sign = inputPrefs.lookDir === 'drag' ? -1 : 1
+          const a = sign * SPEED[inputPrefs.look] * ((rig.pose.fov * Math.PI) / 180) / this.h
+          rig.nudge((g) => { g.az += e.deltaX * a; g.pol -= e.deltaY * a })
+        } else rig.nudge((g) => (g.fov += e.deltaY * (pinch ? 0.3 : 0.035) * zs))
+        return
+      }
       if (mode === 'plan') { // keep the point under the pointer still
         const r = el.getBoundingClientRect(), s = rig.pxPerMetre(this.h, rig.goal.dist)
         const px = e.clientX - r.left - this.w / 2 - this.off.cur[0], py = e.clientY - r.top - this.h / 2 - this.off.cur[1] // from the picture's centre
