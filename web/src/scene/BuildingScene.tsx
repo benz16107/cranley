@@ -30,8 +30,10 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
   const [state, setState] = useState<SceneState | null>(null)
   const [model, setModel] = useState<Model | null>(null)
   const [view, setView] = useState(viewProp)
-  useEffect(() => setView(viewProp), [viewProp]) // the outside can always say "look here"
-  const cb = useRef({ onPick, onViewChange }); cb.current = { onPick, onViewChange }
+  const [seen, setSeen] = useState(viewProp)
+  if (seen !== viewProp) { setSeen(viewProp); setView(viewProp) } // the outside can always say "look here"
+  const cb = useRef({ onPick, onViewChange })
+  useEffect(() => { cb.current = { onPick, onViewChange } })
   const change = useCallback((v: View) => { setView(v); cb.current.onViewChange?.(v) }, [])
 
   useEffect(() => {
@@ -69,7 +71,12 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
 
   return (
     <div ref={host} className={`th-scene ${className ?? ''}`} data-mode={mode} tabIndex={0} aria-label={`Building view: ${plan.name ?? plan.sid}`}
-      onKeyDown={(e) => { if (e.key === 'Escape' && mode === 'pano') change({ ...view, mode: 'dollhouse' }) }}>
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return // sliders and buttons keep their own keys
+        const k: Record<string, [number, number, number]> = { ArrowLeft: [-1, 0, 0], ArrowRight: [1, 0, 0], ArrowUp: [0, -1, 0], ArrowDown: [0, 1, 0], '+': [0, 0, -1], '=': [0, 0, -1], '-': [0, 0, 1] }
+        if (e.key === 'Escape' && mode === 'pano') change({ ...view, mode: 'dollhouse' })
+        else if (k[e.key]) { engine.current?.step(...k[e.key]); e.preventDefault() }
+      }}>
       <div ref={planLayer} className="th-plan">
         {model && <FloorPlan plan={plan} model={model} overlays={overlays} floor={view.floor} measures={view.measures} pano={state?.pano} driven handle={planHandle} onPick={pickFromPlan} />}
         <div className="th-scalebar"><div ref={scaleBar} /><span ref={scaleText} className="th-num" /></div>

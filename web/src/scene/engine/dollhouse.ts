@@ -335,7 +335,14 @@ export class Dollhouse {
 
   private eye: { pos: Vec3; floorId: string | null } | null = null
   /** Inside a panorama: outlines of openings hidden behind walls are dropped, and floor outlines respect the walls. */
-  setEye(eye: { pos: Vec3; floorId: string | null } | null) { this.eye = eye; this.syncOutlines() }
+  setEye(eye: { pos: Vec3; floorId: string | null } | null) { this.eye = eye; this.redrawOpeningOutlines() }
+  /** Cut-away height in metres above each floor. Opening outlines stop at the cut, so they are redrawn. */
+  setCut(h: number) { if (h !== this.anim.cut.goal) { this.anim.cut.goal = h; this.redrawOpeningOutlines() } }
+  private redrawOpeningOutlines() {
+    const first = 1 + this.m.plan.rooms.length + this.m.plan.walls.length
+    for (const [e, line] of this.outlines) if (e >= first) { line.removeFromParent(); line.geometry.dispose(); (line.material as LineMaterial).dispose(); this.outlines.delete(e) }
+    this.syncOutlines()
+  }
 
   private syncOutlines() {
     const { m } = this, want = new Map<number, RGB>(), R0 = m.plan.rooms.length, W0 = m.plan.walls.length
@@ -352,7 +359,8 @@ export class Dollhouse {
         } else if (e > R + W) {
           const o = m.plan.openings[e - 1 - R - W], sp = openingSpan(m, o); floor = m.floorOf.get(o.floor) ?? 0
           const at = (s: number, z: number) => pts.push(sp.w.a[0] + sp.dx * s, sp.w.a[1] + sp.dy * s, z)
-          at(sp.s0, sp.sill); at(sp.s0, sp.head); at(sp.s1, sp.head); at(sp.s1, sp.sill); at(sp.s0, sp.sill)
+          const top = this.eye ? sp.head : Math.max(sp.sill + 0.02, Math.min(sp.head, this.anim.cut.goal)) // from outside, no taller than the cut walls
+          at(sp.s0, sp.sill); at(sp.s0, top); at(sp.s1, top); at(sp.s1, sp.sill); at(sp.s0, sp.sill)
         }
         if (pts.length < 6) continue
         line = new Line2(new LineGeometry().setPositions(pts), new LineMaterial({ linewidth: 2.5, depthTest: false, transparent: true, resolution: this.lineRes }))

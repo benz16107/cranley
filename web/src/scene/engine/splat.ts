@@ -32,15 +32,16 @@ export function plyPrefix(buf: Uint8Array, len: number): Prefix | null {
   const scales = ['scale_0', 'scale_1', 'scale_2'].map((p) => props.indexOf(p) * 4), iop = props.indexOf('opacity') * 4
   // A sample has gaps where the missing Gaussians were. Grow each one a little (scales are stored as logs) to close them.
   const grow = Math.log(Math.min(2.4, Math.pow(total / count, 0.4)))
-  const xs: number[] = [], ys: number[] = [], zs: number[] = []
+  const zs: number[] = []
   for (let i = 0; i < count; i++) {
     const o = i * rec, x = f.getFloat32(o + ix, true), y = f.getFloat32(o + iy, true), z = f.getFloat32(o + iz, true)
     if (grow > 0.01) for (const s of scales) if (s >= 0) f.setFloat32(o + s, f.getFloat32(o + s, true) + grow, true)
     if (Math.hypot(x, y) > 70 && iop >= 0) f.setFloat32(o + iop, -12, true) // far background: the drone's horizon haze
-    else if (i % 16 === 0 && Math.hypot(x, y) < 30) { xs.push(x); ys.push(y); zs.push(z) }
+    else if (i % 8 === 0 && Math.hypot(x, y) < 9) zs.push(z)
   }
+  // The capture is centred on the property: orbit the origin, at the typical height of what stands there.
   const mid = (v: number[]) => v.sort((a, b) => a - b)[v.length >> 1] ?? 0
-  return { bytes: out, count, total, centre: new THREE.Vector3(mid(xs), mid(ys), mid(zs)), radius: 26 }
+  return { bytes: out, count, total, centre: new THREE.Vector3(0, 0, mid(zs)), radius: 26 }
 }
 
 export class SplatView {

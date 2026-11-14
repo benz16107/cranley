@@ -2,6 +2,7 @@
 import { StrictMode, useEffect, useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BuildingScene } from '../BuildingScene.tsx'
+import { buildModel, sightBlocked } from '../model.ts'
 import { useSceneLink } from '../store.ts'
 import type { Mode, Pick, ScanPlan, View } from '../types.ts'
 import { SAMPLE_KINDS, SAMPLE_LABEL, sampleOverlays, type SampleKind } from './samples.ts'
@@ -16,8 +17,14 @@ const q = new URLSearchParams(location.search)
 
 // ?look=yaw,pitch points the panorama camera (degrees in the scan frame), for repeatable screenshots
 const look = (p: ScanPlan) => {
-  const id = p.panos.find((x) => x.label === q.get('pano'))?.id, [yaw, pitch] = (q.get('look') ?? '').split(',').map(Number)
-  return id && Number.isFinite(yaw) ? { pano: id, yaw_deg: yaw, pitch_deg: pitch || 0 } : null
+  const pano = p.panos.find((x) => x.label === q.get('pano')), [yaw, pitch] = (q.get('look') ?? '').split(',').map(Number)
+  if (pano && q.get('look') === 'door') { // face the nearest doorway that is in view: the check that overlays sit on real doors
+    const m = buildModel(p)
+    const door = p.openings.filter((o) => o.floor === pano.floor && o.type !== 'window' && !sightBlocked(m, o.floor, pano.position[0], pano.position[1], o.center[0], o.center[1], o.wall))
+      .map((o) => ({ o, d: Math.hypot(o.center[0] - pano.position[0], o.center[1] - pano.position[1]) })).filter((x) => x.d > 1.2).sort((a, b) => a.d - b.d)[0]
+    if (door) return { pano: pano.id, yaw_deg: (Math.atan2(door.o.center[1] - pano.position[1], door.o.center[0] - pano.position[0]) * 180) / Math.PI, pitch_deg: -6 }
+  }
+  return pano && Number.isFinite(yaw) ? { pano: pano.id, yaw_deg: yaw, pitch_deg: pitch || 0 } : null
 }
 
 function Lab() {

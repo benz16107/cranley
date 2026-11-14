@@ -259,7 +259,7 @@ export function resolveStyles(m: Model, overlays: Overlay[], pal: Palette, hover
     const span = (lens.legend?.max ?? 1) - (lens.legend?.min ?? 0) || 1
     for (const r of plan.rooms) {
       const v = lens.values[r.id], s = roomStyle(r.id)
-      if (typeof v === 'number') Object.assign(s, { tint: rampColor((v - (lens.legend?.min ?? 0)) / span, lens.ramp, pal), amt: 0.84 })
+      if (typeof v === 'number') Object.assign(s, { tint: rampColor((v - (lens.legend?.min ?? 0)) / span, lens.ramp, pal), amt: 0.74 })
       else s.wash = Math.max(s.wash, 0.7)
     }
   }

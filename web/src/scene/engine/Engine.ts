@@ -52,6 +52,7 @@ export class Engine {
   private panoPresence = { cur: 0, goal: 0 }; private planPresence = { cur: 0, goal: 0 }
   private loading = 0
   private drift = false
+  private splatAimed = false
   private stateKey = ''
   private unsub: () => void
   private ro: ResizeObserver
@@ -79,7 +80,10 @@ export class Engine {
     this.pano = new PanoView(opts.api, plan.sid, plan.has.defurnished)
     this.pano.onLoad = () => { this.invalidate(); this.pushState() }
     this.splat = new SplatView(this.renderer, this.scene, opts.api, plan.sid)
-    this.splat.onChange = () => { this.invalidate(); this.pushState() }
+    this.splat.onChange = () => {
+      if (this.view.mode === 'splat' && this.splat.splats && !this.splatAimed) { this.splatAimed = true; this.rig.flyTo({ target: this.splat.centre.clone() }, 700) } // flyTo keeps the orbit distance; a nudge would freeze the move mid-way
+      this.invalidate(); this.pushState()
+    }
     this.scene.add(this.pano.group, this.doll.group, this.overlays3d.group, this.splat.group)
 
     this.labels = new Labels(this.model)
@@ -121,7 +125,7 @@ export class Engine {
     else if (next.mode === 'pano' && next.pano && next.pano !== this.pano.current?.id) this.goPano(next.pano, false)
     if (next.mode === 'plan' && next.floor !== prev.floor && next.mode === prev.mode) this.rig.flyTo(this.planPose(), 600)
     this.doll.setFloorShown((f) => floorIdx === null || f <= floorIdx)
-    this.doll.anim.cut.goal = next.mode === 'plan' ? 0 : next.cut ?? 99
+    this.doll.setCut(next.mode === 'plan' ? 0 : next.cut ?? 99)
     this.doll.anim.explode.goal = next.mode === 'dollhouse' ? next.explode ?? 0 : 0
     this.pano.setWipe(next.wipe ?? null, this.w * this.renderer.getPixelRatio())
     if (!!next.measures !== !!prev.measures) this.setOverlays(this.overlays)
@@ -164,7 +168,7 @@ export class Engine {
     if (mode === 'dollhouse') {
       Object.assign(L, { minPol: 0.05, maxPol: 1.5, minDist: 2, maxDist: R * 9, minFov: DOLL_FOV, maxFov: DOLL_FOV })
       const p = this.dollPose()
-      rig.flyTo(from === 'pano' ? { ...p, az: rig.pose.az } : from === 'splat' ? { ...p, az: rig.pose.az, pol: Math.min(rig.pose.pol, 1.0) } : p, from === 'pano' ? 1250 : 1050)
+      rig.flyTo(from === 'pano' ? { ...p, az: rig.pose.az } : from === 'splat' ? { ...p, az: rig.pose.az } : p, from === 'pano' ? 1250 : 1050)
     } else if (mode === 'plan') {
       Object.assign(L, { minPol: 0.0005, maxPol: 0.0005, minDist: 3, maxDist: R * 30, minFov: PLAN_FOV, maxFov: PLAN_FOV })
       rig.flyTo(this.planPose(), 1000)
@@ -244,6 +248,11 @@ export class Engine {
   }
   private emitPick(p: Pick) { useSceneLink.getState().setSelected(p.kind === 'pano' ? null : p); this.opts.onPick(p) }
   invalidate = () => { this.dirty = true }
+  /** Keyboard: turn, tilt and zoom by steps. */
+  step(turn: number, tilt: number, zoom: number) {
+    const pano = this.view.mode === 'pano'
+    this.rig.nudge((g) => { g.az += turn * (pano ? -0.12 : 0.12); g.pol += tilt * 0.08; if (pano) g.fov *= 1 + zoom * 0.1; else g.dist *= 1 + zoom * 0.12 })
+  }
 
   // ---- loop --------------------------------------------------------------------------------------------------------
 
