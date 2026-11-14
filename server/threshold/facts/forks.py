@@ -84,9 +84,11 @@ def fork(step: Step = lambda s: None, client: httpx.Client | None = None, sleep=
     spec = (parent.get("resources") or [{}])[0].get("spec") or {}
     name = f"threshold-whatif-{secrets.token_hex(3)}"
     t0 = time.time()
-    made = _check(c.post(f"{base}/forkService", json={
-        "name": name, "region_code": parent.get("region_code"), "fork_strategy": "NOW",
-        "cpu_millis": spec.get("cpu_millis"), "memory_gbs": spec.get("memory_gbs")}), "fork the service")
+    body = {"name": name, "region_code": parent.get("region_code"), "fork_strategy": "NOW",
+            "cpu_millis": spec.get("cpu_millis"), "memory_gbs": spec.get("memory_gbs")}
+    # a free service reports no resource spec; its fork is free too and takes none
+    made = _check(c.post(f"{base}/forkService", json={k: v for k, v in body.items() if v is not None}),
+                  "fork the service")
     fid, password = made["service_id"], made.get("initial_password")
     step(f"Forked the facts database as {name}; waiting for it to start")
     try:
