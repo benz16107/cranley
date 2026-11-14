@@ -39,6 +39,7 @@ The same workspace works for 34 kinds of user. A Houston homeowner watches Hurri
 - **Photoreal 3D we built ourselves.** The scanned mesh baked with its own panoramas, interior Gaussian splats we trained, set in the 3D city with a cut-away, one continuous view from the street into the room.
 - **Physics, not pictures.** CFAST for smoke. USGS high-water marks for floods.
 - **Search by what is measured inside.** "One-floor houses with three bedrooms and every door at least 81 cm" is one query.
+- **Any agent can use it.** Every tool is also an MCP tool and a `threshold` CLI command, so Claude Code can ask "will an F-150 fit in this garage" and answer from the result.
 - **Honest by construction.** Each number carries its layer, its method and a high, medium or low label. A scan that cannot answer gets an "unknown" verdict with the reason.
 
 ## How we built it
@@ -77,7 +78,7 @@ The same workspace works for 34 kinds of user. A Houston homeowner watches Hurri
 
 - The iPhone app on real phones, so any shop or home can be checked in ten minutes.
 - More rule packs: fire codes and accessibility standards by city.
-- An MCP server and CLI so any agent can call the tools.
+- Rule packs and tools published so other agents build on them: the MCP server already exposes every tool to Claude Code, Claude Desktop and Cursor.
 
 ## Limits
 

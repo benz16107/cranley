@@ -107,7 +107,16 @@ QR code on the desktop's Phone tab.
 iPhone app: `ios/Threshold` is an XcodeGen project (`xcodegen` then open in Xcode 27). It has a demo mode with the
 test scans. `ios/scripts/install.sh` covers USB and TestFlight installs.
 
-MCP server and CLI: on the way (branch `ws/mcp`); this section will say how to add Threshold to Claude Code.
+MCP server and CLI: every tool is also an MCP tool (read-only by default; agent turns and workspace writes only with
+`--write`), plus building search, facts, workspace resources and prompts. Add it to Claude Code with
+
+```sh
+claude mcp add threshold -- uv run --directory <repo>/server python -m threshold.mcp
+```
+
+or, with the API running, `claude mcp add --transport http threshold-http http://127.0.0.1:8787/mcp` (localhost only).
+The `threshold` command (`threshold tools`, `run`, `search`, `building`, `ask`) wraps the same registry. Claude Desktop,
+Cursor and a LangChain deep agent over MCP are in [`docs/MCP.md`](docs/MCP.md).
 
 ## Credits
 

@@ -111,8 +111,9 @@ rejects any number it states.
   afterwards.
 - **Search by what is measured inside.** "Houses in Los Angeles with three bedrooms on one floor and every door at
   least 81 cm" is one query over the facts database, not a filter on a listing.
-- **Any agent can use it.** The same tool manifests feed the web app, the agent, an MCP server and a CLI. (MCP server
-  and CLI: built on `ws/mcp`, not merged yet.)
+- **Any agent can use it.** The same tool manifests feed the web app, the agent, an MCP server (stdio and streamable
+  HTTP, read-only unless started with `--write`) and the `threshold` CLI. Claude Code can ask "will an F-150 fit in
+  this garage" and answer from the tool's result.
 
 ## The ecosystem
 
@@ -122,7 +123,7 @@ rejects any number it states.
 | Phone companion (`/m`) | Pairs by QR with a desktop workspace; GPS, camera, mic, barometer, tilt and typed measurements feed tools live | merged |
 | iPhone LiDAR app | RoomPlan scan of your own space, LiDAR tape measure, barometer floor height, compass window facing, scan-to-report | merged; builds and runs in the simulator; not on a phone yet (Apple licence agreement) |
 | PDF reports | Site report for any workspace: plan with numbered fixes, evidence, occupant load, smoke-alarm census, what was not checked | merged |
-| MCP server and CLI | Every tool for Claude Code or any MCP client; `threshold` on the command line | `ws/mcp`, not merged |
+| MCP server and CLI | Every tool for Claude Code, Claude Desktop, Cursor or a LangChain agent; resources and prompts; `threshold` on the command line | merged |
 | Shared databases | MongoDB Atlas for people's work, Tiger Cloud for building facts | merged |
 
 ## Honesty
@@ -296,7 +297,7 @@ wheelchair user, the family before a storm, the fire crew. Track pick: question 
 
 ## Built (synced to `main`)
 
-Checked against `git log main` at `c7edea6` (2026-11-14, 5 pm ET). Update at each merge.
+Checked against `git log main` at `7812e95` (2026-11-14, 5:15 pm ET). Update at each merge.
 
 **Merged**
 - [x] Data layer: Matterport, Vexcel and CoStar sources, normalized plan format with quality flags (`ws/data`)
@@ -319,15 +320,15 @@ Checked against `git log main` at `c7edea6` (2026-11-14, 5 pm ET). Update at eac
 - [x] Scene height fix for scans whose origin is upstairs (`fix/scene-z`, `fix/scene-z-tools`)
 - [x] Garage and driveway fit with 58 vehicles (`ws/garage`)
 - [x] Pets and kids: pet fit, nearby places from OpenStreetMap, home search by pet policy, fence, pool and yard (`ws/pets`)
+- [x] Feng shui, room sizes, earthquake prep; personas for location scout, virtual stager, LA earthquake prep (`ws/fengshui`)
+- [x] MCP server (stdio and `/mcp`), `threshold` CLI, deep agent over MCP, `docs/MCP.md` (`ws/mcp`)
 
 **Not merged yet (building tonight)**
 - [ ] World explorer: map to aerial to 3D city to building in one view, layers (`ws/explorer`)
 - [ ] Public data layers and area tools: zoning, permits, hazards, connectivity (`ws/datalayers`)
-- [ ] MCP server and `threshold` CLI (`ws/mcp`)
 - [ ] Real 3D models for vehicles and furniture, drag to place (`ws/models`)
 - [ ] Sun rooms, solar roof, wildfire space (`ws/sunfire`)
 - [ ] Wi-Fi coverage, camera coverage, quiet rooms (`ws/signals`)
-- [ ] Feng shui, film scout, virtual staging, earthquake prep (`ws/fengshui`)
 - [ ] Commercial: site scorecard, market comps, industrial fit, retail site, commute fit, facility audit (`ws/commercial`)
 - [ ] Offline demo copy and six demo flows (`ws/demo`)
 
