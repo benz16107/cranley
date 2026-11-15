@@ -17,6 +17,8 @@ Listings say "accessible", "two-car garage", "fits a king bed", and nobody measu
 
 ![A Houston house on its site: the scanned interior cut open inside the drone capture and the Vexcel 3D city](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/055/datas/gallery.jpg)
 
+More detail: [How Cranley works](https://cranley.app/how/) · [Getting started](https://cranley.app/docs/getting-started/)
+
 ---
 
 ## Sponsor tracks
@@ -37,6 +39,8 @@ Each track page lists what the sponsor asked for beside what we built, and every
 |---|---|
 | ![Two occupational therapists' home-assessment lists and the aging-in-place checks they became](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/256/datas/gallery.jpg) | ![Cranley's actual replies to a garage question, shown in a messages frame](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/153/datas/gallery.jpg) |
 
+More detail: [All seven track pages](https://cranley.app/tracks/) · [Sponsor integrations in the docs](https://cranley.app/docs/sponsor-integrations/)
+
 ---
 
 ## The problem
@@ -53,6 +57,8 @@ A truck owner on r/f150
 
 The scans, the aerial photos and the records that answer these questions exist, but each sits in its own product, one listing at a time.
 
+More detail: [About Cranley](https://cranley.app/about/) · [Why nobody measures](https://cranley.app/how/)
+
 ---
 
 ## How it works
@@ -66,17 +72,21 @@ The scans, the aerial photos and the records that answer these questions exist, 
 
 ![Four agents at once: one subagent per candidate home, each running door, route, turning and bathroom checks](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/082/datas/gallery.jpg)
 
+More detail: [How it works](https://cranley.app/how/) · [The agent](https://cranley.app/docs/concepts/agent/) · [Every tool](https://cranley.app/docs/tools/)
+
 ---
 
 ## Built forward-deployed
 
 Before and while building we asked people what goes wrong with their buildings: a recorded 31-minute interview with Jean Ryan ([the conversation, 7 min](https://youtu.be/EoHyoNs2idg)), written answers from 58 people in 17 online communities, and 491 emails, which brought six human replies.
 
+![Outreach at a glance: a recorded interview, 58 people in 17 communities, 491 emails, six human replies](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/100/datas/gallery.jpg)
+
 Their answers changed the tools the same night. Every quote and its change: [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md).
 
-| Who we asked | What it changed |
-|---|---|
-| ![Outreach at a glance: a recorded interview, 58 people in 17 communities, 491 emails, six human replies](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/100/datas/gallery.jpg) | ![What people told us and what we changed that night, each with its tool and commit](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/113/datas/gallery.jpg) |
+![What people told us and what we changed that night, each with its tool and commit](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/113/datas/gallery.jpg)
+
+More detail: [Peri track page](https://cranley.app/tracks/peri/) · [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md)
 
 ---
 
@@ -90,6 +100,8 @@ Their answers changed the tools the same night. Every quote and its change: [doc
 | **1, 0, 0** | Questions asked over three homes for one returning wheelchair user (a replay, not a user study) |
 | **16 to 23 min** | Training one interior Gaussian splat on an AMD mini PC's integrated GPU, no NVIDIA (four buildings) |
 
+More detail: [Findings and reliability](https://cranley.app/docs/concepts/findings-and-reliability/) · [CoStar track page](https://cranley.app/tracks/costar/)
+
 ---
 
 ## How we built it
@@ -101,6 +113,8 @@ Their answers changed the tools the same night. Every quote and its change: [doc
 - **Phone and messaging:** a phone companion, a RoomPlan iPhone app, iMessage and voice, an MCP server and CLI.
 - **Physics:** NIST CFAST for smoke, USGS high-water marks for Hurricane Harvey.
 
+More detail: [Architecture](https://cranley.app/docs/architecture/) · [Data sources](https://cranley.app/docs/data-sources/) · [MCP server](https://cranley.app/docs/mcp/)
+
 ---
 
 ## Limits
@@ -108,6 +122,8 @@ Their answers changed the tools the same night. Every quote and its change: [doc
 - Only scans with a wall graph get geometry checks; the rest get what panoramas and records can say.
 - Flood and fire results are planning aids, not inspections.
 - The iPhone app runs in the simulator; it has not been on a phone yet.
+
+More detail: [FAQ](https://cranley.app/docs/faq/)
 
 ## What's next
 
