@@ -50,6 +50,7 @@
 .mapfoot .maplegend { position: static; max-width: 100%; max-height: 92px; overflow-y: auto; scrollbar-width: thin; }
 .maplegend > span { max-width: 100%; }
 .maplegend > span > .muted { overflow: hidden; text-overflow: ellipsis; }
+.maplegend > .credit { white-space: normal; text-wrap: pretty; } /* the photo's credit is a sentence: it wraps */
 .maplegend .muted { margin-left: 2px; }
 .maplegend .stops, .maplegend .stops > span { display: inline-flex; align-items: center; gap: 4px; }
 .maplegend .stops { gap: 8px; margin-left: 4px; }

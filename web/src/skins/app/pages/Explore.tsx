@@ -157,12 +157,12 @@ export function Explore({ sid = null }: { sid?: string | null }) {
 
   // The ground the map is drawn on and the layers over it. Chosen here, kept in the address bar for a link, and
   // held in state so they outlast a visit to a building (whose own links do not carry them).
-  const [base, setBaseOnly] = useState<BaseView>(() => BASE_VIEWS.find((b) => b.id === q.get('app_base'))?.id ?? 'streets')
+  const [base, setBaseOnly] = useState<BaseView>(() => BASE_VIEWS.find((b) => b.id === q.get('app_base'))?.id ?? 'aerial')
   const [picked, setPicked] = useState<string[] | null>(() => readLayers(q))
   const [layers, setLayers] = useState<MapLayer[]>([])
   useEffect(() => { let on = true; fetchLayers(city).then((l) => on && setLayers(l), () => on && setLayers([])); return () => { on = false } }, [city])
   const on = useMemo(() => picked ?? (layers.length ? layers.filter((l) => l.on).map((l) => l.id) : ['scans']), [picked, layers])
-  const setBase = (b: BaseView) => { setBaseOnly(b); setQuery({ app_base: b === 'streets' ? null : b }) }
+  const setBase = (b: BaseView) => { setBaseOnly(b); setQuery({ app_base: b === 'aerial' ? null : b }) }
   const toggle = (id: string) => {
     const next = on.includes(id) ? on.filter((x) => x !== id) : [...on, id]
     setPicked(next); setQuery({ app_l: next.join(',') || 'none' })
@@ -196,7 +196,7 @@ export function Explore({ sid = null }: { sid?: string | null }) {
   // ---- the hand-off: a building opens inside the map's own rectangle, and zooming back out returns to the map
   const [stage, setStage] = useState<HTMLElement | null>(null), [headEl, setHead] = useState<HTMLElement | null>(null)
   const [sceneEl, setScene] = useState<HTMLElement | null>(null), [sideEl, setSide] = useState<HTMLElement | null>(null)
-  const kept = { app_base: base === 'streets' ? null : base, app_l: picked ? picked.join(',') || 'none' : null }
+  const kept = { app_base: base === 'aerial' ? null : base, app_l: picked ? picked.join(',') || 'none' : null }
   const back = () => navigate('/map', { city, b: m.selected?.id, ...kept })
   const hand = useHandoff(inside ? sid : null, stage, back)
   const phase = hand.phase, covered = phase === 'ready'

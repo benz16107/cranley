@@ -30,11 +30,23 @@ const NO_GEO: GeoMarks = { paths: [], pins: [] }
 const EMPTY: LayerCollection = { type: 'FeatureCollection', features: [] }
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-const palette = () => ({
-  ground: tokenCss('--paper'), water: tokenCss('--map-water'), waterLine: tokenCss('--map-water-line'), green: tokenCss('--map-green'),
-  road: tokenCss('--map-road'), roadMajor: tokenCss('--map-road-major'), rail: tokenCss('--map-road'), building: tokenCss('--map-building'),
-  label: tokenCss('--ink'), labelMuted: tokenCss('--ink-3'), halo: tokenCss('--paper'),
-})
+/** A token's dark side, whatever the scheme: the tokens are light-dark() pairs, which resolve where they are used. */
+function darkCss(name: string) {
+  const probe = document.createElement('i')
+  probe.style.cssText = `color-scheme: dark; color: var(${name})`
+  document.body.append(probe)
+  const c = getComputedStyle(probe).color
+  probe.remove()
+  return c
+}
+const palette = (base: BaseView) => {
+  const t = base === 'dark' ? darkCss : tokenCss
+  return {
+    ground: t('--paper'), water: t('--map-water'), waterLine: t('--map-water-line'), green: t('--map-green'),
+    road: t('--map-road'), roadMajor: t('--map-road-major'), rail: t('--map-road'), building: t('--map-building'),
+    label: t('--ink'), labelMuted: t('--ink-3'), halo: t('--paper'),
+  }
+}
 /** The token each data layer is drawn in: the hue of the tool family it belongs with. Also its swatch in the layer list.
     A layer that is not here (one a source module added later) brings its own in the catalogue, or is drawn neutral. */
 export const hueOf = (l: MapLayer) => LAYER_HUE[l.id] ?? (/^--[a-z0-9-]+$/.test(l.hue) ? l.hue : '--ink-2')
@@ -46,7 +58,7 @@ const LAYER_HUE: Record<string, string> = {
 /** The map style for a base view with the chosen data layers spliced in over the 3D city and under the names. A pure
     function of what is shown, so every change is one `setStyle` and the map works out the difference. */
 function styleFor(base: BaseView, city: CityId, layers: MapLayer[], on: string[], grid: Map<string, LayerCollection>) {
-  const style = mapStyle(palette(), { base, closeUp: CLOSE_Z })
+  const style = mapStyle(palette(base), { base, closeUp: CLOSE_Z, globe: true })
   const sources: Record<string, unknown> = {}, drawn: unknown[] = []
   const paper = tokenCss('--pane')
   for (const L of layers) {
@@ -142,7 +154,11 @@ export function WorldMap(props: Props) {
     const { buildings: data, selected: sel, marks: agentMarks, geo: marksGeo, fonts, on: shown, covered: behind } = live.current
     const hover = useWorld.getState().hover
     const z = map.getZoom()
-    const ink = tokenRgba('--ink'), paper = tokenRgba('--paper'), accent = tokenRgba('--accent')
+    const accent = tokenRgba('--accent')
+    // a building's dot is dark on the drawn map and light on a photo or a dark ground, with the other as its edge
+    const a = tokenRgba('--ink'), b2 = tokenRgba('--paper'), lum = (c: number[]) => c[0] * 0.3 + c[1] * 0.6 + c[2] * 0.1
+    const [dim, bright] = lum(a) < lum(b2) ? [a, b2] : [b2, a], onDark = live.current.base !== 'streets' || lum(a) > lum(b2)
+    const ink = onDark ? bright : dim, paper = onDark ? dim : bright
     const far = Math.max(0, Math.min(1, (12.4 - z) / 1.2)) // 1 at city scale, 0 once single buildings read
     const px = (b: Building) => 2.2 + Math.sqrt(b.count) * 1.5
     const grow = Math.max(0.75, Math.min(2.6, 1 + (z - 12) * 0.32))
@@ -211,7 +227,7 @@ export function WorldMap(props: Props) {
     const start = live.current.selected
     const map = new MapLibre({
       container: el.current!, style: styleFor(base, city, layers, on, grid.current), attributionControl: false,
-      center: start ? [start.lon, start.lat] : CITIES[city].center, zoom: start ? 15 : CITIES[city].zoom, minZoom: 3, maxZoom: 21.4, maxPitch: 80,
+      center: start ? [start.lon, start.lat] : CITIES[city].center, zoom: start ? 15 : CITIES[city].zoom, minZoom: 0.8, maxZoom: 21.4, maxPitch: 80,
     })
     map.setVerticalFieldOfView(SCENE_FOV) // the building scene's lens, so the two cameras can be laid on each other
     let mesh: CityMesh | null = null, gone = false
@@ -275,7 +291,7 @@ export function WorldMap(props: Props) {
   }, [])
 
   const map = useWorld((s) => s.map), mesh = useWorld((s) => s.mesh)
-  useEffect(draw, [buildings, selected, marks, geo, map, onKey, covered]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(draw, [buildings, selected, marks, geo, map, onKey, covered, base, scheme]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // The style follows what is shown: the base view, the scheme's colours, the city's files, the layers that are on.
   const styleKey = `${base}|${scheme}|${city}|${onKey}|${layers.length}`, drawnStyle = useRef(styleKey)
