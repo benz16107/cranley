@@ -192,3 +192,33 @@ def test_locations_from_map_links():
     assert router.location("https://maps.apple.com/?ll=29.5551,-95.1123&q=Dropped%20Pin") == (29.5551, -95.1123)
     assert router.location("https://www.google.com/maps/@34.0522,-118.2437,15z") == (34.0522, -118.2437)
     assert router.location("will a sofa fit at 12 Elm St") is None
+
+
+def test_group_chats_speak_only_when_spoken_to(tmp_path):
+    st, api = State(tmp_path / "s.json"), FakeAPI()
+    e = event("what do you all think of the second one?", "pho_msg_g1")
+    e["data"]["object"]["space"]["kind"] = "group"
+    router.handle(e, st, api)
+    assert api.sent == []
+    e2 = event("help", "pho_msg_g2")
+    e2["data"]["object"]["space"]["kind"] = "group"
+    router.handle(e2, st, api)
+    assert api.sent and api.sent[0][1].startswith("I'm Cranley")
+
+
+def test_thumbs_up_reply_shortlists_the_building(tmp_path, monkeypatch):
+    st, api = State(tmp_path / "s.json"), FakeAPI()
+    st.remember("pho_spc_1", "pho_msg_ans", "ws_x", run="run_1", sid="sid_9")
+    subs = []
+    doc = SimpleNamespace(runs=[SimpleNamespace(id="run_1", tool="garage_fit", sid="sid_9")], shortlist=[])
+
+    def submit(op, by=None):
+        subs.append(op)
+        if op.op == "shortlist.add":
+            doc.shortlist.append(op.sid)
+    monkeypatch.setattr(router, "session", lambda ws: SimpleNamespace(base=SimpleNamespace(id=ws), doc=doc, submit=submit))
+    monkeypatch.setattr("threshold.photon.words.place_name", lambda sid: "the house on Elm")
+    router.handle(event("👍", "pho_msg_f1", parent="pho_msg_ans"), st, api)
+    assert subs[0].op == "shortlist.add" and "shortlist (1)" in api.sent[-1][1]
+    router.handle(event("👎", "pho_msg_f2", parent="pho_msg_ans"), st, api)
+    assert subs[-1].op == "pref.set" and subs[-1].key == "tool.off.garage_fit"

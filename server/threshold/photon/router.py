@@ -27,6 +27,8 @@ VISIT_KINDS = ("width", "step", "alarm")          # what a person can settle by 
 ALARM_WORDS = re.compile(r"\b(alarm|smoke|detector|ceiling)\b", re.IGNORECASE)
 COMMAND = re.compile(r"^\s*(help|hi|hello|hey|start|/start|new|start over|reset|visit|on site|report|pdf|voice on|voice off|stop visit|alerts on|alerts off)\s*[.!?]*\s*$", re.IGNORECASE)
 REFUSED = ("SHARED_LINE_INBOUND_REQUIRED", "SPACE_NOT_SENDABLE")
+NAME = re.compile(r"\bcranley\b", re.I)
+FEEDBACK = re.compile(r"^\s*(👍|👎|❤️|❤|♥️|save|shortlist|not useful|wrong)\s*$", re.I)
 _state: State | None = None
 
 
@@ -155,9 +157,15 @@ def parts(content: dict) -> list[dict]:
 def route(m: dict, t: dict, chat: Chat, st: State) -> None:
     ps = parts(m.get("content") or {})
     text = " ".join(p["text"] for p in ps if p.get("type") == "text" and p.get("text")).strip()
-    atts = [p for p in ps if p.get("type") == "attachment"]
+    atts = [p if p.get("type") == "attachment" else {**p, "metadata": {**(p.get("metadata") or {}), "voice": True}}
+            for p in ps if p.get("type") in ("attachment", "voice")]  # Telegram voice notes arrive as `voice`
     replied = st.answer(chat.space, m.get("parentMessageId"))
     ws = (replied or {}).get("workspace") or t.get("workspace")
+    if (m.get("space") or {}).get("kind") == "group" and not (replied or COMMAND.match(text) or NAME.search(text)):
+        return  # in a group chat, Cranley speaks when spoken to: its name, a reply to it, or a command
+    if replied and FEEDBACK.match(text):
+        feedback(chat, st, replied, text.strip())
+        return
 
     for a in atts:
         ct, data = chat.api.download(a["attachmentId"])
@@ -220,6 +228,31 @@ def command(cmd: str, chat: Chat, st: State, t: dict, ws: str | None) -> None:
     elif cmd == "stop visit":
         st.update(chat.space, visit=None)
         chat.say("Visit stopped. The checks you settled are saved in the workspace.")
+
+
+# ---- feedback by reply: Beta delivers no tapbacks, so a reply of an emoji on an answer is the vote ----
+
+def feedback(chat: Chat, st: State, replied: dict, text: str) -> None:
+    from ..agent.workspace import PrefSet, ShortlistAdd
+    s = session(replied["workspace"])
+    runs = {r.id: r for r in s.doc.runs}
+    rid = replied.get("run") or next(iter(replied.get("runs") or []), None)
+    run = runs.get(rid)
+    sid = replied.get("sid") or (run.sid if run else None)
+    if text.lower() in ("👎", "not useful", "wrong"):
+        if not run:
+            chat.say("Noted.")
+            return
+        s.submit(PrefSet(key=f"tool.off.{run.tool}", value=True, reason="Thumbs down on its answer in the chat"), by="user")
+        chat.say(f"Noted: I'll leave {words.title(run.tool)} out of this conversation from now on.")
+        return
+    if not sid:
+        chat.say("Noted.")
+        return
+    if sid not in s.doc.shortlist:
+        s.submit(ShortlistAdd(sid=sid, note=f"Liked in the chat ({text})"), by="user")
+    names = [words.place_name(x) for x in s.doc.shortlist]
+    chat.say(f"Saved {words.place_name(sid)} to your shortlist ({len(names)}): " + "; ".join(names))
 
 
 # ---- a shared location ----
