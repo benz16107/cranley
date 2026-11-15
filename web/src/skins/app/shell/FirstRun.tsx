@@ -8,6 +8,7 @@ import { go, goInvestigation, goScan, usePlace } from '../lib/place.ts'
 import { Composer } from '../pages/Home.tsx'
 import { useUi } from './store.ts'
 import { KnowsButton, useKnown } from './Knows.tsx'
+import { isApproval } from './AgentLive.tsx'
 
 /* The guided first run. It asks one thing (who you are and what you need), then stands aside: the real workspace is
    on the page while the agent composes it, and a small card says which step is happening. It opens the first
@@ -36,6 +37,7 @@ export function FirstRun() {
   const g = useMemo(() => guide(doc, opened), [doc, opened])
   const run = useRef(0)
   const known = useKnown()
+  const approving = doc.questions.some((q) => q.answer == null && isApproval(q)) // the agent paused before a slow step
   // While the guide shows one building the place does not follow the agent's camera. `held` is the setting to put back.
   const held = useRef<boolean | null>(null), following = useWorkspace((s) => s.follow)
   const release = (to?: boolean) => { if (held.current != null) { useWorkspace.getState().setFollow(to ?? held.current); held.current = null } }
@@ -90,7 +92,7 @@ export function FirstRun() {
   }, [phase, opened, moved, picks])
   useEffect(() => { if (phase !== 'watch' || !g.ready) return; const t = setTimeout(end, Math.max(0, at.current + DWELL - Date.now())); return () => clearTimeout(t) }, [phase, g.ready])
   // the limit does not run while a question waits for the person: that time is theirs
-  useEffect(() => { if (phase !== 'watch' || g.ask) return; const t = setTimeout(end, CAP); return () => clearTimeout(t) }, [phase, g.ask])
+  useEffect(() => { if (phase !== 'watch' || g.ask || approving) return; const t = setTimeout(end, CAP); return () => clearTimeout(t) }, [phase, g.ask, approving])
   // the person answered the question that was holding the work up: carry on without their pressing Start
   const asked = useRef(false)
   useEffect(() => { if (phase === 'watch' && asked.current && !g.ask && !doc.plan.length) void investigate(); asked.current = g.ask }, [phase, g.ask]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -125,7 +127,7 @@ export function FirstRun() {
       {(phase === 'watch' || phase === 'end') && (
         <section className="guide arrive" aria-label="First run guide">
           <header>
-            <h2>{phase === 'watch' ? 'Setting up your workspace' : g.results ? 'Your first result' : 'Still working'}</h2>
+            <h2>{phase === 'watch' ? 'Setting up your workspace' : g.results ? 'Your first result' : approving ? 'Waiting for you' : 'Still working'}</h2>
             <button type="button" className="btn sm icon quiet" aria-label={phase === 'watch' ? 'Leave the guide' : 'Close'} onClick={leave}><Icon name="close" size={12} /></button>
           </header>
           {phase === 'watch' ? (
@@ -138,7 +140,7 @@ export function FirstRun() {
                   </li>
                 ))}
               </ol>
-              {active && <p className="say">{active.state === 'ask' ? 'Answer on the page. The work starts as soon as you do.' : SAY[active.id]}</p>}
+              {(active || approving) && <p className="say">{approving ? 'The agent is waiting for your approval before a slow step. Answer in the agent panel.' : active!.state === 'ask' ? 'Answer on the page. The work starts as soon as you do.' : SAY[active!.id]}</p>}
             </>
           ) : (
             <>
@@ -148,7 +150,7 @@ export function FirstRun() {
                   <p className="text">{g.verdict.text}</p>
                   <p className="muted small">{name ? `${name}. ` : ''}{g.working ? 'The agent is still measuring; more results are on their way.' : 'The agent has finished.'}</p>
                 </div>
-              ) : <p className="say">{g.working ? 'The agent has not finished its first building yet. Its plan and every run are in the agent panel.' : 'Nothing was measured this time. Ask again in other words, or run a tool by hand on a building from Explore.'}</p>}
+              ) : <p className="say">{approving ? 'The agent is waiting for your approval before a slow step. Answer in the agent panel.' : g.working ? 'The agent has not finished its first building yet. Its plan and every run are in the agent panel.' : 'Nothing was measured this time. Ask again in other words, or run a tool by hand on a building from Explore.'}</p>}
               <dl className="where">
                 {onBuilding && <div><dt>Results</dt><dd>Every check on this building, with its source</dd></div>}
                 <div><dt><span className="kbd">]</span></dt><dd>The agent’s plan and each run</dd></div>

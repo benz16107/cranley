@@ -72,6 +72,8 @@ function Brief() {
   const [editing, setEditing] = useState(false)
   const [text, setText] = useState('')
   const open = doc.questions.filter((q) => q.answer == null)
+  const texts = [...new Set(open.filter(isApproval).map((q) => q.text))]
+  const groups = texts.map((t) => open.filter((q) => isApproval(q) && q.text === t)) // approvals that read the same are one card
   if (!doc.brief && !open.length && !doc.plan.length && !doc.runs.length) {
     return <Empty icon="runs" title="No investigation open" action={<button className="btn solid" onClick={newInvestigation}>New investigation</button>}>Describe a need on Home. The agent’s plan and results show here.</Empty>
   }
@@ -100,8 +102,9 @@ function Brief() {
         <div className="asks">
           <header><h3>{open.every(isApproval) ? (open.length === 1 ? 'Waiting for your approval' : `Waiting for ${open.length} approvals`) : open.length === 1 ? 'One question to answer' : `${open.length} questions to answer`}</h3></header>
           {/* several approvals at once are usually the same step on several buildings: one press answers them all */}
-          {open.length > 1 && open.every(isApproval) && <ApproveAll open={open} />}
-          {open.map((q) => (isApproval(q) ? <ApprovalCard key={q.id} q={q} /> : <QuestionForm key={q.id} q={q} />))}
+          {groups.length > 1 && open.every(isApproval) && <ApproveAll open={open} />}
+          {groups.map((qs) => <ApprovalCard key={qs[0].id} qs={qs} />)}
+          {open.filter((q) => !isApproval(q)).map((q) => <QuestionForm key={q.id} q={q} />)}
         </div>
       )}
       {doc.brief && doc.questions.length > 0 && !doc.plan.length && !editing && (
@@ -239,20 +242,20 @@ export function RunPanel({ onClose }: { onClose: () => void }) {
   const shared = useCatalog((s) => !!s.shared)
   const stopped = useStopped()
   const at = doc.plan.findIndex((s) => s.status === 'active'), running = doc.runs.filter((r) => r.status === 'running')
-  const working = !stopped && (at >= 0 || running.length > 0)
-  const open = doc.questions.filter((q) => q.answer == null).length
+  const open = doc.questions.filter((q) => q.answer == null).length, approvals = doc.questions.filter((q) => q.answer == null && isApproval(q)).length
+  const working = !stopped && !approvals && (at >= 0 || running.length > 0)
   const send = () => { if (text.trim()) { void askHere(text.trim()); setSent({ text: text.trim(), sign }); setText('') } }
   return (
     <aside className="run" aria-label="Agent">
       <header className="rp-head">
         <h2>Agent</h2>
-        <span className="grow trunc" title={at >= 0 ? doc.plan[at].label : undefined}>{working ? <RunState state="running">{at >= 0 ? `Step ${at + 1} of ${doc.plan.length}` : running[0].label}</RunState> : open ? <span className="rs" data-state="ask">{open} to answer</span> : stopped ? <span className="rs">Stopped at step {at + 1}</span> : doc.plan.length ? <RunState state="done">Finished</RunState> : <span className="muted">Idle</span>}</span>
+        <span className="grow trunc" title={at >= 0 ? doc.plan[at].label : undefined}>{working ? <RunState state="running">{at >= 0 ? `Step ${at + 1} of ${doc.plan.length}` : running[0].label}</RunState> : open ? <span className="rs" data-state="ask">{approvals === open ? `${open} to approve` : `${open} to answer`}</span> : stopped ? <span className="rs">Stopped at step {at + 1}</span> : doc.plan.length ? <RunState state="done">Finished</RunState> : <span className="muted">Idle</span>}</span>
         <KnowsButton />
         <IconBtn icon="close" label="Close the agent panel" kbd="]" onClick={onClose} />
       </header>
       <div className="rp-body scroll">
         <Brief />
-        {!working && <Result />}
+        {!working && !approvals && <Result />}
         <Because />
         {(doc.plan.length > 0 || doc.runs.length > 0 || doc.findings.length > 0 || doc.prefs.length > 0) && (
           <Tabs.Root value={tab} onValueChange={(v) => setTab(String(v))}>

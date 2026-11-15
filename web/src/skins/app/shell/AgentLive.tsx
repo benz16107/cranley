@@ -15,24 +15,29 @@ export function ApproveAll({ open }: { open: Question[] }) {
 }
 
 /** Run it, skip it, or stop asking about this tool here. The answer is a workspace op, so every open copy of the
-    workspace sees it; then the paused turn carries on from where it stopped. */
-export function ApprovalCard({ q }: { q: Question }) {
+    workspace sees it; then the paused turn carries on from where it stopped. `qs` are approvals that read the same
+    (the agent asked for the same step several times): one card answers them together. */
+export function ApprovalCard({ qs }: { qs: Question[] }) {
+  const q = qs[0]
   const tools = useWorkspace((s) => s.doc.tools)
+  const all = useBuildings((s) => s.all)
   const [sent, setSent] = useState<string | null>(null)
-  const [title, why] = q.text.includes(': ') ? [q.text.slice(0, q.text.indexOf(': ')), q.text.slice(q.text.indexOf(': ') + 2)] : [q.text, '']
+  // the server names a property by its number: say its address when the building list has it
+  const text = q.text.replace(/\b\d{5,}\b/, (id) => all.find((b) => b.id === `p${id}`)?.address.split(',')[0] ?? id)
+  const [title, why] = text.includes(': ') ? [text.slice(0, text.indexOf(': ')), text.slice(text.indexOf(': ') + 2)] : [text, '']
   const name = tools.find((t) => t.id === q.tool)?.title ?? title
   const decide = (a: string) => {
     setSent(a)
-    userOp({ op: 'question.answer', id: q.id, answer: a })
+    for (const x of qs) userOp({ op: 'question.answer', id: x.id, answer: a })
     // the turn resumes once every approval it asked for is answered; the server waits for the rest otherwise
-    if (!useWorkspace.getState().doc.questions.some((x) => isApproval(x) && x.id !== q.id && x.answer == null)) void turn({})
+    if (!useWorkspace.getState().doc.questions.some((x) => isApproval(x) && !qs.includes(x) && x.answer == null)) void turn({})
   }
   const [run, skip, always] = q.options ?? ['Run it', 'Skip it', 'Always run it here']
   return (
     <section className="approval" aria-label={`Approve ${name}`} data-sent={sent ? '' : undefined}>
       <header>
         <ToolKey id={q.tool ?? ''} title={name} />
-        <span className="grow"><b>{title}</b><span className="why">{why}</span></span>
+        <span className="grow"><b>{title}{qs.length > 1 && <span className="count">{qs.length} times</span>}</b><span className="why">{why}</span></span>
       </header>
       {sent ? <RunState state="running">{sent === skip ? 'Skipped. The agent carries on without it' : 'Approved. The agent carries on'}</RunState> : (
         <div className="row wrap">
@@ -82,9 +87,9 @@ export function Lanes() {
   const snap = useLive((s) => s.snap)
   const tools = useWorkspace((s) => s.doc.tools)
   const all = useBuildings((s) => s.all)
-  // a lane's task is the lead agent's own instruction, which starts with a scan id: show that scan's name instead
-  const names = useMemo(() => new Map(all.flatMap((b) => b.scans.map((x) => [x.sid, [x.name, b.address.split(',')[0]].filter((v, i, a) => v && a.indexOf(v) === i).join(' · ')] as const))), [all])
-  const about = (task: string) => { for (const w of task.match(/[A-Za-z0-9_]{8,}/g) ?? []) { const n = names.get(w); if (n) return n } return task }
+  // a lane's task is the lead agent's own instruction, which names a scan or a property by its id: show its name instead
+  const names = useMemo(() => new Map(all.flatMap((b) => [[b.id.replace(/^p/, ''), b.address.split(',')[0]] as const, ...b.scans.map((x) => [x.sid, [x.name, b.address.split(',')[0]].filter((v, i, a) => v && a.indexOf(v) === i).join(' · ')] as const)])), [all])
+  const about = (task: string) => { for (const w of task.match(/[A-Za-z0-9_]{5,}/g) ?? []) { const n = names.get(w); if (n) return n } return task }
   const title = (t: string) => tools.find((x) => x.id === t)?.title ?? STEP[t] ?? t.replace(/_/g, ' ')
   if (!snap || !snap.lanes.length || snap.status === 'idle') return null
   const busy = snap.lanes.filter((l) => l.status === 'running' && l.id !== 'main').length
