@@ -17,7 +17,7 @@ description, tagline, links and built-with are filled in through the Devpost MCP
 | Tagline (200) | Ask anything about a building. Get a measured answer. An agent that measures the real building, inside and out, before you commit. |
 | Description | `docs/devpost/description.md` (synced) |
 | Built with (25) | python, fastapi, langchain, deepagents, langgraph, langsmith, anthropic, mongodb-atlas, timescaledb, tiger-data, photon, postgis, pgvector, react, typescript, elevenlabs, three.js, maplibre, deck.gl, swift, swiftui, arkit, roomplan, ollama, matterport |
-| Video | the 2-minute YouTube link, when uploaded |
+| Video | https://youtu.be/cwn0x1TZYKQ (1:56, unlisted; set on the project and the entry; may be swapped for a dark-mode cut) |
 
 ## Custom questions (ids from `get_submission_requirements`)
 
