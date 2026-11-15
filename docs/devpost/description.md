@@ -122,7 +122,7 @@ More detail: [Architecture](https://cranley.app/docs/architecture/) · [Data sou
 - Only scans with a wall graph get geometry checks; the rest get what panoramas and records can say.
 - Flood and fire results are planning aids, not inspections.
 - The iPhone app runs in the simulator; it has not been on a phone yet.
-- Measuring is not always the bottleneck: two home-health occupational therapists told us most patients won't pay to modify anything, and that unless someone uses a wheelchair they measure only seat heights and steps.
+- Measuring is not always the bottleneck: two occupational therapists told us that most home-health patients won't pay to modify anything, and that unless someone uses a wheelchair they measure only seat heights and steps.
 
 More detail: [FAQ](https://cranley.app/docs/faq/)
 
