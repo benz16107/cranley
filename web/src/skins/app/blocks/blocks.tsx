@@ -7,6 +7,7 @@ import { fetchPlan, focusAnchor, focusFinding, navigate, panoFace, runAction, us
 import { Icon, RunState, SourceChip, St, StatusGlyph, ToolKey } from '../design/ui.tsx'
 import { dur, num as fmt } from '../lib/format.ts'
 import { PlanDrawing } from '../shell/PlanDrawing.tsx'
+import { useNames } from '../shell/store.ts'
 import { oneSource, splitChecks } from '../lib/source.ts'
 
 /* The twelve panel blocks, set at the density of a work tool. A panel is only ever built from these.
@@ -282,6 +283,9 @@ function ActionBar({ b, ctx }: { b: Extract<Block, { type: 'ActionBar' }>; ctx: 
   return <div className="b-actions">{b.actions.map((a: Action) => <button key={a.id} className="btn sm" onClick={() => runAction(a, ctx.panel)}>{a.label}</button>)}</div>
 }
 
+/** The agent's own words. It writes a scan by its id; a person reads its name. */
+function Note({ text }: { text: string }) { return <p className="b-note">{useNames().named(text)}</p> }
+
 function BlockView({ block: b, ctx }: { block: Block; ctx: Ctx }): ReactNode {
   switch (b.type) {
     case 'VerdictHeader': return <VerdictHeader b={b} />
@@ -294,7 +298,7 @@ function BlockView({ block: b, ctx }: { block: Block; ctx: Ctx }): ReactNode {
     case 'Controls': return <Controls b={b} />
     case 'AssumptionChips': return <AssumptionChips b={b} ctx={ctx} />
     case 'StepLog': return <StepLog b={b} />
-    case 'Note': return <p className="b-note">{b.text}</p>
+    case 'Note': return <Note text={b.text} />
     case 'ActionBar': return <ActionBar b={b} ctx={ctx} />
   }
 }

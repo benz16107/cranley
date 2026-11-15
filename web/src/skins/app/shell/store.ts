@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { create } from 'zustand'
+import { useBuildings } from '../../../core/index.ts'
+import { nameIds } from '../lib/names.ts'
 
 /* What is open in the shell. The run panel and the narrow sidebar are remembered per browser. */
 const get = (k: string, d: boolean) => { try { const v = localStorage.getItem(`threshold.app.${k}`); return v == null ? d : v === '1' } catch { return d } }
@@ -36,4 +38,10 @@ export function useIsPhone() {
   const [phone, setPhone] = useState(() => window.matchMedia('(max-width: 760px)').matches)
   useEffect(() => { const m = window.matchMedia('(max-width: 760px)'); const on = () => setPhone(m.matches); m.addEventListener('change', on); return () => m.removeEventListener('change', on) }, [])
   return phone
+}
+
+/** Scan and property ids put in words (lib/names.ts), from the building list. */
+export function useNames() {
+  const all = useBuildings((s) => s.all)
+  return useMemo(() => nameIds(all), [all])
 }

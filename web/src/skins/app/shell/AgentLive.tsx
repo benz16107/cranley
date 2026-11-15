@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { create } from 'zustand'
-import { userOp, useBuildings, useCatalog, useWorkspace, type Question } from '../../../core/index.ts'
+import { userOp, useCatalog, useWorkspace, type Question } from '../../../core/index.ts'
 import { serverDoc, turn } from '../../../core/server.ts'
 import { Icon, RunState, ToolKey } from '../design/ui.tsx'
+import { useNames } from './store.ts'
 
 /** A slow or expensive step the agent paused before (deepagents human-in-the-loop). Its id starts `approve:`. */
 export const isApproval = (q: Question) => q.id.startsWith('approve:')
@@ -20,10 +21,8 @@ export function ApproveAll({ open }: { open: Question[] }) {
 export function ApprovalCard({ qs }: { qs: Question[] }) {
   const q = qs[0]
   const tools = useWorkspace((s) => s.doc.tools)
-  const all = useBuildings((s) => s.all)
   const [sent, setSent] = useState<string | null>(null)
-  // the server names a property by its number: say its address when the building list has it
-  const text = q.text.replace(/\b\d{5,}\b/, (id) => all.find((b) => b.id === `p${id}`)?.address.split(',')[0] ?? id)
+  const text = useNames().named(q.text) // the server names a property by its number: say its address
   const [title, why] = text.includes(': ') ? [text.slice(0, text.indexOf(': ')), text.slice(text.indexOf(': ') + 2)] : [text, '']
   const name = tools.find((t) => t.id === q.tool)?.title ?? title
   const decide = (a: string) => {
@@ -55,7 +54,7 @@ type Lane = { id: string; agent: string; task: string; status: 'running' | 'wait
 type Live = { turn: string | null; status: 'idle' | 'running' | 'waiting' | 'done' | 'stopped'; lanes: Lane[] }
 
 /** What the server's agents are doing now, from `/api/agent/{id}/live`: one stream for the whole shell. */
-const useLive = create<{ snap: Live | null }>(() => ({ snap: null }))
+const useLive = create<{ snap: Live | null; stopped: boolean }>(() => ({ snap: null, stopped: false }))
 export function LiveLink() {
   const live = useCatalog((s) => s.live)
   const id = useWorkspace((s) => s.doc.brief?.text) ? (serverDoc()?.id as string | undefined) : undefined
@@ -68,12 +67,21 @@ export function LiveLink() {
   }, [live, id])
   return null
 }
-/** The turn has ended with a plan step still marked active and nothing running: the agent stopped part-way. Without
-    this the panel, the top bar and the plan say "working" for ever. Unknown (no stream yet) counts as not stopped. */
-export function useStopped() {
-  const over = useLive((s) => !!s.snap && s.snap.status !== 'running' && s.snap.status !== 'waiting')
-  return useWorkspace((s) => over && s.doc.plan.some((p) => p.status === 'active') && !s.doc.runs.some((r) => r.status === 'running'))
+/* Stopped part-way: the server has said the turn ended ("done" or "stopped"; no stream yet, or a server that has
+   forgotten the turn, does not count), a plan step is still marked active and nothing is running. Without this the
+   panel, the top bar and the plan say "working" for ever. The end-of-turn signal and the plan's last changes come
+   by different routes, and the signal can land first, so it must hold for six seconds before anything says so. */
+const HOLD = 6000
+let hold: ReturnType<typeof setTimeout> | undefined
+function check() {
+  const { snap, stopped } = useLive.getState(), d = useWorkspace.getState().doc
+  const now = (snap?.status === 'done' || snap?.status === 'stopped') && d.plan.some((p) => p.status === 'active') && !d.runs.some((r) => r.status === 'running')
+  if (!now) { clearTimeout(hold); hold = undefined; if (stopped) useLive.setState({ stopped: false }) }
+  else if (!hold && !stopped) hold = setTimeout(() => { hold = undefined; useLive.setState({ stopped: true }) }, HOLD)
 }
+useLive.subscribe(check)
+useWorkspace.subscribe(check)
+export const useStopped = () => useLive((s) => s.stopped)
 
 const AGENT = { building: 'Building', property: 'Property', investigator: 'Lead agent' } as Record<string, string>
 const STEP = { consider: 'Adding buildings', find_scans: 'Searching scans', find_properties: 'Searching properties', find_by_measure: 'Searching by measurement',
@@ -86,10 +94,9 @@ const STATE = { running: 'running', waiting: 'pending', done: 'done', failed: 'f
 export function Lanes() {
   const snap = useLive((s) => s.snap)
   const tools = useWorkspace((s) => s.doc.tools)
-  const all = useBuildings((s) => s.all)
   // a lane's task is the lead agent's own instruction, which names a scan or a property by its id: show its name instead
-  const names = useMemo(() => new Map(all.flatMap((b) => [[b.id.replace(/^p/, ''), b.address.split(',')[0]] as const, ...b.scans.map((x) => [x.sid, [x.name, b.address.split(',')[0]].filter((v, i, a) => v && a.indexOf(v) === i).join(' · ')] as const)])), [all])
-  const about = (task: string) => { for (const w of task.match(/[A-Za-z0-9_]{5,}/g) ?? []) { const n = names.get(w); if (n) return n } return task }
+  const { of } = useNames()
+  const about = (task: string) => { for (const w of task.match(/[A-Za-z0-9_]{6,}/g) ?? []) { const n = of(w); if (n) return n.name === n.address ? n.name : `${n.name} · ${n.address}` } return task }
   const title = (t: string) => tools.find((x) => x.id === t)?.title ?? STEP[t] ?? t.replace(/_/g, ' ')
   if (!snap || !snap.lanes.length || snap.status === 'idle') return null
   const busy = snap.lanes.filter((l) => l.status === 'running' && l.id !== 'main').length

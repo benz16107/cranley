@@ -10,7 +10,7 @@ import { sheetFocus } from '../lib/split.ts'
 import { askHere } from '../lib/pending.ts'
 import { goScan } from '../lib/place.ts'
 import { newInvestigation } from './Sidebar.tsx'
-import { useUi } from './store.ts'
+import { useNames, useUi } from './store.ts'
 import { ApprovalCard, ApproveAll, isApproval, Lanes, useStopped } from './AgentLive.tsx'
 import { Because, KnowsButton, Marks, useFirst } from './Knows.tsx'
 
@@ -119,7 +119,7 @@ function Brief() {
 
 function Plan() {
   const plan = useWorkspace((s) => s.doc.plan), runs = useWorkspace((s) => s.doc.runs)
-  const stopped = useStopped()
+  const stopped = useStopped(), { named } = useNames()
   const [all, setAll] = useState<Record<string, boolean>>({})
   const byHand = runs.filter((r) => !r.step), earlier = runs.filter((r) => r.step && !plan.some((s) => s.id === r.step))
   if (!plan.length && !runs.length) return <p className="rp-none">No plan yet. It appears when the investigation starts.</p>
@@ -132,7 +132,7 @@ function Plan() {
           const mine = runs.filter((r) => r.step === s.id), shown = all[s.id] || s.status === 'active' ? mine : mine.slice(-2)
           return (
             <li key={s.id} className="step" data-status={s.status} aria-current={s.status === 'active' ? 'step' : undefined}>
-              <div className="sh"><span className="n">{i + 1}</span><span className="grow">{s.label}</span>{stopped && s.status === 'active' ? <span className="rs">Stopped here</span> : <RunState state={s.status}>{''}</RunState>}</div>
+              <div className="sh"><span className="n">{i + 1}</span><span className="grow">{named(s.label)}</span>{stopped && s.status === 'active' ? <span className="rs">Stopped here</span> : <RunState state={s.status}>{''}</RunState>}</div>
               {mine.length > 0 && (
                 <ul className="runs">
                   {mine.length > shown.length && <li><button className="more" onClick={() => setAll({ ...all, [s.id]: true })}>{mine.length - shown.length} earlier runs</button></li>}
@@ -161,11 +161,12 @@ function Result() {
   const doc = useWorkspace((s) => s.doc)
   const summary = doc.panels.findLast((p) => p.role === 'summary'), ranking = doc.panels.find((p) => p.id === 'agent:ranked') ?? doc.panels.find((p) => p.role === 'ranking')
   const kept = doc.shortlist[0]
+  const { named } = useNames()
   if (!summary && !ranking) return null
   return (
     <section className="rp-sec result arrive">
       <header><h3>{summary?.title ?? 'Result'}</h3></header>
-      {summary?.blocks.map((b, i) => b.type === 'Note' && <p key={i} className="said">{b.text}</p>)}
+      {summary?.blocks.map((b, i) => b.type === 'Note' && <p key={i} className="said">{named(b.text)}</p>)}
       <div className="row wrap">
         {kept && <button className="btn solid sm" onClick={() => goScan(kept.sid)} title={kept.note}>Open {kept.name}</button>}
         {ranking && <button className="btn sm" onClick={() => useUi.setState({ panel: ranking.id })}>See the ranking</button>}
