@@ -2,6 +2,7 @@
 .deep { display: grid; grid-template-columns: 168px minmax(0, 1fr); column-gap: var(--s-7); align-items: start; padding-block: clamp(32px, 5vw, 64px) var(--s-7); }
 .deep-head { grid-column: 1 / -1; margin-bottom: var(--s-7); }
 .deep-head h1 { margin-top: var(--s-2); font-size: clamp(1.75rem, 1.1rem + 2vw, 2.5rem); font-stretch: 106%; letter-spacing: -0.02em; line-height: 1.1; text-wrap: balance; max-width: 26ch; }
+.deep-logo { margin-top: var(--s-4); }
 .deep-head .lead { margin-top: var(--s-4); color: var(--ink-2); max-width: 62ch; }
 
 .deep-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--s-4) var(--s-5); margin-top: var(--s-6); padding-top: var(--s-4); border-top: 1px solid var(--rule-strong); max-width: 860px; }

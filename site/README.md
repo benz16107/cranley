@@ -54,6 +54,10 @@ One thing on the site is never in git: the recorded phone call on the Photon pag
 ignored paths (`public/media/real/` and `src/site/call.local.json`) before each build, and says whether it found them.
 A checkout without that folder builds the Photon page without the call. The folder's README says what was checked.
 
+Sponsor logos sit beside the tracks on `/tracks/` and in each track page's header. They are the sponsors' own files,
+not recoloured; `src/site/logos.ts` records where each came from, and `public/media/logos/<slug>.png` is each one at
+48 px tall on a transparent background for pages elsewhere that link to it.
+
 Build flags: `PUBLIC_SLOT_LABELS=off` hides the notes that name each slot (and any slot with nothing in it),
 `PUBLIC_INDEX=1` lets search engines in.
 
