@@ -31,7 +31,7 @@ unticked prize is not judged.
 - [MLH] Best Use of Tiger Data
 - [MLH] Best Use of MongoDB Atlas
 - [Photon] Build a Messaging Agent using Photon 2.0 (winner, runner-up, Best Voice Agent)
-- [Peri] Forward Deployed Engineer: only with a consulted business and evidence
+- [Peri] Forward Deployed Engineer: eligible (Jean Ryan, President, Disabled In Action of Metropolitan New York; recorded interview, quotes; consent before the call)
 - LangChain deepagents: not on Devpost's prize list; ask how to enter
 
 ## Built with (25)
