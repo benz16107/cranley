@@ -144,7 +144,7 @@ export class Overlays3D {
         }
         g.add(holder); this.made.push(holder, ...holder.children)
         const dims = `${b.size[0].toFixed(2)} × ${b.size[1].toFixed(2)} × ${b.size[2].toFixed(2)} m`
-        if (!b.quiet) labels.push({ id: `box${oi}.${b.label ?? ''}.${b.status}.${b.size.join('x')}`, pos: [b.center[0], b.center[1], b.center[2] + b.size[2] / 2 + 0.12], floor: at.floor, make: () => chip('th-chip-box', b.status, h('span', 'th-chip-text', b.label ?? 'Object'), h('span', 'th-num', dims)) })
+        if (!b.quiet && b.label !== '') labels.push({ id: `box${oi}.${b.label ?? ''}.${b.status}.${b.size.join('x')}`, pos: [b.center[0], b.center[1], b.center[2] + b.size[2] / 2 + 0.12], floor: at.floor, make: () => chip('th-chip-box', b.status, h('span', 'th-chip-text', b.label ?? 'Object'), h('span', 'th-num', dims)) })
       } else if (ov.kind === 'marks') { // the scene's own, never a tool's: dimension lines and zones round a placed piece (furnish.ts)
         const k = ov as unknown as { floor: number; id: string; lines: { points: Vec3[]; status: Status }[]; chips: { point: Vec3; text: string; status: Status }[] }
         const g = doll.floorGroups[k.floor], fz = m.floorZ[k.floor]
