@@ -464,7 +464,7 @@ def visit_reading(chat: Chat, st: State, t: dict, s, text: str) -> bool:
     from ..agent.composer import SIZE, TO_M
     from ..capture import apply, store
     task = current_task(s, t)
-    if not task:
+    if not task or len(text.split()) > 8 or "?" in text:  # a question that mentions a size is still a question
         return False
     values: dict[str, Any] = {}
     if task["kind"] == "alarm":

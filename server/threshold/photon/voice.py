@@ -146,6 +146,6 @@ def after_call(event: dict, st: State, api=client) -> None:
     s = session(rec["workspace"])
     st.update(space, workspace=s.base.id)
     runs = [r.model_dump(mode="json") for r in s.doc.runs if r.id in set(rec["runs"])]
-    chat = Chat(space, t["agent"], t.get("platform", "imessage"), None, api)
+    chat = Chat(space, t["agent"], t.get("platform", "imessage"), None, api, st)
     chat.say("From our call just now:", reply=False)
     answer_runs(chat, st, s, runs)
