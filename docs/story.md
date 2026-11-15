@@ -259,7 +259,8 @@ what they said.
 | Workplaces: a chef who takes over kitchens (r/Chefit), restaurant operators (r/restaurant), a Walmart receiving associate (r/walmart), managers (r/AskManagers), emergency management (r/EmergencyManagement) | Written answers | Check cart and hand-truck access, cooler space and 3-phase power before taking a kitchen; hot water that never reaches the far sinks; a dock that unloads around a 90 degree corner; an office under a bathroom; a library emergency review that found gaps a routine inspection missed. |
 | 340 organisations and businesses in New Jersey, New York, Texas and elsewhere | Email | Three people replied: the interview above and two declines; the rest were automatic replies or silence. |
 
-**2. Build.** What changed because of it, on main the same night (`ws/feedback`, merged at `480147f`):
+**2. Build.** What changed because of it, on main the same night (`ws/feedback`, merged at `480147f` and `f69fd81`).
+Every quote, the change it caused (tool and commit) or why it was skipped is in `docs/feedback.md`.
 
 1. Steps first: step-free route now opens with a steps check per destination, counts steps seen in the panoramas against
    the route, and lists the rooms reached with no step, including steps inside past the front door.
@@ -275,6 +276,12 @@ what they said.
 7. From the truck and boat owners: garage fit checks depth to the back wall on its own, clear of objects the scan
    measured, with a "not in the scan" line for fittings on the wall; boats and trailers use the maker's storage length;
    the door opening is checked at a trailer's fenders and side lights.
+8. From the workplaces: facility audit carries a loaded sheet-pan rack from the entrance to each storage room and kitchen
+   and reports its doors and bends (the chef and the Walmart receiving associate), measures storage floor area, and
+   checks the water heater against the farthest sink seen (IPC 607.2's 50 ft; the restaurant operator); office fit
+   flags offices with a restroom on the floor above (the manager); 3-phase power, filtration, cold storage and noise
+   are "not in the scan" lines.
+9. Steps at the door: step-free route names a step at the entrance door and says when the entrance itself may have one.
 
 **3. Evidence.** Jean Ryan agreed before the call to be filmed and to have anything from it shared. In her words
 (times in the recording):
@@ -434,7 +441,7 @@ wheelchair user, the family before a storm, the fire crew.
 
 ## Built (synced to `main`)
 
-Checked against `git log main` at `480147f` (2026-11-14, 9:16 pm ET). Update at each merge.
+Checked against `git log main` at `f69fd81` (2026-11-14, 9:36 pm ET). Update at each merge.
 
 **Merged**
 - [x] Data layer: Matterport, Vexcel and CoStar sources, normalized plan format with quality flags (`ws/data`)
@@ -469,7 +476,7 @@ Checked against `git log main` at `480147f` (2026-11-14, 9:16 pm ET). Update at 
 - [x] Six scripted demo flows, one per track, with spoken lines and recorded model answers; an offline laptop copy (`scripts/demo-sync`, `scripts/demo-up`) that replays without the network (`ws/demo`)
 - [x] Cranley over iMessage and voice on Photon 2.0: plan pictures, reply threads as investigations, approvals, photo/video/voice/location in, field visits, PDF in chat, weather alerts, ElevenLabs phone agent (`ws/photon`)
 - [x] Person profile across investigations, "Cranley knows" with Change and Forget, checks kept back by kind, measured adaptation in the app, `amazon-adaptive` flow (`ws/adaptive`)
-- [x] Changes from discovery: steps first, several chairs, bathroom door swing and clear space, aisles, elevators, garage depth and trailer checks (`ws/feedback` part 1)
+- [x] Changes from discovery: steps first, several chairs, bathroom door swing and clear space, aisles, elevators, garage depth and trailer checks (`ws/feedback` part 1); facility audit rack route, storage area, water heater distance and office-under-restroom check from the workplace answers, and `docs/feedback.md` (part 2)
 - [x] Website and docs at cranley.app, generated from the code and this file (`ws/site`)
 - [x] MCP server (stdio and `/mcp`), `threshold` CLI, deep agent over MCP, `docs/MCP.md` (`ws/mcp`)
 
