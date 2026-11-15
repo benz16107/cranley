@@ -31,7 +31,9 @@ Answer these in the thread; the defaults below go in if there is no answer by ab
    - A. "Tell it what you need from a building. An agent builds the tools, measures the real thing inside and out, and shows its work."
    - B. "Listings say 'accessible' and 'two-car garage'. Cranley measures it: an agent that checks real buildings, inside and out, before you commit."
    - C. "One place where an agent assembles the tools your need requires, from the city map down to a measured doorway, and every number comes from a calculation."
-   Default: **B** (problem first, names the product, says what it does).
+   - D. "Ask anything about a building. Get a measured answer." (the cranley.app headline since 10:19 pm)
+   Default: **B** on Devpost for now (problem first, names the product, says what it does). D matches the site; switching
+   Devpost to it is one update if Ben prefers the two to agree.
 
 3. **Main HackPrinceton track.** The form allows exactly one of Healthcare, Sustainability, Business/Enterprise,
    Entertainment/Media, Education, Science & Discovery. Default: **Business/Enterprise** (the product is a working
@@ -444,7 +446,7 @@ wheelchair user, the family before a storm, the fire crew.
 
 ## Built (synced to `main`)
 
-Checked against `git log main` at `ceba198` (2026-11-14, 9:42 pm ET). Update at each merge.
+Checked against `git log main` at `9ecbd65` (2026-11-14, 10:05 pm ET). Update at each merge.
 
 **Merged**
 - [x] Data layer: Matterport, Vexcel and CoStar sources, normalized plan format with quality flags (`ws/data`)
@@ -480,6 +482,7 @@ Checked against `git log main` at `ceba198` (2026-11-14, 9:42 pm ET). Update at 
 - [x] Cranley over iMessage and voice on Photon 2.0: plan pictures, reply threads as investigations, approvals, photo/video/voice/location in, field visits, PDF in chat, weather alerts, ElevenLabs phone agent (`ws/photon`)
 - [x] Person profile across investigations, "Cranley knows" with Change and Forget, checks kept back by kind, measured adaptation in the app, `amazon-adaptive` flow (`ws/adaptive`)
 - [x] Changes from discovery: steps first, several chairs, bathroom door swing and clear space, aisles, elevators, garage depth and trailer checks (`ws/feedback` part 1); facility audit rack route, storage area, water heater distance and office-under-restroom check from the workplace answers, and `docs/feedback.md` (part 2)
+- [x] Home rebuilt as one entry: a sentence about any building or one picked, starting points by who you are, recent work (`ws/home2`)
 - [x] Website and docs at cranley.app, generated from the code and this file (`ws/site`)
 - [x] MCP server (stdio and `/mcp`), `threshold` CLI, deep agent over MCP, `docs/MCP.md` (`ws/mcp`)
 
