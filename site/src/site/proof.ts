@@ -1,0 +1,37 @@
+// What people sent us, as pictures: public/media/<id>.webp, 2000 px wide (the home page's thumbnail is
+// outreach-at-a-glance-thumb.webp). They are copied in by hand, not by `generate.py --media`: each one was read for
+// names, usernames, addresses and scan data first, and three carry blurs added for this site (the email replies, and
+// the two that show our r/f150 post, where one line gave a measured garage's size). Copying a fresh render over
+// them undoes that.
+export const INTERVIEW = {
+  url: 'https://youtu.be/q5reRgHfS8Y',
+  embed: 'https://www.youtube-nocookie.com/embed/q5reRgHfS8Y',
+  title: 'Interview with Jean Ryan, President of Disabled In Action of Metropolitan New York',
+  caption: 'Highlights of the recorded call with Jean Ryan, President of Disabled In Action of Metropolitan New York, who agreed to be filmed and named.',
+}
+
+const BLURRED = 'Usernames are blurred.'
+export const PROOF = {
+  'quote-to-change': { w: 2000, h: 1584,
+    alt: 'Six things people told us, each beside the tool it changed and the commit: two quotes from the interview with Jean Ryan and four Reddit replies',
+    caption: 'Six things we were told, each with the tool it changed and the commit. Names and usernames are blurred, except Jean Ryan, who agreed to be named.' },
+  'reddit-wall-2-workplaces': { w: 2000, h: 1937,
+    alt: 'Our questions in five Reddit communities for people who run stores, kitchens, restaurants, teams and emergency plans, with six of the answers',
+    caption: `What we asked in five Reddit communities for people who run workplaces, and six of the answers. ${BLURRED}` },
+  'email-replies': { w: 2000, h: 2758,
+    alt: 'The emails we sent and what came back: "Call me" from Jean Ryan, a museum director asking for a call, written answers from a theatre\'s managing director, and two declines',
+    caption: 'The email we sent and each reply to it. Names, email addresses, signatures and the names of the organisations are blurred, except Jean Ryan.' },
+  'outreach-at-a-glance': { w: 2000, h: 1328,
+    alt: 'The outreach in numbers: the recorded interview, the people and communities who answered, the emails sent, the replies and the commits that followed',
+    caption: 'The outreach, counted. It shows totals only: no names or usernames appear in it.' },
+  'amazon-occupational-therapists': { w: 2000, h: 1575,
+    alt: 'Our question to occupational therapists on Reddit, two therapists\' lists of what they check in a home, and the checks added to the tools from those lists',
+    caption: `Two occupational therapists answered with what they check in a home, and their lists became checks in the tools. ${BLURRED}` },
+  'costar-garage-depth': { w: 2000, h: 1932,
+    alt: 'Reddit answers from pickup and boat owners about garage depth, each beside the change it caused in the garage fit tool',
+    caption: `Pickup and boat owners on garage depth, which listings leave out, each with the change it caused in the garage fit tool. ${BLURRED} So is one line of our own post that gave a measured garage's size.` },
+  'reddit-wall-1-homes-and-vehicles': { w: 2000, h: 2010,
+    alt: 'Our questions in five Reddit communities about homes and vehicles, with seven of the answers and the role each person gave',
+    caption: `What we asked in five Reddit communities for pickup, boat and RV owners and occupational therapists, and seven of the answers. ${BLURRED} So is one line of our own post that gave a measured garage's size.` },
+} as const
+export type ProofId = keyof typeof PROOF

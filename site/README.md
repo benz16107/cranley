@@ -39,6 +39,11 @@ Every picture and clip is a slot (`src/site/slots.ts`). To fill one, add a file 
 - `public/media/real/<slot>.*`: the real product with sponsor content on screen. This folder is git-ignored and is
   used only when the site is built with `CRANLEY_REAL_VISUALS=1`, after CoStar has confirmed the website.
 
+The pictures of what people sent us (`src/site/proof.ts`, shown by `Proof.astro`) are not slots. They are copied in by
+hand after a read for names, usernames, addresses and scan data; the header of `proof.ts` says which of them carry
+blurs added for this site. The interview on the Peri page is YouTube's player, the one thing the site loads from
+another company; `pnpm check` allows that address on that page only, and the privacy page names it.
+
 Build flags: `PUBLIC_SLOT_LABELS=off` hides the notes that name each slot (and any slot with nothing in it),
 `PUBLIC_INDEX=1` lets search engines in.
 

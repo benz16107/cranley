@@ -1,15 +1,22 @@
 ---
 // About: the sections that were on the Devpost page until it was shortened, word for word. scripts/generate.py copies
-// them from docs/devpost/about.md to src/generated/about.md; edit them there, not here.
+// them from docs/devpost/about.md to src/generated/about.md; edit them there, not here. The last section, with the
+// picture of who we asked, is this page's own.
 import Base from '../layouts/Base.astro'
 import { Content } from '../generated/about.md'
+import Proof from '../components/Proof.astro'
 ---
 <Base title="About Cranley" description="What makes Cranley different, what we ran into while building it, what we are proud of, what we learned, and what it is built with.">
   <article class="page">
     <div class="wrap">
       <h1>About Cranley</h1>
       <p class="intro">What makes it different, what we ran into while building it, and what we learned. For how it works, see <a href="/how/">How it works</a>.</p>
-      <div class="prose"><Content /></div>
+      <div class="prose">
+        <Content />
+        <h2 id="asked">Who we asked</h2>
+        <Proof id="reddit-wall-1-homes-and-vehicles" />
+        <p><a href="/tracks/peri/">What people told us, and what we changed</a></p>
+      </div>
     </div>
   </article>
 </Base>
