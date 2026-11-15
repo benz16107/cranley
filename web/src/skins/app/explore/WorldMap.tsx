@@ -228,7 +228,11 @@ export function WorldMap(props: Props) {
       const z = map.getZoom(), c = map.getCenter(), now = live.current
       const closer = z > lastZ + 0.01; lastZ = z // zooming out past a building (on the way back from one) must not open it again
       mesh?.setShown(z >= MESH_Z - 0.2)
-      if (!now.held && z >= MESH_Z) void mesh?.want({ lat: c.lat, lon: c.lng })
+      if (!now.held && z >= MESH_Z && mesh) {
+        // the server can take a while to list a place's 3D tiles the first time: say it is loading from the moment it is asked for
+        if (mesh.status === 'idle') useWorld.setState({ city3d: { status: 'loading', progress: 0, capture: '' } })
+        void mesh.want({ lat: c.lat, lon: c.lng })
+      }
       mesh?.shadowsAt(c.lng, c.lat)
       loadGrid()
       if (!(e?.originalEvent || performance.now() - input < 1200) || !closer || now.held || z < ENTER_Z) return
@@ -260,7 +264,8 @@ export function WorldMap(props: Props) {
       const m = mesh = new Mesh()
       m.onChange = () => useWorld.setState({ city3d: { status: m.status, progress: m.progress, capture: (m.patch?.capture?.[0] ?? '').slice(0, 7).replace('/', '-') } })
       host.__mesh = m; useWorld.setState({ mesh: m })
-      ensure(); if (map.loaded()) settle()
+      // the map may still be loading its tiles when the 3D city's code arrives: ask for the mesh once it is at rest
+      ensure(); if (map.loaded()) settle(); else void map.once('idle', () => settle())
     })
     document.fonts.load('600 10px "Martian Mono Variable"').then(() => { live.current.fonts = true; draw() })
     const ro = new ResizeObserver(() => map.resize())
