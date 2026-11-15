@@ -10,7 +10,7 @@ manager): a person you can just ask about a building, who answers with what was 
 
 **State (15 Nov 2026, 3:46 am ET): first real phone round trip done.** A call from a phone to Cranley's Photon number
 reached the ElevenLabs agent over SIP; the caller asked whether a Ford F-150 fits a garage, the agent ran `start_check`
-and `get_answer` against Cranley's tools and read the measured answer about 95 seconds into the call; after the caller
+and `get_answer` against Cranley's tools and read the measured answer 1:51 into the call; after the caller
 hung up, Cranley sent the plan picture and the answer to their iMessage thread (Photon accepted all four sends; they
 show `dispatched`, and Photon reported no delivery receipt). Recorded with the caller's consent.
 
