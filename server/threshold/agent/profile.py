@@ -27,7 +27,7 @@ from .workspace import SESSION, BriefSet, LogEntry, Origin, PrefSet, QuestionAsk
 SITUATIONAL = ("approval.", "label.", "doubt.", "mute.", "storm.", "daylight.", "bid.", "site.", SESSION)
 SITUATIONAL_KEYS = {"flood.depth_m", "search.city"}
 MATTERS = ("more.", "less.", "tool.off.")
-MAX_SESSIONS = 6  # investigations the person's page measures, latest last
+MAX_SESSIONS = 6  # investigations the person's page measures: the first one, then the latest
 
 # The few inputs worth naming in the person's words (what the page calls it, what a chip calls it); the rest use
 # the tool's own title.
@@ -221,7 +221,8 @@ def person(store, profile: str, here: str | None = None, sessions: bool = True) 
         else:
             facts.append(fact(p, here))
     measured = []
-    for _, ws in sorted(ids)[-MAX_SESSIONS:] if sessions else []:
+    ids.sort()
+    for _, ws in (ids[:1] + ids[1:][-(MAX_SESSIONS - 1):]) if sessions else []:  # the first is what the rest is compared with
         try:
             d = store.load(ws)
         except LookupError:

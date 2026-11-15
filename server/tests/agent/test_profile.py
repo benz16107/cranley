@@ -199,3 +199,23 @@ def test_what_was_measured_does_not_change_when_a_fact_is_edited_or_a_tool_runs_
     notes = {n["kind"]: n for n in profile.because(b.doc, b.log)["notes"]}
     assert notes["input"]["why"] == "you set it in this investigation" and not notes["input"]["carried"]
     assert notes["not_asked"]["why"].startswith("you told me on ")  # it was not asked because of the earlier answer
+
+
+def test_a_profile_id_is_a_name_never_a_path(tmp_path):
+    import pytest
+    store = FileStore(tmp_path)
+    for bad in ("../x", "a/b", "", "..\\x"):
+        with pytest.raises(ValueError):
+            store.merge_profile(bad, {"k": (1.0, {"key": "k", "value": 1})})
+        with pytest.raises(ValueError):
+            store.profile(bad)
+    assert not list(tmp_path.parent.glob("x.*"))
+
+
+def test_the_first_investigation_stays_in_the_measured_rows(tmp_path):
+    first = new(tmp_path)
+    first.submit({"op": "brief.set", "text": "first"}, by="user")
+    for i in range(profile.MAX_SESSIONS + 2):
+        new(tmp_path).submit({"op": "brief.set", "text": f"later {i}"}, by="user")
+    rows = profile.person(FileStore(tmp_path), "maya")["sessions"]
+    assert len(rows) == profile.MAX_SESSIONS and rows[0]["workspace"] == first.doc.id

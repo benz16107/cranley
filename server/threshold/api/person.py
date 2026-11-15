@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Path
 from pydantic import BaseModel
 
 from ..agent import prefs, profile
@@ -26,7 +26,7 @@ router = APIRouter(prefix="/api")
 
 
 @router.get("/person/{id}")
-def person_get(id: str, workspace: str | None = None, sessions: bool = True) -> dict:
+def person_get(id: str = Path(pattern=r"^[A-Za-z0-9_-]{1,64}$"), workspace: str | None = None, sessions: bool = True) -> dict:
     return profile.person(pick_store(), id, here=workspace, sessions=sessions)
 
 

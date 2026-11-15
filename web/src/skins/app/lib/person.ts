@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { toast } from 'sonner'
-import { isLive, useCatalog, useWorkspace, type Doc } from '../../../core/index.ts'
+import { isLive, startOver, useCatalog, useWorkspace, type Doc } from '../../../core/index.ts'
 import { sync } from '../../../core/server.ts'
 
 /* What Cranley knows about the person across investigations, where the open investigation used it, and feedback on
@@ -59,6 +59,16 @@ async function loadNotes() {
   const r = await get<{ notes: Note[] }>(`/api/workspace/${encodeURIComponent(ws)}/because`)
   if (ws === wsId()) usePerson.setState({ notes: r?.notes ?? [] })
 }
+/** Open Cranley as a named person: a link with `?as=<profile>`. There is no sign-in, so the profile id kept in this
+    browser is who you are; another person's next brief starts a new investigation. Used by the demo's returning
+    person, and by anyone who wants their history on a second device. */
+export function become(id: string | null) {
+  if (!id || !/^[A-Za-z0-9_-]{1,64}$/.test(id) || id === profile() || useCatalog.getState().shared) return
+  try { localStorage.setItem('threshold.profile', id) } catch { return } // a private window: stay who you are
+  startOver()
+  usePerson.setState({ person: null, notes: [] })
+  void loadPerson()
+}
 export const openKnows = (open = true) => { usePerson.setState({ open }); if (open) void loadPerson(true) }
 
 // What was learned or used changes when the document does: a run ended, a setting moved, a check was marked.
@@ -84,8 +94,8 @@ export async function mark(finding: string, verdict: 'useful' | 'not_relevant') 
   const out = (await r.json()) as { undo: number; hidden: number; kind: string }
   await sync()
   const undo = { label: 'Undo', onClick: () => void post('undo', { seq: out.undo }).then(() => sync()) }
-  if (verdict === 'useful') toast(`“${out.kind}” checks will be listed first.`, { description: 'Kept in what Cranley knows about you.', action: undo })
-  else toast(out.hidden ? `Hidden, with ${out.hidden} similar ${out.hidden === 1 ? 'check' : 'checks'}.` : 'Hidden.', { description: `“${out.kind}” checks stay out of your later investigations too.`, action: undo })
+  if (verdict === 'useful') toast(`“${out.kind}” checks will be listed first.`, { description: 'Kept in what Cranley knows about you.', action: undo, duration: 8000 })
+  else toast(out.hidden ? `Hidden, with ${out.hidden} similar ${out.hidden === 1 ? 'check' : 'checks'}.` : 'Hidden.', { description: `“${out.kind}” checks stay out of your later investigations too.`, action: undo, duration: 8000 })
 }
 
 /** A date as a person says it: "14 Nov". */

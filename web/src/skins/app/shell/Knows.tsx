@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Dialog } from '@base-ui/react/dialog'
-import { useCatalog, userOp } from '../../../core/index.ts'
+import { useCatalog, useRoute, userOp } from '../../../core/index.ts'
 import { Empty, Icon } from '../design/ui.tsx'
 import { Sheet } from '../design/split.tsx'
 import { sheetFocus } from '../lib/split.ts'
-import { loadPerson, mark, openKnows, usePerson, type Fact, type Note } from '../lib/person.ts'
+import { become, loadPerson, mark, openKnows, usePerson, type Fact, type Note } from '../lib/person.ts'
 import { useUi } from './store.ts'
 import './knows.css'
 
@@ -70,7 +70,7 @@ function Adapted() {
           <div key={r.id}><dt>{r.label}</dt><dd>{r.values.map((x, i) => <span key={i}>{i > 0 && <span className="muted">, then </span>}<b className="num">{x ?? 'none'}</b></span>)}</dd></div>
         ))}
       </dl>
-      <p className="kn-foot">Counted from the log of each of your last {p.sessions.length} investigations, oldest first. Nothing here is written by the model.</p>
+      <p className="kn-foot">Counted from the logs of {p.sessions.length === p.investigations ? `your ${p.sessions.length} investigations` : `your first investigation and your latest ${p.sessions.length - 1}`}, oldest first. Nothing here is written by the model.</p>
     </>
   )
 }
@@ -80,6 +80,8 @@ export function Knows() {
   const open = usePerson((s) => s.open), p = usePerson((s) => s.person), loading = usePerson((s) => s.loading)
   const about = p?.facts.filter((f) => f.group === 'about') ?? [], matters = p?.facts.filter((f) => f.group === 'matters') ?? []
   useEffect(() => { if (open) void loadPerson(true) }, [open])
+  const as = useRoute().q.get('as') // a link that opens the app as a named person
+  useEffect(() => become(as), [as])
   return (
     <Dialog.Root open={open} onOpenChange={(o) => openKnows(o)}>
       <Dialog.Portal>

@@ -13,6 +13,10 @@ Each investigation starts a new workspace on the same profile and is measured by
 op logs. Writes <out>/adaptation-eval.md and .json; the workspaces of the run stay beside them.
 
     cd server && uv run python -m threshold.agent.adapt_eval [--scans a,b,c] [--out DIR]
+
+`--seed <profile>` instead runs only the first visit, into the store the server uses, so that profile is a returning
+person: open the app as them with `?as=<profile>` (the Amazon demo flow does). It refuses a profile that has a
+history. `--waves-off` names the kinds they mark not relevant in that visit.
 """
 from __future__ import annotations
 
@@ -54,7 +58,7 @@ def answer(q):
     raise RuntimeError(f"the person has no answer for {q.key}: {q.text}")
 
 
-def visit(n: int, sid: str, root: pathlib.Path, who: str) -> dict:
+def visit(n: int, sid: str, root: pathlib.Path | None, who: str, waves: set[str] = WAVES_OFF) -> dict:
     s = attach(Session.create(who, root=root))
     t0 = time.time()
     out = turn(s, FIRST if n == 0 else LATER, [sid], budget=Budget(tool_runs=12))
@@ -78,7 +82,7 @@ def visit(n: int, sid: str, root: pathlib.Path, who: str) -> dict:
             s.submit({"op": "finding.add", "finding": {**f.model_dump(), "feedback": {"verdict": "confirmed"}}}, by="user")
             liked += 1
     hidden_now = 0
-    for head in sorted(WAVES_OFF):
+    for head in sorted(waves):
         f = next((f for f in s.doc.findings if prefs.kind(f.tool, f.title)[1] == head and not f.feedback and not f.superseded_by), None)
         if f:
             entries = s.submit({"op": "finding.add", "finding": {**f.model_dump(), "feedback": {
@@ -133,7 +137,16 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--scans", default=",".join(SCANS))
     ap.add_argument("--out", default=str(DATA / "reports"))
+    ap.add_argument("--seed", help="a profile id: give it one first visit in the server's own store and stop")
+    ap.add_argument("--waves-off", default=",".join(sorted(WAVES_OFF)))
     a = ap.parse_args()
+    if a.seed:
+        from .workspace import pick_store
+        if pick_store().profile(a.seed):
+            raise SystemExit(f"profile {a.seed} already has a history; choose a new id")
+        visit(0, a.scans.split(",")[0], None, a.seed, set(filter(None, a.waves_off.split(","))))
+        print(f"{a.seed} is a returning person now: open the app with ?as={a.seed}")
+        return
     out = pathlib.Path(a.out)
     who = f"eval_{time.strftime('%m%d_%H%M%S')}"
     root = out / "adaptation-eval" / who
