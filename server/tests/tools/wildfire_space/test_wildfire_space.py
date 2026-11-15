@@ -81,3 +81,18 @@ def test_nonwildland_is_outside_the_zones(monkeypatch):
     assert calfire.zone(34.0, -118.3)["zone"] is None
     monkeypatch.setattr(calfire, "_query", lambda layer, lat, lon: [{"SRA": "LRA", "FHSZ": 3, "FHSZ_Description": "Very High"}])
     assert calfire.zone(34.0, -118.3)["zone"] == "Very High"
+
+
+def test_branches_over_the_roof_and_the_walk_around_lines(house, monkeypatch):
+    # LA residents: insurers ordered branches trimmed off the roof; an inspector's checklist the photos cannot see
+    import sys
+    r = run_tool("wildfire_space", {"lat": LAT, "lon": LON})
+    st = {c.id: c for c in r.checks}
+    assert st["over_roof"].status == "pass" and st["over_roof"].measured == 0
+    assert {f"cannot.walk.{k}" for k in ("deck", "vents", "gutters", "propane", "firewood")} <= set(st)
+    over = TREES | ((E > 1) & (E < 5) & (np.abs(NN) < 4))              # a crown over the east half of the roof
+    monkeypatch.setattr(sys.modules[__name__], "TREES", over)
+    r = run_tool("wildfire_space", {"lat": LAT, "lon": LON})
+    c = {c.id: c for c in r.checks}["over_roof"]
+    assert c.status == "warn" and 15 < c.measured < 30                   # 3.5 x 8 m inside the 9 x 9 m roof
+    assert "branches cover about" in r.verdict.text
