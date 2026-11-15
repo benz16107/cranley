@@ -1,0 +1,36 @@
+---
+import Base from '../layouts/Base.astro'
+import { LINKS } from '../site/links'
+---
+<Base title="Terms: Cranley" description="The terms for this site: it describes a hackathon project, its results are planning aids, and the code is all rights reserved.">
+  <article class="page">
+    <div class="wrap">
+      <h1>Terms</h1>
+      <p class="intro">This site describes Cranley, a project built at HackPrinceton Fall 2026. By using the site you accept these terms.</p>
+      <div class="prose">
+        <p class="small muted">Last updated November 14, 2026.</p>
+
+        <h2>The site</h2>
+        <p>The site is provided as it is, for information. We try to keep it accurate, and much of the documentation is generated from the code, but we make no promise that it is complete or free of mistakes.</p>
+
+        <h2>Results are planning aids</h2>
+        <p>Cranley measures buildings from scans, aerial data and records. Its results are planning aids. They are not an inspection, a survey, an appraisal, or advice about accessibility, fire safety, flooding, structure, law or property. A scan shows a building on the day it was made, and a tool can be wrong. Before you rely on a result, measure on site and ask a qualified professional.</p>
+
+        <h2>The code</h2>
+        <p>The code is public on <a href={LINKS.github}>GitHub</a> so that it can be read and judged. All rights are reserved. CoStar's hackathon terms, section 4.2, assign the project's intellectual property to CoStar. Nothing on this site grants a licence to the code.</p>
+
+        <h2>Sponsor data</h2>
+        <p>No CoStar, Matterport or Vexcel data is in the repository. Running Cranley on those sources needs your own access, under your own agreement with each company.</p>
+
+        <h2>Names and marks</h2>
+        <p>The names of other companies and products on this site belong to their owners. Cranley is not endorsed by any of them.</p>
+
+        <h2>Liability</h2>
+        <p>As far as the law allows, we are not liable for loss or damage that comes from using this site or from relying on what it says.</p>
+
+        <h2>Changes and questions</h2>
+        <p>We may change these terms, and the date above says when we last did. For a question, open an issue on <a href={`${LINKS.github}/issues`}>GitHub</a>. Our <a href="/privacy/">privacy page</a> says what the site collects.</p>
+      </div>
+    </div>
+  </article>
+</Base>

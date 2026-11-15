@@ -1,0 +1,65 @@
+/* The docs wear the App look: its paper, ink, one blue and its two typefaces, mapped onto Starlight's variables.
+   The tokens flip with the colour scheme (light-dark), so one mapping serves both themes. */
+@import './site.css';
+
+:root, :root[data-theme='light'], ::backdrop {
+  --sl-font: 'Archivo Variable';
+  --sl-font-mono: 'Martian Mono Variable';
+  --sl-color-white: var(--ink);
+  --sl-color-gray-1: var(--ink);
+  --sl-color-gray-2: var(--ink-2);
+  --sl-color-gray-3: var(--ink-3);
+  --sl-color-gray-4: var(--ink-3);
+  --sl-color-gray-5: var(--rule-strong);
+  --sl-color-gray-6: var(--pane-2);
+  --sl-color-gray-7: var(--pane);
+  --sl-color-black: var(--paper);
+  --sl-color-accent-low: var(--accent-wash);
+  --sl-color-accent: var(--accent);
+  --sl-color-accent-high: var(--accent);
+  --sl-color-text: var(--ink);
+  --sl-color-text-accent: var(--accent);
+  --sl-color-text-invert: var(--on-accent);
+  --sl-color-bg: var(--paper);
+  --sl-color-bg-nav: var(--paper);
+  --sl-color-bg-sidebar: var(--paper);
+  --sl-color-bg-inline-code: var(--pane-2);
+  --sl-color-bg-accent: var(--accent);
+  --sl-color-hairline-light: var(--rule);
+  --sl-color-hairline: var(--rule);
+  --sl-color-hairline-shade: var(--rule-strong);
+  --sl-shadow-sm: none;
+  --sl-shadow-md: var(--lift);
+  --sl-shadow-lg: var(--lift);
+  --sl-line-height: 1.65;
+  --sl-text-h1: 1.875rem;
+  --sl-text-h2: 1.375rem;
+  --sl-text-h3: 1.125rem;
+  --sl-text-h4: 1rem;
+  --sl-content-width: 46rem;
+  --sl-sidebar-width: 17rem;
+}
+:root[data-theme='light'] { color-scheme: light; }
+:root[data-theme='dark'] { color-scheme: dark; }
+
+body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; font-synthesis: none; }
+h1, h2, h3, h4 { font-weight: 620; letter-spacing: -0.015em; text-wrap: balance; }
+h1 { font-stretch: 106%; }
+code, pre, kbd { font-stretch: 80%; }
+.sl-markdown-content code:not(pre *) { font-size: 0.86em; border-radius: var(--r-1); }
+.sl-markdown-content table { font-size: 0.9375rem; }
+.sl-markdown-content :is(th, td) { vertical-align: top; }
+.sl-markdown-content th { font-size: 0.8125rem; font-weight: 580; color: var(--ink-3); }
+.site-title { font-stretch: 108%; font-size: 1.0625rem; color: var(--ink); gap: 10px; }
+.site-title img { width: 20px; height: 20px; }
+
+/* results printed on the tool pages: the app's status scale and its number face */
+.num { font-family: var(--sl-font-mono), monospace; font-stretch: 80%; font-size: 0.86em; font-variant-numeric: tabular-nums; }
+.st { font-weight: 580; white-space: nowrap; }
+.st::before { content: ''; display: inline-block; width: 0.62em; height: 0.62em; margin-right: 0.4em; background: currentColor; }
+.st.pass { color: var(--pass); } .st.pass::before { border-radius: 50%; }
+.st.warn { color: var(--warn); } .st.warn::before { clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.st.fail { color: var(--fail); }
+.st.unknown { color: var(--ink-3); } .st.unknown::before { background: none; border: 1.5px dashed currentColor; border-radius: 50%; }
+.verdict { padding: 10px 12px; border: 1px solid var(--rule-strong); border-radius: var(--r-2); background: var(--pane); }
+.verdict .st { margin-right: 0.6em; }

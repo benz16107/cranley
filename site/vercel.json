@@ -1,0 +1,8 @@
+{
+  "git": { "deploymentEnabled": false },
+  "cleanUrls": true,
+  "trailingSlash": true,
+  "redirects": [
+    { "source": "/(.*)", "has": [{ "type": "host", "value": "www.cranley.app" }], "destination": "https://cranley.app/$1", "permanent": true }
+  ]
+}

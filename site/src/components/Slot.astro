@@ -1,0 +1,45 @@
+---
+// One picture or clip. What fills it is decided by the files on disk (src/site/slots.ts); the default slot content is
+// what shows when there is no file (a drawing of our own). With neither, the slot shows only on a build that keeps
+// the slot notes on, so the public site never shows an empty frame.
+import { SLOTS, LABELS, filesOf, noteOf, type SlotId, type SlotInfo } from '../site/slots'
+interface Props { id: SlotId; ratio?: string; phones?: boolean }
+const { id, ratio = '16 / 10', phones = false } = Astro.props
+const info: SlotInfo = SLOTS[id]
+const files = filesOf(id)
+const own = Astro.slots.has('default')
+const filled = files.length > 0 || own
+const real = files.some((f) => f.real)
+---
+{(filled || LABELS) && (
+  <figure class:list={['slot', { phones }]} data-slot={id} data-state={real ? 'real' : filled ? 'safe' : 'empty'}>
+    {files.length > 0 ? (
+      <div class="media" style={phones ? `--n: ${files.length}` : `aspect-ratio: ${ratio}`}>
+        {files.map((f) => f.video
+          ? <video src={f.src} muted loop playsinline preload="metadata" autoplay={id === 'hero-loop'} controls={id !== 'hero-loop'} aria-label={info.alt} />
+          : <img src={f.src} alt={files.length > 1 ? `${info.alt} (${files.indexOf(f) + 1} of ${files.length})` : info.alt} loading="lazy" decoding="async" />)}
+      </div>
+    ) : own ? <slot /> : (
+      <div class="media hatch"><span>{info.title}</span></div>
+    )}
+    {filled && info.caption && files.length > 0 && <figcaption>{info.caption}</figcaption>}
+    {LABELS && <p class="slot-note"><b>Slot</b> {noteOf(id, filled, real)}</p>}
+  </figure>
+)}
+
+<style>
+  .slot { display: grid; gap: var(--s-2); min-width: 0; }
+  .media { border: 1px solid var(--rule); border-radius: var(--r-2); background: var(--pane); overflow: hidden; }
+  .media :is(img, video) { width: 100%; height: 100%; object-fit: cover; }
+  .phones .media { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 220px)); justify-content: center; gap: var(--s-5); padding: var(--s-5); }
+  /* every phone screenshot is one iPhone screen: the ratio holds the space before the image loads */
+  .phones .media img { aspect-ratio: 660 / 1434; object-position: top; border-radius: 14px; outline: 1px solid oklch(0 0 0 / 0.1); outline-offset: -1px; }
+  :root[data-theme='dark'] .phones .media img { outline-color: oklch(1 0 0 / 0.1); }
+  @media (max-width: 560px) { .phones .media { gap: var(--s-2); padding: var(--s-3); } .phones .media img { border-radius: 8px; } }
+  /* hatching is the app's mark for "not measured": here, not shot yet */
+  .hatch { display: grid; place-items: center; min-height: 104px; background-image: repeating-linear-gradient(135deg, transparent 0 5px, var(--rule) 5px 6px); }
+  .hatch span { padding: 4px 10px; background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r-1); font-size: 0.8125rem; color: var(--ink-2); }
+  figcaption { font-size: 0.875rem; color: var(--ink-2); max-width: 70ch; }
+  .slot-note { font: 400 0.6875rem / 1.45 var(--font-mono); font-stretch: 80%; color: var(--ink-3); max-width: 96ch; }
+  .slot-note b { font-weight: 600; color: var(--accent); margin-right: 4px; }
+</style>

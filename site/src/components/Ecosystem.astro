@@ -1,0 +1,56 @@
+---
+// One registry of tools and one workspace document in the middle; the ways in on either side; what they keep below.
+// States are docs/story.md's ecosystem table.
+import site from '../generated/site.json'
+const people = [
+  ['Web app', 'Home, Explore, Building, Investigations, Insights, Tools and Settings.', 'Built'],
+  ['Phone companion', 'Pairs by QR with a desktop workspace. GPS, camera, microphone, barometer, tilt and typed measurements feed tools live.', 'Built'],
+  ['iPhone LiDAR app', 'A RoomPlan scan of your own space, a LiDAR tape measure, floor height from the barometer, and scan to report.', 'Runs in the simulator'],
+  ['iMessage and phone', 'Ask by text or call, over Photon. Plan pictures and reply threads out; photos, voice notes and a location in; the PDF in the chat.', 'Built, live test pending'],
+]
+const agents = [
+  ['MCP server', 'Every tool for Claude Code, Claude Desktop, Cursor or a LangChain agent. Read-only unless started with --write.', 'Built'],
+  ['Command line', 'The threshold command: tools, run, search, building, ask.', 'Built'],
+]
+const keeps = [
+  ['MongoDB Atlas', 'People\'s work: workspaces, their operation logs, live sync, memory and search over past work.'],
+  ['Tiger Cloud', 'Building facts: what was measured, when, and how it changed.'],
+  ['PDF reports', 'A site report for any workspace: the plan with numbered fixes, the evidence, and what was not checked.'],
+]
+---
+<figure class="eco">
+  <div class="col">
+    <h3>People use it through</h3>
+    <ul>{people.map(([n, d, s]) => <li><b>{n}</b><span class:list={['state', { soon: s !== 'Built' }]}>{s}</span><p>{d}</p></li>)}</ul>
+  </div>
+  <div class="core">
+    <h3>One registry, one workspace</h3>
+    <p><b>{site.counts.tools} tools.</b> Each is a manifest and a handler. The same manifest feeds every way in, so a tool added once shows up in all of them.</p>
+    <p><b>One workspace document.</b> The agent and the person change it with the same typed operations, logged with who, when and which run, with undo.</p>
+    <p><b>One result format.</b> A verdict, metrics, checks and findings, each with its source and a high, medium or low label.</p>
+  </div>
+  <div class="col">
+    <h3>Agents use it through</h3>
+    <ul>{agents.map(([n, d, s]) => <li><b>{n}</b><span class="state">{s}</span><p>{d}</p></li>)}</ul>
+  </div>
+  <ul class="keeps">{keeps.map(([n, d]) => <li><b>{n}</b><p>{d}</p></li>)}</ul>
+  <figcaption>The parts of Cranley and how they meet.</figcaption>
+</figure>
+
+<style>
+  .eco { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-5); min-width: 0; }
+  h3 { font-size: 0.8125rem; font-weight: 580; color: var(--ink-3); letter-spacing: 0; margin-bottom: var(--s-2); }
+  .col ul { border-top: 1px solid var(--rule-strong); }
+  .col li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px var(--s-2); padding: var(--s-3) 0; border-bottom: 1px solid var(--rule); }
+  li b { font-weight: 580; }
+  li p { grid-column: 1 / -1; font-size: 0.875rem; line-height: 1.45; color: var(--ink-2); }
+  .state { font-size: 0.75rem; color: var(--pass); align-self: baseline; white-space: nowrap; }
+  .state.soon { color: var(--warn); }
+  .core { align-self: start; border: 1px solid var(--accent); border-radius: var(--r-2); background: var(--accent-wash); padding: var(--s-4); display: grid; gap: var(--s-3); align-content: start; }
+  .core h3 { color: var(--accent); margin: 0; }
+  .core p { font-size: 0.875rem; line-height: 1.45; }
+  .keeps { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-5); border-top: 1px solid var(--rule-strong); padding-top: var(--s-3); }
+  .keeps li { display: grid; gap: 2px; }
+  figcaption { grid-column: 1 / -1; font-size: 0.8125rem; color: var(--ink-3); }
+  @media (max-width: 760px) { .eco, .keeps { grid-template-columns: minmax(0, 1fr); } .core { order: -1; } }
+</style>

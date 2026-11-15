@@ -1,0 +1,38 @@
+---
+import Base from '../layouts/Base.astro'
+import { LINKS } from '../site/links'
+---
+<Base title="Privacy: Cranley" description="What this site collects (nothing you type, no analytics, no cookies) and what running Cranley yourself means for your data.">
+  <article class="page">
+    <div class="wrap">
+      <h1>Privacy</h1>
+      <p class="intro">This site is a set of static pages about a hackathon project. It has no forms, no accounts, no analytics, no advertising and no cookies.</p>
+      <div class="prose">
+        <p class="small muted">Last updated November 14, 2026.</p>
+
+        <h2>What this site collects</h2>
+        <p>Nothing that you type. The site asks for no name, email address or other detail.</p>
+        <ul>
+          <li><strong>Hosting.</strong> Vercel serves these pages. To deliver a page, any host receives your IP address, your browser's type and the address of the page, and Vercel keeps logs of this under its own privacy policy. We add no analytics and do not use those logs to identify anyone.</li>
+          <li><strong>One setting in your browser.</strong> If you change the colour scheme in the docs, your browser remembers the choice in its local storage under the name <code>starlight-theme</code>. It never leaves your device.</li>
+          <li><strong>Search.</strong> The search in the docs runs inside your browser on an index downloaded from this site. What you search for is not sent to us.</li>
+          <li><strong>Fonts and scripts.</strong> They are served from this site. The pages load nothing from another company.</li>
+        </ul>
+
+        <h2>Links to other sites</h2>
+        <p>The links to GitHub, Devpost and the sources we credit lead to sites with their own privacy policies.</p>
+
+        <h2>If you run Cranley yourself</h2>
+        <p>There is no hosted Cranley. The software runs on a machine you control, and so does its data.</p>
+        <ul>
+          <li>What you type as a need is sent to your own server and to the language model you configured for it.</li>
+          <li>A scan from the iPhone app, and anything a paired phone measures (its location, photos, sound level, tilt and typed values), is stored in your server's data folder or in the databases you connected.</li>
+          <li>Scans of real buildings from Matterport, Vexcel or CoStar come under your own agreement with those companies.</li>
+        </ul>
+
+        <h2>Questions</h2>
+        <p>Open an issue on <a href={`${LINKS.github}/issues`}>GitHub</a>.</p>
+      </div>
+    </div>
+  </article>
+</Base>
