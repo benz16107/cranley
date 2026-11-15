@@ -127,7 +127,7 @@ rejects any number it states.
 | Phone companion (`/m`) | Pairs by QR with a desktop workspace; GPS, camera, mic, barometer, tilt and typed measurements feed tools live | merged |
 | iPhone LiDAR app | RoomPlan scan of your own space, LiDAR tape measure, barometer floor height, compass window facing, scan-to-report | merged; builds and runs in the simulator; not on a phone yet (Apple licence agreement) |
 | Offline demo copy | The laptop replays the six demo flows with recorded model answers when the venue network fails | merged |
-| iMessage and phone (Photon 2.0) | Ask by text or call; plan pictures, reply threads, photos and voice notes in, PDF in the chat | merged; live round trip not yet confirmed |
+| iMessage and phone (Photon 2.0) | Ask by text or call; plan pictures, reply threads, photos and voice notes in, PDF in the chat | merged; first real phone round trip done 15 Nov, 3:46 am |
 | Website and docs | https://cranley.app: home, a page per track (generated from this file's Tracks section), privacy and terms, docs generated from the tool manifests and the OpenAPI schema, a live demo button (access code given in person) with FAQ and privacy text for the demo | merged and live |
 | PDF reports | Site report for any workspace: plan with numbered fixes, evidence, occupant load, smoke-alarm census, what was not checked | merged |
 | MCP server and CLI | Every tool for Claude Code, Claude Desktop, Cursor or a LangChain agent; resources and prompts; `threshold` on the command line | merged |
@@ -420,8 +420,11 @@ Rules it keeps: every sent line is built from the tool result, never from model 
 rendered pictures leave the server; the main API stays private behind one signature-checked relay; each event is
 handled once, in order per chat.
 
-**State (4:20 am):** merged with 14 tests; the live line is up with sends limited to an allowlist; the voice line is
-wired (`edbfc67`) and Ben made the first real call at about 4 am. A full live round trip is not confirmed yet.
+**State (15 Nov, 3:46 am):** merged with 14 tests; the live line is up with sends limited to an allowlist. The first
+real phone round trip is done: a call to Cranley's Photon number reached the ElevenLabs voice agent over SIP, the caller
+asked whether a Ford F-150 fits a garage, the agent ran Cranley's `start_check` and `get_answer` tools and read the
+measured answer 1:51 into the call, and after the hang-up Cranley sent the plan picture and the answer to the caller's
+iMessage thread (Photon accepted the sends; no delivery receipt was reported). Recorded with the caller's consent.
 
 **Demo path.** Text the line "will an F-150 fit in this garage?" with a building link, get the marked plan back, reply
 "what about two?", then "report" for the PDF. For Best Voice: call, ask the same, hang up, show the iMessage that follows.
