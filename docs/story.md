@@ -466,7 +466,7 @@ wheelchair user, the family before a storm, the fire crew.
 
 ## Built (synced to `main`)
 
-Checked against `git log main` at `9acfb37` (2026-11-15, 3:49 am ET). Update at each merge.
+Checked against `git log main` at `fa64b95` (2026-11-15, 3:57 am ET). Update at each merge.
 
 **Merged**
 - [x] Data layer: Matterport, Vexcel and CoStar sources, normalized plan format with quality flags (`ws/data`)
@@ -499,7 +499,7 @@ Checked against `git log main` at `9acfb37` (2026-11-15, 3:49 am ET). Update at 
 - [x] Real 3D models for vehicles and furniture, scaled to each tool's exact dimensions, drag to place with live clearance (`ws/models`)
 - [x] App look motion polish: shorter exits, switch and copy feedback, staggered tool list (`ws/motion`)
 - [x] Six scripted demo flows, one per track, with spoken lines and recorded model answers; an offline laptop copy (`scripts/demo-sync`, `scripts/demo-up`) that replays without the network (`ws/demo`)
-- [x] Cranley over iMessage and voice on Photon 2.0: plan pictures, reply threads as investigations, approvals, photo/video/voice/location in, field visits, PDF in chat, weather alerts, ElevenLabs phone agent (`ws/photon`)
+- [x] Cranley over iMessage and voice on Photon 2.0: plan pictures, reply threads as investigations, approvals, photo/video/voice/location in, field visits, PDF in chat, weather alerts, ElevenLabs phone agent; first real phone round trip at 3:46 am (`ws/photon`)
 - [x] Person profile across investigations, "Cranley knows" with Change and Forget, checks kept back by kind, measured adaptation in the app, `amazon-adaptive` flow (`ws/adaptive`)
 - [x] Changes from discovery: steps first, several chairs, bathroom door swing and clear space, aisles, elevators, garage depth and trailer checks (`ws/feedback` part 1); facility audit rack route, storage area, water heater distance and office-under-restroom check from the workplace answers, and `docs/feedback.md` (part 2)
 - [x] Audit passes on the shell, scene and phone: failed 360 photos say so with a retry, layers a city lacks are hidden, phone layout fixes, ids read as names (`audit/*`, partial merges)
