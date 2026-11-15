@@ -87,8 +87,8 @@ class Window:
     def __init__(self, span: float) -> None:
         self.span, self.hits, self.lock = span, collections.defaultdict(collections.deque), threading.Lock()
 
-    def take(self, key: str, limit: int) -> float:
-        """Record a hit if under `limit`; return 0, or the seconds until one is free."""
+    def take(self, key: str, limit: int, record: bool = True) -> float:
+        """Record a hit if under `limit` (only check, if not `record`); return 0, or the seconds until one is free."""
         now = time.time()
         with self.lock:
             q = self.hits[key]
@@ -96,7 +96,8 @@ class Window:
                 q.popleft()
             if len(q) >= limit:
                 return q[0] + self.span - now
-            q.append(now)
+            if record:
+                q.append(now)
             return 0.0
 
 
@@ -232,10 +233,12 @@ class Door(BaseHTTPRequestHandler):
     def enter(self) -> None:
         form = urllib.parse.parse_qs(self.body(4096).decode(errors="replace"))
         nxt = safe_next((form.get("next") or ["/app"])[0])
-        wait = tries.take(self.client(), TRIES_PER_10_MIN)
+        # only wrong codes count: judges behind one venue address all sign in with the right one
+        wait = tries.take(self.client(), TRIES_PER_10_MIN, record=False)
         if wait:
             return self.send(429, gate_page(nxt, f"Too many tries. Wait {int(wait // 60) + 1} minutes."))
         if not hmac.compare_digest(norm((form.get("code") or [""])[0]).encode(), norm(CODE).encode()):
+            tries.take(self.client(), TRIES_PER_10_MIN)
             return self.send(401, gate_page(nxt, "That code is not right."), headers={"Cache-Control": "no-store"})
         self.send(303, b"", headers={"Location": nxt, "Set-Cookie": self.cookie_for(secrets.token_hex(8))})
 
@@ -337,6 +340,8 @@ def pair_here(raw: bytes) -> bytes:
 
 if __name__ == "__main__":
     assert visitor(f"{COOKIE}=ab.{sign('visitor:ab')}") == "ab" and visitor(f"{COOKIE}=ab.0") is None
+    w = Window(60)
+    assert w.take("k", 1, record=False) == 0 and w.take("k", 1) == 0 and w.take("k", 1, record=False) > 0
     assert REFUSED.search("/mcp") and REFUSED.search("/api/facts/sql") and not REFUSED.search("/api/scans")
     assert RUN.match("/api/agent/turn") and safe_next("//evil.com") == "/app" and safe_next("/m?t=x") == "/m?t=x"
     assert safe_next("/app/scan/x") == "/app/scan/x" and safe_next("https://evil.com") == "/app" and safe_next("/\\evil") == "/app"
