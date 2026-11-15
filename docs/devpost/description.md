@@ -40,7 +40,7 @@ Jean Ryan, who uses a 400-pound powered wheelchair, no longer asks whether a pla
 
 ## Built forward-deployed
 
-Before and while building we asked people what goes wrong with their buildings: a recorded 31-minute interview with Jean Ryan, written answers from 58 people in 17 online communities (truck, boat and RV owners, an occupational therapist, a chef, store associates, restaurant operators, managers), and 491 emails, which brought five human replies (the interview, a museum director who asked to talk on Sunday, and three declines). Their answers changed the tools the same night: steps first, several chairs per person, bathroom door swing, garage depth and trailer checks, a store's backroom and a kitchen's rack route. Every quote and its change: [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md).
+Before and while building we asked people what goes wrong with their buildings: a recorded 31-minute interview with Jean Ryan, written answers from 58 people in 17 online communities (truck, boat and RV owners, occupational therapists, a chef, store associates, restaurant operators, managers), and 491 emails, which brought five human replies (the interview, a museum director who asked to talk on Sunday, and three declines). Their answers changed the tools the same night: steps first, several chairs per person, bathroom door swing, garage depth and trailer checks, a store's backroom and a kitchen's rack route. Every quote and its change: [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md).
 
 ## Proof
 
