@@ -22,6 +22,7 @@
 .ex-scene .worktools > * { flex: none; }
 .ex-scene .worktools > .btn.look { flex: 0 1 auto; min-width: 48px; }
 .ex-scene .worktools > .btn.look .lbl { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@container (max-width: 700px) { .ex-scene .worktools > .btn.quiet:not(.look) > .lbl { display: none; } }
 /* the play row carries a transport (a slider and a clock) once something plays: room for it on one line */
 .ex-scene .work > .worktools:nth-child(2):has(.slider) { width: min(100%, 600px); }
 @container (max-width: 780px) { .ex-scene .work > .worktools:first-child > .seg:first-child button span { display: none; } .ex-scene .work > .worktools:first-child > .seg:first-child button { padding: 0 8px; } }

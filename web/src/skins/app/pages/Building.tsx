@@ -27,6 +27,8 @@ const MODES: { id: SceneMode; label: string; icon: IconName; none: string }[] = 
 ]
 const WORST: Record<Status, number> = { fail: 0, warn: 1, unknown: 2, pass: 3 }
 type F = Doc['findings'][number]
+/** The results that check something. A tour replays other results' findings: it never speaks for the building. */
+const judged = (panels: Doc['panels']) => { const c = panels.filter((p) => p.tool !== 'tour'); return c.length ? c : panels }
 /** What the scene reports about a show (flood, fire, tour) while it plays, and what the toolbar sets to drive it. */
 type ShowState = NonNullable<Parameters<NonNullable<SceneProps['onShow']>>[0]>
 type ShowSpec = NonNullable<SceneView['show']>
@@ -103,7 +105,7 @@ function Summary({ plan, sid, panels, findings, onResults }: { plan: ScanPlan; s
     ['Walls', q.walls, q.walls_source === 'dxf' ? 'recovered from the drawing, not measured' : q.walls_confidence ? `${q.walls_confidence} confidence` : undefined],
     ['Room outlines', q.polygons], ['Doors and windows', q.openings], ['Room names', q.labels], ['Position on the map checked', q.georef],
   ] : []
-  const verdict = worstVerdict(panels)
+  const checked = judged(panels), verdict = worstVerdict(checked)
   // what a phone on site can settle: a check the scan could not measure, or one it was unsure of
   const open = findings.filter((f) => f.status === 'unknown' || f.status === 'warn').length
   return (
@@ -113,7 +115,7 @@ function Summary({ plan, sid, panels, findings, onResults }: { plan: ScanPlan; s
         <section className="sum-verdict" aria-label="Verdict">
           <St status={verdict.status} />
           <p className="text">{verdict.text}</p>
-          <p className="muted small">{panels.length === 1 ? verdict.title : `${verdict.title} · ${panels.length} results: ${tally(panels)}`}</p>
+          <p className="muted small">{checked.length === 1 ? verdict.title : `${verdict.title} · ${checked.length} results: ${tally(checked)}`}</p>
           <div className="row wrap">
             <button type="button" className="btn solid" onClick={() => onResults(verdict.panel)}>{verdict.status === 'pass' ? 'See the checks' : 'See what was checked'}</button>
             {open > 0 && <button type="button" className="btn" onClick={() => window.dispatchEvent(new Event('threshold:phone'))} title="Pair a phone and settle on site what the scan could not measure"><Icon name="camera" size={13} />Check on site</button>}
@@ -471,7 +473,7 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
 
   useEffect(() => { if (v.plan) host?.bind?.({ plan: v.plan, setView: v.setView }); return () => host?.bind?.(null) }, [v.plan]) // eslint-disable-line react-hooks/exhaustive-deps
   const i = b ? b.scans.findIndex((x) => x.sid === sid) : -1
-  const verdict = worstVerdict(panels)
+  const verdict = worstVerdict(judged(panels))
   const tools = doc.tools
   const fault = (text: string): ReactNode => <div className="scene-state"><Empty icon="warn" title={text} action={<button className="btn" onClick={v.retry}>Try again</button>} /></div>
 
@@ -538,7 +540,7 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
             {v.plan && v.mode === 'plan' && <button type="button" className="btn quiet" aria-pressed={!!v.view.measures} aria-label="Door and window widths" onClick={() => v.setView((x) => ({ ...x, measures: !x.measures }))} title="Show the width of every door and window"><Icon name="ruler" size={14} /><span className="lbl">Widths</span></button>}
             {v.plan?.has.defurnished && v.mode === 'pano' && <button type="button" className="btn quiet" aria-pressed={v.view.wipe != null} aria-label="Furnished and empty" onClick={() => v.setView((x) => ({ ...x, wipe: x.wipe == null ? 0.5 : null }))} title="The same room with its furniture and empty. Drag the divider."><Icon name="split" size={14} /><span className="lbl">Furnished and empty</span></button>}
             <span className="grow" />
-            {wi.after && <button type="button" className="btn quiet" aria-pressed={showCompare} aria-label="Now and after" onClick={() => setCompare(!showCompare)} title="The plan as it is beside the plan after the what-if edits"><Icon name="split" size={14} /><span className="lbl">Now and after</span></button>}
+            {wi.after && (v.mode === 'dollhouse' || v.mode === 'plan') && <button type="button" className="btn quiet" aria-pressed={showCompare} aria-label="Now and after" onClick={() => setCompare(!showCompare)} title="The plan as it is beside the plan after the what-if edits"><Icon name="split" size={14} /><span className="lbl">Now and after</span></button>}
             {/* Play something on the building: a flood, a fire, a tour. Each says what it is before it starts. */}
             {v.plan && (
               <MenuBtn align="end" trigger={<button type="button" className="btn quiet" aria-pressed={!!spec} aria-label="Play" title="Play a flood, a fire or a tour on the building"><Icon name="play" size={13} /><span className="lbl">Play</span><Icon name="down" size={11} /></button>}>
@@ -546,7 +548,7 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
                 {SHOWS.map((x) => <Menu.Item key={x.id} className="mi two" onClick={() => play(x.id)}><Icon name={x.icon} /><span className="grow"><b>{x.label}{spec?.kind === x.id && ' (playing, stop)'}</b><span className="s">{x.title}</span></span></Menu.Item>)}
               </MenuBtn>
             )}
-            {v.plan && <FurnishMenu sid={sid} off={v.mode === 'dollhouse' ? undefined : 'Furniture is placed in the 3D view'} />}
+            {v.plan && v.mode === 'dollhouse' && <FurnishMenu sid={sid} />}
             {drawn.length > 0 && (
               <MenuBtn align="end" trigger={<button type="button" className="btn quiet" aria-label={`Overlays: ${on.length} of ${drawn.length} tools drawn on the building`}><Icon name={on.length ? 'eye' : 'eyeoff'} size={14} /><span className="lbl">Overlays</span>{drawn.length > 1 && <span className="count">{on.length} of {drawn.length}</span>}</button>}>
                 <div className="mh">Draw on the building</div>

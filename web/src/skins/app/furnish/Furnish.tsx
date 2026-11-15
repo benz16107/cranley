@@ -30,8 +30,8 @@ export function useFurnish(sid: string): Furnish | null {
   return useMemo(() => (items?.length ? { items, selected, onChange: (next) => setPieces(sid, next), onSelect: (id) => useStore.setState({ selected: id }), onReport: (checks) => useStore.setState({ checks }) } : null), [sid, items, selected])
 }
 
-/** The catalogue. `off` says why a piece cannot be added right now (furniture is placed in the 3D view). */
-export function FurnishMenu({ sid, off }: { sid: string; off?: string }) {
+/** The catalogue. The building's toolbar shows it in the 3D view, where furniture is placed. */
+export function FurnishMenu({ sid }: { sid: string }) {
   const count = useStore((s) => s.pieces[sid]?.length ?? 0)
   const add = (label: string, model: string, size: [number, number, number]) => {
     const id = `${model}.${Date.now().toString(36)}`
@@ -39,7 +39,7 @@ export function FurnishMenu({ sid, off }: { sid: string; off?: string }) {
     useStore.setState({ selected: id })
   }
   return (
-    <MenuBtn align="end" trigger={<button type="button" className="btn quiet" disabled={!!off} aria-label="Furniture" title={off ?? 'Try a piece of furniture in a room'}><Icon name="plus" size={13} /><span className="lbl">Furniture</span>{count > 0 && <span className="count">{count}</span>}<Icon name="down" size={11} /></button>}>
+    <MenuBtn align="end" trigger={<button type="button" className="btn quiet" aria-label="Furniture" title="Try a piece of furniture in a room"><Icon name="plus" size={13} /><span className="lbl">Furniture</span>{count > 0 && <span className="count">{count}</span>}<Icon name="down" size={11} /></button>}>
       {CATALOGUE.map((g) => (
         <div key={g.group} role="group" aria-label={g.group}>
           <div className="mh">{g.group}</div>
