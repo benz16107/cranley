@@ -131,6 +131,7 @@ export function WorldMap(props: Props) {
   const el = useRef<HTMLDivElement>(null)
   const overlay = useRef<MapLibreOverlay | null>(null)
   const grid = useRef(new Map<string, LayerCollection>())
+  const picked = useRef<string | null>(null) // the building last chosen on the map itself
   const live = useRef({ ...props, geo, fonts: false })
   live.current = { ...live.current, ...props, geo }
   const onKey = on.join(',')
@@ -158,7 +159,7 @@ export function WorldMap(props: Props) {
           getFillColor: ink, stroked: true, getLineColor: paper, lineWidthUnits: 'pixels', getLineWidth: z > CLOSE_Z ? 1.6 : 1,
           opacity: 1 - far * 0.42, pickable: true,
           onHover: ({ object }) => { if ((object ?? null) !== useWorld.getState().hover) { useWorld.setState({ hover: object ?? null }); draw() } },
-          onClick: ({ object }) => live.current.onSelect(object ?? null),
+          onClick: ({ object }) => { picked.current = object?.id ?? null; live.current.onSelect(object ?? null) },
         }),
         shown.includes('scans') && fonts && z >= 12.6 && new TextLayer<Building>({
           id: 'counts', data: data.filter((b) => b.count > 1), getPosition: (b) => [b.lon, b.lat], getText: (b) => String(b.count), ...top,
@@ -299,6 +300,16 @@ export function WorldMap(props: Props) {
     if (reduced()) map.jumpTo({ center, zoom, pitch: 0, bearing: 0 })
     else map.flyTo({ center, zoom, pitch: 0, bearing: 0, duration: 2400, curve: 1.25, essential: true })
   }, [city, map])
+
+  // A building chosen away from the map (the search, a link, a breadcrumb): go to it, close enough to see the house.
+  // One chosen on the map is in view already.
+  const selId = selected?.id
+  useEffect(() => {
+    if (!map || !selected || live.current.held || picked.current === selId) return
+    if (map.getZoom() >= 14 && map.getBounds().contains([selected.lon, selected.lat])) return
+    const to = { center: [selected.lon, selected.lat] as [number, number], zoom: Math.max(map.getZoom(), 17) }
+    if (reduced()) map.jumpTo(to); else map.flyTo({ ...to, duration: 1600, essential: true })
+  }, [selId, map]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // A point the camera was told to look at: go there, close enough to read the marks.
   const lookKey = look?.join(',')

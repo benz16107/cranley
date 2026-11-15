@@ -125,7 +125,7 @@ const clock = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${S
 
 /** The day and hour the shadows are cast for, and where the sun then stands over the middle of the map. */
 export function SunBar({ city, value, onChange, source }: { city: CityId; value: SunAt; onChange: (v: SunAt) => void; source?: MapLayer }) {
-  const map = useWorld((s) => s.map), mesh = useWorld((s) => s.mesh), ready = useWorld((s) => s.city3d.status === 'ready'), close = useWorld((s) => s.zoom >= CLOSE_Z - 0.2)
+  const map = useWorld((s) => s.map), mesh = useWorld((s) => s.mesh), status = useWorld((s) => s.city3d.status), ready = status === 'ready', close = useWorld((s) => s.zoom >= CLOSE_Z - 0.2)
   useWorld((s) => Math.round(s.tick / 30)) // the readout follows the map, a few times a second at most
   const c = map?.getCenter() ?? { lat: CITIES[city].center[1], lng: CITIES[city].center[0] }
   const t = sunInstant(value, city), pos = sunPosition(t, c.lat, c.lng), day = sunDay(t, c.lat, c.lng)
@@ -148,7 +148,7 @@ export function SunBar({ city, value, onChange, source }: { city: CityId; value:
       <span className="small">{pos.altitude > 0 ? <>sun <span className="num">{pos.altitude.toFixed(0)}°</span> up, to the <span className="num">{pos.azimuth.toFixed(0)}°</span></> : 'the sun is down'}</span>
       <span className="small muted">up <span className="num">{hm(day.rise)}</span> to <span className="num">{hm(day.set)}</span>, <span className="num">{day.hours.toFixed(1)}</span> h</span>
       {close && ready ? <button type="button" className="btn sm quiet" onClick={measure} title="Cast a ray to the sun every ten minutes of this day from the 3D city under the middle of the view">Sun hours here</button>
-        : <span className="small muted">{close ? 'shadows appear when the 3D city has loaded' : 'zoom in for shadows on the 3D city'}</span>}
+        : <span className="small muted">{!close ? 'Zoom in for shadows' : status === 'none' ? 'No 3D city here to cast shadows' : 'Loading the 3D city'}</span>}
       {hours?.key === key && <span className="small" role="status">{hours.text}</span>}
     </div>
   )
