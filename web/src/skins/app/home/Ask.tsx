@@ -9,6 +9,7 @@ import { go, goScan } from '../lib/place.ts'
 import { KnowsButton } from '../shell/Knows.tsx'
 import { useIsPhone, useUi } from '../shell/store.ts'
 import { Aerial } from './Aerial.tsx'
+import { entry, lines } from './entry.ts'
 import { STARTS, type Start } from './starts.ts'
 
 /** Which building the brief is about. Closed it is one quiet button in the field's bar; open it is a search over the
@@ -30,7 +31,7 @@ function At({ value, onChange, back }: { value: Building | null; onChange: (b: B
       <Popover.Root open={open} onOpenChange={(o) => { setOpen(o); if (o) setQ('') }}>
         <Popover.Trigger className="btn quiet" aria-label={value ? `About ${value.address}. Change the building.` : 'Choose a building or address'}>
           {value ? <Aerial lat={value.lat} lon={value.lon} /> : <Icon name="building" size={14} />}
-          <span className="trunc">{value ? value.address : 'Any building'}</span>
+          <span className="trunc">{value ? lines(value.address)[0] : 'Any building'}</span>
         </Popover.Trigger>
         <Popover.Portal>
           <Popover.Positioner sideOffset={6} align="start" style={{ zIndex: 60 }}>
@@ -43,12 +44,15 @@ function At({ value, onChange, back }: { value: Building | null; onChange: (b: B
                   {state === 'ready' && typed && hits.length === 0 && <p className="ask-miss">No scanned building matches “{q.trim()}”. Try a street name, or browse the map.</p>}
                   {list.length > 0 && (
                     <Command.Group heading={typed ? 'Buildings' : offer.label}>
-                      {list.map((b) => (
-                        <Command.Item key={b.id} value={b.id} onSelect={() => pick(b)}>
-                          <Aerial lat={b.lat} lon={b.lon} />
-                          <span className="grow"><span className="trunc">{b.address}</span><small className="trunc">{[b.city, b.count === 1 ? b.scans[0]?.name : `${b.count} scans`].filter(Boolean).join(' · ')}</small></span>
-                        </Command.Item>
-                      ))}
+                      {list.map((b) => {
+                        const [street, rest] = lines(b.address)
+                        return (
+                          <Command.Item key={b.id} value={b.id} onSelect={() => pick(b)}>
+                            <Aerial lat={b.lat} lon={b.lon} />
+                            <span className="grow"><span className="trunc">{street}</span><small className="trunc">{[rest || b.city, b.count > 1 ? `${b.count} scans` : null].filter(Boolean).join(' · ')}</small></span>
+                          </Command.Item>
+                        )
+                      })}
                     </Command.Group>
                   )}
                   <Command.Group>
@@ -87,22 +91,27 @@ function Known() {
     walks the starting points, Escape gives the keys back to the page. */
 export function Ask({ first, returning }: { first: boolean; returning: boolean }) {
   const [text, setText] = useState(''), [at, setAt] = useState<Building | null>(null), [from, setFrom] = useState<Start | null>(null)
+  const [busy, setBusy] = useState(false) // between Start and the brief showing on the page: the server is being reached
   const live = useCatalog((s) => s.live)
   const phone = useIsPhone()
   const field = useRef<HTMLTextAreaElement>(null), starts = useRef<HTMLUListElement>(null)
   const said = text.trim()
 
   const send = () => {
-    if (at) {
-      const sid = at.scans[0]?.sid
-      if (!said || !sid) { if (at.scans.length === 1 && sid) goScan(sid); else go('explore', { city: at.metro ?? undefined, b: at.id }); return }
+    const e = entry(text, at)
+    if (busy || e.do === 'nothing') return
+    if (e.do === 'scan') goScan(e.sid)
+    else if (e.do === 'explore') go('explore', { city: e.city, b: e.b })
+    else if (e.do === 'ask') {
       // a new brief is a new investigation, here about one building: the agent works where the person can see it
-      startOver(); goScan(sid)
+      startOver(); goScan(e.sid)
       if (!phone) useUi.getState().setRun(true)
-      void ask(said)
-      return
+      void ask(e.text)
+    } else {
+      setBusy(true)
+      // composing takes this field's place with the setup card. If it ends and the field is still here, it did not start.
+      void Promise.resolve(compose(e.text, from && from.sentence === e.text ? from.need : undefined)).finally(() => setBusy(false))
     }
-    if (said) void compose(said, from && from.sentence === said ? from.need : undefined)
   }
   // On a first visit starting is the one thing to do, so the field has the focus. With work open it does not: the
   // single-key shortcuts (G E, the agent panel) must keep working on arrival. Not on a phone: it raises the keyboard.
@@ -131,17 +140,18 @@ export function Ask({ first, returning }: { first: boolean; returning: boolean }
     <section className="ask" aria-labelledby="ask-h">
       <h1 id="ask-h">{returning ? 'Welcome back. What do you need this time?' : 'What do you need from a building?'}</h1>
       <form className="ask-field" onSubmit={(e) => { e.preventDefault(); send() }}>
-        <textarea ref={field} rows={2} value={text} onChange={(e) => setText(e.target.value)} aria-label="Who you are and what you need" aria-keyshortcuts="C"
+        <textarea ref={field} rows={2} value={text} readOnly={busy} onChange={(e) => setText(e.target.value)} aria-label="Who you are and what you need" aria-keyshortcuts="C"
           placeholder={at ? 'Is this one workable for a wheelchair?' : 'I use a wheelchair and I am choosing a one-bedroom apartment in Houston'}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send() }
             else if (e.key === 'ArrowDown' && !text) { e.preventDefault(); starts.current?.querySelector('button')?.focus() }
+            else if (e.key === 'Backspace' && !text && at) setAt(null) // the building is the first thing in the brief
             else if (e.key === 'Escape') e.currentTarget.blur()
           }} />
         <div className="ask-bar">
           <At value={at} onChange={setAt} back={field} />
           <span className="grow" />
-          <button className="btn solid" disabled={!said && !at}>{at && !said ? 'Open building' : 'Start'}<span className="kbd">Enter</span></button>
+          <button className="btn solid" disabled={(!said && !at) || busy} aria-busy={busy || undefined}>{busy ? <><i className="ring" />Starting</> : <>{at && !said ? 'Open building' : 'Start'}<span className="kbd">Enter</span></>}</button>
         </div>
       </form>
       <Known />
@@ -152,7 +162,7 @@ export function Ask({ first, returning }: { first: boolean; returning: boolean }
           {STARTS.map((s, i) => (
             <li key={s.id}>
               <button type="button" onClick={() => start(s)} onKeyDown={(e) => walk(e, i)} aria-pressed={from?.id === s.id && from.sentence === said} title={s.sentence}>
-                <b>{s.who}</b><span>{s.sentence}</span>
+                {s.who}
               </button>
             </li>
           ))}

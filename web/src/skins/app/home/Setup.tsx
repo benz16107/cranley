@@ -9,7 +9,7 @@ export function Setup() {
   const open = doc.questions.filter((q) => q.answer == null)
   const settled = doc.questions.length > 0 || doc.tools.length > 0
   return (
-    <section className="card" aria-labelledby="setup-h">
+    <section className="card arrive" aria-labelledby="setup-h">
       <header>
         <h2 id="setup-h">Setting up the investigation</h2>
         <span className="grow" />

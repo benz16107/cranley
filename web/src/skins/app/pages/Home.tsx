@@ -4,7 +4,6 @@ import { FirstAsk } from '../home/FirstAsk.tsx'
 import { Setup } from '../home/Setup.tsx'
 import { STATUS, Work } from '../home/Work.tsx'
 import { started, useSeen } from '../lib/pending.ts'
-import { usePlace } from '../lib/place.ts'
 import { useKnown } from '../shell/Knows.tsx'
 import './home.css'
 
@@ -21,11 +20,10 @@ export function Home() {
   const doc = useWorkspace((s) => s.doc)
   const seen = useSeen((s) => s.all)
   const known = useKnown()
-  const dir = usePlace().q.get('home') === 'b' ? 'b' : 'a' // two directions side by side until one is picked
   const composing = !!doc.brief && doc.plan.length === 0 && doc.panels.length === 0
   const returning = known > 0 || Object.keys(seen).length > 0
   return (
-    <div className="page home" data-dir={dir}>
+    <div className="page home">
       <div className="inner" data-composing={composing || undefined}>
         {composing ? <Setup /> : <Ask first={!started(doc) && !returning} returning={returning} />}
         <Work doc={doc} composing={composing} />
