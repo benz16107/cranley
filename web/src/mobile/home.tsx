@@ -195,7 +195,7 @@ export function Privacy({ open, onOpenChange }: { open: boolean; onOpenChange: (
             </ul>
             <p>Captures are stored on the project's own server with the workspace they belong to, and are deleted with the rest of the event's data when the event ends. There are no accounts and no advertising. Anyone holding the phone link can add captures to that workspace for eight hours; it cannot read or change anything else.</p>
             <p>Questions go to whoever gave you the link.</p>
-            <button className="btn m-btn" onClick={() => { forget(); onOpenChange(false) }}>Forget this workspace</button>
+            <button className="btn m-btn" onClick={() => { if (confirm('Forget this workspace? This phone loses its link to it. Captures already sent stay on the desktop.')) { forget(); onOpenChange(false) } }}>Forget this workspace</button>
           </div>
         </Drawer.Content>
       </Drawer.Portal>

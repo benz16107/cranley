@@ -39,7 +39,6 @@ export function Mobile() {
     const root = document.documentElement
     let t = 0
     const typing = () => { const e = document.activeElement; return e instanceof HTMLTextAreaElement || (e instanceof HTMLInputElement && !['file', 'checkbox', 'radio', 'button', 'range'].includes(e.type)) }
-    // the bar is laid out under the field while typing; bring it above the keyboard once that has risen
     // the action is laid out under the field while typing. Once the keyboard has risen, bring it above the keyboard:
     // the keyboard shrinks the visual viewport, not the page, so the page is scrolled by what the keyboard covers
     const lift = () => {
