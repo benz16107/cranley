@@ -234,3 +234,16 @@ def test_who_you_are_keeps_the_brief_that_first_said_so(tmp_path):
     c = new(tmp_path)
     assert turn(c, "I am a wheelchair user now", composer=Fake("wheelchair_user", ["door_widths", "kids_fit"]))["status"] == "questions"
     assert c.doc.prefs["who.persona"].value == "wheelchair_user" and c.doc.prefs["who.persona"].origin.workspace == c.doc.id
+
+
+def test_a_person_with_two_chairs_keeps_both_and_every_route_tool_gets_them(tmp_path):
+    from threshold.agent.catalog import catalog, resolve
+    a = new(tmp_path)
+    chairs = [{"name": "Everyday chair", "door_width_m": 0.85}, {"name": "Travel chair", "door_width_m": 0.66}]
+    a.submit({"op": "pref.set", "key": "access.chairs", "value": chairs}, by="user")
+    b = new(tmp_path, "t2")  # a later investigation starts from the profile
+    inputs, used, _ = resolve(catalog()["step_free_route"], b.doc)
+    assert inputs["chairs"] == chairs and used["chairs"] == "access.chairs"
+    f = profile.fact({"key": "access.chairs", "value": chairs, "origin": None})
+    assert f["label"] == "Your chairs" and f["shown"] == "Everyday chair (0.85 m), Travel chair (0.66 m)"
+    assert f["group"] == "about"

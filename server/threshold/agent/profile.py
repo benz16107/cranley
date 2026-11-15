@@ -32,6 +32,7 @@ MAX_SESSIONS = 6  # investigations the person's page measures: the first one, th
 # The few inputs worth naming in the person's words (what the page calls it, what a chip calls it); the rest use
 # the tool's own title.
 LABELS = {"access.door_width_m": ("Doorway width you need", "doorway width"),
+          "access.chairs": ("Your chairs", "chairs"),
           "access.turning_diameter_m": ("Room you need to turn", "turning room"),
           "kids.youngest_age": ("Your youngest child's age", "youngest child's age"),
           "pets.dog_lb": ("Your dog's weight", "dog's weight"), "garage.vehicle": ("Your vehicle", "vehicle"),
@@ -86,7 +87,9 @@ def fmt(value: Any, unit: str | None = None) -> str:
     if isinstance(value, (list, tuple)):
         value = ", ".join(fmt(v) for v in value) or "none"
     if isinstance(value, dict):
-        value = str(value.get("kind") or value.get("title") or "")
+        width = value.get("door_width_m")  # a chair (access.chairs): its name and the door width it needs
+        value = str(value.get("kind") or value.get("title") or value.get("name") or "") + \
+            (f" ({width:g} m)" if isinstance(width, (int, float)) else "")
     return f"{value} {unit}" if unit and unit not in ("None",) else str(value)
 
 

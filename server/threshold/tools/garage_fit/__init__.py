@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from .. import (Action, ToolError, Assumption, Check, Finding, Metric, OpeningAnchor, PointAnchor, RoomAnchor, RuleOverlay,
                 ScanScope, Source, ToolResult, Verdict, field, tool)
 from ..types import BoxOverlay
-from .._access import fmt
+from .._access import cannot, fmt, has_objects
 from . import geom
 from .park import Dims, analyse, things
 from .vehicles import THING_MODEL, THINGS, VEHICLES, model_of
@@ -38,6 +38,9 @@ class Inputs(BaseModel):
                               description="How many of the vehicle must fit side by side; empty for as many as fit, "
                                           "0 for none (an empty garage for a gym or workshop)")
     length_m: float | None = field(None, gt=1, le=15, unit="m", pref="garage.length_m", description="Custom length")
+    storage_length_m: float | None = field(None, gt=1, le=15, unit="m", pref="garage.storage_length_m",
+                                           description="Boats and trailers: the maker's storage length (motor trimmed "
+                                                       "up, tongue swung or off), used instead of the overall length")
     width_m: float | None = field(None, gt=0.5, le=3.5, unit="m", pref="garage.width_m",
                                   description="Custom body width, mirrors folded")
     mirror_width_m: float | None = field(None, gt=0.5, le=3.5, unit="m", pref="garage.mirror_width_m",
@@ -63,7 +66,9 @@ def dims(inputs: Inputs) -> Dims:
     v = VEHICLES[inputs.vehicle]
     custom = any(x is not None for x in (inputs.length_m, inputs.width_m, inputs.mirror_width_m, inputs.height_m))
     w = inputs.width_m or v.width
-    return Dims(label=("Custom vehicle" if custom else v.label), length=inputs.length_m or v.length, width=w,
+    stored = inputs.storage_length_m if inputs.length_m is None else None
+    return Dims(label=("Custom vehicle" if custom else v.label) + (", storage length" if stored else ""),
+                length=inputs.length_m or stored or v.length, width=w,
                 mirrors=inputs.mirror_width_m or max(v.mirrors, w), towed=v.towed, ramp=v.ramp, door=v.door,
                 height=round((inputs.height_m or v.height) + inputs.lift_in * IN + inputs.roof_load_m, 3))
 
@@ -84,9 +89,13 @@ def side_status(gap: float | None, need: float) -> str:
 
 def assumptions(inputs: Inputs, d: Dims) -> list[Assumption]:
     v = VEHICLES[inputs.vehicle]
-    return [Assumption(id="garage.length_m", label=f"{short(d)} length", value=d.length, unit="m", editable=True),
+    stored = inputs.storage_length_m is not None and inputs.length_m is None
+    return [Assumption(id="garage.storage_length_m" if stored else "garage.length_m",
+                       label=f"{short(d)} {'storage length (motor up, tongue swung)' if stored else 'length'}",
+                       value=d.length, unit="m", editable=True),
             Assumption(id="garage.width_m", label="Body width, mirrors folded", value=d.width, unit="m", editable=True),
-            Assumption(id="garage.mirror_width_m", label="Width, mirrors out", value=d.mirrors, unit="m", editable=True),
+            Assumption(id="garage.mirror_width_m", label="Widest point: fenders and side lights" if d.towed else
+                       "Width, mirrors out", value=d.mirrors, unit="m", editable=True),
             Assumption(id="garage.height_m", label="Height", value=inputs.height_m or v.height, unit="m", editable=True),
             Assumption(id="garage.lift_in", label="Lift and tyres", value=inputs.lift_in, unit="in", editable=True),
             Assumption(id="garage.roof_load_m", label="On the roof", value=inputs.roof_load_m, unit="m", editable=True),
@@ -200,15 +209,17 @@ def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base
         st = "pass" if dw >= need_fit else "warn" if dw >= need_tight else "fail"
         widest = max(doors, key=lambda x: x["width"])
         fid = f"garage_fit:{sid}:door_width"
-        checks.append(Check(id="door_width", rule=f"Garage door wide enough for one {name}, mirrors out",
+        checks.append(Check(id="door_width", rule=f"Garage door opening wide enough for one {name}, " +
+                            ("at its widest point (fenders and side lights)" if d.towed else "mirrors out"),
                             measured=round(dw, 3), threshold=round(need_fit, 3), unit="m", status=st,
                             standard="Mirrors-out width plus 15 cm each side; tight down to the body plus 5 cm (mirrors folded)",
                             findings=[fid] if st != "pass" else []))
         if st != "pass":
             findings.append(Finding(id=fid, title="Garage door: " + ("fold the mirrors" if st == "warn" else "too narrow"),
                                     status=st, anchor=OpeningAnchor(sid=sid, opening=widest["opening"]), source=src,
-                                    detail=f"{fmt(dw)} opening; the {name} is {fmt(d.mirrors)} with mirrors out and "
-                                           f"{fmt(d.width)} folded."))
+                                    detail=f"{fmt(dw)} opening; the {name} is {fmt(d.mirrors)} " +
+                                           ("at its fenders and side lights" if d.towed else
+                                            f"with mirrors out and {fmt(d.width)} folded") + "."))
     else:
         findings.append(Finding(id=f"garage_fit:{sid}:no_door", title="Garage door not in the scan", status="unknown",
                                 anchor=RoomAnchor(sid=sid, room=rid), source=GEO_LOW,
@@ -246,6 +257,18 @@ def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base
                             threshold=round(d.height + geom.HEIGHT_FITS_M, 3), unit="m", status=cst,
                             standard=None if a["ceiling_measured"] else "The garage has no height in the scan: the "
                             "home's typical ceiling is used"))
+    # depth on its own: from the door line to the back wall, less anything the scan measured standing in the way
+    if a["depth"]:
+        fit_d = round(d.length + geom.REAR_M + geom.FRONT_FITS_M, 3)
+        tight_d = d.length + geom.REAR_TIGHT_M + geom.FRONT_TIGHT_M
+        dst = "pass" if a["depth"] >= fit_d - 0.01 else "warn" if a["depth"] >= tight_d - 0.01 else "fail"
+        objs = a["survey"]["obstacles"]
+        checks.append(Check(id="depth", rule=f"Depth from the door to the back wall for the {name}" +
+                            (f", clear of {len(objs)} object{'s' if len(objs) > 1 else ''} the scan measured" if objs
+                             else ""), measured=a["depth"], threshold=fit_d, unit="m", status=dst,
+                            standard=f"Length plus {geom.REAR_M:.2f} m behind for the door and "
+                                     f"{geom.FRONT_FITS_M:.2f} m ahead to walk round; tight down to "
+                                     f"{geom.REAR_TIGHT_M + geom.FRONT_TIGHT_M:.2f} m in all"))
     if n == 0:  # nothing parked: the door and headroom checks were for the vehicle
         checks, findings = [], [f for f in findings if f.id.endswith("no_door")]
     # parking
@@ -329,8 +352,9 @@ def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base
         text = (f"{many(n)} {'does' if n == 1 else 'do'} not fit side by side" +
                 (f"; {WORD.get(tight, tight).lower()} fit{'s' if tight == 1 else ''}, tight." if tight else "."))
     else:
-        text = f"{many(n)} {'fits' if n == 1 else 'fit'}" + (" with room to open the doors" if a["which"] == "fits" else
-                                                            ", tight: you squeeze out of the doors")
+        text = f"{many(n)} {'fits' if n == 1 else 'fit'}" + (
+            (" with room to walk round" if d.towed else " with room to open the doors") if a["which"] == "fits" else
+            (", tight: little room to walk round" if d.towed else ", tight: you squeeze out of the doors"))
         text += "." if inputs.count is not None or fits == tight else f" ({fits} with doors fully open, {tight} tight)."
     why = {"door_width": " The garage door is narrow for it: fold the mirrors.",
            "door_height": " Headroom under the garage door is tight." if measured else
@@ -349,6 +373,10 @@ def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base
                  "ceiling": " It does not clear the ceiling."}[c.id]
     if g["how"] == "wide door":
         text += " The room is unlabelled; it was taken for the garage because of its car-wide door."
+    if n and not has_objects(plan):
+        checks.append(cannot("garage_depth", "a water heater, furnace, HVAC fittings, steps up into the house or "
+                                             "shelves at the back wall; this scan measures depth to the wall face, so "
+                                             "measure from the door to whatever stands out furthest"))
     side_vals = [x for c in a["clear"] for x in (c.get("left"), c.get("right")) if x is not None]
     metrics = [Metric(id="fit_count", label=f"{name}s with doors open", value=fits, unit="", source=src),
                Metric(id="tight_count", label=f"{name}s, tight", value=tight, unit="", source=src),
