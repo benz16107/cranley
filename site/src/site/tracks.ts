@@ -10,7 +10,7 @@ export const TRACKS: Track[] = [
     slug: 'costar', name: 'CoStar', prize: 'Inside and Out: AI for the Built World',
     summary: 'All three layers in one frame (Matterport interiors, Vexcel aerial and 3D city, CoStar records), and an agent that plans, fans out per building and checks claims across layers.',
     docs: [['Record versus reality', '/docs/tools/record-vs-reality/'], ['Flood rehearsal', '/docs/tools/flood-rehearsal/'], ['Garage fit', '/docs/tools/garage-fit/'], ['Search by measurement', '/docs/tools/measure-search/'], ['Site scorecard', '/docs/tools/site-scorecard/'], ['Data sources and licences', '/docs/data-sources/'], ['The agent', '/docs/concepts/agent/']],
-    slots: ['hero-loop', 'photoreal-building', 'record-vs-reality', 'flood-street'], proof: ['costar-garage-depth'],
+    slots: ['hero-loop', 'photoreal-building', 'record-vs-reality', 'flood-street'], proof: ['costar-garage-depth'], video: 'Ox18G-hfvfc',
   },
   {
     slug: 'amazon', name: 'Amazon', prize: 'Best Practical AI Innovation',
