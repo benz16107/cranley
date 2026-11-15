@@ -44,6 +44,11 @@ hand after a read for names, usernames, addresses and scan data; the header of `
 blurs added for this site. The interview on the Peri page is YouTube's player, the one thing the site loads from
 another company; `pnpm check` allows that address on that page only, and the privacy page names it.
 
+One thing on the site is never in git: the recorded phone call on the Photon page, because it is about a real home
+(repo rule 1). `scripts/deploy.sh` copies its audio and its timeline from `$THRESHOLD_DATA_DIR/site-private/` into two
+ignored paths (`public/media/real/` and `src/site/call.local.json`) before each build, and says whether it found them.
+A checkout without that folder builds the Photon page without the call. The folder's README says what was checked.
+
 Build flags: `PUBLIC_SLOT_LABELS=off` hides the notes that name each slot (and any slot with nothing in it),
 `PUBLIC_INDEX=1` lets search engines in.
 

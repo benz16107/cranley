@@ -20,13 +20,16 @@ const c = site.counts
 const md = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/`([^`]+)`/g, "<code>$1</code>")
 import Thread from "./Thread.astro"
 import CallPlayer from "./CallPlayer.astro"
-import call from "../../site/call.json"
+import placeholder from "../../site/call.json"
 import { LABELS } from "../../site/slots"
 const sp = deep.sponsors.photon
 const stats = [{ n: sp.features.length, label: "things a person can do by message or by calling" }, { n: deep.numbers.photon.tests, label: "tests merged with it" }]
 const features = sp.features.map((f) => ({ title: f.feature, what: f.why, code: f.code }))
-// the recorded call: src/site/call.json holds its label, the audio's address under /media and the timeline. Until
-// they are filled in, the section shows only on a build that keeps the slot notes (a preview), never on the public site.
+// The recorded call is about a real home, so git never holds it (repo rule 1). scripts/deploy.sh copies it from the data
+// folder into two ignored paths: the audio to public/media/real/ and its label and timeline to src/site/call.local.json.
+// A checkout without them builds the page without the call: the section then shows only where slot notes are on.
+const local = Object.values(import.meta.glob('../../site/call.local.json', { eager: true, import: 'default' }))[0] as typeof placeholder | undefined
+const call = local ?? placeholder
 const hasCall = Boolean(call.audio) && call.timeline.length > 0
 const showCall = hasCall || LABELS
 const sections: [string, string][] = [["asked", "Asked and built"], ["problem", "Problem"], ["built", "A conversation"], ...(showCall ? [["call", "A recorded call"] as [string, string]] : []), ["features", "Products used"], ["rules", "Rules it keeps"], ["limits", "Limits"], ["writeup", "Write-up"], ["docs", "In the docs"]]
@@ -42,11 +45,11 @@ const msgs = [
 ]
 ---
 <Deep track={track} title={title} sections={sections} stats={stats}>
-  <Sec id="asked" title="What Photon asked for, and what we built" sub="The brief asks for a messaging agent on Photon 2.0, with a separate prize for voice. Both are built, and the voice agent has answered a real phone call. A full round trip through iMessage is not confirmed yet, and this page says so.">
+  <Sec id="asked" title="What Photon asked for, and what we built" sub="The brief asks for a messaging agent on Photon 2.0, with a separate prize for voice. Both are built, and on 15 Nov a real call went the whole way: the tools ran, the answer was read aloud, and the plan arrived by iMessage. The recording is on this page.">
     <Asked sponsor="Photon" source="The two asks are the prize names on the event's Devpost page: a messaging agent using Photon 2.0, and Best Voice Agent."
       asked={[
-        { text: 'A messaging agent using Photon 2.0', met: false, how: `Built and merged with ${deep.numbers.photon.tests} tests. The live line is up, with sends limited to an allowlist of numbers. After the first real call Cranley sent the plan and the answer by iMessage: Photon accepted the sends and reported no delivery receipt, so a full round trip is not confirmed.` },
-        { text: 'A voice agent', met: false, how: 'An ElevenLabs agent runs the same checks by voice. In the first real phone call, on 15 Nov, it ran the garage check and read the measured answer aloud. A second question in that call got no check.' },
+        { text: 'A messaging agent using Photon 2.0', met: true, how: `Built and merged with ${deep.numbers.photon.tests} tests. A full round trip is done: a real call, the tools, the measured answer, then the plan and the answer delivered to the caller's iMessage thread. Sends are limited to an allowlist of numbers.` },
+        { text: 'A voice agent', met: false, how: 'An ElevenLabs agent runs the same checks by voice. In the first real phone call, on 15 Nov, it ran the garage check and read the measured answer aloud. A second question in that call got no check. The call is below.' },
       ]}
       beyond={[
         { n: sp.features.length, text: 'things a person can do by message or by calling' },
@@ -92,9 +95,9 @@ const msgs = [
   <Sec id="limits" title="Where it stands" sub="As of the early morning of 15 Nov 2026.">
     <ul class="txt">
       <li>The live line is up, with sends limited to an allowlist of numbers.</li>
-      <li>The voice line is wired, and Ben made the first real phone call on 15 Nov. The agent ran the garage check and read the measured answer aloud. A second question in the same call got no check.</li>
-      <li>After the call Cranley sent the plan picture and the answer to his iMessage thread. Photon accepted the sends and reported no delivery receipt, so a full live round trip is not confirmed yet.</li>
-      <li>The recordings of these calls measure a real home, so they are not shown on this site.</li>
+      <li>One real call so far. In it the garage check ran and its answer was read aloud. A second question, about steps at the entrance, got no check.</li>
+      <li>The texts after the call arrived on the caller's phone. Photon itself reported the sends as accepted, with no delivery receipt.</li>
+      <li>The recorded call is about a real home. Its street address, house number and zip are bleeped.</li>
     </ul>
   </Sec>
 
