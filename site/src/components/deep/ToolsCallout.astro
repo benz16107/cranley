@@ -1,0 +1,15 @@
+---
+// On a track page: where every tool is documented, with a link to the catalog already filtered to this track's tools.
+import tools from '../../generated/catalog.json'
+interface Props { param?: string; what?: string }
+const { param, what } = Astro.props
+const [key, value] = (param ?? '').split('=')
+const hit = (t: (typeof tools)[number]) => key === 'phone' ? ['pass', 'warn', 'fail'].includes(t.outcome) : key === 'changed' ? t.changed : (t[key as 'data' | 'sponsor'] ?? []).includes(value)
+const n = param ? tools.filter(hit).length : 0
+---
+<p class="callout"><b>Every tool is documented.</b> <a href="/tools/">See all {tools.length} in the catalog</a>{param && n > 0 && <>, or go straight to <a href={`/tools/?${param}`}>the {n} {what}</a></>}. Each tool's full spec, inputs and sources are on its own page in the docs.</p>
+
+<style>
+  .callout { padding: var(--s-4); background: var(--pane); border: 1px solid var(--rule); border-radius: var(--r-2); font-size: 0.9375rem; line-height: 1.5; max-width: 76ch; }
+  b { font-weight: 600; }
+</style>

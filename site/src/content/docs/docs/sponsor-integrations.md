@@ -116,7 +116,7 @@ handled once, in order per chat.
 **State (15 Nov, 3:46 am):** merged with 14 tests; the live line is up with sends limited to an allowlist. The first
 real phone round trip is done: a call to Cranley's Photon number reached the ElevenLabs voice agent over SIP, the caller
 asked whether a Ford F-150 fits a garage, the agent ran Cranley's `start_check` and `get_answer` tools and read the
-measured answer 1:51 into the call, and after the hang-up Cranley sent the plan picture and the answer to the caller's
-iMessage thread (Photon accepted the sends; no delivery receipt was reported). Recorded with the caller's consent.
+measured answer 1:51 into the call, and after the hang-up the plan picture and the answer arrived in the caller's
+iMessage thread. A full round trip: call, tools, spoken answer, then the plan by iMessage. Recorded with the caller's consent.
 
 The track page: [Photon](/tracks/photon/).

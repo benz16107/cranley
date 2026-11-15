@@ -1,0 +1,145 @@
+---
+// The tool catalog: every tool on one page, with search and filters. Each card is written from the tool's manifest and
+// from its run on the made-up test scan (src/generated/catalog.json, by scripts/generate.py). Nothing here is typed by
+// hand: a tool added to server/threshold/tools/ appears on the next generate. A link can arrive with filters already
+// set, as the track pages do: /tools/?data=costar.
+import Base from '../layouts/Base.astro'
+import St from '../components/St.astro'
+import tools from '../generated/catalog.json'
+import site from '../generated/site.json'
+const n = tools.length
+const WHO = [...site.groups.map((g) => g.title).filter((g) => tools.some((t) => t.who.includes(g))), 'Anyone']
+const DATA: Record<string, string> = { scan: 'A scan of the inside', aerial: 'Aerial data', costar: 'The CoStar record', phone: 'A phone on site', public: 'Public data', facts: 'The facts database', drone: 'A drone capture', none: 'Only what you type' }
+const SPONSOR: Record<string, string> = { costar: 'CoStar event data: scan, aerial or record', tiger: 'Tiger Data: the facts database', langchain: 'LangChain: asks before it runs' }
+const RETURNS = [...new Set(tools.flatMap((t) => t.returns))]
+const count = (key: 'who' | 'data' | 'sponsor' | 'returns', v: string) => tools.filter((t) => t[key].includes(v)).length
+const ANSWERS = ['pass', 'warn', 'fail']
+const WORD: Record<string, string> = { pass: 'Pass', warn: 'Check', fail: 'Fail', unknown: 'Cannot tell', needs: 'Needs an input', cannot: 'Cannot answer', slow: 'Not run here' }
+const takes = (t: (typeof tools)[number]) => {
+  const asked = t.inputs.filter((i) => i.asked), first = (asked.length ? asked : t.inputs).slice(0, 4)
+  return { first, more: t.inputs.length - first.length, asked: asked.length > 0 }
+}
+---
+<Base title={`All ${n} tools: Cranley`} description={`Every one of Cranley's ${n} tools on one page: what it answers, who it is for, what it reads, what it takes and returns, with search and filters.`} nav="tools">
+  <div class="tools wrap">
+    <header>
+      <h1>All {n} tools</h1>
+      <p class="lead">Each tool answers one kind of question about a building by measuring. This page is generated from the tools' own manifests, and every card links to the tool's page in the docs, which prints a real run on a made-up scan.</p>
+    </header>
+
+    <form class="filters" role="search" aria-label="Filter the tools" onsubmit="return false">
+      <label class="q"><span>Search</span><input type="search" name="q" placeholder="garage, flood, door width" autocomplete="off" /></label>
+      <label><span>Who it is for</span><select name="who"><option value="">Everyone</option>{WHO.map((w) => <option value={w}>{w} ({count('who', w)})</option>)}</select></label>
+      <label><span>Data it reads</span><select name="data"><option value="">Any</option>{Object.keys(DATA).filter((k) => count('data', k)).map((k) => <option value={k}>{DATA[k]} ({count('data', k)})</option>)}</select></label>
+      <label><span>Sponsor product</span><select name="sponsor"><option value="">Any</option>{Object.keys(SPONSOR).map((k) => <option value={k}>{SPONSOR[k]} ({count('sponsor', k)})</option>)}</select></label>
+      <label><span>What it returns</span><select name="returns"><option value="">Anything</option>{RETURNS.map((r) => <option value={r}>{r[0].toUpperCase() + r.slice(1)} ({count('returns', r)})</option>)}</select></label>
+      <label class="tick"><input type="checkbox" name="phone" value="answers" />Answers from a phone scan alone ({tools.filter((t) => ANSWERS.includes(t.outcome)).length})</label>
+      <label class="tick"><input type="checkbox" name="changed" value="1" />Changed by what people told us ({tools.filter((t) => t.changed).length})</label>
+      <button type="reset" class="btn sm">Clear</button>
+    </form>
+    <p class="count" aria-live="polite"><span data-shown>{n}</span> of {n} tools</p>
+
+    <ul class="cat">
+      {tools.map((t) => {
+        const k = takes(t)
+        return (
+          <li data-who={t.who.join('|')} data-data={t.data.join('|')} data-sponsor={t.sponsor.join('|')} data-returns={t.returns.join('|')} data-phone={ANSWERS.includes(t.outcome) ? 'answers' : ''} data-changed={t.changed ? '1' : ''} data-text={((x) => `${x} ${x.replaceAll('-', '')}`)([t.title, t.id.replaceAll('_', ' '), t.summary, ...t.examples].join(' ').toLowerCase())}>
+            <h2><a href={`/docs/tools/${t.slug}/`}>{t.title}</a></h2>
+            <p class="sum">{t.summary}</p>
+            {t.asks && <p class="asks">"{t.asks}"</p>}
+            <dl>
+              <dt>Reads</dt>
+              <dd>{t.required.length ? t.required.join(', ') : 'Only what you type'}{t.optional.length > 0 && <span class="soft">; when there, also {t.optional.join(', ').toLowerCase()}</span>}</dd>
+              <dt>Takes</dt>
+              <dd>{k.first.map((i, j) => <>{j > 0 && ', '}<code>{i.key}</code></>)}{k.more > 0 && <span class="soft"> and {k.more} more, with defaults</span>}</dd>
+              <dt>Returns</dt>
+              <dd>A verdict{t.returns.length > 0 && `, ${t.returns.join(', ')}`}</dd>
+              <dt>Reliability</dt>
+              <dd>{t.labels.length ? <>On the made-up test scan: {t.labels.join('; ').toLowerCase()}.</> : 'Each value carries its layer, its method and a high, medium or low label.'}</dd>
+            </dl>
+            <p class="chips">
+              {t.who.map((w) => <span>{w}</span>)}
+              {t.slow && <span>Takes a while</span>}
+              {t.approval && <span>Asks before it runs</span>}
+              {t.changed && <span class="hot">Changed by feedback</span>}
+            </p>
+            <p class="foot"><span class="run">On the test scan: {ANSWERS.includes(t.outcome) || t.outcome === 'unknown' ? <St status={t.outcome as 'pass'} /> : WORD[t.outcome]}</span><a href={`/docs/tools/${t.slug}/`}>Full page<span class="sr"> for {t.title}</span></a></p>
+          </li>
+        )
+      })}
+    </ul>
+    <p class="none" hidden>No tool matches these filters. Clear one to see more.</p>
+  </div>
+</Base>
+
+<script is:inline>
+  (() => {
+    const form = document.querySelector('.filters')
+    const cards = [...document.querySelectorAll('.cat > li')]
+    const shown = document.querySelector('[data-shown]')
+    const none = document.querySelector('.none')
+    const KEYS = ['who', 'data', 'sponsor', 'returns', 'phone', 'changed']
+    const apply = () => {
+      const f = new FormData(form)
+      const words = String(f.get('q') || '').toLowerCase().split(/\s+/).filter(Boolean)
+      let n = 0
+      for (const li of cards) {
+        const ok = KEYS.every((k) => !f.get(k) || (li.dataset[k] || '').split('|').includes(f.get(k))) && words.every((w) => li.dataset.text.includes(w))
+        li.hidden = !ok
+        if (ok) n++
+      }
+      shown.textContent = n
+      none.hidden = n > 0
+      const p = new URLSearchParams()
+      for (const [k, v] of f) if (v) p.set(k, v)
+      history.replaceState(null, '', p.toString() ? '?' + p : location.pathname)
+    }
+    // a link can arrive with filters set
+    for (const [k, v] of new URLSearchParams(location.search)) {
+      const el = form.elements[k]
+      if (!el) continue
+      if (el.type === 'checkbox') el.checked = el.value === v
+      else el.value = v
+    }
+    form.addEventListener('input', apply)
+    form.addEventListener('reset', () => setTimeout(apply))
+    apply()
+  })()
+</script>
+
+<style>
+  .tools { padding-block: clamp(32px, 5vw, 64px) var(--s-7); display: grid; gap: var(--s-5); }
+  h1 { font-size: clamp(1.75rem, 1.1rem + 2vw, 2.5rem); font-stretch: 106%; letter-spacing: -0.02em; line-height: 1.1; }
+  .lead { margin-top: var(--s-4); color: var(--ink-2); max-width: 66ch; }
+  .filters { display: flex; flex-wrap: wrap; align-items: end; gap: var(--s-3) var(--s-4); padding: var(--s-4); background: var(--pane); border: 1px solid var(--rule); border-radius: var(--r-2); }
+  /* without scripts the cards are all there and the filters would do nothing */
+  :global(html:not(.js)) .filters, :global(html:not(.js)) .count { display: none; }
+  .filters label { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; font-size: 0.8125rem; color: var(--ink-2); min-width: 0; max-width: 100%; }
+  .filters .q { flex: 1 1 220px; }
+  .filters :is(input[type='search'], select) { height: 36px; padding: 0 10px; font: inherit; font-size: 1rem; color: var(--ink); background: var(--paper); border: 1px solid var(--rule-strong); border-radius: var(--r-1); max-width: 100%; }
+  .filters select { font-size: 0.9375rem; width: 100%; min-width: 0; text-overflow: ellipsis; }
+  .filters .tick { flex: 0 1 auto; }
+  .filters .tick { display: flex; align-items: center; gap: 8px; height: 36px; color: var(--ink); font-size: 0.875rem; }
+  .filters .tick input { width: 16px; height: 16px; accent-color: var(--accent); }
+  .count { font-size: 0.875rem; color: var(--ink-2); }
+  .count span { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+  .cat { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: var(--s-3); }
+  .cat > li { display: grid; align-content: start; gap: var(--s-3); padding: var(--s-4); background: var(--pane); border: 1px solid var(--rule); border-radius: var(--r-2); min-width: 0; }
+  .cat > li[hidden] { display: none; }
+  h2 { font-size: 1.0625rem; font-weight: 600; line-height: 1.3; }
+  h2 a { color: var(--ink); }
+  .sum { font-size: 0.875rem; line-height: 1.45; color: var(--ink-2); }
+  .asks { font-size: 0.875rem; line-height: 1.4; color: var(--ink); }
+  dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px var(--s-3); padding-top: var(--s-3); border-top: 1px solid var(--rule); font-size: 0.8125rem; line-height: 1.45; }
+  dt { color: var(--ink-3); }
+  dd { color: var(--ink); overflow-wrap: anywhere; }
+  .soft { color: var(--ink-3); }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .chips span { padding: 1px 7px; background: var(--pane-2); border-radius: 999px; font-size: 0.75rem; line-height: 1.5; color: var(--ink-2); white-space: nowrap; }
+  .chips .hot { background: var(--accent-wash); color: var(--accent); }
+  .foot { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); font-size: 0.8125rem; color: var(--ink-3); }
+  .foot :global(.st) { font-size: 0.8125rem; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .none { color: var(--ink-2); }
+  @media (max-width: 560px) { .filters label:not(.tick) { flex: 1 1 100%; } .cat { grid-template-columns: minmax(0, 1fr); } }
+</style>

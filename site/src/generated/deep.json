@@ -2092,6 +2092,23 @@
    "why": "Skipped: not about the building."
   }
  ],
+ "changed": [
+  "aging_in_place",
+  "bathroom_clearance",
+  "camera_coverage",
+  "curb_to_door",
+  "door_widths",
+  "driveway_fit",
+  "facility_audit",
+  "fire_preplan",
+  "garage_fit",
+  "office_fit",
+  "stairs_count",
+  "step_free_route",
+  "turning_space",
+  "wifi_coverage",
+  "wildfire_space"
+ ],
  "funnel": {
   "minutes": 31,
   "people": 58,

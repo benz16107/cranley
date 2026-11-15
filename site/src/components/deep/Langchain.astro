@@ -9,6 +9,7 @@ import Bars from "./Bars.astro"
 import Split from "./Split.astro"
 import Lanes from "./Lanes.astro"
 import Asked from "./Asked.astro"
+import ToolsCallout from "./ToolsCallout.astro"
 import Products from "./Products.astro"
 import deep from "../../generated/deep.json"
 import site from "../../generated/site.json"
@@ -63,6 +64,7 @@ const segs = [
 
   <Sec id="features" title="Every LangChain product we used, and how" sub="Four products: deepagents, LangGraph, langchain-mcp-adapters and LangSmith. Each feature is below with what it enables and the file it runs in. A feature is used only where it does a job.">
     <Products features={sp.features} />
+    <ToolsCallout param="sponsor=langchain" what="tools the investigator asks about before it runs" />
   </Sec>
 
   <Sec id="proof" title="The mistake that became a check" sub={'An agent turn once claimed "none of the checks ran" after twelve runs. That became the rubric grader.'}>

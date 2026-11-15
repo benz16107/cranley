@@ -9,6 +9,7 @@ import Bars from "./Bars.astro"
 import Split from "./Split.astro"
 import Lanes from "./Lanes.astro"
 import Asked from "./Asked.astro"
+import ToolsCallout from "./ToolsCallout.astro"
 import Products from "./Products.astro"
 import deep from "../../generated/deep.json"
 import site from "../../generated/site.json"
@@ -58,6 +59,7 @@ const segs = [
 
   <Sec id="features" title="Every MongoDB product we used, and how" sub="The Atlas database, Atlas Search, Atlas Vector Search, the LangGraph packages for MongoDB and the MongoDB MCP server. Each feature is below with what it enables and the file it runs in.">
     <Products features={sp.features} />
+    <ToolsCallout />
   </Sec>
 
   <Sec id="proof" title="Search that finds what you meant" sub="Hybrid search with $rankFusion blends words and meaning, so a search does not need the exact words.">
