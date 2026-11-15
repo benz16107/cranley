@@ -1,0 +1,2617 @@
+{
+ "counts": {
+  "tools": 78,
+  "personas": 50,
+  "layers": 66,
+  "operations": 97,
+  "examples": {
+   "fail": 9,
+   "cannot": 26,
+   "pass": 15,
+   "needs": 9,
+   "unknown": 12,
+   "warn": 6,
+   "slow": 1
+  },
+  "read_only": 77
+ },
+ "tools": [
+  {
+   "id": "aging_in_place",
+   "slug": "aging-in-place",
+   "title": "Aging in place",
+   "summary": "Goes through the CDC home fall-prevention checklist for the parts the scan can answer, floor by floor: clear paths, steps, stairs, the night path from bed to bathroom, and grab bars."
+  },
+  {
+   "id": "amenity_census",
+   "slug": "amenity-census",
+   "title": "Amenity census",
+   "summary": "Finds and counts a community's amenities in its scans (gym equipment, laundry machines, pool, lounge, business centre, mail room, playground) and sets them beside what the listing claims."
+  },
+  {
+   "id": "area_profile",
+   "slug": "area-profile",
+   "title": "Area profile",
+   "summary": "Who lives around a building: population, density, household income, age mix, households, the share renting, rent and home value for its census tract, next to the county."
+  },
+  {
+   "id": "bathroom_clearance",
+   "slug": "bathroom-clearance",
+   "title": "Bathroom clearance",
+   "summary": "Checks each bathroom for a wheelchair: door, turning space, floor space at the toilet and clear of the door, wall for grab bars, and whether the shower has a step."
+  },
+  {
+   "id": "camera_coverage",
+   "slug": "camera-coverage",
+   "title": "Camera coverage",
+   "summary": "Shows what indoor security cameras would see, which doors, windows and entry paths they cover, and the blind spots; proposes camera spots if you have none."
+  },
+  {
+   "id": "city_census",
+   "slug": "city-census",
+   "title": "City census",
+   "summary": "Rolls up what has been measured across the city: share of homes a wheelchair can live in by zip code, listed-versus-measured area by property type, smoke alarm coverage by building."
+  },
+  {
+   "id": "commute_fit",
+   "slug": "commute-fit",
+   "title": "Commute fit",
+   "summary": "Estimated drive time from where your people live to each candidate office: the median, who gets a long commute, and transit nearby."
+  },
+  {
+   "id": "connectivity",
+   "slug": "connectivity",
+   "title": "Connectivity",
+   "summary": "How well a place is connected: home broadband on offer (fiber, cable, how many providers), bus and rail stops within a walk, the nearest bikeway and the traffic on the nearest counted road. Offered speeds, not measured ones."
+  },
+  {
+   "id": "curb_to_door",
+   "slug": "curb-to-door",
+   "title": "Curb to door",
+   "summary": "Looks at the way in from outside: parking near the entrance, accessible stalls if the aerial photo shows them, how far it is to the door, and steps at the door."
+  },
+  {
+   "id": "daycare_capacity",
+   "slug": "daycare-capacity",
+   "title": "Daycare capacity",
+   "summary": "How many children this space could be licensed for: indoor room area, outdoor play area, toilets and sinks against the Texas or California rule, with the limiting factor named."
+  },
+  {
+   "id": "daylight",
+   "slug": "daylight",
+   "title": "Daylight",
+   "summary": "Windows, glass area, the way each room faces and its hours of direct sun on a chosen day."
+  },
+  {
+   "id": "derived_fields",
+   "slug": "derived-fields",
+   "title": "Derived fields",
+   "summary": "Proposes the record fields this property lacks, measured from the scan and the aerial photo."
+  },
+  {
+   "id": "door_widths",
+   "slug": "door-widths",
+   "title": "Door widths",
+   "summary": "Measures every doorway and flags the ones too narrow for you or what you are moving."
+  },
+  {
+   "id": "driveway_fit",
+   "slug": "driveway-fit",
+   "title": "Driveway fit",
+   "summary": "Estimates the driveway's length and width from the aerial photo, how many cars park on it, and whether a trailer, RV or boat fits off the street."
+  },
+  {
+   "id": "egress_routes",
+   "slug": "egress-routes",
+   "title": "Egress routes",
+   "summary": "The way out of every room: how far, how narrow, which rooms have one way out, and the hose stretch."
+  },
+  {
+   "id": "facility_audit",
+   "slug": "facility-audit",
+   "title": "Facility audit",
+   "summary": "Your building in one pass: doors, restrooms, ways out, life-safety equipment seen, occupant load and cleaning cost, ending in a prioritised fix list with rough costs."
+  },
+  {
+   "id": "facts_query",
+   "slug": "facts-query",
+   "title": "Ask the facts database",
+   "summary": "Answers questions across every scanned building that no fixed tool covers, with the SQL shown."
+  },
+  {
+   "id": "feng_shui",
+   "slug": "feng-shui",
+   "title": "Feng shui reading",
+   "summary": "How a feng shui practitioner would read this home: the front door's direction, the Bagua grid on each floor, the command position for beds and desks, and the usual layout notes. A cultural tradition, not a measured effect."
+  },
+  {
+   "id": "field_audit",
+   "slug": "field-audit",
+   "title": "Field audit",
+   "summary": "Across many scans, which record fields disagree with what the scans measure, ranked, with evidence."
+  },
+  {
+   "id": "field_check",
+   "slug": "field-check",
+   "title": "Field check",
+   "summary": "Lists what the scan could not settle and a person on site can, and records what they found: confirmed, contradicted or measured."
+  },
+  {
+   "id": "fire_preplan",
+   "slug": "fire-preplan",
+   "title": "Fire pre-plan",
+   "summary": "Writes the pre-incident plan from the scans, the aerial photo and the property record, with a one-page printable sheet."
+  },
+  {
+   "id": "flood_rehearsal",
+   "slug": "flood-rehearsal",
+   "title": "Flood rehearsal",
+   "summary": "Shows what a flood does inside this house: how deep in each room, which doors and windows go under, and the order rooms flood, with the floor-height error carried through."
+  },
+  {
+   "id": "floor_height",
+   "slug": "floor-height",
+   "title": "Floor height",
+   "summary": "Narrows the floor's height above the ground, the flood result's widest uncertainty, from steps counted and fixes taken at your own front door."
+  },
+  {
+   "id": "furniture_fit",
+   "slug": "furniture-fit",
+   "title": "Furniture fit",
+   "summary": "Checks whether a sofa, bed, piano or fridge can be carried from the entrance to a room: each door and turn with its margin, and where it would stick."
+  },
+  {
+   "id": "garage_fit",
+   "slug": "garage-fit",
+   "title": "Garage fit",
+   "summary": "Checks whether your car, truck, van or trailer fits in a scanned garage: how many side by side, the room to open doors, headroom for a lift or roof box, and room for a bench or charger."
+  },
+  {
+   "id": "hazard_profile",
+   "slug": "hazard-profile",
+   "title": "Hazard profile",
+   "summary": "Every hazard map at an address in one place: FEMA flood zone, hurricane evacuation zone, storm surge, Hurricane Harvey's high-water marks nearby, sea level rise, earthquake faults, liquefaction and landslide zones, fire hazard zones, urban heat, traffic noise, and weather alerts, earthquakes and wildfires now."
+  },
+  {
+   "id": "home_search",
+   "slug": "home-search",
+   "title": "Home search for pets and kids",
+   "summary": "Finds scanned homes across Houston or Los Angeles that suit your pets or kids: apartments that allow your dog's weight or cats, houses with a fenced, flat yard and no pool, near playgrounds, parks or dog parks."
+  },
+  {
+   "id": "industrial_fit",
+   "slug": "industrial-fit",
+   "title": "Industrial fit",
+   "summary": "Warehouse check: clear height, dock and drive-in doors, truck court and trailer parking, sprinklers, highway, rail, port and power nearby, and flood zone."
+  },
+  {
+   "id": "kids_fit",
+   "slug": "kids-fit",
+   "title": "Kids fit",
+   "summary": "Whether a home suits young children: stairs that need gates, the pool path with no barrier, windows a child could fall from, a back yard the kitchen looks onto, and the walk to playgrounds, parks and schools."
+  },
+  {
+   "id": "life_safety_census",
+   "slug": "life-safety-census",
+   "title": "Smoke alarm census",
+   "summary": "Checks every bedroom's ceiling photo for a smoke alarm and lists where none was seen, as leads to check."
+  },
+  {
+   "id": "listing_claims",
+   "slug": "listing-claims",
+   "title": "Listing claims",
+   "summary": "Checks what a listing says against the scan, and lists what it leaves out."
+  },
+  {
+   "id": "loading_docks",
+   "slug": "loading-docks",
+   "title": "Loading docks",
+   "summary": "Counts dock doors and drive-in doors on each wall from the oblique aerial views and beside the CoStar record."
+  },
+  {
+   "id": "market_comps",
+   "slug": "market-comps",
+   "title": "Market comps",
+   "summary": "Comparable properties from CoStar: asking rent, sale price per ft\u00b2, class, year built and space for lease, and where this building sits against them."
+  },
+  {
+   "id": "measure_search",
+   "slug": "measure-search",
+   "title": "Measure search",
+   "summary": "Finds homes by what is measured inside them: door widths on the way to the bathroom, turning space, wall lengths, floors, steps. No listing site can search this."
+  },
+  {
+   "id": "nearby",
+   "slug": "nearby",
+   "title": "Nearby",
+   "summary": "Parks, playgrounds, schools, sports courts and fields, vets, shops and transit near a home, with the walk or ride to the nearest of each along the streets."
+  },
+  {
+   "id": "noise_level",
+   "slug": "noise-level",
+   "title": "Noise level",
+   "summary": "How loud each room is, from the phone's microphone: an uncalibrated A-weighted level per room, best read as which rooms are quieter."
+  },
+  {
+   "id": "office_fit",
+   "slug": "office-fit",
+   "title": "Office fit",
+   "summary": "Whether your team fits this suite as built: desks, private offices, meeting rooms and kitchen, with the listed size and the last tenant beside it."
+  },
+  {
+   "id": "parking_count",
+   "slug": "parking-count",
+   "title": "Parking count",
+   "summary": "Counts parking stalls and parked cars from the aerial photo and compares them with the record."
+  },
+  {
+   "id": "path_to_water",
+   "slug": "path-to-water",
+   "title": "Path to water",
+   "summary": "Traces every route a small child could take from each bedroom to the pool and names the missing barrier."
+  },
+  {
+   "id": "permit_history",
+   "slug": "permit-history",
+   "title": "Permit history",
+   "summary": "What was permitted at and near an address, by type and year, and any code enforcement cases (Los Angeles); residents' recent service requests to the city nearby in Houston."
+  },
+  {
+   "id": "pet_fit",
+   "slug": "pet-fit",
+   "title": "Pet fit",
+   "summary": "Whether a home suits your dog, cat or small animal: stairs, floors, a crate and litter spot, a pet door, fall-risk windows, the yard's size, slope, shade and fence, the pool, busy roads, the pet policy and fees, and dog parks and vets nearby."
+  },
+  {
+   "id": "photo_measure",
+   "slug": "photo-measure",
+   "title": "Photo measure",
+   "summary": "Measures a width or a height from one photo that has a bank card, a sheet of paper or a door of known size in it."
+  },
+  {
+   "id": "property_coverage",
+   "slug": "property-coverage",
+   "title": "Property coverage",
+   "summary": "For whoever manages or researches a whole property: which of its floor plans and shared spaces have a scan, and which none covers."
+  },
+  {
+   "id": "quake_ready",
+   "slug": "quake-ready",
+   "title": "Earthquake readiness",
+   "summary": "A safe spot in each room away from windows, tall or heavy furniture near the beds, and where to find the gas shutoff on site."
+  },
+  {
+   "id": "quiet_rooms",
+   "slug": "quiet-rooms",
+   "title": "Quiet rooms",
+   "summary": "Ranks the bedrooms and office from quietest to loudest against road, rail and aircraft noise, from the national noise map, the nearest roads and which way each room faces."
+  },
+  {
+   "id": "record_vs_reality",
+   "slug": "record-vs-reality",
+   "title": "Record versus reality",
+   "summary": "Sets each fact in the CoStar or listing record beside what the scan and the aerial photo measure, with the evidence."
+  },
+  {
+   "id": "renovate",
+   "slug": "renovate",
+   "title": "What if: renovate",
+   "summary": "What it would take to make this home wheelchair-ready: the edits, what each one fixes and what it costs, with the renovated plan to compare side by side."
+  },
+  {
+   "id": "retail_site",
+   "slug": "retail-site",
+   "title": "Retail site",
+   "summary": "Parking counted from the air and its ratio, the road the site faces, anchors and neighbouring shops, and walk-in proxies."
+  },
+  {
+   "id": "risk_sheet",
+   "slug": "risk-sheet",
+   "title": "Risk sheet",
+   "summary": "One printable page for an underwriter: roof, flood position, wildfire space, pool, trees and interior hazards, each with its evidence and confidence."
+  },
+  {
+   "id": "robot_fit",
+   "slug": "robot-fit",
+   "title": "Robot fit",
+   "summary": "Shows which rooms a robot of a given width, turning circle and step height can reach and turn in, across one home or many, and which single change to the robot gains the most."
+  },
+  {
+   "id": "roof_facts",
+   "slug": "roof-facts",
+   "title": "Roof facts",
+   "summary": "Roof material, shape, condition, defects, solar, rooftop objects, trees over the roof and height, read from the aerial photo."
+  },
+  {
+   "id": "room_census",
+   "slug": "room-census",
+   "title": "Room census",
+   "summary": "Which rooms this space has, how big each kind is, and which rooms have no type."
+  },
+  {
+   "id": "room_labeller",
+   "slug": "room-labeller",
+   "title": "Room labeller",
+   "summary": "Names every room of a commercial space from its panoramas, shows what decided each call, and learns from your corrections."
+  },
+  {
+   "id": "room_sizes",
+   "slug": "room-sizes",
+   "title": "Room sizes",
+   "summary": "Every room's floor area, width, depth and ceiling height, biggest first."
+  },
+  {
+   "id": "similar_rooms",
+   "slug": "similar-rooms",
+   "title": "Similar rooms",
+   "summary": "Finds rooms by what they look like ('a sunlit kitchen with an island'), with measured filters: over 12 m\u00b2, in Houston, room for a wheelchair to turn."
+  },
+  {
+   "id": "site_scorecard",
+   "slug": "site-scorecard",
+   "title": "Site scorecard",
+   "summary": "Ranks candidate buildings against your requirements and weights, with a score per criterion, the deal-breakers and the evidence for each cell."
+  },
+  {
+   "id": "size_up_quiz",
+   "slug": "size-up-quiz",
+   "title": "Size-up quiz",
+   "summary": "Training: read a house from outside (bedrooms, stairs, kitchen side, floors) and get graded against its measured interior."
+  },
+  {
+   "id": "slope_check",
+   "slug": "slope-check",
+   "title": "Slope check",
+   "summary": "Uses the phone as a level: a ramp's slope and cross slope against the ADA limits, a threshold's bevel, or how far a door frame is out of plumb."
+  },
+  {
+   "id": "smoke_clock",
+   "slug": "smoke-clock",
+   "title": "Smoke clock",
+   "summary": "Minutes of survivable air in each bedroom with its door open and closed, from NIST's fire model run on the measured rooms."
+  },
+  {
+   "id": "solar_roof",
+   "slug": "solar-roof",
+   "title": "Solar roof",
+   "summary": "Usable roof for solar after setbacks and shade, how many panels, kW, kWh a year and payback."
+  },
+  {
+   "id": "stairs_count",
+   "slug": "stairs-count",
+   "title": "Stairs",
+   "summary": "Counts the floors, estimates the steps between the entrance and the bedrooms, and finds steps at doorways, floor by floor."
+  },
+  {
+   "id": "step_free_route",
+   "slug": "step-free-route",
+   "title": "Step-free route",
+   "summary": "Draws the route from the entrance to each room you need, with every door's width, the narrowest point and any step, and says whether you can get there."
+  },
+  {
+   "id": "storage_space",
+   "slug": "storage-space",
+   "title": "Storage space",
+   "summary": "Totals closet and storage area and its share of the unit, and finds bedrooms without a closet room."
+  },
+  {
+   "id": "storm_plan",
+   "slug": "storm-plan",
+   "title": "Storm plan",
+   "summary": "An ordered plan for the hours before the storm: what to carry up first, where it goes, plywood cut from your real window sizes, sandbags per door, which shutoffs to turn off, and where a generator can safely stand. It changes when the storm or the household changes."
+  },
+  {
+   "id": "stretcher_route",
+   "slug": "stretcher-route",
+   "title": "Stretcher route",
+   "summary": "Checks whether a flat ambulance stretcher can be carried from the entrance to each bedroom, and where it would have to be tilted."
+  },
+  {
+   "id": "sun_rooms",
+   "slug": "sun-rooms",
+   "title": "Sun by room",
+   "summary": "Hours of direct sun in each room on a day and at the solstices and equinoxes, with neighbours and trees in the way, and the best room for plants, a home office and a cool bedroom."
+  },
+  {
+   "id": "takeoff_bid",
+   "slug": "takeoff-bid",
+   "title": "Takeoff bid",
+   "summary": "Quantities for a trade from the scan (floor by finish, paintable wall, glass, doors, fixtures), priced with your own rates: a cleaning bid, an apartment unit turn, or a fit-out estimate."
+  },
+  {
+   "id": "tour",
+   "slug": "tour",
+   "title": "Tour",
+   "summary": "Answers by showing: a camera tour from the way in to each piece of evidence the other tools found, with one spoken line at each stop. The last step of a fire pre-plan or a wheelchair check of a home."
+  },
+  {
+   "id": "truck_access",
+   "slug": "truck-access",
+   "title": "Truck access",
+   "summary": "Whether a 53 ft trailer can reach and back to the docks: entrance, gate, court depth, turning room, overhead obstructions, arrival directions and a route on the aerial photo."
+  },
+  {
+   "id": "turning_space",
+   "slug": "turning-space",
+   "title": "Turning space",
+   "summary": "Finds the largest clear circle in each room and checks it against the turning circle you need."
+  },
+  {
+   "id": "unit_compare",
+   "slug": "unit-compare",
+   "title": "Unit compare",
+   "summary": "Ranks several units or suites side by side on measured area, rooms, storage, windows and door widths, with rent per measured square foot."
+  },
+  {
+   "id": "valuables_height",
+   "slug": "valuables-height",
+   "title": "What sits below the water",
+   "summary": "Finds the belongings, appliances, outlets and utilities in the rooms that flood, how high each sits off the floor, and what the water would cost, as a range."
+  },
+  {
+   "id": "walkthrough",
+   "slug": "walkthrough",
+   "title": "Walk-through",
+   "summary": "A quick safety census of a home with no scan, from a short video you record walking through it: rooms, smoke alarms, hazards and belongings."
+  },
+  {
+   "id": "where_am_i",
+   "slug": "where-am-i",
+   "title": "Where am I",
+   "summary": "Finds the scanned building you are standing in from the phone's GPS, or says there is none here."
+  },
+  {
+   "id": "wifi_coverage",
+   "slug": "wifi-coverage",
+   "title": "Wi-Fi coverage",
+   "summary": "Estimates Wi-Fi strength in every room from a router spot, finds dead zones, the best router spot for the bedrooms and office, and where a mesh node helps most."
+  },
+  {
+   "id": "wildfire_space",
+   "slug": "wildfire-space",
+   "title": "Wildfire defensible space",
+   "summary": "Vegetation and tree canopy in California's 5, 30 and 100 ft zones round the house, what to clear first, roof material, slope, the nearest fire station and the CAL FIRE hazard zone."
+  },
+  {
+   "id": "window_check",
+   "slug": "window-check",
+   "title": "Window check",
+   "summary": "Point the phone out of a window: its compass confirms or corrects which way the room faces and its hours of sun."
+  },
+  {
+   "id": "zoning_check",
+   "slug": "zoning-check",
+   "title": "Zoning check",
+   "summary": "What the zoning allows on a lot: the zone, its main uses and height or density limits in Los Angeles; in Houston, which has no zoning, the city's lot-size, building-line and historic rules."
+  }
+ ],
+ "groups": [
+  {
+   "title": "Getting in and around",
+   "personas": [
+    {
+     "id": "wheelchair_user",
+     "title": "Wheelchair user",
+     "who": "Uses a wheelchair and needs every door, route and bathroom to work for them.",
+     "tools": [
+      {
+       "slug": "door-widths",
+       "title": "Door widths"
+      },
+      {
+       "slug": "step-free-route",
+       "title": "Step-free route"
+      },
+      {
+       "slug": "turning-space",
+       "title": "Turning space"
+      },
+      {
+       "slug": "bathroom-clearance",
+       "title": "Bathroom clearance"
+      },
+      {
+       "slug": "room-census",
+       "title": "Room census"
+      },
+      {
+       "slug": "tour",
+       "title": "Tour"
+      }
+     ]
+    },
+    {
+     "id": "wheelchair_home_search",
+     "title": "Wheelchair user looking for a home",
+     "who": "Uses a wheelchair and is searching many homes for ones they can get into, around and use without changes.",
+     "tools": [
+      {
+       "slug": "measure-search",
+       "title": "Measure search"
+      },
+      {
+       "slug": "step-free-route",
+       "title": "Step-free route"
+      },
+      {
+       "slug": "bathroom-clearance",
+       "title": "Bathroom clearance"
+      },
+      {
+       "slug": "turning-space",
+       "title": "Turning space"
+      },
+      {
+       "slug": "curb-to-door",
+       "title": "Curb to door"
+      }
+     ]
+    },
+    {
+     "id": "wheelchair_van_owner",
+     "title": "Wheelchair van owner",
+     "who": "Drives a side-entry wheelchair van and needs about 8 ft beside it for the ramp, and a door the van clears.",
+     "tools": [
+      {
+       "slug": "garage-fit",
+       "title": "Garage fit"
+      },
+      {
+       "slug": "driveway-fit",
+       "title": "Driveway fit"
+      },
+      {
+       "slug": "step-free-route",
+       "title": "Step-free route"
+      },
+      {
+       "slug": "door-widths",
+       "title": "Door widths"
+      }
+     ]
+    },
+    {
+     "id": "older_adult_family",
+     "title": "Older adult or family",
+     "who": "Is choosing a home for an older relative or young children and cares about safe movement.",
+     "tools": [
+      {
+       "slug": "door-widths",
+       "title": "Door widths"
+      },
+      {
+       "slug": "step-free-route",
+       "title": "Step-free route"
+      },
+      {
+       "slug": "bathroom-clearance",
+       "title": "Bathroom clearance"
+      },
+      {
+       "slug": "stairs-count",
+       "title": "Stairs"
+      },
+      {
+       "slug": "room-census",
+       "title": "Room census"
+      }
+     ]
+    },
+    {
+     "id": "aging_in_place_planner",
+     "title": "Planning for an older parent",
+     "who": "Is checking whether a home is safe for an older parent to live in: trips, stairs, the night path to the bathroom, grab bars, and whether paramedics could reach them.",
+     "tools": [
+      {
+       "slug": "aging-in-place",
+       "title": "Aging in place"
+      },
+      {
+       "slug": "stairs-count",
+       "title": "Stairs"
+      },
+      {
+       "slug": "step-free-route",
+       "title": "Step-free route"
+      },
+      {
+       "slug": "bathroom-clearance",
+       "title": "Bathroom clearance"
+      },
+      {
+       "slug": "stretcher-route",
+       "title": "Stretcher route"
+      },
+      {
+       "slug": "curb-to-door",
+       "title": "Curb to door"
+      }
+     ]
+    },
+    {
+     "id": "furniture_mover",
+     "title": "Moving large furniture",
+     "who": "Is moving a sofa, bed, piano or appliance and needs to know it fits through.",
+     "tools": [
+      {
+       "slug": "door-widths",
+       "title": "Door widths"
+      },
+      {
+       "slug": "furniture-fit",
+       "title": "Furniture fit"
+      },
+      {
+       "slug": "room-census",
+       "title": "Room census"
+      }
+     ]
+    },
+    {
+     "id": "car_owner",
+     "title": "Car owner checking a garage",
+     "who": "Wants to know whether their car or truck fits in the garage, with room to open the doors, and how many cars the driveway holds.",
+     "tools": [
+      {
+       "slug": "garage-fit",
+       "title": "Garage fit"
+      },
+      {
+       "slug": "driveway-fit",
+       "title": "Driveway fit"
+      },
+      {
+       "slug": "measure-search",
+       "title": "Measure search"
+      }
+     ]
+    },
+    {
+     "id": "rv_boat_owner",
+     "title": "RV or boat owner",
+     "who": "Keeps a boat, trailer or motorhome and needs it off the street: driveway length, and whether the garage door is tall enough.",
+     "tools": [
+      {
+       "slug": "driveway-fit",
+       "title": "Driveway fit"
+      },
+      {
+       "slug": "garage-fit",
+       "title": "Garage fit"
+      }
+     ]
+    },
+    {
+     "id": "robot_maker",
+     "title": "Home robot maker",
+     "who": "Designs a wheeled home robot and wants to know what share of real homes it can get around, and which change to its size helps most.",
+     "tools": [
+      {
+       "slug": "robot-fit",
+       "title": "Robot fit"
+      },
+      {
+       "slug": "measure-search",
+       "title": "Measure search"
+      },
+      {
+       "slug": "turning-space",
+       "title": "Turning space"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Safety and hazards",
+   "personas": [
+    {
+     "id": "fire_captain",
+     "title": "Fire captain",
+     "who": "Pre-plans a building: entries, egress widths, hazards, standpipes and the route in.",
+     "tools": [
+      {
+       "slug": "fire-preplan",
+       "title": "Fire pre-plan"
+      },
+      {
+       "slug": "egress-routes",
+       "title": "Egress routes"
+      },
+      {
+       "slug": "door-widths",
+       "title": "Door widths"
+      },
+      {
+       "slug": "room-census",
+       "title": "Room census"
+      },
+      {
+       "slug": "tour",
+       "title": "Tour"
+      }
+     ]
+    },
+    {
+     "id": "fire_training_officer",
+     "title": "Fire training officer",
+     "who": "Runs size-up drills on real houses and grades crews against the measured interior.",
+     "tools": [
+      {
+       "slug": "size-up-quiz",
+       "title": "Size-up quiz"
+      },
+      {
+       "slug": "egress-routes",
+       "title": "Egress routes"
+      },
+      {
+       "slug": "smoke-clock",
+       "title": "Smoke clock"
+      },
+      {
+       "slug": "fire-preplan",
+       "title": "Fire pre-plan"
+      }
+     ]
+    },
+    {
+     "id": "community_risk_officer",
+     "title": "Community risk reduction officer",
+     "who": "Finds homes and units where smoke alarms are missing, and shows what a closed bedroom door buys.",
+     "tools": [
+      {
+       "slug": "life-safety-census",
+       "title": "Smoke alarm census"
+      },
+      {
+       "slug": "smoke-clock",
+       "title": "Smoke clock"
+      },
+      {
+       "slug": "fire-preplan",
+       "title": "Fire pre-plan"
+      },
+      {
+       "slug": "egress-routes",
+       "title": "Egress routes"
+      }
+     ]
+    },
+    {
+     "id": "emergency_manager",
+     "title": "Emergency manager or caseworker before a storm",
+     "who": "Has a storm coming and a household to advise: how deep the water gets inside, what to move first, and what the people there can finish in the hours left.",
+     "tools": [
+      {
+       "slug": "storm-plan",
+       "title": "Storm plan"
+      },
+      {
+       "slug": "flood-rehearsal",
+       "title": "Flood rehearsal"
+      },
+      {
+       "slug": "valuables-height",
+       "title": "What sits below the water"
+      }
+     ]
+    },
+    {
+     "id": "houston_homeowner_storm",
+     "title": "Houston homeowner before a storm",
+     "who": "Has a hurricane or flood coming and wants to know what water would reach and what to move.",
+     "tools": [
+      {
+       "slug": "flood-rehearsal",
+       "title": "Flood rehearsal"
+      },
+      {
+       "slug": "valuables-height",
+       "title": "What sits below the water"
+      },
+      {
+       "slug": "roof-facts",
+       "title": "Roof facts"
+      },
+      {
+       "slug": "room-census",
+       "title": "Room census"
+      }
+     ]
+    },
+    {
+     "id": "la_fire_homeowner",
+     "title": "LA homeowner after the fires",
+     "who": "Lives in Los Angeles after the January 2025 fires and wants to know what to clear round the house, whether the roof is fire rated, and how far the fire station is.",
+     "tools": [
+      {
+       "slug": "wildfire-space",
+       "title": "Wildfire defensible space"
+      },
+      {
+       "slug": "roof-facts",
+       "title": "Roof facts"
+      },
+      {
+       "slug": "fire-preplan",
+       "title": "Fire pre-plan"
+      }
+     ]
+    },
+    {
+     "id": "la_quake_prep",
+     "title": "Los Angeles household preparing for an earthquake",
+     "who": "Lives in Los Angeles and wants each room's safe spot, nothing tall that can fall on a bed, the ways out, and the gas shutoff found before the shaking starts.",
+     "tools": [
+      {
+       "slug": "quake-ready",
+       "title": "Earthquake readiness"
+      },
+      {
+       "slug": "egress-routes",
+       "title": "Egress routes"
+      },
+      {
+       "slug": "field-check",
+       "title": "Field check"
+      }
+     ]
+    },
+    {
+     "id": "home_security_family",
+     "title": "Family planning home security",
+     "who": "Is planning security cameras and wants every door and ground-floor window watched.",
+     "tools": [
+      {
+       "slug": "camera-coverage",
+       "title": "Camera coverage"
+      },
+      {
+       "slug": "window-check",
+       "title": "Window check"
+      },
+      {
+       "slug": "wifi-coverage",
+       "title": "Wi-Fi coverage"
+      },
+      {
+       "slug": "egress-routes",
+       "title": "Egress routes"
+      },
+      {
+       "slug": "room-census",
+       "title": "Room census"
+      }
+     ]
+    },
+    {
+     "id": "pool_safety_parent",
+     "title": "Parent of a toddler, house with a pool",
+     "who": "Has a child under five and a backyard pool, and wants to know every way the child could reach the water.",
+     "tools": [
+      {
+       "slug": "path-to-water",
+       "title": "Path to water"
+      },
+      {
+       "slug": "door-widths",
+       "title": "Door widths"
+      },
+      {
+       "slug": "risk-sheet",
+       "title": "Risk sheet"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Home life",
+   "personas": [
+    {
+     "id": "renter_listing",
+     "title": "Renter checking a listing",
+     "who": "Is about to rent and wants to know whether the listing matches the place.",
+     "tools": [
+      {
+       "slug": "room-census",
+       "title": "Room census"
+      },
+      {
+       "slug": "record-vs-reality",
+       "title": "Record versus reality"
+      },
+      {
+       "slug": "daylight",
+       "title": "Daylight"
+      },
+      {
+       "slug": "storage-space",
+       "title": "Storage space"
+      }
+     ]
+    },
+    {
+     "id": "renter_checking_claims",
+     "title": "Renter checking a listing's claims",
+     "who": "Has a listing open and wants each claim checked, plus what the listing leaves out.",
+     "tools": [
+      {
+       "slug": "listing-claims",
+       "title": "Listing claims"
+      },
+      {
+       "slug": "daylight",
+       "title": "Daylight"
+      },
+      {
+       "slug": "record-vs-reality",
+       "title": "Record versus reality"
+      },
+      {
+       "slug": "room-census",
+       "title": "Room census"
+      }
+     ]
+    },
+    {
+     "id": "parent_young_kids",
+     "title": "Parent with young kids choosing a home",
+     "who": "Is choosing a home with a toddler or young children: stairs that need gates, a pool path with no barrier, windows a child could fall from, a yard the kitchen looks onto, and a playground, park and elementary school within a short walk.",
+     "tools": [
+      {
+       "slug": "kids-fit",
+       "title": "Kids fit"
+      },
+      {
+       "slug": "path-to-water",
+       "title": "Path to water"
+      },
+      {
+       "slug": "nearby",
+       "title": "Nearby"
+      },
+      {
+       "slug": "stairs-count",
+       "title": "Stairs"
+      },
+      {
+       "slug": "home-search",
+       "title": "Home search for pets and kids"
+      },
+      {
+       "slug": "tour",
+       "title": "Tour"
+      }
+     ]
+    },
+    {
+     "id": "family_neighbourhood_check",
+     "title": "Family checking a neighbourhood",
+     "who": "Is choosing a home and wants every hazard at the address (flood, fire, earthquake, heat, noise) and what the neighbourhood is like.",
+     "tools": [
+      {
+       "slug": "hazard-profile",
+       "title": "Hazard profile"
+      },
+      {
+       "slug": "area-profile",
+       "title": "Area profile"
+      },
+      {
+       "slug": "connectivity",
+       "title": "Connectivity"
+      },
+      {
+       "slug": "permit-history",
+       "title": "Permit history"
+      }
+     ]
+    },
+    {
+     "id": "teen_soccer_family",
+     "title": "Family with a teenager who plays soccer",
+     "who": "Has a teenager who plays soccer: fields and a high school within a walk or a bike ride, a park nearby, and safe streets to get there.",
+     "tools": [
+      {
+       "slug": "nearby",
+       "title": "Nearby"
+      },
+      {
+       "slug": "kids-fit",
+       "title": "Kids fit"
+      },
+      {
+       "slug": "home-search",
+       "title": "Home search for pets and kids"
+      }
+     ]
+    },
+    {
+     "id": "dog_owner_home",
+     "title": "Dog owner choosing a home",
+     "who": "Is choosing a home for a dog: a fenced, flat yard with shade, no unfenced pool, a pet door to the yard, room for a crate, a dog park and a vet nearby.",
+     "tools": [
+      {
+       "slug": "pet-fit",
+       "title": "Pet fit"
+      },
+      {
+       "slug": "nearby",
+       "title": "Nearby"
+      },
+      {
+       "slug": "home-search",
+       "title": "Home search for pets and kids"
+      },
+      {
+       "slug": "path-to-water",
+       "title": "Path to water"
+      },
+      {
+       "slug": "tour",
+       "title": "Tour"
+      }
+     ]
+    },
+    {
+     "id": "senior_dog_owner",
+     "title": "Older dog that cannot do stairs",
+     "who": "Has an older dog with stiff joints: no stairs to daily rooms, grip underfoot, a flat yard, a short way out the back door, and an emergency vet within a short drive.",
+     "tools": [
+      {
+       "slug": "pet-fit",
+       "title": "Pet fit"
+      },
+      {
+       "slug": "stairs-count",
+       "title": "Stairs"
+      },
+      {
+       "slug": "step-free-route",
+       "title": "Step-free route"
+      },
+      {
+       "slug": "nearby",
+       "title": "Nearby"
+      },
+      {
+       "slug": "home-search",
+       "title": "Home search for pets and kids"
+      }
+     ]
+    },
+    {
+     "id": "cat_owner_apartment",
+     "title": "Cat owner in an apartment",
+     "who": "Rents an apartment with an indoor cat: the community's pet policy and fees, windows and a balcony a cat could fall from, a litter box spot away from the kitchen, and a vet nearby.",
+     "tools": [
+      {
+       "slug": "pet-fit",
+       "title": "Pet fit"
+      },
+      {
+       "slug": "nearby",
+       "title": "Nearby"
+      },
+      {
+       "slug": "home-search",
+       "title": "Home search for pets and kids"
+      },
+      {
+       "slug": "amenity-census",
+       "title": "Amenity census"
+      }
+     ]
+    },
+    {
+     "id": "remote_worker",
+     "title": "Remote worker",
+     "who": "Works from home and needs strong Wi-Fi and a quiet room for the office, fast home internet, a quiet street and transit or a bike route for the days out.",
+     "tools": [
+      {
+       "slug": "wifi-coverage",
+       "title": "Wi-Fi coverage"
+      },
+      {
+       "slug": "quiet-rooms",
+       "title": "Quiet rooms"
+      },
+      {
+       "slug": "connectivity",
+       "title": "Connectivity"
+      },
+      {
+       "slug": "office-fit",
+       "title": "Office fit"
+      },
+      {
+       "slug": "daylight",
+       "title": "Daylight"
+      },
+      {
+       "slug": "room-census",
+       "title": "Room census"
+      },
+      {
+       "slug": "hazard-profile",
+       "title": "Hazard profile"
+      },
+      {
+       "slug": "area-profile",
+       "title": "Area profile"
+      }
+     ]
+    },
+    {
+     "id": "light_sleeper",
+     "title": "Light sleeper or night-shift worker",
+     "who": "Sleeps lightly or by day and is choosing the bedroom furthest from road, rail and aircraft noise.",
+     "tools": [
+      {
+       "slug": "quiet-rooms",
+       "title": "Quiet rooms"
+      },
+      {
+       "slug": "noise-level",
+       "title": "Noise level"
+      },
+      {
+       "slug": "daylight",
+       "title": "Daylight"
+      },
+      {
+       "slug": "room-census",
+       "title": "Room census"
+      }
+     ]
+    },
+    {
+     "id": "room_chooser",
+     "title": "Plant lover or home office worker choosing a room",
+     "who": "Wants to know which room gets the most sun for plants, which gives daylight without screen glare for a desk, and which bedroom stays cool in summer.",
+     "tools": [
+      {
+       "slug": "sun-rooms",
+       "title": "Sun by room"
+      },
+      {
+       "slug": "daylight",
+       "title": "Daylight"
+      },
+      {
+       "slug": "window-check",
+       "title": "Window check"
+      },
+      {
+       "slug": "office-fit",
+       "title": "Office fit"
+      }
+     ]
+    },
+    {
+     "id": "feng_shui_curious",
+     "title": "Arranging a home by feng shui",
+     "who": "Wants a home read the way a feng shui practitioner would: the front door's direction, the Bagua sectors, where the bed and desk go, and their own favourable directions.",
+     "tools": [
+      {
+       "slug": "feng-shui",
+       "title": "Feng shui reading"
+      },
+      {
+       "slug": "room-sizes",
+       "title": "Room sizes"
+      },
+      {
+       "slug": "furniture-fit",
+       "title": "Furniture fit"
+      }
+     ]
+    },
+    {
+     "id": "home_gym_builder",
+     "title": "Home gym in the garage",
+     "who": "Wants a squat rack and room to press overhead in the garage, maybe with one car still parked.",
+     "tools": [
+      {
+       "slug": "garage-fit",
+       "title": "Garage fit"
+      }
+     ]
+    },
+    {
+     "id": "racket_player",
+     "title": "Tennis or pickleball player",
+     "who": "Plays tennis or pickleball and wants courts within a short walk or ride, with a gym and a park close by.",
+     "tools": [
+      {
+       "slug": "nearby",
+       "title": "Nearby"
+      },
+      {
+       "slug": "home-search",
+       "title": "Home search for pets and kids"
+      }
+     ]
+    },
+    {
+     "id": "solar_homeowner",
+     "title": "Homeowner considering solar",
+     "who": "Wants to know how much of the roof can carry panels, what they would make in a year and how long they take to pay back.",
+     "tools": [
+      {
+       "slug": "solar-roof",
+       "title": "Solar roof"
+      },
+      {
+       "slug": "roof-facts",
+       "title": "Roof facts"
+      }
+     ]
+    },
+    {
+     "id": "virtual_stager",
+     "title": "Agent or host staging a home virtually",
+     "who": "A listing agent or short-stay host who wants to show the rooms furnished: what fits where, how big each room is, and the light.",
+     "tools": [
+      {
+       "slug": "furniture-fit",
+       "title": "Furniture fit"
+      },
+      {
+       "slug": "room-sizes",
+       "title": "Room sizes"
+      },
+      {
+       "slug": "daylight",
+       "title": "Daylight"
+      },
+      {
+       "slug": "tour",
+       "title": "Tour"
+      }
+     ]
+    },
+    {
+     "id": "location_scout",
+     "title": "Film or photo location scout",
+     "who": "Scouts homes and spaces for a shoot: room sizes and ceiling heights, natural light, parking for the trucks, and a step-free way in for carts and gear.",
+     "tools": [
+      {
+       "slug": "room-sizes",
+       "title": "Room sizes"
+      },
+      {
+       "slug": "daylight",
+       "title": "Daylight"
+      },
+      {
+       "slug": "truck-access",
+       "title": "Truck access"
+      },
+      {
+       "slug": "parking-count",
+       "title": "Parking count"
+      },
+      {
+       "slug": "curb-to-door",
+       "title": "Curb to door"
+      },
+      {
+       "slug": "step-free-route",
+       "title": "Step-free route"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Business",
+   "personas": [
+    {
+     "id": "business_site_check",
+     "title": "Business checking a site",
+     "who": "Wants to open or move a business and needs to know whether the use is allowed, what was permitted there, who lives around it and how people get there.",
+     "tools": [
+      {
+       "slug": "zoning-check",
+       "title": "Zoning check"
+      },
+      {
+       "slug": "permit-history",
+       "title": "Permit history"
+      },
+      {
+       "slug": "area-profile",
+       "title": "Area profile"
+      },
+      {
+       "slug": "connectivity",
+       "title": "Connectivity"
+      }
+     ]
+    },
+    {
+     "id": "office_tenant",
+     "title": "Office tenant",
+     "who": "Is choosing office space and wants seats, meeting rooms and how the plan works for a team.",
+     "tools": [
+      {
+       "slug": "office-fit",
+       "title": "Office fit"
+      },
+      {
+       "slug": "room-census",
+       "title": "Room census"
+      },
+      {
+       "slug": "door-widths",
+       "title": "Door widths"
+      },
+      {
+       "slug": "daylight",
+       "title": "Daylight"
+      }
+     ]
+    },
+    {
+     "id": "office_relocation",
+     "title": "Office relocation lead",
+     "who": "Moves a company's office: commutes for the team, size for the headcount, rent, transit and access.",
+     "tools": [
+      {
+       "slug": "site-scorecard",
+       "title": "Site scorecard"
+      },
+      {
+       "slug": "commute-fit",
+       "title": "Commute fit"
+      },
+      {
+       "slug": "market-comps",
+       "title": "Market comps"
+      },
+      {
+       "slug": "office-fit",
+       "title": "Office fit"
+      },
+      {
+       "slug": "step-free-route",
+       "title": "Step-free route"
+      }
+     ]
+    },
+    {
+     "id": "industrial_tenant_rep",
+     "title": "Industrial tenant rep",
+     "who": "Finds a distribution warehouse for a client: clear height, docks, truck court, highways, rent against comps.",
+     "tools": [
+      {
+       "slug": "site-scorecard",
+       "title": "Site scorecard"
+      },
+      {
+       "slug": "industrial-fit",
+       "title": "Industrial fit"
+      },
+      {
+       "slug": "market-comps",
+       "title": "Market comps"
+      },
+      {
+       "slug": "truck-access",
+       "title": "Truck access"
+      },
+      {
+       "slug": "loading-docks",
+       "title": "Loading docks"
+      }
+     ]
+    },
+    {
+     "id": "retail_site_selector",
+     "title": "Retail site selector",
+     "who": "Picks a chain's next store: parking, the road it faces, co-tenants, walk-in trade and rent.",
+     "tools": [
+      {
+       "slug": "site-scorecard",
+       "title": "Site scorecard"
+      },
+      {
+       "slug": "retail-site",
+       "title": "Retail site"
+      },
+      {
+       "slug": "market-comps",
+       "title": "Market comps"
+      },
+      {
+       "slug": "parking-count",
+       "title": "Parking count"
+      }
+     ]
+    },
+    {
+     "id": "facility_manager",
+     "title": "Facility manager",
+     "who": "Audits the building the business already occupies: access, ways out, life safety, cleaning and what to fix first.",
+     "tools": [
+      {
+       "slug": "facility-audit",
+       "title": "Facility audit"
+      },
+      {
+       "slug": "door-widths",
+       "title": "Door widths"
+      },
+      {
+       "slug": "egress-routes",
+       "title": "Egress routes"
+      },
+      {
+       "slug": "bathroom-clearance",
+       "title": "Bathroom clearance"
+      },
+      {
+       "slug": "takeoff-bid",
+       "title": "Takeoff bid"
+      }
+     ]
+    },
+    {
+     "id": "apartment_manager",
+     "title": "Apartment manager",
+     "who": "Runs a building and compares units, accessibility and what the listing claims.",
+     "tools": [
+      {
+       "slug": "room-census",
+       "title": "Room census"
+      },
+      {
+       "slug": "door-widths",
+       "title": "Door widths"
+      },
+      {
+       "slug": "property-coverage",
+       "title": "Property coverage"
+      },
+      {
+       "slug": "unit-compare",
+       "title": "Unit compare"
+      },
+      {
+       "slug": "record-vs-reality",
+       "title": "Record versus reality"
+      }
+     ]
+    },
+    {
+     "id": "daycare_operator",
+     "title": "Daycare operator",
+     "who": "Looking for a building to license as a child-care centre and needs the capacity inside and out.",
+     "tools": [
+      {
+       "slug": "daycare-capacity",
+       "title": "Daycare capacity"
+      },
+      {
+       "slug": "door-widths",
+       "title": "Door widths"
+      },
+      {
+       "slug": "room-census",
+       "title": "Room census"
+      },
+      {
+       "slug": "path-to-water",
+       "title": "Path to water"
+      }
+     ]
+    },
+    {
+     "id": "cleaning_bidder",
+     "title": "Commercial cleaning bidder",
+     "who": "Prices janitorial work from a scan: cleanable area by floor finish, restroom fixtures, glass, hours per visit.",
+     "tools": [
+      {
+       "slug": "takeoff-bid",
+       "title": "Takeoff bid"
+      },
+      {
+       "slug": "room-labeller",
+       "title": "Room labeller"
+      },
+      {
+       "slug": "room-census",
+       "title": "Room census"
+      }
+     ]
+    },
+    {
+     "id": "truck_dispatcher",
+     "title": "Truck dispatcher",
+     "who": "Sends trucks to a site and needs the approach, the dock and the doors a pallet passes.",
+     "tools": [
+      {
+       "slug": "truck-access",
+       "title": "Truck access"
+      },
+      {
+       "slug": "loading-docks",
+       "title": "Loading docks"
+      },
+      {
+       "slug": "door-widths",
+       "title": "Door widths"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Research and underwriting",
+   "personas": [
+    {
+     "id": "costar_researcher",
+     "title": "CoStar researcher",
+     "who": "Checks and enriches property records: room types, areas, what changed since the record.",
+     "tools": [
+      {
+       "slug": "record-vs-reality",
+       "title": "Record versus reality"
+      },
+      {
+       "slug": "room-census",
+       "title": "Room census"
+      },
+      {
+       "slug": "room-labeller",
+       "title": "Room labeller"
+      }
+     ]
+    },
+    {
+     "id": "costar_research_lead",
+     "title": "CoStar research lead",
+     "who": "Decides which record fields to fix or add across a portfolio, from where records and scans disagree.",
+     "tools": [
+      {
+       "slug": "field-audit",
+       "title": "Field audit"
+      },
+      {
+       "slug": "record-vs-reality",
+       "title": "Record versus reality"
+      },
+      {
+       "slug": "derived-fields",
+       "title": "Derived fields"
+      },
+      {
+       "slug": "room-census",
+       "title": "Room census"
+      }
+     ]
+    },
+    {
+     "id": "commercial_underwriter",
+     "title": "Commercial property underwriter",
+     "who": "Prices a warehouse, an office, a shop or an apartment community: roof, flood position, what is on site against the record, and rent and sale price against comps.",
+     "tools": [
+      {
+       "slug": "risk-sheet",
+       "title": "Risk sheet"
+      },
+      {
+       "slug": "market-comps",
+       "title": "Market comps"
+      },
+      {
+       "slug": "industrial-fit",
+       "title": "Industrial fit"
+      },
+      {
+       "slug": "roof-facts",
+       "title": "Roof facts"
+      },
+      {
+       "slug": "loading-docks",
+       "title": "Loading docks"
+      },
+      {
+       "slug": "parking-count",
+       "title": "Parking count"
+      }
+     ]
+    },
+    {
+     "id": "insurance_underwriter",
+     "title": "Insurance underwriter",
+     "who": "Prices risk on a property: roof, flood exposure, what was built versus what is recorded.",
+     "tools": [
+      {
+       "slug": "roof-facts",
+       "title": "Roof facts"
+      },
+      {
+       "slug": "flood-rehearsal",
+       "title": "Flood rehearsal"
+      },
+      {
+       "slug": "record-vs-reality",
+       "title": "Record versus reality"
+      },
+      {
+       "slug": "room-census",
+       "title": "Room census"
+      }
+     ]
+    },
+    {
+     "id": "amenity_auditor",
+     "title": "Amenity auditor",
+     "who": "Checks what an apartment community really offers against its listing, unit by unit and amenity by amenity.",
+     "tools": [
+      {
+       "slug": "amenity-census",
+       "title": "Amenity census"
+      },
+      {
+       "slug": "unit-compare",
+       "title": "Unit compare"
+      },
+      {
+       "slug": "storage-space",
+       "title": "Storage space"
+      },
+      {
+       "slug": "room-labeller",
+       "title": "Room labeller"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "tracks": [
+  "amazon",
+  "costar",
+  "langchain",
+  "mongodb",
+  "peri",
+  "photon",
+  "tiger-data"
+ ],
+ "home": {
+  "sid": "u_testhome0001",
+  "name": "Test home (made up)",
+  "size": [
+   1005,
+   802
+  ],
+  "persona": "Wheelchair user",
+  "area": 80.1,
+  "walls": [
+   {
+    "a": [
+     1003,
+     1
+    ],
+    "b": [
+     5,
+     0
+    ]
+   },
+   {
+    "a": [
+     5,
+     0
+    ],
+    "b": [
+     4,
+     802
+    ]
+   },
+   {
+    "a": [
+     4,
+     802
+    ],
+    "b": [
+     1003,
+     802
+    ]
+   },
+   {
+    "a": [
+     1003,
+     802
+    ],
+    "b": [
+     1003,
+     1
+    ]
+   },
+   {
+    "a": [
+     1005,
+     501
+    ],
+    "b": [
+     404,
+     504
+    ]
+   },
+   {
+    "a": [
+     652,
+     502
+    ],
+    "b": [
+     652,
+     800
+    ]
+   },
+   {
+    "a": [
+     651,
+     622
+    ],
+    "b": [
+     404,
+     623
+    ]
+   },
+   {
+    "a": [
+     402,
+     3
+    ],
+    "b": [
+     404,
+     802
+    ]
+   },
+   {
+    "a": [
+     402,
+     401
+    ],
+    "b": [
+     0,
+     399
+    ]
+   }
+  ],
+  "rooms": [
+   {
+    "label": "Living Room",
+    "c": [
+     703,
+     251
+    ],
+    "area": 30.133
+   },
+   {
+    "label": "Bedroom",
+    "c": [
+     204,
+     651
+    ],
+    "area": 16.058
+   },
+   {
+    "label": "Bedroom",
+    "c": [
+     203,
+     200
+    ],
+    "area": 15.908
+   },
+   {
+    "label": "Kitchen",
+    "c": [
+     827,
+     616
+    ],
+    "area": 10.542
+   },
+   {
+    "label": "Bathroom",
+    "c": [
+     528,
+     712
+    ],
+    "area": 4.464
+   },
+   {
+    "label": "Hallway",
+    "c": [
+     527,
+     563
+    ],
+    "area": 2.96
+   }
+  ],
+  "openings": [
+   {
+    "id": "o0",
+    "type": "doorway",
+    "a": [
+     799,
+     1
+    ],
+    "b": [
+     708,
+     1
+    ],
+    "c": [
+     754,
+     1
+    ],
+    "width": 0.91,
+    "status": "pass",
+    "rule": "Doorway width, Living Room to outside"
+   },
+   {
+    "id": "o1",
+    "type": "doorway",
+    "a": [
+     571,
+     503
+    ],
+    "b": [
+     485,
+     504
+    ],
+    "c": [
+     528,
+     503
+    ],
+    "width": 0.86,
+    "status": "warn",
+    "rule": "Doorway width, Hallway to Living Room"
+   },
+   {
+    "id": "o2",
+    "type": "doorway",
+    "a": [
+     563,
+     622
+    ],
+    "b": [
+     492,
+     622
+    ],
+    "c": [
+     527,
+     622
+    ],
+    "width": 0.71,
+    "status": "fail",
+    "rule": "Doorway width, Bathroom to Hallway"
+   },
+   {
+    "id": "o3",
+    "type": "doorway",
+    "a": [
+     403,
+     302
+    ],
+    "b": [
+     403,
+     383
+    ],
+    "c": [
+     403,
+     342
+    ],
+    "width": 0.81,
+    "status": "fail",
+    "rule": "Doorway width, Living Room to Bedroom"
+   },
+   {
+    "id": "o4",
+    "type": "doorway",
+    "a": [
+     403,
+     524
+    ],
+    "b": [
+     403,
+     600
+    ],
+    "c": [
+     403,
+     562
+    ],
+    "width": 0.76,
+    "status": "fail",
+    "rule": "Doorway width, Hallway to Bedroom"
+   },
+   {
+    "id": "o5",
+    "type": "window",
+    "a": [
+     634,
+     0
+    ],
+    "b": [
+     474,
+     0
+    ],
+    "c": [
+     554,
+     0
+    ],
+    "width": 1.6,
+    "status": null,
+    "rule": null
+   },
+   {
+    "id": "o6",
+    "type": "window",
+    "a": [
+     4,
+     141
+    ],
+    "b": [
+     4,
+     261
+    ],
+    "c": [
+     4,
+     201
+    ],
+    "width": 1.2,
+    "status": null,
+    "rule": null
+   },
+   {
+    "id": "o7",
+    "type": "window",
+    "a": [
+     4,
+     541
+    ],
+    "b": [
+     4,
+     661
+    ],
+    "c": [
+     4,
+     601
+    ],
+    "width": 1.2,
+    "status": null,
+    "rule": null
+   },
+   {
+    "id": "o8",
+    "type": "window",
+    "a": [
+     1003,
+     703
+    ],
+    "b": [
+     1003,
+     603
+    ],
+    "c": [
+     1003,
+     653
+    ],
+    "width": 1.0,
+    "status": null,
+    "rule": null
+   },
+   {
+    "id": "o9",
+    "type": "window",
+    "a": [
+     497,
+     802
+    ],
+    "b": [
+     557,
+     802
+    ],
+    "c": [
+     527,
+     802
+    ],
+    "width": 0.6,
+    "status": null,
+    "rule": null
+   },
+   {
+    "id": "o10",
+    "type": "opening",
+    "a": [
+     888,
+     501
+    ],
+    "b": [
+     768,
+     502
+    ],
+    "c": [
+     828,
+     502
+    ],
+    "width": 1.2,
+    "status": "pass",
+    "rule": "Doorway width, Kitchen to Living Room"
+   }
+  ],
+  "routes": [
+   {
+    "label": "Entrance to Bathroom",
+    "points": [
+     [
+      782,
+      9
+     ],
+     [
+      528,
+      503
+     ],
+     [
+      527,
+      622
+     ],
+     [
+      562,
+      712
+     ]
+    ],
+    "chokes": [
+     {
+      "at": [
+       528,
+       503
+      ],
+      "width": 0.8099999999999999,
+      "status": "warn"
+     },
+     {
+      "at": [
+       527,
+       622
+      ],
+      "width": 0.6599999999999999,
+      "status": "fail"
+     }
+    ]
+   },
+   {
+    "label": "Entrance to Bedroom 1",
+    "points": [
+     [
+      782,
+      9
+     ],
+     [
+      528,
+      503
+     ],
+     [
+      403,
+      562
+     ],
+     [
+      204,
+      602
+     ]
+    ],
+    "chokes": [
+     {
+      "at": [
+       528,
+       503
+      ],
+      "width": 0.8099999999999999,
+      "status": "warn"
+     },
+     {
+      "at": [
+       403,
+       562
+      ],
+      "width": 0.71,
+      "status": "fail"
+     },
+     {
+      "at": [
+       446,
+       542
+      ],
+      "width": 1.191020962940334,
+      "status": "pass"
+     }
+    ]
+   },
+   {
+    "label": "Entrance to Bedroom 2",
+    "points": [
+     [
+      782,
+      9
+     ],
+     [
+      403,
+      342
+     ],
+     [
+      203,
+      201
+     ]
+    ],
+    "chokes": [
+     {
+      "at": [
+       403,
+       342
+      ],
+      "width": 0.76,
+      "status": "fail"
+     }
+    ]
+   },
+   {
+    "label": "Entrance to Kitchen",
+    "points": [
+     [
+      782,
+      9
+     ],
+     [
+      828,
+      502
+     ],
+     [
+      850,
+      652
+     ]
+    ],
+    "chokes": [
+     {
+      "at": [
+       828,
+       502
+      ],
+      "width": 1.2,
+      "status": "pass"
+     }
+    ]
+   }
+  ],
+  "results": {
+   "step_free_route": {
+    "title": "Step-free route",
+    "verdict": {
+     "status": "fail",
+     "text": "No step-free route wide enough to: bathroom, bedroom. The entrance is a doorway with a room on one side only; the scan cannot tell outside from unscanned."
+    },
+    "metrics": [
+     {
+      "id": "reachable",
+      "label": "Destinations reachable",
+      "value": 1.0,
+      "unit": "",
+      "source": {
+       "layer": "matterport",
+       "method": "geometry",
+       "confidence": "medium",
+       "note": "Matterport wall graph, empty rooms; door widths are the opening in the wall"
+      }
+     },
+     {
+      "id": "narrowest",
+      "label": "Narrowest point on the routes",
+      "value": 0.66,
+      "unit": "m",
+      "source": {
+       "layer": "matterport",
+       "method": "geometry",
+       "confidence": "medium",
+       "note": "Matterport wall graph, empty rooms; door widths are the opening in the wall"
+      }
+     },
+     {
+      "id": "level_changes",
+      "label": "Steps at doorways",
+      "value": 0.0,
+      "unit": "",
+      "source": {
+       "layer": "matterport",
+       "method": "geometry",
+       "confidence": "low",
+       "note": "Matterport wall graph; part of this answer rests on an assumption named in the result"
+      }
+     },
+     {
+      "id": "data_errors",
+      "label": "Door widths that are data errors",
+      "value": 0.0,
+      "unit": "",
+      "source": {
+       "layer": "matterport",
+       "method": "geometry",
+       "confidence": "medium",
+       "note": "Matterport wall graph, empty rooms; door widths are the opening in the wall"
+      }
+     },
+     {
+      "id": "bath_route_m",
+      "label": "Entrance to nearest bathroom",
+      "value": 7.7,
+      "unit": "m",
+      "source": {
+       "layer": "matterport",
+       "method": "geometry",
+       "confidence": "medium",
+       "note": "Matterport wall graph, empty rooms; door widths are the opening in the wall"
+      }
+     }
+    ],
+    "checks": [
+     {
+      "id": "route.r4",
+      "rule": "Step-free route, entrance to Bathroom: 7.7 m from the entrance through 3 doorways; narrowest 0.66 m.",
+      "measured": 0.66,
+      "threshold": 0.813,
+      "unit": "m",
+      "status": "fail"
+     },
+     {
+      "id": "route.r1",
+      "rule": "Step-free route, entrance to Bedroom 1: 9.0 m from the entrance through 3 doorways; narrowest 0.71 m.",
+      "measured": 0.71,
+      "threshold": 0.813,
+      "unit": "m",
+      "status": "fail"
+     },
+     {
+      "id": "route.r2",
+      "rule": "Step-free route, entrance to Bedroom 2: 7.5 m from the entrance through 2 doorways; narrowest 0.76 m.",
+      "measured": 0.76,
+      "threshold": 0.813,
+      "unit": "m",
+      "status": "fail"
+     },
+     {
+      "id": "route.r3",
+      "rule": "Step-free route, entrance to Kitchen: 6.5 m from the entrance through 2 doorways; narrowest 0.86 m.",
+      "measured": 0.86,
+      "threshold": 0.813,
+      "unit": "m",
+      "status": "pass"
+     }
+    ],
+    "source": {
+     "layer": "matterport",
+     "method": "geometry",
+     "confidence": "medium",
+     "note": "Matterport wall graph, empty rooms; door widths are the opening in the wall"
+    }
+   },
+   "door_widths": {
+    "title": "Door widths",
+    "verdict": {
+     "status": "fail",
+     "text": "3 of 6 doorways are narrower than 0.813 m."
+    },
+    "metrics": [
+     {
+      "id": "doorways",
+      "label": "Doorways",
+      "value": 6.0,
+      "unit": "",
+      "source": {
+       "layer": "matterport",
+       "method": "geometry",
+       "confidence": "medium",
+       "note": "Opening width in the wall graph; a hinged door's leaf takes a few centimetres off it"
+      }
+     },
+     {
+      "id": "narrowest",
+      "label": "Narrowest",
+      "value": 0.71,
+      "unit": "m",
+      "source": {
+       "layer": "matterport",
+       "method": "geometry",
+       "confidence": "medium",
+       "note": "Opening width in the wall graph; a hinged door's leaf takes a few centimetres off it"
+      }
+     },
+     {
+      "id": "too_narrow",
+      "label": "Too narrow",
+      "value": 3.0,
+      "unit": "",
+      "source": {
+       "layer": "matterport",
+       "method": "geometry",
+       "confidence": "medium",
+       "note": "Opening width in the wall graph; a hinged door's leaf takes a few centimetres off it"
+      }
+     }
+    ],
+    "checks": [
+     {
+      "id": "o2",
+      "rule": "Doorway width, Bathroom to Hallway",
+      "measured": 0.71,
+      "threshold": 0.813,
+      "unit": "m",
+      "status": "fail"
+     },
+     {
+      "id": "o4",
+      "rule": "Doorway width, Hallway to Bedroom",
+      "measured": 0.76,
+      "threshold": 0.813,
+      "unit": "m",
+      "status": "fail"
+     },
+     {
+      "id": "o3",
+      "rule": "Doorway width, Living Room to Bedroom",
+      "measured": 0.81,
+      "threshold": 0.813,
+      "unit": "m",
+      "status": "fail"
+     },
+     {
+      "id": "o1",
+      "rule": "Doorway width, Hallway to Living Room",
+      "measured": 0.86,
+      "threshold": 0.813,
+      "unit": "m",
+      "status": "warn"
+     },
+     {
+      "id": "o0",
+      "rule": "Doorway width, Living Room to outside",
+      "measured": 0.91,
+      "threshold": 0.813,
+      "unit": "m",
+      "status": "pass"
+     },
+     {
+      "id": "o10",
+      "rule": "Doorway width, Kitchen to Living Room",
+      "measured": 1.2,
+      "threshold": 0.813,
+      "unit": "m",
+      "status": "pass"
+     }
+    ],
+    "source": {
+     "layer": "matterport",
+     "method": "geometry",
+     "confidence": "medium",
+     "note": "Opening width in the wall graph; a hinged door's leaf takes a few centimetres off it"
+    }
+   },
+   "turning_space": {
+    "title": "Turning space",
+    "verdict": {
+     "status": "fail",
+     "text": "1 of 6 rooms cannot hold the turning circle in the empty room."
+    },
+    "metrics": [
+     {
+      "id": "rooms_ok",
+      "label": "Rooms that hold the circle",
+      "value": 5.0,
+      "unit": "",
+      "source": {
+       "layer": "matterport",
+       "method": "geometry",
+       "confidence": "medium",
+       "note": "Matterport wall graph, empty rooms; door widths are the opening in the wall"
+      }
+     },
+     {
+      "id": "bathroom",
+      "label": "Best bathroom circle",
+      "value": 1.68,
+      "unit": "m",
+      "source": {
+       "layer": "matterport",
+       "method": "geometry",
+       "confidence": "medium",
+       "note": "Matterport wall graph, empty rooms; door widths are the opening in the wall"
+      }
+     },
+     {
+      "id": "kitchen",
+      "label": "Kitchen circle",
+      "value": 2.88,
+      "unit": "m",
+      "source": {
+       "layer": "matterport",
+       "method": "geometry",
+       "confidence": "medium",
+       "note": "Matterport wall graph, empty rooms; door widths are the opening in the wall"
+      }
+     },
+     {
+      "id": "largest",
+      "label": "Largest circle",
+      "value": 4.9,
+      "unit": "m",
+      "source": {
+       "layer": "matterport",
+       "method": "geometry",
+       "confidence": "medium",
+       "note": "Matterport wall graph, empty rooms; door widths are the opening in the wall"
+      }
+     },
+     {
+      "id": "circle.r0",
+      "label": "Living Room",
+      "value": 4.9,
+      "unit": "m",
+      "source": {
+       "layer": "matterport",
+       "method": "geometry",
+       "confidence": "medium",
+       "note": "Matterport wall graph, empty rooms; door widths are the opening in the wall"
+      }
+     }
+    ],
+    "checks": [
+     {
+      "id": "turn.r5",
+      "rule": "Turning circle, Hallway",
+      "measured": 1.072,
+      "threshold": 1.525,
+      "unit": "m",
+      "status": "fail"
+     },
+     {
+      "id": "turn.r4",
+      "rule": "Turning circle, Bathroom",
+      "measured": 1.678,
+      "threshold": 1.525,
+      "unit": "m",
+      "status": "pass"
+     },
+     {
+      "id": "turn.r3",
+      "rule": "Turning circle, Kitchen",
+      "measured": 2.883,
+      "threshold": 1.525,
+      "unit": "m",
+      "status": "pass"
+     },
+     {
+      "id": "turn.r2",
+      "rule": "Turning circle, Bedroom",
+      "measured": 3.86,
+      "threshold": 1.525,
+      "unit": "m",
+      "status": "pass"
+     },
+     {
+      "id": "turn.r1",
+      "rule": "Turning circle, Bedroom",
+      "measured": 3.872,
+      "threshold": 1.525,
+      "unit": "m",
+      "status": "pass"
+     },
+     {
+      "id": "turn.r0",
+      "rule": "Turning circle, Living Room",
+      "measured": 4.901,
+      "threshold": 1.525,
+      "unit": "m",
+      "status": "pass"
+     }
+    ],
+    "source": {
+     "layer": "matterport",
+     "method": "geometry",
+     "confidence": "medium",
+     "note": "Matterport wall graph, empty rooms; door widths are the opening in the wall"
+    }
+   },
+   "bathroom_clearance": {
+    "title": "Bathroom clearance",
+    "verdict": {
+     "status": "fail",
+     "text": "Every bathroom fails at least one check: door clear width."
+    },
+    "metrics": [
+     {
+      "id": "bathrooms",
+      "label": "Bathrooms",
+      "value": 1.0,
+      "unit": "",
+      "source": {
+       "layer": "matterport",
+       "method": "geometry",
+       "confidence": "medium",
+       "note": "Matterport wall graph, empty rooms; door widths are the opening in the wall"
+      }
+     },
+     {
+      "id": "bathrooms_ok",
+      "label": "Bathrooms that pass",
+      "value": 0.0,
+      "unit": "",
+      "source": {
+       "layer": "matterport",
+       "method": "geometry",
+       "confidence": "medium",
+       "note": "Matterport wall graph, empty rooms; door widths are the opening in the wall"
+      }
+     },
+     {
+      "id": "best_turn",
+      "label": "Best turning circle",
+      "value": 1.68,
+      "unit": "m",
+      "source": {
+       "layer": "matterport",
+       "method": "geometry",
+       "confidence": "medium",
+       "note": "Matterport wall graph, empty rooms; door widths are the opening in the wall"
+      }
+     }
+    ],
+    "checks": [
+     {
+      "id": "r4.turn",
+      "rule": "Bathroom: turning circle in the empty room",
+      "measured": 1.678,
+      "threshold": 1.525,
+      "unit": "m",
+      "status": "pass"
+     },
+     {
+      "id": "r4.door.o2",
+      "rule": "Bathroom: door clear width",
+      "measured": 0.66,
+      "threshold": 0.813,
+      "unit": "m",
+      "status": "fail"
+     },
+     {
+      "id": "r4.door_space",
+      "rule": "Bathroom: 30 x 48 in clear floor space outside the door swing",
+      "measured": null,
+      "threshold": null,
+      "unit": "",
+      "status": "pass"
+     },
+     {
+      "id": "r4.wc_any",
+      "rule": "Bathroom: room could hold a 60 x 56 in toilet clearance somewhere",
+      "measured": null,
+      "threshold": null,
+      "unit": "",
+      "status": "pass"
+     }
+    ],
+    "source": {
+     "layer": "matterport",
+     "method": "geometry",
+     "confidence": "medium",
+     "note": "Matterport wall graph, empty rooms; door widths are the opening in the wall"
+    }
+   }
+  },
+  "notes": [
+   "no usable geolocation or compass rotation",
+   "scanned with iPhone LiDAR (Apple RoomPlan): walls, doors, windows and objects are measured; wall thickness is not measured (0.12 m assumed); no panoramas, so tools that read photos cannot run"
+  ]
+ }
+}

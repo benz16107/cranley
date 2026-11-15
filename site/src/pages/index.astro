@@ -1,0 +1,252 @@
+---
+// Home. Every sentence is from docs/story.md; every count and measurement is read from src/generated/site.json.
+import Base from '../layouts/Base.astro'
+import PlanFigure from '../components/PlanFigure.astro'
+import NumberPath from '../components/NumberPath.astro'
+import Ecosystem from '../components/Ecosystem.astro'
+import Slot from '../components/Slot.astro'
+import St from '../components/St.astro'
+import site from '../generated/site.json'
+import { LINKS, TEAM } from '../site/links'
+import { TRACKS } from '../site/tracks'
+import { LABELS, filesOf, type SlotId } from '../site/slots'
+
+const c = site.counts
+const ex = c.examples as Record<string, number>
+const answered = (ex.pass ?? 0) + (ex.warn ?? 0) + (ex.fail ?? 0) + (ex.unknown ?? 0)
+const motion: SlotId[] = ['home-composer', 'agent-lanes', 'renovate', 'fire-preplan', 'furniture-fit', 'open-map', 'photoreal-building', 'flood-street', 'smoke-rooms']
+const showMotion = LABELS || motion.some((id) => filesOf(id).length > 0)
+---
+<Base title="Cranley: measure the building before you commit" description="Listings say accessible and two-car garage. Cranley is an agent that picks the tools your need requires and measures the real building, inside and out. Every number comes from a calculation.">
+  <section class="hero">
+    <div class="wrap">
+      <div class="pitch">
+        <h1>The listing says accessible. The bathroom door is 71 cm.</h1>
+        <p class="lead">Every decision about a building is made blind. Cranley is an agent that picks the tools your need requires and measures the real building, inside and out, before you sign. Every number comes from a calculation, never from a model's text.</p>
+        <p class="cta">
+          <a class="btn solid" href="/docs/">Read the docs</a>
+          <a class="btn" href="#how">See how it works</a>
+        </p>
+        <dl class="proof">
+          <div><dt>Tools</dt><dd class="num">{c.tools}</dd></div>
+          <div><dt>Kinds of user</dt><dd class="num">{c.personas}</dd></div>
+          <div><dt>Map layers</dt><dd class="num">{c.layers}</dd></div>
+          <div><dt>Built at</dt><dd>HackPrinceton, fall 2026</dd></div>
+        </dl>
+      </div>
+      <Slot id="hero-loop"><PlanFigure /></Slot>
+    </div>
+  </section>
+
+  <section class="sec" id="problem">
+    <div class="wrap">
+      <div class="head"><h2>Nobody measures before you commit</h2></div>
+      <div class="body">
+        <p class="lead">The listing says "two-car garage", "accessible", "fits a king bed", "1,200 square feet". You find out on moving day that the sofa does not turn the corner, that the bathroom door is 71 cm and your chair needs 81, that the garage fits one truck and a bicycle.</p>
+        <div>
+          <p class="sub-label">The people who carry the cost are the ones with the least slack.</p>
+          <ul class="ledger">
+            <li><span class="k">A wheelchair user signing a lease</span><span class="v">The route from the curb to the toilet, and the one door that fails, in red.</span></li>
+            <li><span class="k">A family in Houston before a storm</span><span class="v">Hurricane Harvey's measured water levels in their own house, and the list of what to carry upstairs first.</span></li>
+            <li><span class="k">A fire crew at a house it has never seen</span><span class="v">A pre-plan with search routes, and smoke run through NIST's CFAST fire model on the measured rooms.</span></li>
+            <li><span class="k">A small business signing for a space</span><span class="v">Whether the team fits, room by room, against its own headcount.</span></li>
+          </ul>
+        </div>
+        <p>The information exists. Laser scans of the interior, aerial photos sharp enough to count parking spaces, and market records for the same address. Each layer sits in its own product, and every existing feature works inside one listing at a time. Nobody joins them, and nobody asks your question across a whole city.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="what">
+    <div class="wrap">
+      <div class="head"><h2>One place where an agent assembles the tools your need requires</h2></div>
+      <div class="body">
+        <p class="lead">You say what you need: "I use a wheelchair, find me a one-bedroom in Houston I can get into and use the bathroom." The agent picks the tools, asks only what it must (your chair's width), runs them across many buildings at once, and lays out a workspace.</p>
+        <p>The workspace holds a ranked table, the route drawn through the 3D building, the door that fails in red, and the photo that proves it. You can change the building ("widen this door"), run the checks again, and take a PDF report with you.</p>
+        {showMotion && (
+          <div class="shots">
+            {motion.map((id) => <Slot id={id} />)}
+          </div>
+        )}
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="how">
+    <div class="wrap">
+      <div class="head"><h2>How it works</h2><p>From a sentence to a measured answer, in four steps.</p></div>
+      <div class="body">
+        <ol class="steps">
+          <li><h3>You say what you need</h3><p>In plain words, or pick one of {c.personas} kinds of user as a starting point.</p></li>
+          <li><h3>The agent composes the tools</h3><p>A composer picks from {c.tools} tools and asks only for the inputs nothing else fills: your chair's width, your truck.</p></li>
+          <li><h3>It checks many buildings at once</h3><p>One subagent per building, each lane shown live. A fire simulation or a read of every panorama waits for your yes.</p></li>
+          <li><h3>You see the evidence</h3><p>Each result carries the route, the failing door, the photo that shows it, and the source and reliability of every number.</p></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="layers">
+    <div class="wrap">
+      <div class="head"><h2>Inside, outside and the record, joined for one address</h2><p>Each layer alone answers little. A tool that reads two of them can check one against the other.</p></div>
+      <div class="body">
+        <ul class="ledger">
+          <li><span class="k">Inside</span><span class="v">Matterport interior scans: walls, doorways with real widths, rooms and panoramas. For a building in no dataset, your own iPhone LiDAR scan becomes the same plan format.</span></li>
+          <li><span class="k">Outside</span><span class="v">Vexcel aerial imagery: orthophotos, ground and surface elevation, 165 ready-made property facts and a 3D city mesh, with {c.layers} map layers around the building.</span></li>
+          <li><span class="k">The record</span><span class="v">CoStar records for the same address.</span></li>
+        </ul>
+        <div>
+          <p class="sub-label">Tools that read across layers</p>
+          <ul class="ledger">
+            <li><span class="k"><a href="/docs/tools/record-vs-reality/">Record versus reality</a></span><span class="v">The record says one thing and the scan measures another. The finding shows both, with the evidence.</span></li>
+            <li><span class="k"><a href="/docs/tools/flood-rehearsal/">Flood rehearsal</a></span><span class="v">Ground elevation from the air and door sills from the scan give the floor height. Water levels are Hurricane Harvey's USGS high-water marks.</span></li>
+            <li><span class="k"><a href="/docs/tools/garage-fit/">Garage</a> and <a href="/docs/tools/driveway-fit/">driveway fit</a></span><span class="v">The garage measured from inside, the driveway measured from above.</span></li>
+            <li><span class="k"><a href="/docs/tools/measure-search/">Search by measurement</a></span><span class="v">"Houses with three bedrooms on one floor and every door at least 81 cm" is one query over the facts database.</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="numbers">
+    <div class="wrap">
+      <div class="head"><h2>Every number comes from a calculation</h2><p>The model chooses, labels and explains. It never states a measured value.</p></div>
+      <div class="body">
+        <NumberPath />
+        <div>
+          <p class="sub-label">What each number carries</p>
+          <ul class="ledger">
+            <li><span class="k">Its source</span><span class="v">The layer it came from, the method (geometry, vision, lookup, simulation) and a note.</span></li>
+            <li><span class="k">A reliability label</span><span class="v">High, medium or low, set by the tool for that value.</span></li>
+            <li><span class="k"><St status="unknown" /></span><span class="v">When a scan cannot answer, the verdict is "unknown" with the reason: no wall graph, no door data, unscanned space.</span></li>
+            <li><span class="k">What was not checked</span><span class="v">Every report ends with it.</span></li>
+          </ul>
+        </div>
+        <p>We ran every tool through the real API on a 15-place demo set. After the review pass: 266 answers, 62 honest "cannot answer here", 1 error from a bad input, and 0 judged wrong, down from 29. When this site was built, all {c.tools} tools were tried on a made-up phone scan with no keys and no network: {answered} answered, {ex.cannot} said why they cannot answer there, {ex.needs} need an input only a person or a phone on site can give, and {ex.slow} was too slow to run. Each result is on that tool's page in the <a href="/docs/tools/">tool reference</a>.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="tools">
+    <div class="wrap">
+      <div class="head"><h2>Tools by who they are for</h2><p>{c.personas} kinds of user, each a preset of tools and thresholds. A free sentence works too.</p><p><a href="/docs/tools/">All {c.tools} tools</a></p></div>
+      <div class="body who">
+        {site.groups.map((g, i) => (
+          <details name="who" open={i === 0}>
+            <summary><span>{g.title}</span><span class="muted">{g.personas.length}</span></summary>
+            <ul>
+              {g.personas.map((p) => (
+                <li>
+                  <span class="k">{p.title}</span>
+                  <span class="v">{p.tools.map((t, j) => <>{j > 0 && ', '}<a href={`/docs/tools/${t.slug}/`}>{t.title}</a></>)}</span>
+                </li>
+              ))}
+            </ul>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="ecosystem">
+    <div class="wrap">
+      <div class="head"><h2>The ecosystem</h2><p>A web app, two phone apps, a line you can text or call, a server any agent can call, and a report you can hand to a landlord.</p></div>
+      <div class="body">
+        <Ecosystem />
+        <Slot id="iphone-app" phones />
+        <div class="shots two">
+          <Slot id="live-sync" />
+          <Slot id="mcp-claude-code" />
+          <Slot id="pdf-report" />
+          <Slot id="real-scan-3d" />
+        </div>
+        <p>Start with <a href="/docs/getting-started/">getting started</a>, add the <a href="/docs/mcp/">MCP server</a> to Claude Code, or read how the <a href="/docs/phone/">phone and the iPhone app</a> feed a workspace.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="hardware">
+    <div class="wrap">
+      <div class="head"><h2>Photoreal interiors, trained on a mini PC with no NVIDIA card</h2></div>
+      <div class="body">
+        <p class="lead">The interior Gaussian splats were trained on the integrated graphics of an AMD mini PC. The same machine runs the API, the CFAST fire model, Ollama for embeddings, and the headless Chrome that renders our screenshots on its real GPU.</p>
+        <ul class="ledger">
+          <li><span class="k">Machine</span><span class="v">AMD Ryzen 9 7940HS with its integrated Radeon 780M</span></li>
+          <li><span class="k">Trainer</span><span class="v">Brush, an open-source Gaussian splat trainer in Rust and WebGPU, through Vulkan</span></li>
+          <li><span class="k">Speed</span><span class="v">About 17 steps a second</span></li>
+          <li><span class="k">Time</span><span class="v">16 to 23 minutes per building</span></li>
+          <li><span class="k">Held-out quality</span><span class="v">15 to 18 dB PSNR on four buildings</span></li>
+          <li><span class="k">Method</span><span class="v">Seeded from the scanned mesh, with virtual views rendered from that mesh and a free-space carve to clear haze</span></li>
+          <li><span class="k">Viewing</span><span class="v">The photoreal view renders at 56 to 60 frames a second</span></li>
+        </ul>
+        <Slot id="hardware" />
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="tracks">
+    <div class="wrap">
+      <div class="head"><h2>Tracks</h2><p>What we built for each sponsor track, with the docs and the demo path.</p></div>
+      <div class="body">
+        <ul class="ledger">
+          {TRACKS.map((t) => <li><span class="k"><a href={`/tracks/${t.slug}/`}>{t.name}</a><br /><span class="muted small">{t.prize}</span></span><span class="v">{t.summary}</span></li>)}
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="team">
+    <div class="wrap">
+      <div class="head"><h2>Team and links</h2></div>
+      <div class="body">
+        <p>Built by {TEAM.map((m, i) => <>{i > 0 && (i === TEAM.length - 1 ? ' and ' : ', ')}{m.href ? <a href={m.href}>{m.name}</a> : m.name}</>)} at HackPrinceton Fall 2026, November 13 to 15, on Matterport interior scans, Vexcel aerial imagery and CoStar records, plus your own iPhone scan for any building. All of the code was written during the event.</p>
+        <p class="cta">
+          <a class="btn solid" href="/docs/">Read the docs</a>
+          <a class="btn" href={LINKS.github}>Code on GitHub</a>
+          {LINKS.devpost && <a class="btn" href={LINKS.devpost}>Devpost</a>}
+          {LINKS.video && <a class="btn" href={LINKS.video}>Watch the video</a>}
+        </p>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .hero { padding-block: clamp(32px, 5vw, 64px) clamp(56px, 8vw, 112px); }
+  .hero .wrap { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--s-6) var(--s-8); align-items: center; }
+  .hero h1 { font-size: var(--t-display); font-stretch: 108%; letter-spacing: -0.025em; line-height: 1.04; }
+  .hero .lead { margin-top: var(--s-5); color: var(--ink-2); max-width: 46ch; }
+  .cta { display: flex; flex-wrap: wrap; gap: var(--s-3); margin-top: var(--s-5); }
+  .proof { display: flex; flex-wrap: wrap; gap: var(--s-3) var(--s-6); margin-top: var(--s-6); padding-top: var(--s-4); border-top: 1px solid var(--rule); }
+  .proof dt { font-size: 0.75rem; color: var(--ink-3); }
+  .proof dd { font-size: 0.9375rem; font-weight: 560; }
+  /* the hero slot holds the drawing and its schedule: the schedule runs under both columns */
+  .hero :global(.slot) { display: contents; }
+  .hero :global(.slot-note) { grid-column: 1 / -1; }
+  @media (max-width: 900px) { .hero .wrap { grid-template-columns: minmax(0, 1fr); } }
+
+  .sub-label { font-size: 0.875rem; color: var(--ink-3); margin-bottom: var(--s-2); }
+  .shots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-5) var(--s-4); }
+  .shots.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 720px) { .shots, .shots.two { grid-template-columns: minmax(0, 1fr); } }
+
+  .steps { counter-reset: step; border-top: 1px solid var(--rule-strong); }
+  .steps li { counter-increment: step; display: grid; grid-template-columns: 2.5rem minmax(0, 4fr) minmax(0, 7fr); gap: var(--s-2) var(--s-4); padding: var(--s-4) 0; border-bottom: 1px solid var(--rule); align-items: baseline; }
+  .steps li::before { content: counter(step); font: 500 0.8125rem var(--font-mono); font-stretch: 80%; color: var(--ink-3); }
+  .steps h3 { font-size: 1rem; letter-spacing: -0.005em; }
+  .steps p { color: var(--ink-2); }
+  @media (max-width: 620px) { .steps li { grid-template-columns: 2rem minmax(0, 1fr); } .steps p { grid-column: 2; } }
+
+  .who { gap: 0; border-top: 1px solid var(--rule-strong); }
+  .who details { border-bottom: 1px solid var(--rule); }
+  .who summary { display: flex; justify-content: space-between; gap: var(--s-4); padding: var(--s-3) 0; cursor: pointer; font-weight: 580; list-style: none; }
+  .who summary::-webkit-details-marker { display: none; }
+  .who summary span:first-child::before { content: '+'; display: inline-block; width: 1.2em; color: var(--ink-3); font-weight: 400; }
+  .who details[open] summary span:first-child::before { content: '\2212'; }
+  .who ul { padding-bottom: var(--s-4); }
+  .who li { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 2px var(--s-5); padding: 7px 0 7px 1.2em; font-size: 0.9375rem; border-top: 1px solid var(--rule); }
+  .who li .v { color: var(--ink-2); }
+  .who li .v a { color: inherit; text-decoration-color: var(--rule-strong); }
+  @media (hover: hover) and (pointer: fine) { .who li .v a:hover { color: var(--accent); } .who summary:hover { color: var(--accent); } }
+  @media (max-width: 620px) { .who li { grid-template-columns: minmax(0, 1fr); } }
+</style>

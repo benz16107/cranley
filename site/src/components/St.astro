@@ -1,0 +1,14 @@
+---
+// One status scale, always with its glyph: circle pass, triangle warn, square fail, dashed ring unknown (the App look's rule 3).
+interface Props { status: 'pass' | 'warn' | 'fail' | 'unknown'; label?: string }
+const { status, label } = Astro.props
+const word = label ?? { pass: 'Pass', warn: 'Check', fail: 'Fail', unknown: 'Cannot tell' }[status]
+---
+<span class:list={['st', status]}>
+  <svg viewBox="0 0 12 12" aria-hidden="true">
+    {status === 'pass' && <circle cx="6" cy="6" r="5" fill="currentColor" />}
+    {status === 'warn' && <path d="M6 1 11.5 11H.5Z" fill="currentColor" />}
+    {status === 'fail' && <rect x="1" y="1" width="10" height="10" fill="currentColor" />}
+    {status === 'unknown' && <circle cx="6" cy="6" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2.4 2" />}
+  </svg>{word}
+</span>

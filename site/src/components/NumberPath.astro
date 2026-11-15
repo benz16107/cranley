@@ -1,0 +1,59 @@
+---
+// The path of one number, with the values the engine returned for the test home's bathroom doorway
+// (src/generated/site.json). The model stands beside the path, never on it.
+import site from '../generated/site.json'
+import St from './St.astro'
+const check = site.home.results.door_widths.checks[0]
+const src = site.home.results.door_widths.source!
+const name = check.rule.replace(/^Doorway width, /, '')
+---
+<figure class="np">
+  <ol>
+    <li>
+      <h3>Geometry</h3>
+      <p>The doorway between two rooms in the scan's wall graph.</p>
+      <code>opening {check.id}: width {check.measured}</code>
+    </li>
+    <li>
+      <h3>Calculation</h3>
+      <p>The door widths tool compares it with the width you need.</p>
+      <code>{check.measured} &lt; {check.threshold}</code>
+    </li>
+    <li>
+      <h3>Result object</h3>
+      <p>The check, with where the number came from and how far to trust it.</p>
+      <code>measured: {check.measured}, status: {check.status}<br />method: {src.method}, confidence: {src.confidence}</code>
+    </li>
+    <li>
+      <h3>Screen</h3>
+      <p>The same value, printed as given.</p>
+      <span class="shown"><span>{name}</span><span class="num">{check.measured} {check.unit}</span><St status={check.status as 'fail'} /></span>
+    </li>
+  </ol>
+  <aside>
+    <h3>The model, off to the side</h3>
+    <p>It chooses the tools, labels and explains. It sees the verdict's words, finding titles and statuses. A grader reads its closing message and rejects any number in it.</p>
+  </aside>
+  <figcaption>The path of one number: the bathroom doorway of the made-up test home.</figcaption>
+</figure>
+
+<style>
+  .np { display: grid; gap: var(--s-4); min-width: 0; }
+  ol { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--rule-strong); border-radius: var(--r-2); background: var(--pane); }
+  li { padding: var(--s-4); display: grid; gap: var(--s-2); align-content: start; position: relative; }
+  li + li { border-left: 1px solid var(--rule); }
+  /* the arrow from one stage to the next */
+  li + li::before { content: ''; position: absolute; left: -6px; top: 22px; width: 10px; height: 10px; background: var(--pane); border-top: 1px solid var(--ink-2); border-right: 1px solid var(--ink-2); rotate: 45deg; }
+  h3 { font-size: 0.875rem; letter-spacing: 0; }
+  p { font-size: 0.875rem; line-height: 1.45; color: var(--ink-2); }
+  code { font-size: 0.75rem; line-height: 1.5; color: var(--ink); overflow-wrap: anywhere; }
+  .shown { display: grid; gap: 2px; font-size: 0.875rem; padding: 8px 10px; border: 1px solid var(--rule); border-radius: var(--r-1); background: var(--fail-wash); }
+  aside { border: 1px dashed var(--rule-strong); border-radius: var(--r-2); padding: var(--s-4); display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 9fr); gap: var(--s-2) var(--s-5); }
+  figcaption { font-size: 0.8125rem; color: var(--ink-3); }
+  @media (max-width: 760px) {
+    ol { grid-template-columns: minmax(0, 1fr); }
+    li + li { border-left: 0; border-top: 1px solid var(--rule); }
+    li + li::before { left: 22px; top: -6px; rotate: 135deg; }
+    aside { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
