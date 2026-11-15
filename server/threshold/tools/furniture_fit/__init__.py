@@ -134,6 +134,7 @@ def carry_audit(ctx, plan: dict, tool_id: str, box: tuple, flat: bool, target: d
         else "likely pass"
     route_pts = c["route"]["points"]
     out["length"] = c["route"]["length_m"]
+    out["corners"] = c["corners"]
     out["overlays"].append(RouteOverlay(floor=c["route"]["floor"], points=[tuple(p) for p in route_pts], label=(
         f"{what} to {tname}"), chokes=[]))
     if parts:
