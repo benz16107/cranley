@@ -246,8 +246,8 @@ def because(doc: Workspace, log: list[LogEntry] | None = None) -> dict:
     notes: list[dict] = []
     mine = brought(doc, log)
 
-    def note(kind: str, key: str, text: str, **at) -> None:
-        o = doc.prefs[key].origin if key in doc.prefs else mine.get(key)
+    def note(kind: str, key: str, text: str, o: Origin | None = None, **at) -> None:
+        o = o or (doc.prefs[key].origin if key in doc.prefs else mine.get(key))  # default: where the value is from now
         notes.append({"kind": kind, "key": key, "text": text, "why": why(o, doc.id, key),
                       "when": why(o, doc.id, key, short=True), "origin": o.model_dump() if o else None, **at})
 
@@ -261,10 +261,10 @@ def because(doc: Workspace, log: list[LogEntry] | None = None) -> dict:
         note("input", key, f"Using your {LABELS[key][1] if key in LABELS else name.lower()}: {fmt(doc.prefs[key].value, unit)}", runs=runs, tools=sorted({r.tool for r in doc.runs if r.id in runs}),
              carried=doc.prefs[key].origin.workspace != doc.id)
     for key, text in _unasked(doc, mine):
-        note("not_asked", key, f"Did not ask “{text.split('?')[0]}?”")
+        note("not_asked", key, f"Did not ask “{text.split('?')[0]}?”", mine[key])  # the earlier answer is why
     for key in mine:
         if key.startswith("tool.off.") and key in doc.prefs:
-            note("left_out", key, f"Left out {_title(key[len('tool.off.'):])}", tool=key[len("tool.off."):])
+            note("left_out", key, f"Left out {_title(key[len('tool.off.'):])}", mine[key], tool=key[len("tool.off."):])
     for key, titles in _hidden(doc).items():
         if f"less.{key}" in doc.prefs:
             v = doc.prefs[f"less.{key}"].value
