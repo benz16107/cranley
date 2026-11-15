@@ -10,7 +10,7 @@ most named after Cranley Gardens and Cranley Place, streets in South Kensington,
 
 Public-text rule: this file goes into a public repo, and every `###` section under `## Tracks` becomes a page on
 cranley.app (`site/scripts/generate.py`), so write those sections for the public; notes for Ben go in Questions or
-Pitch notes. It holds no sponsor data, no scan ids, no addresses, no
+Pitch notes, and a team-only paragraph inside a track section starts with "Team note:" (the generator skips it). It holds no sponsor data, no scan ids, no addresses, no
 screenshots of sponsor imagery and no per-building counts. Devpost and the video may show the real product with
 sponsor content on screen (CoStar organizer in #costar-group, 2026-11-14 5:42 pm: "Yes absolutely"); raw data files
 never. The external website stays on the conservative plan until CoStar answers for it (`docs/site-plan.md`). Numbers about our own system (tests, timings, tool
@@ -195,7 +195,7 @@ without learning a tool. And it works on their own home, not only on a dataset.
 | Technical | About 600 server tests and 90 web tests; every tool run on a 15-place demo set with a matrix of results (see Proof); FastAPI, deepagents, two cloud databases, our own 3D renderer and splat training. |
 | User experience | The App look: one thing first on every screen, the rest folded; plain-word reliability chips; every panel resizable; guided first run; both themes; phone companion with live sync. |
 
-**Adaptive intelligence** (a named focus area; on `ws/adaptive`, not merged yet): Cranley keeps a profile of the
+**Adaptive intelligence** (a named focus area): Cranley keeps a profile of the
 person across investigations. It holds who they are, what they answered, the settings they changed, the tools they
 removed and the kinds of check they marked useful or not relevant, each with where it came from and a way to change or
 forget it. A new investigation starts from it: the composer asks only what it does not know, tool inputs taken from it
@@ -220,8 +220,8 @@ buildings, a replay rather than a user study. Limits: the profile holds only fac
 no budget or risk tolerance), it does not read facts out of free text, and there is no sign-in (the profile id lives in
 the browser, and `?as=<id>` opens any profile whose id you know).
 
-**Scripted flow:** `web/src/skins/app/demo/flows/amazon.json`, "A phone scan becomes a PDF report". Second flow (on
-`ws/adaptive`): `amazon-adaptive.json`, "A returning wheelchair user opens a new home", about 110 s (played twice:
+**Scripted flow:** `web/src/skins/app/demo/flows/amazon.json`, "A phone scan becomes a PDF report". Second flow:
+`amazon-adaptive.json`, "A returning wheelchair user opens a new home", about 110 s (played twice:
 111.2 s and 108.6 s, of which the agent's turn is 77 to 79 s). It needs a returning person in the demo server's store:
 `cd server && uv run python -m threshold.agent.adapt_eval --seed demo_maya --waves-off Bathing` with the server's
 environment (the same `THRESHOLD_STORE`), about 90 s; a judge can be Maya at `/app/?as=demo_maya`.
@@ -358,7 +358,7 @@ wheelchair user, the family before a storm, the fire crew. Track pick: question 
 ## Pitch notes (not published on the site)
 
 - Amazon adaptation: lead with questions asked 1, 0, 0 (held in all three evaluation runs). Do not claim faster first
-  results or fewer tool runs. Say "replay of one user", not "study". Seed `demo_maya` before the demo (Amazon section).
+  results or fewer tool runs. Say "replay of one user", not "study". `demo_maya` is seeded on the 8787 store (`/app/?as=demo_maya`); reseed after a store reset (Amazon section).
 - CoStar: the scripted flow is listing vs record vs scan, then the tour; the wheelchair search is the spoken
   alternative. Pick one.
 
@@ -372,14 +372,14 @@ wheelchair user, the family before a storm, the fire crew. Track pick: question 
 - Interior splats: four buildings, 16 to 23 minutes each on the integrated AMD GPU, 15 to 18 dB held-out PSNR.
 - Photoreal view renders at 56 to 60 fps.
 - Live sync: phone to desktop in about a second.
-- Adaptation (pending `ws/adaptive`): one scripted wheelchair user over three homes, real composer and agent.
+- Adaptation: one scripted wheelchair user over three homes, real composer and agent.
   Questions asked 1, 0, 0; tool inputs filled from the profile 0, 3, 3; checks kept back as not relevant 0, 3, 9.
   The app shows the same counts for a real person from their own logs.
 - Tiger: 234 MB to 58 MB compressed; a fork ready in 31 s; room descriptions embedded in-database at about nine a second.
 
 ## Built (synced to `main`)
 
-Checked against `git log main` at `ff17232` (2026-11-14, 8:04 pm ET). Update at each merge.
+Checked against `git log main` at `923bbe9` (2026-11-14, 8:20 pm ET). Update at each merge.
 
 **Merged**
 - [x] Data layer: Matterport, Vexcel and CoStar sources, normalized plan format with quality flags (`ws/data`)
@@ -413,10 +413,11 @@ Checked against `git log main` at `ff17232` (2026-11-14, 8:04 pm ET). Update at 
 - [x] App look motion polish: shorter exits, switch and copy feedback, staggered tool list (`ws/motion`)
 - [x] Six scripted demo flows, one per track, with spoken lines and recorded model answers; an offline laptop copy (`scripts/demo-sync`, `scripts/demo-up`) that replays without the network (`ws/demo`)
 - [x] Cranley over iMessage and voice on Photon 2.0: plan pictures, reply threads as investigations, approvals, photo/video/voice/location in, field visits, PDF in chat, weather alerts, ElevenLabs phone agent (`ws/photon`)
+- [x] Person profile across investigations, "Cranley knows" with Change and Forget, checks kept back by kind, measured adaptation in the app, `amazon-adaptive` flow (`ws/adaptive`)
 - [x] Website and docs at cranley.app, generated from the code and this file (`ws/site`)
 - [x] MCP server (stdio and `/mcp`), `threshold` CLI, deep agent over MCP, `docs/MCP.md` (`ws/mcp`)
 
-**Not merged yet:** person profile across investigations and the measured adaptation, plus the `amazon-adaptive` flow (`ws/adaptive`).
+**Not merged yet:** none.
 
 **Not merged on purpose:** the Overflight look (`ws/design2`).
 

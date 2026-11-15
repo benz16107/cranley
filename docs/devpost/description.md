@@ -13,7 +13,7 @@ It is for the person the listing fails: a wheelchair user signing a lease, a Hou
 | Track | What we built for it | Where to look |
 |---|---|---|
 | CoStar: Inside and Out | All three layers (Matterport interiors, Vexcel aerial and 3D city, CoStar records) in one frame; an agent that plans, fans out per building and checks claims across layers | Record versus reality, flood, garage and driveway fit, site tools, search by measurement |
-| Amazon: Practical AI | Ask in plain words, get a workspace you can act on; works on your own home through the iPhone scan | Home, the phone companion, PDF reports |
+| Amazon: Practical AI | Ask in plain words, get a workspace you can act on; it learns the person once and adapts every later investigation, with the adaptation measured on screen; works on your own home through the iPhone scan | "Cranley knows", Home, the phone companion, PDF reports |
 | LangChain deepagents | Planning, parallel subagents shown live, human approval with resume from a MongoDB checkpoint, skills, memory, a rubric grader, LangSmith experiments | The agent panel on any investigation |
 | Photon 2.0 | The same agent over iMessage and a phone call: marked plan pictures, reply threads as investigations, approvals by reply, photos and voice notes in, the PDF in the chat | Text or call the Cranley line |
 | MLH Tiger Data | The building facts database: hypertables, compression, continuous aggregates, DiskANN room search, pgai vectorizer, forks for what-ifs | Search by measurement, Insights, Renovate |
@@ -33,6 +33,12 @@ The information to answer "will this work for me" exists: laser scans of the int
 6. **You take it with you.** A PDF report with numbered fixes and a list of what was not checked.
 
 The same workspace works for 50 kinds of user. A Houston homeowner watches Hurricane Harvey's measured water levels rise through their own house and gets the list of what to carry upstairs first. A fire captain gets a pre-plan with search routes and a smoke simulation run through NIST's CFAST model on the measured rooms. A car owner learns whether two trucks fit the garage. An office tenant tests whether the team fits, room by room, and a tenant rep ranks candidate sites on a weighted scorecard with market comps.
+
+## It learns you once
+
+Tell Cranley your wheelchair is 70 cm wide on the first home you look at. On the next home you type six words, "Is this one workable for me?", and it asks nothing: it measures every doorway against your chair, leaves out the tool you removed last time and keeps back the kinds of check you said were not relevant. Each of those decisions is written on screen with where it came from ("You told me on 14 Nov"), and one click changes or forgets it.
+
+**Measured, not claimed.** We replayed one scripted wheelchair user over three homes through the real composer and agent. Questions asked: 1, then 0, then 0. Tool inputs filled from what it already knew: 0, then 3, then 3. Checks kept back because the person had waved that kind off: 0, then 3, then 9. Of the checks shown, the share this person's fixed rule counts as relevant: 19 of 29, then 38 of 38, then 46 of 46. The same counts appear in the app for a real person, under "How Cranley has adapted to you", taken from their own history. It is a replay of one person, not a user study, and time to the first result did not change in a way we can claim.
 
 ## What makes it different
 
@@ -72,6 +78,7 @@ The same workspace works for 50 kinds of user. A Houston homeowner watches Hurri
 - About 600 server tests and 90 web tests.
 - Photoreal interiors trained on an integrated GPU.
 - A phone reading reaches the desktop workspace in about a second.
+- Adaptation, counted from the op logs: questions asked 1, 0, 0 and checks kept back 0, 3, 9 over three homes for one returning user.
 
 ## What we learned
 
