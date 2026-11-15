@@ -78,7 +78,7 @@ More detail: [How it works](https://cranley.app/how/) · [The agent](https://cra
 
 ## Built forward-deployed
 
-Before and while building we asked people what goes wrong with their buildings: a recorded 31-minute interview with Jean Ryan ([the conversation, 7 min](https://youtu.be/xFw0Rpz9pbk)), written answers from 58 people in 17 online communities, and 491 emails, which brought six human replies.
+Before and while building we asked people what goes wrong with their buildings: a recorded 31-minute interview with Jean Ryan ([the conversation, 7 min](https://youtu.be/xFw0Rpz9pbk)), written answers from 58 people in 17 online communities, and 491 emails, which brought seven human replies.
 
 ![Outreach at a glance: a recorded interview, 58 people in 17 communities, 491 emails, six human replies](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/910/138/datas/gallery.jpg)
 
