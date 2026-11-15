@@ -28,6 +28,7 @@ from .. import (
     tool,
 )
 from ..room_labeller import ensure_labels, facts
+from .._access import cannot, elevations
 from ..types import SelectRooms
 
 M2 = facts.M2_TO_FT2
@@ -168,6 +169,33 @@ SUITE = re.compile(r"\bsuite\s*[-#]?\s*([0-9]+[A-Za-z]?|[A-Za-z][0-9]*)\b", re.I
 SF = re.compile(r"([0-9][0-9,]{2,})\s*(?:sf|sq\.?\s?ft|square feet)", re.IGNORECASE)
 
 
+WORK_ROOMS = ("private office", "open office", "conference room", "reception")
+OVERLAP_M2 = 0.5  # a bathroom's floor over at least this much of an office counts as above it
+
+
+def under_bathrooms(plan: dict) -> list[tuple[dict, dict, float]] | None:
+    """(office, restroom above it, overlap m²) for every work room with a restroom on the next floor up over it, from
+    the room outlines of a multi-floor scan. None when the scan has one floor (nothing above it is scanned)."""
+    from ...geometry._plan import polygons
+    el = elevations(plan)
+    floors = sorted({r["floor"] for r in plan.get("rooms") or []}, key=lambda f: el.get(f) or 0)
+    if len(floors) < 2:
+        return None
+    polys, out = polygons(plan), []
+    for i, f in enumerate(floors[:-1]):
+        up = floors[i + 1]
+        wet = [r for r in plan["rooms"] if r["floor"] == up and facts.commercial(r.get("label")) == "restroom"
+               and polys.get(r["id"]) is not None]
+        for r in plan["rooms"]:
+            if r["floor"] != f or facts.commercial(r.get("label")) not in WORK_ROOMS or polys.get(r["id"]) is None:
+                continue
+            for w in wet:
+                a = polys[r["id"]].intersection(polys[w["id"]]).area
+                if a >= OVERLAP_M2:
+                    out.append((r, w, a))
+    return out
+
+
 def _rate(sp: dict) -> tuple[float | None, str | None]:
     """Asking rent per ft² per year, and its service type, from one listing space."""
     lo, hi = sp.get("rateLow") or 0, sp.get("rateHigh") or 0
@@ -272,6 +300,23 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     if inputs.kitchen:
         chk("kitchen", "Kitchen or break room", f["kitchens"], 1, "rooms", "pass" if f["kitchens"] else "warn")
 
+    # a restroom on the floor above an office: leaks and noise through the ceiling (a manager's warning)
+    under = under_bathrooms(plan) if q["walls"] else None
+    if under is None:
+        checks.append(cannot("above", "what is on the floor above: only one floor is scanned, so an office under a "
+                                      "bathroom cannot be ruled out"))
+    else:
+        offs = sorted({r["id"] for r, _, _ in under})
+        fid = f"office_fit:{sid}:under_bathroom"
+        chk("under_bathroom", "Offices with a restroom on the floor above them", len(offs), 0, "rooms",
+            "warn" if offs else "pass", fid if offs else None)
+        if offs:
+            findings.append(Finding(id=fid, title="Office under a bathroom", status="warn", source=AREA,
+                                    anchor=RoomAnchor(sid=sid, room=under[0][0]["id"]),
+                                    detail="; ".join(f"{facts.commercial(r.get('label'))} {r['id']} has {a:.1f} m² of a "
+                                                     f"restroom above it" for r, w, a in under[:5]) +
+                                           ". A leak or a flush comes through the ceiling; seat people elsewhere."))
+    checks.append(cannot("noise", "sound through walls and floors: the scan measures rooms, not soundproofing"))
     listed = (rf["space"] or {}).get("squareFeetMax") or (rf["tenant"] or {}).get("ft2") or rf["title_ft2"]
     listed_from = ("the lease listing for suite " + rf["suite"] if (rf["space"] or {}).get("squareFeetMax") else
                    f"the tenancy record of {rf['tenant']['name'] or 'an unnamed tenant'}" if (rf["tenant"] or {}).get("ft2") else

@@ -52,3 +52,20 @@ def test_no_walls_says_what_it_cannot_do(office_plan):
     p = make_plan("tnw", OFFICE, walls=False)
     res = run_tool("office_fit", {"scan": "tnw", "headcount": 8, "label_with_vision": False}, ToolContext(plans=lambda sid: p))
     assert "No wall graph" in res.verdict.text
+
+
+def test_an_office_under_a_restroom_is_flagged(office_plan):
+    from ..conftest import rect
+    one = run_tool("office_fit", {"scan": "toffice", "headcount": 6}, ToolContext(plans=lambda s: office_plan))
+    assert {c.id: c.status for c in one.checks}["cannot.above"] == "unknown"   # one floor: nothing above is scanned
+    p = office_plan
+    p["floors"] = [{"id": "f1", "label": "1", "sequence": 0, "elevation": 0.0},
+                   {"id": "f2", "label": "2", "sequence": 1, "elevation": 3.5}]
+    wc, walls = rect("wc2", 10, 0, 12, 2, "restroom", "vision", floor="f2")          # over office o1 (10..13, 0..3.5)
+    p["rooms"].append(wc)
+    p["walls"] += walls
+    r = run_tool("office_fit", {"scan": "toffice", "headcount": 6}, ToolContext(plans=lambda s: p))
+    c = {c.id: c for c in r.checks}["under_bathroom"]
+    assert c.status == "warn" and c.measured == 1
+    f = next(f for f in r.findings if f.id.endswith(":under_bathroom"))
+    assert "o1 has 4.0 m² of a restroom above it" in f.detail
