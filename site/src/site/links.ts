@@ -3,7 +3,7 @@ export const LINKS = {
   github: 'https://github.com/benz16107/cranley',
   devpost: 'https://devpost.com/software/threshold-o1e7uj', // the draft's address; check it once the project is submitted
   video: '',
-  demo: '', // the event's live demo; setting it shows the button and its notice on the home page
+  demo: '', // the event's live demo. Setting it shows the button and its notice on the home page and switches the FAQ's and the privacy page's wording
 }
 
 export const DEMO = {
