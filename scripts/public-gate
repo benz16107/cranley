@@ -33,8 +33,9 @@ DATA = pathlib.Path(os.environ.get("THRESHOLD_DATA_DIR", "~/Code/hackathons/hack
 WEB = DATA / "public-demo" / "web"
 PORT = int(os.environ.get("PUBLIC_DEMO_PORT", "8790"))
 PUBLIC = os.environ.get("PUBLIC_DEMO_ORIGIN", "https://linuxbox.<tailnet>:10000")
-# cranley.app proxies /app, /m, /api, /assets, /models and /enter here (site/vercel.json). A request that came that way
-# names its host in X-Forwarded-Host; only a host on this list is ever written into a link.
+# cranley.app proxies /app, /m, /api, /assets, /models and /enter here (site/vercel.json). A browser that came that way
+# says so in Origin (Funnel replaces X-Forwarded-Host with its own name); only a host on this list is ever written
+# into a link.
 SITES = {h.strip() for h in os.environ.get("PUBLIC_DEMO_SITES", "cranley.app").split(",") if h.strip()}
 UPSTREAM = ("127.0.0.1", int(os.environ.get("PUBLIC_DEMO_UPSTREAM_PORT", "8787")))  # another port only for a test door
 NOTICE = ("Demo for HackPrinceton, Nov 14-15 2026. The building data is used under the event's terms "
@@ -193,8 +194,8 @@ class Door(BaseHTTPRequestHandler):
         return f"{COOKIE}={vid}.{sign('visitor:' + vid)}; Path=/; Max-Age={COOKIE_AGE}; HttpOnly; Secure; SameSite=Lax"
 
     def origin(self) -> str:
-        """Where this visitor is: the site that proxied the request, when it is one of ours, else this door."""
-        host = (self.headers.get("X-Forwarded-Host") or "").strip().lower()
+        """Where this visitor is: the site in the browser's Origin, when it is one of ours, else this door."""
+        host = urllib.parse.urlsplit(self.headers.get("Origin") or "").netloc.lower()
         return f"https://{host}" if host in SITES else PUBLIC
 
     def client(self) -> str:
