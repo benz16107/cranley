@@ -19,9 +19,9 @@ function Controls() {
   return (
     <section className="card">
       <header><h2>3D controls</h2></header>
-      <div className="set"><div><b>Zoom speed</b><p>Pinch on a trackpad, the scroll wheel, or two fingers on a touch screen.</p></div>
+      <div className="set"><div><b>Zoom speed</b><p>Pinch, scroll wheel or two fingers.</p></div>
         <Seg label="Zoom speed" value={p.zoom} onChange={(v: Speed) => set({ zoom: v })} options={SPEEDS} /></div>
-      <div className="set"><div><b>Turn speed</b><p>Dragging round the building, and looking around inside a 360° photo.</p></div>
+      <div className="set"><div><b>Turn speed</b><p>Dragging round a building or inside a 360° photo.</p></div>
         <Seg label="Turn speed" value={p.look} onChange={(v: Speed) => set({ look: v })} options={SPEEDS} /></div>
       <div className="set"><div><b>Inside a 360° photo</b><p>Turn: the view turns the way you drag or swipe. Drag: the photo moves with your finger.</p></div>
         <Seg label="Inside a 360° photo" value={p.lookDir} onChange={(v: Look) => set({ lookDir: v })} options={[{ id: 'turn', label: 'Turn' }, { id: 'drag', label: 'Drag' }]} /></div>
@@ -44,20 +44,20 @@ export function Settings() {
     <div className="page"><div className="inner narrow settings">
       <section className="card">
         <header><h2>Appearance</h2></header>
-        <div className="set"><div><b>Colour scheme</b><p>Light is ink on paper. Dark is a blueprint. The 3D view reloads when this changes.</p></div>
+        <div className="set"><div><b>Colour scheme</b><p>The 3D view reloads when this changes.</p></div>
           <Seg label="Colour scheme" value={theme} onChange={(t: Theme) => setTheme(t)} options={[{ id: 'system', label: 'System', icon: 'monitor' }, { id: 'light', label: 'Light', icon: 'sun' }, { id: 'dark', label: 'Dark', icon: 'moon' }]} /></div>
-        <div className="set"><div><b>Narrow sidebar</b><p>Icons only, to give the map and the building more room.</p></div><Switch.Root className="switch" checked={rail} onCheckedChange={setRail} aria-label="Narrow sidebar"><Switch.Thumb className="knob" /></Switch.Root></div>
+        <div className="set"><div><b>Narrow sidebar</b><p>Icons only.</p></div><Switch.Root className="switch" checked={rail} onCheckedChange={setRail} aria-label="Narrow sidebar"><Switch.Thumb className="knob" /></Switch.Root></div>
       </section>
       <Controls />
       <section className="card">
         <header><h2>Agent</h2></header>
-        <div className="set"><div><b>Follow the agent’s view</b><p>When the agent looks at a finding, go to that building or that point on the map. Turn it off to stay where you are while it works.</p></div><Switch.Root className="switch" checked={follow} onCheckedChange={setFollow} aria-label="Follow the agent’s view"><Switch.Thumb className="knob" /></Switch.Root></div>
-        <div className="set"><div><b>Guided first run</b><p>Asks who you are, then shows the agent set up a workspace on a real building. It starts a new investigation; the open one stays under Investigations.</p></div><button className="btn" disabled={!!shared} onClick={() => { go('home'); useUi.setState({ first: 'ask' }) }}>Run it again</button></div>
+        <div className="set"><div><b>Follow the agent’s view</b><p>Go where the agent looks. Turn it off to stay where you are while it works.</p></div><Switch.Root className="switch" checked={follow} onCheckedChange={setFollow} aria-label="Follow the agent’s view"><Switch.Thumb className="knob" /></Switch.Root></div>
+        <div className="set"><div><b>Guided first run</b><p>Starts a new investigation and walks through it. The open one stays under Investigations.</p></div><button className="btn" disabled={!!shared} onClick={() => { go('home'); useUi.setState({ first: 'ask' }) }}>Run it again</button></div>
         <div className="set"><div><b>Server</b><p>{live == null ? 'Checking.' : live ? `Connected. ${tools.length} tools listed.` : 'Not answering. Starting points play back a recorded composition.'}</p></div><span className="rs" data-state={live ? 'done' : 'pending'}><Icon name={live ? 'check' : 'clock'} size={12} />{live ? 'Connected' : live == null ? 'Checking' : 'Scripted'}</span></div>
       </section>
       <section className="card">
         <header><h2>What Cranley knows about you</h2></header>
-        <div className="set"><div><b>{known ? `${known} ${known === 1 ? 'thing' : 'things'} kept between investigations` : 'Nothing kept yet'}</b><p>Your answers, the settings you changed, the tools you removed and the checks you marked. A new investigation starts from them and asks only what it does not know. Each says where it came from and can be changed or forgotten.</p></div><KnowsButton className="btn" /></div>
+        <div className="set"><div><b>{known ? `${known} ${known === 1 ? 'thing' : 'things'} kept between investigations` : 'Nothing kept yet'}</b><p>Your answers, changed settings, removed tools and marked checks. A new investigation starts from them.</p></div><KnowsButton className="btn" /></div>
       </section>
       <section className="card">
         <header><h2>Learned in this investigation</h2><p className="grow">Answers, changed settings and corrections to this building. Each can be undone.</p></header>
@@ -75,7 +75,7 @@ export function Settings() {
         </div>
         <div className="set"><div><b>Open investigation</b><p className="row"><span className="num">{id || 'none'}</span>{id && <Copy text={id} label="Copy the id" />}</p></div></div>
         <div className="set"><div><b>Investigations listed in this browser</b><p>{seen} listed. Clearing the list does not delete them from the server.</p></div><button className="btn" disabled={!seen} onClick={() => clear(LIST)}>Clear the list</button></div>
-        <div className="set"><div><b>Layout choices</b><p>Panel sizes, table columns, the narrow sidebar and whether the agent panel is open. Drag the edge of any panel to resize it; double-click the edge to put it back.</p></div><button className="btn" onClick={() => clear('threshold.app.')}>Reset</button></div>
+        <div className="set"><div><b>Layout choices</b><p>Panel sizes, table columns and which panels are open. Drag a panel’s edge to resize it; double-click to put it back.</p></div><button className="btn" onClick={() => clear('threshold.app.')}>Reset</button></div>
       </section>
       <section className="card">
         <header><h2>Keyboard</h2></header>

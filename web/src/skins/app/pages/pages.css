@@ -298,3 +298,20 @@
   .bar > * { flex: none; }
   .bar > .grow { flex: 1 0 8px; }
 }
+
+/* ---------- shell audit: tools actions line up, insights conditions wrap, phone tables and settings ---------- */
+.listpage.tools td[data-col='x'] .btn[aria-pressed] { min-width: 68px; justify-content: center; }
+.insights .tbl td:first-child { white-space: normal; padding-block: 6px; line-height: 1.35; }
+@media (max-width: 760px) {
+  /* a list keeps what names the row and its state; the counts are on the row's own page, so nothing scrolls sideways */
+  .listpage .tbl, .tabbody .tbl { min-width: 0; }
+  .listpage :is([data-col='steps'], [data-col='runs'], [data-col='failed'], [data-col='findings'], [data-col='results'], [data-col='city'], [data-col='step'], [data-col='on'], [data-col='ms'], [data-col='family'], [data-col='where'], [data-col='source'], [data-col='last']),
+  .listpage table[aria-label='Checks'] [data-col='tool'] { display: none; }
+  .listpage th:is([data-col='brief'], [data-col='tool'], [data-col='title'], [data-col='name']) { width: auto !important; }
+  .listpage th[data-col='status'] { width: 112px !important; }
+  .tabbody > .tblwrap > .tblfoot { padding-bottom: 20px; min-height: 54px; } /* clear of the look switcher's tab, as on a list page */
+  .insights .tbl th:last-child { width: 40px !important; }
+  .insights .tbl .lbl { display: none; }
+  /* a wide control goes under its label; a switch stays beside it */
+  .settings .set > div:first-child { flex: 1 1 200px; }
+}
