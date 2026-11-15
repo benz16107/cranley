@@ -465,31 +465,15 @@ def mcp_md(tools: dict) -> str:
     return page("MCP server and CLI", "Use every Cranley tool from Claude Code, Claude Desktop, Cursor, a LangChain agent or a terminal.", note + text.strip())
 
 
-TEAM_ONLY = ("Team note", "**Team note", "How to say the numbers", "**Scripted flow")  # paragraphs for the team, never for a page
-
-
-def merged(branch: str) -> bool:
-    """Is this branch already part of the checkout? Then a "not merged yet" aside about it is out of date."""
-    import subprocess
-    return subprocess.run(["git", "-C", str(REPO), "merge-base", "--is-ancestor", branch, "HEAD"], capture_output=True).returncode == 0
-
-
 def story_tracks() -> list[str]:
-    """The `### ` sections under `## Tracks` in docs/story.md, as far as the next `## ` heading or rule, public text only."""
+    """The `### ` sections under `## Tracks` in docs/story.md, as far as the next `## ` heading or rule. docs/story.md is
+    also the team's working file: a paragraph that starts with "Team note:" is for the team and never reaches a page."""
     block = re.split(r"\n(?:---\n|## )", (REPO / "docs/story.md").read_text().split("\n## Tracks\n", 1)[1], maxsplit=1)[0]
     out = []
     for sec in re.split(r"\n(?=### )", block):
-        if not sec.startswith("### "):
-            continue
-        head, body = sec.split("\n", 1)
-        for pattern, to in ((r"\s*\(question \d\)", ""), (r"\s*See question \d\.", ""), (r"\s*Track pick: question \d\.", ""),
-                            (r";[^.;]*\$THRESHOLD_DATA_DIR[^.]*\.", "."), (r"\s*\(asked of Ben\)", ""),
-                            (r",? and `\?as=[^`]*` opens any profile whose id you know", ""),
-                            (r"counts from `reports/[^`]+`,\s*", "")):  # a report in the data folder, which no reader has
-            body = re.sub(pattern, to, body)
-        body = re.sub(r"[;,] on `(ws/[\w-]+)`,\s+not\s+merged\s+yet", lambda m: "" if merged(m.group(1)) else m.group(0), body)
-        body = "\n\n".join(par for par in body.split("\n\n") if not par.lstrip().startswith(TEAM_ONLY))
-        out.append(head + "\n" + body)
+        if sec.startswith("### "):
+            head, body = sec.split("\n", 1)
+            out.append(head + "\n" + "\n\n".join(par for par in body.split("\n\n") if not par.lstrip().startswith(("Team note", "**Team note"))))
     return out
 
 
@@ -498,7 +482,8 @@ def tracks_md() -> dict[str, str]:
     out = {}
     for sec in story_tracks():
         head, body = sec.split("\n", 1)
-        assert not re.search(r"question \d|THRESHOLD_DATA_DIR|lead's server|\?as=|not merged yet|`reports/", body), head
+        # the story marks its own team notes; anything like one that still gets here stops the build
+        assert not re.search(r"Team note|question \d|asked of Ben|THRESHOLD_DATA_DIR|lead's server|\?as=|not merged yet|`reports/", body), head
         slug = next((s for key, s in (("CoStar", "costar"), ("Amazon", "amazon"), ("Peri", "peri"), ("LangChain", "langchain"), ("Photon", "photon"),
                                       ("Tiger", "tiger-data"), ("MongoDB", "mongodb"), ("HackPrinceton", "hackprinceton")) if key in head), None)
         if slug and slug != "hackprinceton":  # the main-track note is a choice still open, not a page
