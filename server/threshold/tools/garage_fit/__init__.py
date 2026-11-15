@@ -15,7 +15,7 @@ from .. import (Action, ToolError, Assumption, Check, Finding, Metric, OpeningAn
 from ..types import BoxOverlay
 from .._access import cannot, fmt, has_objects
 from . import geom
-from .park import Dims, analyse, things
+from .park import Dims, analyse, pair, parked, storage, things
 from .vehicles import THING_MODEL, THINGS, VEHICLES, model_of
 
 IN = 0.0254
@@ -34,6 +34,9 @@ class Inputs(BaseModel):
     vehicle: Literal[tuple(VEHICLES)] = field("ford_f150", ask="Which vehicle? " + "; ".join(
         f"{k}: {v.label}" for k, v in VEHICLES.items()), pref="garage.vehicle",
         description="A vehicle from the built-in table; its sizes are editable assumptions")
+    second_vehicle: Literal[tuple(VEHICLES)] | None = field(
+        None, pref="garage.second_vehicle", description="A second, different vehicle to park beside the first (an "
+                                                       "F-150 and a Highlander); checks both, each with its own doors")
     count: int | None = field(None, ge=0, le=5, pref="garage.count",
                               description="How many of the vehicle must fit side by side; empty for as many as fit, "
                                           "0 for none (an empty garage for a gym or workshop)")
@@ -53,9 +56,13 @@ class Inputs(BaseModel):
     uses: list[Use] = field(["workbench", "ev_charger"], pref="garage.uses",
                             description="Also find room for: workbench, ev_charger, motorcycle, bikes, squat_rack "
                                         "(home gym: an 8 x 8 ft platform and overhead-press headroom)")
+    charge_cord_m: float = field(6.1, gt=0.5, le=30, unit="m", pref="garage.charge_cord_m",
+                                 description="Charging cord length, for the outlet's distance (20 ft is common)")
     lifter_height_m: float = field(1.78, gt=1.2, le=2.2, unit="m", pref="garage.lifter_height_m",
                                    description="Height of the person pressing overhead, for the home gym check")
     room: str | None = field(None, description="Room id of the garage, if not the one found")
+    which_fit: bool = field(False, description="Turn it round: try every vehicle in the table in this garage and "
+                                               "list the ones that fit, with the room to spare")
     search_city: Literal["Houston", "Los Angeles", "any"] | None = field(
         None, description="Search every scanned house in this city for a garage that fits `count` of the vehicle "
                           "(default two) instead of checking one scan")
@@ -71,6 +78,144 @@ def dims(inputs: Inputs) -> Dims:
                 length=inputs.length_m or stored or v.length, width=w,
                 mirrors=inputs.mirror_width_m or max(v.mirrors, w), towed=v.towed, ramp=v.ramp, door=v.door,
                 height=round((inputs.height_m or v.height) + inputs.lift_in * IN + inputs.roof_load_m, 3))
+
+
+def catalog_dims(vid: str) -> Dims:
+    v = VEHICLES[vid]
+    return Dims(label=v.label, length=v.length, width=v.width, mirrors=v.mirrors, height=v.height, door=v.door,
+                ramp=v.ramp, towed=v.towed)
+
+
+def pair_part(sid: str, a: dict, d: Dims, d2: Dims, z0: float, src) -> dict:
+    """Checks, findings, boxes and a sentence for two different vehicles side by side."""
+    pr = a["pair"] = pair(a, d, d2)  # kept on the analysis so extras and storage go round both vehicles
+    f = a["frame"]
+    out = {"status": pr["status"], "checks": [], "findings": [], "boxes": []}
+    names = f"{short(d)} and {short(d2)}"
+    out["checks"].append(Check(id="pair", rule=f"{names} side by side", measured=None, threshold=None, unit="",
+                               status=pr["status"], standard="Each vehicle keeps its own door room beside it and "
+                                                             f"{geom.FRONT_FITS_M:.2f} m ahead to walk round; tight "
+                                                             f"down to {geom.SQUEEZE_M:.2f} m to squeeze out"))
+    for k, (car, (u, v), c) in enumerate(zip(pr["order"], pr["cars"], pr["clear"])):
+        tag = short(car)
+        need = car.door if not car.towed else 0.6
+        for side in ("left", "right"):
+            if c.get(side) is None:
+                continue
+            st = "pass" if c[side] >= need - 0.01 else "warn" if c[side] >= geom.SQUEEZE_M - 0.01 else "fail"
+            out["checks"].append(Check(id=f"pair{k}.{side}", rule=f"{tag}, {side} side: room to open the doors",
+                                       measured=round(c[side], 3), threshold=round(need, 3), unit="m", status=st))
+        if c.get("front") is not None:
+            st = "pass" if c["front"] >= geom.FRONT_FITS_M - 0.01 else "warn" if c["front"] >= geom.FRONT_TIGHT_M - 0.01 \
+                else "fail"
+            out["checks"].append(Check(id=f"pair{k}.front", rule=f"{tag}: room ahead of the bumper to walk round",
+                                       measured=round(c["front"], 3), threshold=geom.FRONT_FITS_M, unit="m", status=st))
+        out["boxes"].append(_box(f, u, v, car.width, car.length, car.height, z0, tag, pr["status"]))
+    if pr["status"] == "fail":
+        out["findings"].append(Finding(id=f"garage_fit:{sid}:pair", title=f"{names} do not fit side by side",
+                                       status="fail", source=src, anchor=None,
+                                       detail=f"Not even squeezed: {fmt(d.width)} and {fmt(d2.width)} wide with "
+                                              f"{geom.SQUEEZE_M:.2f} m beside each, in {fmt(a['width'])} inside."))
+    out["text"] = {"pass": f" The {names} fit side by side with room to open the doors.",
+                   "warn": f" The {names} fit side by side only tight: you squeeze out of the doors.",
+                   "fail": f" The {names} do not fit side by side."}[pr["status"]]
+    return out
+
+
+def which_fit(ctx, sid: str, plan: dict, g: dict, base: list) -> ToolResult:
+    """Every vehicle in the table parked alone in this garage, best fits first, with depth and side room to spare."""
+    rows = []
+    for vid in VEHICLES:
+        d = catalog_dims(vid)
+        a = analyse(plan, g, d, 1)
+        if a is None:
+            return ToolResult(scope=ScanScope(sid=sid), assumptions=base, verdict=Verdict(status="unknown", text=(
+                "The scan has a garage but no outline for it, so it cannot be measured.")))
+        dh, measured = a["door_height"], a["door_height_measured"]
+        h = judge_h(round(dh - d.height, 3)) if measured else "warn" if d.height + geom.HEIGHT_TIGHT_M > dh else "pass"
+        st = max((a["status"], h), key=["pass", "warn", "fail"].index)
+        c = (a["clear"] or [{}])[0]
+        sides = [x for x in (c.get("left"), c.get("right")) if x is not None]
+        depth = round(a["depth"] - d.length - geom.REAR_M - geom.FRONT_FITS_M, 2) if a["depth"] else None
+        rows.append((st, vid, d, depth, round(min(sides) - (d.door if not d.towed else 0.6), 2) if sides else None))
+    rows.sort(key=lambda r: (["pass", "warn", "fail"].index(r[0]), -r[2].length))
+    word = {"pass": "fits with doors open", "warn": "fits tight", "fail": "does not fit"}
+    checks = [Check(id=f"fits.{vid}", rule=f"{d.label}: {word[st]}; " + (f"{fmt(dep)} " + ("to spare in depth" if dep >= 0
+                    else "short in depth") if dep is not None else "depth not measured") +
+                    (f", {fmt(side)} {'to spare' if side >= 0 else 'short'} beside it to open a door" if side is not None
+                     else ""), measured=dep, threshold=0, unit="m", status=st) for st, vid, d, dep, side in rows]
+    ok = [r for r in rows if r[0] == "pass"]
+    tight = [r for r in rows if r[0] == "warn"]
+    ctx.step(f"Parked each of {len(rows)} vehicles alone in the garage: {len(ok)} fit, {len(tight)} tight")
+    longest = max(ok or tight, key=lambda r: r[2].length, default=None)
+    text = (f"{len(ok)} of {len(rows)} vehicles in the table fit with doors open and {len(tight)} more fit tight."
+            + (f" The longest that fits{'' if ok else ' tight'} is the {longest[2].label} ({fmt(longest[2].length)})."
+               if longest else " None fits."))
+    a0 = analyse(plan, g, catalog_dims(rows[0][1]), 1)
+    src = GEO_LOW if g["how"] == "wide door" else GEO
+    return ToolResult(scope=ScanScope(sid=sid), verdict=Verdict(status="pass" if ok else "warn" if tight else "fail",
+                                                                 text=text), checks=checks, assumptions=base[6:],
+                      metrics=[Metric(id="fit_count", label="Vehicles that fit with doors open", value=len(ok), unit="",
+                                      source=src),
+                               Metric(id="tight_count", label="Vehicles that fit tight", value=len(tight), unit="",
+                                      source=src),
+                               Metric(id="garage.depth", label="Inside depth", value=a0["depth"], unit="m", source=src),
+                               Metric(id="garage.width", label="Inside width", value=a0["width"], unit="m", source=src)])
+
+
+def house_and_power(sid: str, plan: dict, a: dict, d: Dims, inputs, z0: float, src) -> dict:
+    """Steps from the house door into the garage against the parked vehicles, the charging outlet's distance, and
+    the room left for storage."""
+    from shapely.geometry import Point, box
+    out = {"checks": [], "findings": [], "metrics": []}
+    f, s_ = a["frame"], a["survey"]
+    cars = [box(u, v, u + w, v + l) for u, v, w, l in parked(a, d)]
+    for st_ in geom.house_steps(plan, s_["room"], s_["poly"], z0):
+        if st_["risers"] < 1:
+            out["checks"].append(Check(id=f"steps.{st_['opening']}", rule="Steps from the house door into the "
+                                       "garage: none, the door sill is at the garage floor", measured=round(
+                                           st_["rise"], 3), threshold=geom.RISER_M, unit="m", status="pass"))
+            continue
+        gap = min(f.geom(st_["footprint"]).distance(c) for c in cars) if cars else None
+        st = "unknown" if gap is None else "fail" if gap <= 0 else "warn" if gap < geom.SQUEEZE_M else "pass"
+        fid = f"garage_fit:{sid}:steps:{st_['opening']}"
+        out["checks"].append(Check(
+            id=f"steps.{st_['opening']}", rule=f"Steps from the house door into the garage: {st_['risers']} step"
+            f"{'s' if st_['risers'] > 1 else ''} for {fmt(st_['rise'])}, about {fmt(st_['run'])} out from the wall",
+            measured=round(gap, 3) if gap is not None else None, threshold=geom.SQUEEZE_M, unit="m", status=st,
+            standard="Room between the steps and the nearest parked vehicle; one 10 in tread per 7 in riser "
+                     "(IRC R311.7.5), so steps that turn or come down at an angle take more",
+            findings=[fid] if st in ("warn", "fail") else []))
+        if st in ("warn", "fail"):
+            out["findings"].append(Finding(id=fid, title="Steps into the house " + ("hit the parked vehicle" if st ==
+                                           "fail" else "leave little room"), status=st, source=GEO_LOW,
+                                           anchor=OpeningAnchor(sid=sid, opening=st_["opening"]),
+                                           detail=f"The house door's sill is {fmt(st_['rise'])} above the garage floor: "
+                                                  f"about {st_['risers']} steps reaching {fmt(st_['run'])} into the "
+                                                  "garage, which the parking space must leave clear."))
+    outlets = [o for o in plan.get("objects") or [] if "outlet" in (o.get("label") or o.get("category") or "").lower()
+               and o.get("room") == s_["room"]["id"]]
+    if outlets and cars:
+        dist = min(f.geom(Point(o["center"][:2])).distance(c) for o in outlets for c in cars)
+        out["checks"].append(Check(id="outlet", rule="Charging outlet to the nearest parked vehicle", measured=round(
+            dist, 2), threshold=inputs.charge_cord_m, unit="m", status="pass" if dist <= inputs.charge_cord_m else
+            "fail", standard="Charging cord length (editable)"))
+    else:
+        out["checks"].append(cannot("outlet", "where the outlets are, so how far a charging cord must reach; this "
+                                              "scan does not record outlets"))
+    out["checks"].append(cannot("side_entry", "the turn into the garage from the driveway, which matters for a "
+                                              "side-entry door; the apron outside is not in this scan, see "
+                                              "Driveway fit"))
+    keep = storage(a, d, a["ceiling"])
+    out["metrics"] += [Metric(id="storage.floor", label="Floor left for storage, doors and walkway kept clear",
+                              value=round(keep["floor_m2"], 1), unit="m2", source=src),
+                       Metric(id="storage.shelf", label="Shelf depth along the front wall, 0.6 m walkway kept",
+                              value=round(keep["shelf_m"], 2) if keep["shelf_m"] is not None else None, unit="m",
+                              source=src),
+                       Metric(id="storage.overhead", label="Ceiling rack space over the vehicles",
+                              value=round(keep["overhead_m3"], 1) if keep["overhead_m3"] is not None else None,
+                              unit="m3", source=src if a["ceiling_measured"] else GEO_LOW)]
+    return out
 
 
 def short(d: Dims) -> str:
@@ -178,7 +323,9 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     room = g["room"]
     ctx.step(f"Garage: {room.get('label') or 'unlabelled room'} of {room.get('area') or 0:.0f} m2 "
              f"({ {'label': 'its label', 'chosen': 'the room you chose'}.get(g['how'], 'a ground-floor room with a car-wide door')})")
-    a = analyse(plan, g, d, inputs.count)
+    if inputs.which_fit:
+        return which_fit(ctx, sid, plan, g, base)
+    a = analyse(plan, g, d, 1 if inputs.second_vehicle else inputs.count)
     if a is None:
         return ToolResult(scope=scope, assumptions=base, verdict=Verdict(status="unknown", text=(
             "The scan has a garage but no outline for it, so it cannot be measured.")))
@@ -305,6 +452,12 @@ def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base
                                         detail=", ".join(f"{s} {fmt(c[s])}" for s in ("left", "right", "front") if c.get(s) is not None)
                                         + f" clear; doors need {fmt(lv_need)} beside the body."))
             overlays.append(_box(f, u, v, d.width, d.length, d.height, z0, tag, st, model_of(inputs.vehicle)))
+    pp = None
+    if inputs.second_vehicle and n:
+        pp = pair_part(sid, a, d, catalog_dims(inputs.second_vehicle), z0, src)
+        overlays = [o for o in overlays if not isinstance(o, BoxOverlay)] + pp["boxes"]
+        checks += pp["checks"]
+        findings += pp["findings"]
     # extras
     for t in things(a, d, list(inputs.uses)):
         k, spot = t["id"], t["spot"]
@@ -333,6 +486,13 @@ def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base
             overlays.append(BoxOverlay(center=(round(c[0], 3), round(c[1], 3), round(zc, 3)), size=size,
                                        yaw_deg=round(f.scan_yaw(yaw), 1), label=lab,
                                        status="pass" if extra_ok else "warn", model=THING_MODEL.get(k)))
+    if n:
+        sp = house_and_power(sid, plan, a, d, inputs, z0, src)
+        checks += sp["checks"]
+        findings += sp["findings"]
+        metrics_extra = sp["metrics"]
+    else:
+        metrics_extra = []
     for o in a["survey"]["obstacles"]:
         findings.append(Finding(id=f"garage_fit:{sid}:object:{o['id']}", title=f"In the garage: {o['label'].lower()}",
                                 status="unknown", source=Source(layer="matterport", method="geometry",
@@ -343,6 +503,10 @@ def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base
     fits, tight = a["fits"], a["tight"]
     statuses = [c.status for c in checks if c.id in ("door_width", "door_height", "ceiling")] + [a["status"]] \
         if n else [c.status for c in checks if c.id.startswith(("room.", "gym."))]
+    if pp:
+        statuses.append(pp["status"])
+    stepped = [c for c in checks if c.id.startswith("steps.") and c.status in ("warn", "fail")] if n else []
+    statuses += [c.status for c in stepped]
     status = "fail" if "fail" in statuses else "warn" if "warn" in statuses else "pass"
     many = lambda k: f"{WORD.get(k, k)} {name}{'s' if k > 1 else ''}"
     if n == 0:
@@ -355,7 +519,7 @@ def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base
         text = f"{many(n)} {'fits' if n == 1 else 'fit'}" + (
             (" with room to walk round" if d.towed else " with room to open the doors") if a["which"] == "fits" else
             (", tight: little room to walk round" if d.towed else ", tight: you squeeze out of the doors"))
-        text += "." if inputs.count is not None or fits == tight else f" ({fits} with doors fully open, {tight} tight)."
+        text += "." if inputs.count is not None or inputs.second_vehicle or fits == tight else f" ({fits} with doors fully open, {tight} tight)."
     why = {"door_width": " The garage door is narrow for it: fold the mirrors.",
            "door_height": " Headroom under the garage door is tight." if measured else
            (" It is taller than even an 8 ft garage door; the scan did not measure this one."
@@ -371,6 +535,11 @@ def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base
                 c.id == "ceiling" and not a["ceiling_measured"] else \
                 {"door_width": " The garage door is too narrow for it.", "door_height": " It does not clear the garage door.",
                  "ceiling": " It does not clear the ceiling."}[c.id]
+    if pp:
+        text += pp["text"]
+    if stepped:
+        text += " The steps down from the house door " + ("reach the parking spot." if any(
+            c.status == "fail" for c in stepped) else "leave little room beside the parking spot.")
     if g["how"] == "wide door":
         text += " The room is unlabelled; it was taken for the garage because of its car-wide door."
     if n and not has_objects(plan):
@@ -390,6 +559,7 @@ def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base
                Metric(id="garage.door_height", label="Garage door height", value=dh if measured else None, unit="m", source=src),
                Metric(id="garage.ceiling", label="Ceiling", value=ceil, unit="m", source=src),
                Metric(id="garage.area", label="Floor area", value=round(a["survey"]["poly"].area, 1), unit="m2", source=src)]
+    metrics += metrics_extra
     return ToolResult(scope=ScanScope(sid=sid), verdict=Verdict(status=status, text=text), metrics=metrics,
                       checks=checks, findings=findings, overlays=overlays, assumptions=base,
                       actions=[Action(id="driveway", label="Check the driveway", tool="driveway_fit", inputs={"scan": sid})])

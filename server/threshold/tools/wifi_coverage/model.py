@@ -26,6 +26,16 @@ BANDS = {
     "2.4": {"label": "2.4 GHz", "mhz": 2437.0, "light": 3.4, "heavy": 6.9, "window": 2.0, "floor": 18.3},
     "5": {"label": "5 GHz", "mhz": 5500.0, "light": 5.0, "heavy": 11.0, "window": 3.0, "floor": 22.0},
 }
+# Materials the wall graph cannot tell from thickness, set by the person per wall or room. Assumed losses, dB per
+# crossing (assumptions the result lists; low-E coated glass and sheet metal are far worse than they look).
+MATERIALS = {
+    "metal ductwork": {"2.4": 15.0, "5": 20.0},
+    "coated glass": {"2.4": 25.0, "5": 30.0},
+    "clear glass": {"2.4": 2.0, "5": 3.0},
+    "masonry": {"2.4": 6.9, "5": 11.0},
+    "drywall": {"2.4": 3.4, "5": 5.0},
+}
+
 # EIRP: a typical home router transmits near 20 dBm on 2.4 GHz and 23 dBm on 5 GHz; long-range models up to 4 dB more
 ROUTERS = {"typical": {"2.4": 20.0, "5": 23.0}, "long_range": {"2.4": 24.0, "5": 27.0}}
 
@@ -49,6 +59,7 @@ class House:
     segs: dict[str, Segs] = field(default_factory=dict)
     z: dict[str, float] = field(default_factory=dict)
     storey: dict[str, int] = field(default_factory=dict)
+    materials: dict[str, str] = field(default_factory=dict)  # wall id -> a MATERIALS key
 
     def __post_init__(self):
         self.z = floor_z(self.plan)
@@ -57,7 +68,11 @@ class House:
 
     def loss_per_piece(self, floor: str, band: str) -> np.ndarray:
         s, b = self.segs[floor], BANDS[band]
-        return np.where(s.kind == "window", b["window"], np.where(s.thickness >= HEAVY_WALL_M, b["heavy"], b["light"]))
+        out = np.where(s.kind == "window", b["window"], np.where(s.thickness >= HEAVY_WALL_M, b["heavy"], b["light"]))
+        for i, w in enumerate(s.wall):
+            if w in self.materials:
+                out[i] = MATERIALS[self.materials[w]][band]
+        return out
 
     def signal(self, src: tuple[float, float, str], pts: np.ndarray, floor: str, band: str, eirp: float) -> np.ndarray:
         """dBm at each point (on `floor`) from a router at src (x, y, floor)."""
@@ -78,3 +93,11 @@ class House:
             nf = abs(self.storey[floor] - self.storey[sf])
             loss += nf ** ((nf + 2) / (nf + 1) - FLOOR_B) * b["floor"]
         return eirp - loss
+
+
+def outbuilding(eirp: float, band: str, to_edge_m: float, gap_m: float, wall: str = "masonry") -> float:
+    """dBm inside a detached building `gap_m` beyond the house wall nearest the router (`to_edge_m` away): free space
+    over the whole distance, the house's outside wall (heavy) and the outbuilding's wall (`wall`, a MATERIALS key)."""
+    b = BANDS[band]
+    d = max(to_edge_m + gap_m + 1.0, 1.0)  # 1 m inside the outbuilding
+    return eirp - (fspl_1m(b["mhz"]) + 20 * math.log10(d) + b["heavy"] + MATERIALS[wall][band])

@@ -33,7 +33,8 @@ from .. import (
     tool,
 )
 from ...signals.plan2d import grid, room_names, room_polys
-from .model import BANDS, COST231, FAIR, GOOD, HEAVY_WALL_M, ROUTER_H_M, ROUTERS, WEAK, House, grade
+from .model import (BANDS, COST231, FAIR, GOOD, HEAVY_WALL_M, MATERIALS, ROUTER_H_M, ROUTERS, WEAK, House, grade,
+                    outbuilding)
 
 TARGET_WORDS = ("bedroom", "office", "den", "study", "loft")  # labels from vision come in lower case
 NO_ROUTER = {"Garage", "Patio", "Porch", "Balcony", "Deck", "Closet", "Staircase", "Utility", "Void", "Pool",
@@ -55,6 +56,15 @@ class Inputs(BaseModel):
     router: Literal["typical", "long_range"] = field("typical", pref="wifi.router_class",
                                                      description="typical: 20 dBm at 2.4 GHz, 23 dBm at 5 GHz. long_range: 4 dB more")
     targets: list[str] | None = field(None, description="Room ids that must have good signal; default the bedrooms and office")
+    wall_materials: dict[str, Literal[tuple(MATERIALS)]] = field(
+        {}, description="Walls the scan cannot tell apart by thickness: wall id or room id (all its walls) to a "
+                        "material (metal ductwork, coated glass, clear glass, masonry, drywall)")
+    outbuilding_m: float | None = field(None, gt=0, le=200, unit="m", pref="wifi.outbuilding_m",
+                                        description="A detached garage or studio this far from the house; estimates "
+                                                    "the signal inside it")
+    outbuilding_wall: Literal[tuple(MATERIALS)] = field("masonry", pref="wifi.outbuilding_wall",
+                                                        description="What the detached building's wall facing the "
+                                                                    "house is (a metal garage door: metal ductwork)")
 
 
 def _is(room: dict, words) -> bool:
@@ -89,7 +99,11 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     rooms = {r["id"]: r for r in plan["rooms"]}
     names = room_names(plan, polys)
     living = [k for k in polys if rooms[k].get("label") not in LIVING_SKIP]
-    house = House(plan)
+    mats = {}
+    for key, m in inputs.wall_materials.items():
+        for w in ([key] if any(w["id"] == key for w in plan["walls"]) else rooms.get(key, {}).get("walls") or []):
+            mats[w] = m
+    house = House(plan, materials=mats)
     eirp = ROUTERS[inputs.router]
     samples = {k: grid(polys[k], SAMPLE_M) for k in living}
     ctx.step(f"Cut {sum(len(s) for s in house.segs.values())} wall pieces at their doors and windows; "
@@ -234,6 +248,17 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         text += " No single mesh node spot fixes the weak rooms."
     if no_office:
         text += " The scan labels no office, so only bedrooms were targeted."
+    if inputs.outbuilding_m:
+        from shapely.ops import unary_union
+        edge = unary_union([p for k, p in polys.items() if rooms[k]["floor"] == src[2]]).exterior.distance(_pt(src))
+        ob = {b: outbuilding(eirp[b], b, edge, inputs.outbuilding_m, inputs.outbuilding_wall) for b in ("5", "2.4")}
+        g = grade(ob["2.4"])  # the check grades 5 GHz like every room; the sentence says whether 2.4 GHz reaches
+        checks.insert(0, Check(id="outbuilding", rule=f"Detached building {inputs.outbuilding_m:.0f} m from the house: "
+                               f"2.4 GHz about {ob['2.4']:.0f} dBm, 5 GHz about {ob['5']:.0f} dBm", measured=round(
+                                   ob["5"], 1), threshold=GOOD, unit="dBm", status=STATUS[grade(ob["5"])],
+                               standard=f"{COST231}; two outside walls, {edge:.1f} m from the router to the house wall"))
+        text += (f" The detached building gets about {ob['2.4']:.0f} dBm on 2.4 GHz ({g})"
+                 + (": it needs a mesh node or an outdoor access point." if g in ("weak", "dead") else "."))
     text += " Estimate from the walls alone."
     status = "pass" if not weak else "warn" if not dead and len(tgood) == len(targets) else "fail" if dead else "warn"
     vals = {k: round(v, 1) for k, v in med5.items()}
@@ -250,6 +275,9 @@ def run(ctx, inputs: Inputs) -> ToolResult:
               for b in ("2.4", "5") for k, lbl in (("light", f"wall under {HEAVY_WALL_M * 100:.0f} cm (stud, drywall)"),
                                                   ("heavy", f"wall {HEAVY_WALL_M * 100:.0f} cm or thicker (masonry)"),
                                                   ("window", "window (clear glass)"), ("floor", "floor"))],
+            *[Assumption(id=f"material.{m}", label=f"Loss through {m}, 2.4 / 5 GHz (assumed)",
+                         value=f"{MATERIALS[m]['2.4']:g} / {MATERIALS[m]['5']:g}", unit="dB")
+              for m in sorted(set(inputs.wall_materials.values()))],
             Assumption(id="doors", label="Doorways are open (a closed wooden door adds about 3 dB)", value=True),
             Assumption(id="good", label="Good signal for video calls", value=GOOD, unit="dBm"),
             Assumption(id="dead", label="Dead zone below", value=WEAK, unit="dBm"),

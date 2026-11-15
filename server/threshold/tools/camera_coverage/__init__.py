@@ -48,6 +48,10 @@ FOV_DEG = 110.0      # horizontal field of view of a typical wide-angle home cam
 RANGE_M = 9.0        # "night vision up to 30 ft", the common rating for home cameras
 MOUNT_H_M = 2.2      # high on a wall, out of reach
 INSET_M = 0.3
+DOORBELL_VFOV_DEG = 90.0  # a common doorbell camera's vertical view (editable; head-to-toe models are taller)
+VISITOR_M = 0.6           # a visitor stands this far from the door after pressing the bell
+FACE_M = (1.45, 1.75)     # an adult's face, metres above the step
+IR_NEAR_M = 1.5           # night-vision glare: a lit surface this close to the lens
 PATH_STEP_M = 0.25
 SKIP = {"Closet", "Void", "Bathroom", "Staircase"}  # no camera in a closet or a bathroom
 GEO = Source(layer="matterport", method="geometry", confidence="medium",
@@ -70,6 +74,69 @@ class Inputs(BaseModel):
                              description="How many cameras the proposal may use")
     fov_deg: float = field(FOV_DEG, pref="security.camera_fov_deg", unit="deg", gt=10, le=360)
     range_m: float = field(RANGE_M, pref="security.camera_range_m", unit="m", gt=1, le=30)
+    doorbell_height_m: float | None = field(None, pref="security.doorbell_height_m", unit="m", gt=0.3, le=3.0,
+                                            description="Height of a doorbell camera beside each exterior door; "
+                                                        "checks a visitor's face is in view and the porch ceiling")
+    doorbell_vfov_deg: float = field(DOORBELL_VFOV_DEG, pref="security.doorbell_vfov_deg", unit="deg", gt=20, le=180,
+                                     description="The doorbell camera's vertical field of view")
+
+
+def doorbell_view(h: float, vfov_deg: float, at_m: float = VISITOR_M, face=FACE_M) -> dict:
+    """What a level doorbell camera `h` up sees of a visitor standing `at_m` away: the band of heights in view and
+    whether their face is in it ('low' when the face is above the band: shoes and chin only)."""
+    half = math.tan(math.radians(vfov_deg / 2)) * at_m
+    lo, hi = h - half, h + half
+    return {"lo": lo, "hi": hi, "face": "in view" if lo <= face[0] and face[1] <= hi else
+            "low" if hi < face[1] else "high"}
+
+
+def porch_glare(h: float, vfov_deg: float, ceiling: float) -> float:
+    """Horizontal distance from the lens at which a porch ceiling `ceiling` up enters the top of the view."""
+    return max(0.0, ceiling - h) / math.tan(math.radians(vfov_deg / 2))
+
+
+PORCH = ("porch", "patio", "balcony", "entrance", "deck")
+
+
+def front_doors(plan: dict, ents: list[dict]) -> list[tuple[dict, dict | None]]:
+    """Doors a doorbell would sit beside, each with the porch outside it if the scan has one: exterior doors, and
+    doors that open onto a scanned porch, patio or deck (the room graph then counts them as inside doors)."""
+    rooms = {r["id"]: r for r in plan.get("rooms") or []}
+    porchy = lambda rid: any(w in (rooms.get(rid, {}).get("label") or "").lower() for w in PORCH)
+    ops = {o["id"]: o for o in plan.get("openings") or []}
+    out = [(e, None) for e in ents if e["entry"] == "door"]
+    for link in geometry.room_graph(plan).get("links") or []:
+        rs = link.get("rooms") or []
+        p = next((r for r in rs if porchy(r)), None)
+        if p and not all(porchy(r) for r in rs) and link.get("opening") in ops:
+            out.append((ops[link["opening"]], rooms[p]))
+    return out
+
+
+def doorbell_checks(plan: dict, doors: list[tuple[dict, dict | None]], h: float, vfov: float) -> list[Check]:
+    from .._access import cannot
+    out = []
+    for e, porch in doors:
+        v = doorbell_view(h, vfov)
+        out.append(Check(id=f"doorbell.{e['id']}", rule=f"Doorbell camera at {h:.2f} m: a visitor's face at "
+                         f"{VISITOR_M:.1f} m from the door is {'in view' if v['face'] == 'in view' else 'out of view'}"
+                         + {"low": " (mounted too low: shoes and chin)", "high": " (mounted too high: the top of a "
+                            "head)"}.get(v["face"], ""), measured=round(v["hi"] if v["face"] != "high" else v["lo"], 2),
+                         threshold=FACE_M[1] if v["face"] != "high" else FACE_M[0], unit="m",
+                         status="pass" if v["face"] == "in view" else "fail",
+                         standard=f"Level camera, {vfov:.0f} degree vertical view; face {FACE_M[0]:.2f} to "
+                                  f"{FACE_M[1]:.2f} m up"))
+        if porch is None or not porch.get("height"):
+            out.append(cannot(f"porch.{e['id']}", "a porch ceiling over this door, whose night-vision glare can white "
+                                                  "out the picture; the scan has no porch outside it"))
+            continue
+        x = porch_glare(h, vfov, porch["height"])
+        out.append(Check(id=f"porch.{e['id']}", rule=f"Porch ceiling ({porch['height']:.2f} m) enters the top of the "
+                         f"view {x:.2f} m out from the lens", measured=round(x, 2), threshold=IR_NEAR_M, unit="m",
+                         status="warn" if x < IR_NEAR_M else "pass",
+                         standard=f"Infrared from the camera lights a ceiling closer than {IR_NEAR_M:.1f} m and washes "
+                                  "out the night picture (an assumption)"))
+    return out
 
 
 def _inward(o: dict, wall: dict, poly) -> tuple[float, float]:
@@ -271,6 +338,12 @@ def run(ctx, inputs: Inputs) -> ToolResult:
             text += f" {len(blind)} ground-floor room{'s are' if len(blind) != 1 else ' is'} mostly blind."
         status = "fail" if doors_out else "warn" if win_out else "pass"
     text += " Doors assumed open; furniture not modelled."
+    if inputs.doorbell_height_m:
+        bell = doorbell_checks(plan, front_doors(plan, ents), inputs.doorbell_height_m,
+                               inputs.doorbell_vfov_deg)
+        checks += bell
+        if any(c.id.startswith("doorbell.") and c.status == "fail" for c in bell):
+            text += f" A doorbell camera at {inputs.doorbell_height_m:.2f} m misses a visitor's face."
     pins = [Pin(id=f"cam{i + 1}", anchor=PointAnchor(sid=inputs.scan, point=(c["x"], c["y"], _z(plan, c["floor"]))),
                 label=c["label"], status="pass") for i, c in enumerate(cams)]
     pins += [Pin(id=f"open:{e['id']}", anchor=OpeningAnchor(sid=inputs.scan, opening=e["id"]),

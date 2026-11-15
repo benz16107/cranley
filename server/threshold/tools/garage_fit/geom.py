@@ -289,3 +289,73 @@ def corners_center(corners) -> tuple[tuple[float, float], float, tuple[float, fl
     (ax, ay), (bx, by), (cx, cy) = corners[0], corners[1], corners[2]
     return (((ax + cx) / 2, (ay + cy) / 2), math.degrees(math.atan2(by - ay, bx - ax)),
             (math.dist((ax, ay), (bx, by)), math.dist((bx, by), (cx, cy))))
+
+
+def place_pair(region, cars: list[tuple[float, float, float]], gaps: list[float], front: float, doors: list[dict],
+               rear: float = REAR_M):
+    """Two different vehicles nose-in side by side: cars = [(width, length, span), ...]; gaps = [left, between,
+    right]. Each needs its own length plus `rear` and `front` in depth. Lower-left (u, v) of each, or None.
+    shortcut: the same 5 cm by 10 cm grid as `place`."""
+    (w1, l1, s1), (w2, l2, s2) = cars
+    x0, y0, x1, y1 = region.bounds
+    bw = gaps[0] + w1 + gaps[1] + w2 + gaps[2]
+    if bw > x1 - x0 + 1e-9 or max(l1, l2) + rear + front > y1 - y0 + 1e-9:
+        return None
+    shapely.prepare(region)
+    vmax = y0 + (0.6 if doors else y1 - y0 - max(l1, l2) - rear - front)
+    for v0 in np.arange(y0 + 0.003, vmax + 1e-9, 0.1):
+        for u0 in np.arange(x0 + 0.003, x1 - bw + 1e-9, STEP_M):
+            ua = u0 + gaps[0]
+            ub = ua + w1 + gaps[1]
+            if doors and not (lines_up(ua + w1 / 2, s1, doors) and lines_up(ub + w2 / 2, s2, doors)):
+                continue
+            a = box(u0, v0, ua + w1 + gaps[1] / 2, v0 + rear + l1 + front)
+            b = box(ua + w1 + gaps[1] / 2, v0, u0 + bw, v0 + rear + l2 + front)
+            if region.contains(a) and region.contains(b):
+                return [(ua, v0 + rear), (ub, v0 + rear)]
+    return None
+
+
+def pair_clearances(region, cars: list[tuple], sizes: list[tuple[float, float]]) -> list[dict]:
+    """`clearances` for two vehicles of different sizes: room left, right, ahead and behind each."""
+    (ua, va), (ub, vb) = cars
+    (wa, la), (wb, lb) = sizes
+    out = []
+    for (u, v), (w, l), left_of, right_of in (((ua, va), (wa, la), None, ub), ((ub, vb), (wb, lb), ua + wa, None)):
+        side = interval_at(region, "u", v + l / 2, u + w / 2)
+        ahead = interval_at(region, "v", u + w / 2, v + l / 2)
+        out.append({"left": (u - left_of) if left_of is not None else (u - side[0] if side else None),
+                    "right": (right_of - u - w) if right_of is not None else (side[1] - u - w if side else None),
+                    "front": (ahead[1] - v - l) if ahead else None, "rear": (v - ahead[0]) if ahead else None})
+    return out
+
+
+RISER_M, TREAD_M = 0.178, 0.254   # a 7 in riser and a 10 in tread (IRC R311.7.5 allows 7 3/4 in and 10 in minimum)
+
+
+def house_steps(plan: dict, room: dict, poly, floor_z: float) -> list[dict]:
+    """Each person door from the garage into the house with its sill above the garage floor and, when that is a
+    step, the floor the steps down into the garage take: as wide as the door, one 10 in tread per 7 in riser
+    (an estimate; steps that turn or come down at an angle take more)."""
+    out = []
+    rz = room_floor_z(plan)
+    for o in _opens(plan, room["id"]):
+        if len(o.get("rooms") or []) < 2 or o["width"] >= VEHICLE_DOOR_M:
+            continue
+        other = next((r for r in o["rooms"] if r != room["id"]), None)
+        # a sunk garage: the house room's floor above the garage's (Matterport puts the sill on the garage side)
+        rise = max([x - floor_z for x in (rz.get(other), o.get("sill")) if x is not None], default=0.0)
+        n = round(rise / RISER_M)
+        fp = None
+        if n >= 1:
+            a, b = _wall_line(plan, o, poly)
+            t = _unit(a, b)
+            nrm = (-t[1], t[0])
+            c = o["center"]
+            if (poly.centroid.x - c[0]) * nrm[0] + (poly.centroid.y - c[1]) * nrm[1] < 0:
+                nrm = (-nrm[0], -nrm[1])
+            hw, run = max(o["width"], 0.9) / 2, n * TREAD_M
+            fp = shapely.Polygon([(c[0] + sx * hw * t[0] + d * nrm[0], c[1] + sx * hw * t[1] + d * nrm[1])
+                                  for sx, d in ((-1, 0), (1, 0), (1, run), (-1, run))])
+        out.append({"opening": o["id"], "rise": rise, "risers": n, "run": n * TREAD_M, "footprint": fp})
+    return out
