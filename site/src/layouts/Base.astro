@@ -51,6 +51,7 @@ const url = new URL(Astro.url.pathname, Astro.site)
         <nav aria-label="Site">
           <span>Built by {TEAM.map((m, i) => <>{i > 0 && ', '}{m.href ? <a href={m.href}>{m.name}</a> : m.name}</>)} at HackPrinceton, fall 2026</span>
           <a href="/how/">How it works</a>
+          <a href="/about/">About</a>
           <a href="/docs/">Docs</a>
           <a href={LINKS.github}>GitHub</a>
           {LINKS.devpost && <a href={LINKS.devpost}>Devpost</a>}

@@ -22,6 +22,7 @@ pnpm build && pnpm check
 | `/docs/reference/personas/` | `server/threshold/agent/personas/` |
 | `/docs/reference/layers/` | `server/threshold/layers/catalog.py` |
 | `/docs/mcp/` | `docs/MCP.md` |
+| `/about/` | `docs/devpost/about.md`, word for word from its first section on |
 | `/docs/sponsor-integrations/`, `/tracks/*` | the tracks in `docs/story.md` |
 | the home page's drawing and counts | `src/generated/site.json` |
 
