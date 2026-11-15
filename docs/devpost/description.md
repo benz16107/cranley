@@ -3,7 +3,7 @@
 - **Every track in detail:** https://cranley.app/tracks/
 - **Code:** https://github.com/benz16107/cranley
 - **Conversation with Jean Ryan (7 min):** https://youtu.be/xFw0Rpz9pbk
-- **Video (2 min):** https://youtu.be/W-0JnByJJss
+- **Video (2 min):** https://youtu.be/1Qcbzixrxz4
 
 ---
 
