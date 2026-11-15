@@ -9,6 +9,10 @@ import site from '../generated/site.json'
 import { LINKS, DEMO } from '../site/links'
 import { LABELS, filesOf, type SlotId } from '../site/slots'
 
+// The headline: the first is the one in use. To swap, change the 0. The page title follows it.
+const HEADLINES = ['Ask anything about a building. Get a measured answer.', 'Know the building before you commit.', 'Every building question, answered with a measurement.']
+const headline = HEADLINES[0]
+const line = 'Cranley is an agent that picks the right tools for your question and measures the real building, inside and out, before you sign, lease or move in.'
 const c = site.counts
 const n = site.asked_counts
 // real screens of the app, shown once the media pass adds their files (src/site/slots.ts)
@@ -18,12 +22,12 @@ const showScreens = LABELS || screens.some((id) => filesOf(id).length > 0)
 const SHOW = ['wheelchair_user', 'furniture_mover', 'car_owner', 'fire_captain', 'houston_homeowner_storm', 'la_quake_prep', 'renter_listing', 'parent_young_kids',
   'remote_worker', 'office_tenant', 'retail_site_selector', 'truck_dispatcher', 'costar_researcher', 'insurance_underwriter']
 ---
-<Base title="Cranley: measure the building before you commit" description="Listings say accessible and two-car garage. Cranley is an agent that measures the real building, inside and out, before you sign. Every number comes from a calculation." nav="home">
+<Base title={`Cranley: ${headline}`} description={line} nav="home">
   <section class="hero">
     <div class="wrap">
       <div class="pitch">
-        <h1>The listing says accessible. The bathroom door is 71 cm.</h1>
-        <p class="lead">Cranley is an agent that measures the real building, inside and out, before you sign.</p>
+        <h1>{headline.split(/(?<=\.) /).map((sentence) => <span>{sentence} </span>)}</h1>
+        <p class="lead">{line}</p>
         <p class="cta">
           {LINKS.demo && <a class="btn solid" href={LINKS.demo}>{DEMO.label}</a>}
           <a class:list={['btn', { solid: !LINKS.demo }]} href="/docs/">Read the docs</a>
@@ -68,9 +72,11 @@ const SHOW = ['wheelchair_user', 'furniture_mover', 'car_owner', 'fire_captain',
 
 <style>
   .hero { padding-block: clamp(32px, 5vw, 72px) clamp(40px, 6vw, 80px); }
-  .hero .wrap { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--s-6) var(--s-8); align-items: center; }
-  .hero h1 { font-size: var(--t-display); font-stretch: 108%; letter-spacing: -0.025em; line-height: 1.04; }
-  .hero .lead { margin-top: var(--s-5); color: var(--ink-2); max-width: 34ch; }
+  .hero .wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-6) var(--s-8); align-items: center; }
+  /* two sentences of about 25 characters each: at this size each one sets in two lines of the half-width column */
+  .hero h1 { font-size: clamp(2rem, 1rem + 2.8vw, 3rem); font-stretch: 108%; letter-spacing: -0.025em; line-height: 1.06; }
+  .hero h1 span { display: block; text-wrap: balance; } /* a line breaks between sentences, never inside one phrase */
+  .hero .lead { margin-top: var(--s-5); color: var(--ink-2); max-width: 40ch; }
   .cta { display: flex; flex-wrap: wrap; gap: var(--s-3); margin-top: var(--s-6); }
   .demo-note { margin-top: var(--s-3); font-size: 0.8125rem; line-height: 1.45; color: var(--ink-3); max-width: 50ch; }
   .hero :global(.slot-note) { margin-top: var(--s-2); }
