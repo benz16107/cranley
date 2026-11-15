@@ -146,10 +146,13 @@ def steps_of(it: dict) -> dict:
     seen = it.get("seen_steps") or []
     measured = [d["step"] for d in it["doors"] if d["step"] is not None]
     top = max(measured, default=None)
+    at_door = bool(it["doors"]) and it["doors"][0]["step_kind"] in ("step", "stair")  # doors[0] is the entrance
     if sure:
         n = len(sure)
+        where = "the entrance door" if at_door and n == 1 else "doorways, one the entrance door" if at_door else \
+            "a doorway" if n == 1 else "doorways"
         return {"kind": "step", "height": top, "words": f"{'a' if n == 1 else n} {max(sure) * 100:.0f} cm "
-                                                        f"step{'s' if n > 1 else ''} at a doorway"}
+                                                        f"step{'s' if n > 1 else ''} at {where}"}
     if maybe or seen:
         bits = ([f"a possible {max(maybe) * 100:.0f} cm sill step"] if maybe else []) + \
                ([f"{', '.join(sorted({f['label'] for f in seen}))} seen in a panorama"] if seen else [])
@@ -347,14 +350,18 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                       if ":step:" in f or ":floor:" in f or ":seen:" in f]))
     checks = step_checks + checks
     sf = step_free_rooms(plan, ent, inputs.min_width_m)
-    names = lambda xs: ", ".join(sorted({label(rooms(plan).get(x["room"])).lower() for x in xs})) or "none"
+    def names(xs):
+        from collections import Counter
+        n = Counter(label(rooms(plan).get(x["room"])).lower() for x in xs)
+        return ", ".join(f"{k} ({v})" if v > 1 else k for k, v in sorted(n.items())) or "none"
     other = sf["other"]
     checks.append(Check(
         id="stepfree.rooms", rule=f"Rooms on the entrance floor reached with no step at any doorway: {names(sf['ok'])}"
         + (f"; not without a step: {names(sf['blocked'])}" if sf["blocked"] else "")
         + (f"; on other floors ({names(other)}): " + ("only by the elevator" if sf["lift"] else
                                                        "stairs only, no elevator in the scan") if other else "")
-        + ("; the entrance doorway itself has a step" if sf["entrance_step"] in ("step", "stair") else ""),
+        + ("; the entrance doorway itself has a step" if sf["entrance_step"] in ("step", "stair") else
+           "; the entrance doorway may have a step, measure it" if sf["entrance_step"] == "possible" else ""),
         measured=len(sf["ok"]), threshold=None, unit="rooms",
         status="pass" if not sf["blocked"] and not other else "warn", standard=STD["level"]))
     # chairs after the first: same routes, narrower or wider needs (steps do not depend on the chair)

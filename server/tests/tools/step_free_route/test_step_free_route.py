@@ -62,3 +62,11 @@ def test_each_chair_gets_its_route():
     assert st["chair1.R"].status == "pass"                                          # 0.65 m clear, needs 0.60
     assert "Everyday chair reaches bathroom;" in r.verdict.text
     assert "Travel chair reaches bathroom, bedroom" in r.verdict.text
+
+
+def test_a_step_at_the_entrance_door_is_named():
+    p = make_home("front")
+    next(o for o in p["openings"] if o["id"] == "E")["sill"] = 0.12
+    r = _run(p)
+    assert "bathroom, a 12 cm step at the entrance door" in r.verdict.text
+    assert "the entrance doorway itself has a step" in {c.id: c for c in r.checks}["stepfree.rooms"].rule
