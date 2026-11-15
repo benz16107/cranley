@@ -5,17 +5,19 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from ...geometry import route
+from ...geometry import reach, route
 from ...geometry._plan import VERDICT_STATUS, clear_width, judge
 from .. import (Action, Assumption, Check, Finding, Metric, OpeningAnchor, Pin, PinsOverlay, RoomAnchor, RuleOverlay,
                 ScanScope, Source, ToolResult, Verdict, field, tool)
 from ..types import Media, PanoAnchor, PointAnchor, RouteOverlay, SelectRooms
-from .._access import (GEO, GEO_LOW, RISER_M, STD, elevations, floor_name, fmt, implausible, label, links_of,
-                       pick_entrance, quality, rooms, sill_step, start_point, step_kind)
+from .._access import (GEO, GEO_LOW, RISER_M, SILL_NOISE_M, STD, STEP_M, Chair, cannot, chair_list, elevations,
+                       floor_name, fmt, implausible, label, links_of, pick_entrance, quality, rooms, sill_step,
+                       start_point, step_kind)
 from .._access import look
 
 WORST = ["likely fail", "measure on site", "not available", "likely pass"]
 VISION_STEP = ("step or threshold", "stairs", "ramp")
+LIFT_WORDS = ("elevator", "lift")
 
 
 class Inputs(BaseModel):
@@ -27,6 +29,14 @@ class Inputs(BaseModel):
     entrance: str | None = field(None, description="Opening id of the entrance to start from; default the main one")
     read_panoramas: bool = field(True, description="Ask the panoramas about steps and about doorways whose width "
                                                    "is a data error")
+    chairs: list[Chair] = field([], pref="access.chairs",
+                                description="Each chair the person uses (everyday, travel...); the route is checked "
+                                            "for each. A chair without a width uses min_width_m")
+
+
+def lifts(plan: dict) -> list[dict]:
+    """Rooms the scan labels as an elevator or lift."""
+    return [r for r in plan.get("rooms") or [] if any(w in (r.get("label") or "").lower() for w in LIFT_WORDS)]
 
 
 def worst(results: list[str]) -> str:
@@ -73,10 +83,17 @@ def run_routes(ctx, plan: dict, inputs) -> dict:
         out["routes"].append(item)
         if r["floor"] != ent["floor"]:
             rise = abs((el.get(r["floor"]) or 0) - (el.get(ent["floor"]) or 0))
-            item.update(result="likely fail", rise=rise, reason=(
-                f"On {floor_name(plan, r['floor'])}, {fmt(rise)} from the entrance floor: stairs, about "
-                f"{round(rise / RISER_M)} steps at a 7 in riser. The scan does not link floors or show a lift."
-                if rise > 0.3 else f"On {floor_name(plan, r['floor'])}, not linked to the entrance floor in the scan."))
+            where = f"On {floor_name(plan, r['floor'])}"
+            if lifts(plan):
+                item.update(result="measure on site", rise=rise, elevator=True, reason=(
+                    f"{where}, {fmt(rise)} from the entrance floor. The scan shows an elevator, so the only step-free "
+                    "way is the elevator; the scan does not link floors, so check it reaches this floor and is in "
+                    "service."))
+            else:
+                item.update(result="likely fail", rise=rise, elevator=False, reason=(
+                    f"{where}, {fmt(rise)} from the entrance floor: stairs, about {round(rise / RISER_M)} steps at a "
+                    "7 in riser. The scan shows no elevator or lift and does not link floors."
+                    if rise > 0.3 else f"{where}, not linked to the entrance floor in the scan."))
             continue
         rt = route(plan, start_point(plan, ent), r["id"], min_width=inputs.min_width_m, floor=r["floor"])
         if not rt["available"]:
@@ -103,7 +120,74 @@ def run_routes(ctx, plan: dict, inputs) -> dict:
         found, err = look.objects(plan, panos)
         out["vision"] = [f for f in found if f["label"] in VISION_STEP]
         out["vision_error"] = err
+    apply_seen(out, links)
     return out
+
+
+def apply_seen(out: dict, links: dict) -> None:
+    """A step the panorama shows in a room a route passes through counts against that route, not only as a pin."""
+    for it in out["routes"]:
+        on = {rid for d in it["doors"] for rid in (links[d["opening"]].get("rooms") or [links[d["opening"]].get("room")])}
+        it["seen_steps"] = [f for f in out["vision"] if f.get("room") in on]
+        if it["seen_steps"] and it["result"] == "likely pass":
+            it["result"] = "measure on site"
+
+
+def steps_of(it: dict) -> dict:
+    """The step answer for one route: kind ('stairs', 'elevator', 'step', 'possible', 'none', 'unknown'), the
+    highest sill step measured (m) and a few words."""
+    if "elevator" in it:
+        return {"kind": "elevator" if it["elevator"] else "stairs", "height": it.get("rise"),
+                "words": "elevator only (another floor)" if it["elevator"] else "stairs (another floor)"}
+    if it["route"] is None:
+        return {"kind": "unknown", "height": None, "words": "not known (no route in the scan)"}
+    sure = [d["step"] for d in it["doors"] if d["step_kind"] in ("step", "stair")]
+    maybe = [d["step"] for d in it["doors"] if d["step_kind"] == "possible"]
+    seen = it.get("seen_steps") or []
+    measured = [d["step"] for d in it["doors"] if d["step"] is not None]
+    top = max(measured, default=None)
+    if sure:
+        n = len(sure)
+        return {"kind": "step", "height": top, "words": f"{'a' if n == 1 else n} {max(sure) * 100:.0f} cm "
+                                                        f"step{'s' if n > 1 else ''} at a doorway"}
+    if maybe or seen:
+        bits = ([f"a possible {max(maybe) * 100:.0f} cm sill step"] if maybe else []) + \
+               ([f"{', '.join(sorted({f['label'] for f in seen}))} seen in a panorama"] if seen else [])
+        return {"kind": "possible", "height": top, "words": " and ".join(bits) + ", measure it"}
+    if not measured:
+        return {"kind": "unknown", "height": None, "words": "not known (no sill heights in the scan)"}
+    return {"kind": "none", "height": top, "words": f"none found at {len(measured)} doorway"
+                                                    f"{'s' if len(measured) > 1 else ''}"}
+
+
+STEP_STATUS = {"stairs": "fail", "step": "fail", "elevator": "warn", "possible": "warn", "none": "pass",
+               "unknown": "unknown"}
+STEP_RANK = ["none", "elevator", "possible", "unknown", "step", "stairs"]
+BEST = ["likely pass", "measure on site", "not available", "likely fail"]
+
+
+def best_by_type(routes: list[dict]) -> dict[str, dict]:
+    """Per destination type, the best room of it (one reachable bathroom is enough)."""
+    out: dict[str, dict] = {}
+    for it in routes:
+        t = label(it["room"])
+        if t not in out or BEST.index(it["result"]) < BEST.index(out[t]["result"]):
+            out[t] = it
+    return out
+
+
+def step_free_rooms(plan: dict, ent: dict, width: float) -> dict:
+    """Every room on the entrance floor reachable from the entrance with no doorway step, and the rooms on other
+    floors, with whether an elevator is in the scan."""
+    rs = rooms(plan)
+    links = links_of(plan)
+    ent_step = step_kind(sill_step(plan, links[ent["opening"]])) if ent["opening"] in links else "none"
+    rc = reach(plan, width, start=ent["room"], max_step=STEP_M + SILL_NOISE_M)
+    real = [r for r in rc.get("rooms", []) if not r["void"] and rs.get(r["room"], {}).get("label") not in ("Void",)]
+    here = [r for r in real if r["floor"] == ent["floor"]]
+    ok = [r for r in here if r["connected"] and ent_step in ("none", "possible")]
+    return {"ok": ok, "blocked": [r for r in here if r not in ok], "other": [r for r in real if r["floor"] != ent["floor"]],
+            "lift": bool(lifts(plan)), "entrance_step": ent_step}
 
 
 def _route_source(rt) -> Source:
@@ -131,11 +215,15 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     plan = ctx.plan(sid)
     q = quality(plan)
     scope = ScanScope(sid=sid)
+    chairs = chair_list(inputs.chairs, inputs.min_width_m)
+    inputs = inputs.model_copy(update={"min_width_m": chairs[0]["door"]})  # the widest chair sets the main routes
     assumptions = [Assumption(id="access.door_width_m", label="Clear width you need", value=inputs.min_width_m,
-                              unit="m", editable=True),
+                              unit="m", editable=not inputs.chairs),
                    Assumption(id="hung_door", label="Door widths are wall openings less 5 cm for a hung door",
                               value=True),
                    Assumption(id="furniture", label="Rooms are empty: furniture is not in the scan", value=True)]
+    assumptions += [Assumption(id=f"chair.{i}", label=f"{c['name']}: clear door width it needs", value=c["door"],
+                               unit="m") for i, c in enumerate(chairs) if c["name"]]
     if not q.get("walls"):
         ctx.step("No wall graph in this scan")
         tg = targets(plan, inputs.destinations)
@@ -247,21 +335,76 @@ def run(ctx, inputs: Inputs) -> ToolResult:
             by[s].append(it["room"]["id"])
     overlays += [RuleOverlay(select=SelectRooms(rooms=v), style=k) for k, v in by.items() if v]
 
-    # verdict per destination type: one reachable room of a type is enough (your bedroom, one bathroom)
-    types: dict[str, list[str]] = {}
+    # steps first: the question a wheelchair user asks is "any steps?", before any width
+    step_checks = []
     for it in res["routes"]:
-        types.setdefault(label(it["room"]), []).append(it["result"])
-    best = {t: min(v, key=["likely pass", "measure on site", "not available", "likely fail"].index)
-            for t, v in types.items()}
+        a = steps_of(it)
+        step_checks.append(Check(
+            id=f"steps.{it['room']['id']}", rule=f"Any steps or level changes between the entrance and "
+            f"{label(it['room']).lower()}: {a['words']}", measured=round(a["height"], 3) if a["height"] is not None
+            else None, threshold=STEP_M, unit="m", status=STEP_STATUS[a["kind"]], standard=STD["level"],
+            findings=[f for f in next(c.findings for c in checks if c.id == f"route.{it['room']['id']}")
+                      if ":step:" in f or ":floor:" in f or ":seen:" in f]))
+    checks = step_checks + checks
+    sf = step_free_rooms(plan, ent, inputs.min_width_m)
+    names = lambda xs: ", ".join(sorted({label(rooms(plan).get(x["room"])).lower() for x in xs})) or "none"
+    other = sf["other"]
+    checks.append(Check(
+        id="stepfree.rooms", rule=f"Rooms on the entrance floor reached with no step at any doorway: {names(sf['ok'])}"
+        + (f"; not without a step: {names(sf['blocked'])}" if sf["blocked"] else "")
+        + (f"; on other floors ({names(other)}): " + ("only by the elevator" if sf["lift"] else
+                                                       "stairs only, no elevator in the scan") if other else "")
+        + ("; the entrance doorway itself has a step" if sf["entrance_step"] in ("step", "stair") else ""),
+        measured=len(sf["ok"]), threshold=None, unit="rooms",
+        status="pass" if not sf["blocked"] and not other else "warn", standard=STD["level"]))
+    # chairs after the first: same routes, narrower or wider needs (steps do not depend on the chair)
+    per_chair = [(chairs[0], res)]
+    for c in chairs[1:]:
+        rc = run_routes(ctx, plan, inputs.model_copy(update={"min_width_m": c["door"], "read_panoramas": False}))
+        rc["vision"] = res["vision"]
+        apply_seen(rc, links_of(plan))
+        per_chair.append((c, rc))
+    if len(chairs) > 1:
+        for i, (c, rc) in enumerate(per_chair):
+            for t, it in best_by_type(rc["routes"]).items():
+                ws = [d["clear_width"] for d in it["doors"] if not d["implausible"] and d["clear_width"]] + \
+                     [x["width"] for x in it["chokes"]]
+                checks.append(Check(id=f"chair{i}.{it['room']['id']}",
+                                    rule=f"{c['name']} (needs {fmt(c['door'])} clear), entrance to {t.lower()}",
+                                    measured=round(min(ws), 3) if ws else None, threshold=c["door"], unit="m",
+                                    status=VERDICT_STATUS[it["result"]], standard=STD["door"]))
+
+    # verdict per destination type: one reachable room of a type is enough (your bedroom, one bathroom)
+    bt = best_by_type(res["routes"])
+    best = {t: it["result"] for t, it in bt.items()}
+    lead = "Steps from the entrance: " + "; ".join(f"{t.lower()}, {steps_of(it)['words']}" for t, it in bt.items()) + "."
     failed = [t for t, b in best.items() if b == "likely fail"]
     unsure = [t for t, b in best.items() if b in ("measure on site", "not available")]
     if failed:
-        status, text = "fail", f"No step-free route wide enough to: {', '.join(failed).lower()}."
+        stepped = [t for t in failed if steps_of(bt[t])["kind"] in ("step", "stairs")]
+        narrow = [t for t in failed if t not in stepped]
+        status, text = "fail", " ".join(
+            ([f"Not step-free: {', '.join(stepped).lower()}."] if stepped else []) +
+            ([f"Too narrow for you: {', '.join(narrow).lower()}."] if narrow else []))
     elif unsure:
         status, text = "warn", f"Routes exist; {', '.join(unsure).lower()} need a tape measure or a look on site."
     else:
         status, text = "pass", "Every destination has a step-free route wide enough for you, on the scan geometry."
+    text = lead + " " + text
+    if len(chairs) > 1:
+        def reached(rc):
+            return ", ".join(t.lower() for t, it in best_by_type(rc["routes"]).items()
+                             if it["result"] == "likely pass") or "none of them"
+        text += " By chair: " + "; ".join(f"{c['name']} reaches {reached(rc)}" for c, rc in per_chair) + "."
     text += " The entrance is a doorway with a room on one side only; the scan cannot tell outside from unscanned."
+    checks += [cannot("outside", "steps outside the entrance or in a building lobby before the elevators, unless that "
+                                 "part was scanned; check the way in with Curb to door"),
+               cannot("obstructions", "boxes, carts, bales or cleaning supplies left in a hallway, aisle or elevator "
+                                      "on the day"),
+               cannot("ada", "whether the building is 'accessible' as claimed: the ADA has no certification or "
+                             "inspection, so the claim is the owner's word")]
+    if other or sf["lift"]:
+        checks.append(cannot("elevator", "whether the elevator is in service and reaches every floor"))
     routes_ok = [it for it in res["routes"] if it["route"]]
     narrowest = min((c for it in routes_ok for c in ([d["clear_width"] for d in it["doors"] if not d["implausible"]
                                                      and d["clear_width"]] + [c["width"] for c in it["chokes"]])),

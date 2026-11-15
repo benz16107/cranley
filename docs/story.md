@@ -77,7 +77,8 @@ listing at a time. Nobody joins them, and nobody asks your question across a who
 
 Cranley was built forward-deployed. Before and while building it, we asked people and businesses what goes wrong with
 the inside and outside of their buildings (homes, garages, stores, kitchens, warehouses, offices), then changed the
-tools to match (or found they already did): one 31-minute phone interview, written answers from 40 people in 15 online communities, and 340 emails
+tools to match (or found they already did): one recorded 31-minute phone interview with Jean Ryan, President of Disabled In Action of Metropolitan New York,
+written answers from 40 people in 15 online communities, and 340 emails
 to organisations and businesses (Peri section).
 
 ## What Cranley is
@@ -168,7 +169,7 @@ by measurement, with all three layers checking each other.
 |---|---|
 | Use of the data (30%) | All three layers in one frame: walls and doorways from Matterport, elevation, ortho, property facts and the 3D city from Vexcel, records from CoStar. Cross-layer tools: record versus reality (listed vs measured area, claims check), flood (Vexcel ground elevation + Matterport door sills), garage and driveway fit (interior garage + aerial driveway), site tools (docks, truck access, parking from the air), drone splat aligned to the scan. Search by measurement over every scan with a wall graph. |
 | Agentic depth (30%) | A deepagents investigator that plans (todo list the person watches), fans out one subagent per building in parallel, asks before expensive steps, remembers what it learned per building, and resumes after a restart from a MongoDB checkpoint. The composer picks tools for the need from more than 75, asks only the missing inputs, and the workspace is a document the agent and the person edit with the same operations (with undo). |
-| Usefulness (25%) | Checked against discovery (Peri section): truck owners told us garage depth decides whether a truck fits, and that newer subdivision garages run 19.5 to 20 ft deep; garage fit, built earlier the same day, measures the scanned garage instead of trusting "two-car garage" in the listing. 50 personas, each a real user with a named need: wheelchair user, fire captain, Houston homeowner before a storm, truck dispatcher, office tenant, CoStar researcher, insurance underwriter, daycare operator, car owner. For the people who open CoStar every morning: a tenant rep's weighted site scorecard across candidates, market comps from CoStar records, industrial fit (clear height, docks, truck court), retail site screening, commute fit for a whole team, and a facility audit PDF. PDF report a person can hand to a landlord. |
+| Usefulness (25%) | Checked against discovery (Peri section): truck owners told us garage depth decides whether a truck fits, and that newer subdivision garages run 19.5 to 20 ft deep; garage fit, built earlier the same day, measures the scanned garage instead of trusting "two-car garage" in the listing, and after their answers it checks depth to the back wall on its own, boats by the maker's storage length and a trailer's side lights at the door. 50 personas, each a real user with a named need: wheelchair user, fire captain, Houston homeowner before a storm, truck dispatcher, office tenant, CoStar researcher, insurance underwriter, daycare operator, car owner. For the people who open CoStar every morning: a tenant rep's weighted site scorecard across candidates, market comps from CoStar records, industrial fit (clear height, docks, truck court), retail site screening, commute fit for a whole team, and a facility audit PDF. PDF report a person can hand to a landlord. |
 | Demo and polish (15%) | Photoreal building on its site, flood rising in the street, smoke filling rooms, the agent's lanes working in parallel. A dense working tool, not a showcase. |
 
 **Scripted flow:** `web/src/skins/app/demo/flows/costar.json`, "Check a listing against the scan, then tour it": the agent reads the
@@ -202,8 +203,8 @@ without learning a tool. And it works on their own home, not only on a dataset.
 | Technical | About 600 server tests and 90 web tests; every tool run on a 15-place demo set with a matrix of results (see Proof); FastAPI, deepagents, two cloud databases, our own 3D renderer and splat training. |
 | User experience | The App look: one thing first on every screen, the rest folded; plain-word reliability chips; every panel resizable; guided first run; both themes; phone companion with live sync. |
 
-**Adaptive intelligence** (a named focus area): the disability rights leader we interviewed told us many people own
-more than one chair and do not know their widths, so a person should have to say it once. Cranley keeps a profile of the
+**Adaptive intelligence** (a named focus area): Jean Ryan of Disabled In Action told us "a lot of people have more
+than one chair" and often do not know their widths, so a person should have to say it once. Cranley keeps a profile of the
 person across investigations. It holds who they are, what they answered, the settings they changed, the tools they
 removed and the kinds of check they marked useful or not relevant, each with where it came from and a way to change or
 forget it. A new investigation starts from it: the composer asks only what it does not know, tool inputs taken from it
@@ -251,34 +252,46 @@ what they said.
 
 | Who | How | What they said |
 |---|---|---|
-| The leader of a disability rights group, a wheelchair user | A 31-minute phone call on Saturday night, after she replied to our email | She no longer asks whether a place is "wheelchair accessible", because she has been told yes and arrived to find a step. She asks whether there are any steps, including steps a few feet inside an accessible entrance and in lobbies before the elevators. A bathroom stall door that opens inward blocks the chair, and a bin beside the toilet can make an accessible stall unusable. Many people own more than one chair and do not know the widths. |
+| Jean Ryan, President of Disabled In Action of Metropolitan New York (an all-volunteer disability rights group in New York City), a powered-wheelchair user | A recorded 31-minute phone interview on Saturday night, after she replied to our email | She no longer asks whether a place is "wheelchair accessible", because she has been told yes and arrived to find a step. She asks whether there are any steps, including steps a few feet inside an accessible entrance and in lobbies before the elevators. A bathroom stall door that opens inward blocks the chair, and a bin beside the toilet can make an accessible stall unusable. Many people own more than one chair and do not know the widths. |
 | Truck, boat, RV and Cybertruck owners (r/f150, r/boating, r/cybertruck, r/TruckCampers, r/RVLiving, r/Garages) | Written answers to a question posted in each community | Garage depth decides it more than width. One owner wrote that most subdivision garages built after 1999 near him are 19.5 to 20 ft deep against 25 to 30 ft in older homes; another chose a smaller car because the garage could not take the truck; boat owners measure the trailer tongue and the door opening, not the ceiling. Several trucks "fit" with no room to walk around them. |
 | Home networking and home automation (r/HomeNetworking, r/homeautomation) | Written answers | Signal dies at ductwork, glass walls and a detached garage; a doorbell camera mounted too low sees only shoes. |
 | Los Angeles residents and wildfire (r/AskLosAngeles, r/wildfire) | Written answers | Insurers order trees trimmed off roofs; a defensible-space checklist of vents, gutters, decks and what sits within 20 ft. |
 | Workplaces: a chef who takes over kitchens (r/Chefit), restaurant operators (r/restaurant), a Walmart receiving associate (r/walmart), managers (r/AskManagers), emergency management (r/EmergencyManagement) | Written answers | Check cart and hand-truck access, cooler space and 3-phase power before taking a kitchen; hot water that never reaches the far sinks; a dock that unloads around a 90 degree corner; an office under a bathroom; a library emergency review that found gaps a routine inspection missed. |
 | 340 organisations and businesses in New Jersey, New York, Texas and elsewhere | Email | Three people replied: the interview above and two declines; the rest were automatic replies or silence. |
 
-**2. Build.** What changed because of it (being built on `ws/feedback`; each item is marked when it merges):
+**2. Build.** What changed because of it, on main the same night (`ws/feedback`, merged at `480147f`):
 
-1. Steps first: the wheelchair route's headline is whether there are any steps or level changes between the entrance and
-   the room, including steps inside past the front door and before the elevators.
-2. Several chairs per person (everyday and travel), each checked.
-3. Bathroom door swing (opens in or out) and clear floor space beside and in front of the toilet, with objects such as
-   a bin counted as blocking.
-4. Aisles and turning space with objects on the floor counted, for shops.
-5. Floors and elevators: which rooms are reachable without stairs, and a plain line when the only way is an elevator.
-6. What a scan cannot tell, on every result: temporary obstructions, an elevator out of service, whether anyone
-   enforces the rules.
+1. Steps first: step-free route now opens with a steps check per destination, counts steps seen in the panoramas against
+   the route, and lists the rooms reached with no step, including steps inside past the front door.
+2. Several chairs per person: the profile keeps each chair (everyday and travel) with the door width it needs, and the
+   route, bathroom and turning checks run for each chair.
+3. Bathroom: which way each door opens (from the scan, else the panorama, else "not in the scan"), and clear floor in
+   front of and beside the toilet, with scanned objects such as bins counted as blocking.
+4. Aisles: turning space counts the objects a phone scan measured on the floor and checks the aisle from the doorway to
+   the turning spot between them.
+5. Floors and elevators: other floors say "elevator only" when the scan has one.
+6. What a scan cannot tell: the step-free route and bathroom checks each end with a list of it, and turning space says
+   when a scan recorded walls only.
+7. From the truck and boat owners: garage fit checks depth to the back wall on its own, clear of objects the scan
+   measured, with a "not in the scan" line for fittings on the wall; boats and trailers use the maker's storage length;
+   the door opening is checked at a trailer's fenders and side lights.
 
-**3. Evidence.** The interview notes with timestamps and the written answers are kept with the team; quotes and the
-organisation's name will appear here once the person we interviewed agrees to be named.
+**3. Evidence.** Jean Ryan agreed before the call to be filmed and to have anything from it shared. In her words
+(times in the recording):
 
-**State:** one organisation consulted during the event (the interview above). Peri's rule needs the organisation's
-name, the person's name and role, and one piece of evidence, so the entry is complete only once she agrees to be named.
+> "I don't ask them if it's a wheelchair accessible. I ask them if they have any steps." (07:05)
 
-Team note: consent email sent by Ben; the named variant and the anonymised one are drafted outside the repo. Do not say
-the call was recorded in public text (she was not asked about recording). If she agrees, swap in the named variant and
-add Peri to the Devpost tracks table.
+> "Is it wheelchair accessible? Yes. I get there, and there's a step, and I couldn't go in. I have a 400-pound chair." (05:22)
+
+> "I could get in the bookstore, but I couldn't go to the books." (05:57)
+
+> "If it opens in, you typically cannot get in because the door is blocking them." (09:45, on bathroom stall doors)
+
+> "A lot of people have more than one chair." (02:19)
+
+**State:** complete. Organisation: Disabled In Action of Metropolitan New York. Person and role: Jean Ryan, President
+(stated by her at 25:24). Evidence: the recorded interview and the quotes above. Consulted on Saturday 14 November,
+during the event.
 
 **Scripted flow:** `web/src/skins/app/demo/flows/peri.json`, "A business checks an office and keeps the report".
 
@@ -399,8 +412,8 @@ wheelchair user, the family before a storm, the fire crew.
   results or fewer tool runs. Say "replay of one user", not "study". `demo_maya` is seeded on the 8787 store (`/app/?as=demo_maya`); reseed after a store reset (Amazon section).
 - Forward-deployed thread: open with one line ("we asked first, then built"), then the numbers as written: one
   phone interview, written answers from 40 people in 15 communities, 340 emails with three human replies. Say "interviews
-  and written answers", never "40 interviews". Do not say Ben is a member of those communities. Do not mention the
-  recording. Name her only after the lead confirms consent.
+  and written answers", never "40 interviews". Do not say Ben is a member of those communities. "A recorded 31-minute interview" is fine. She consented before the call to be filmed and shared; name her as Jean Ryan, President of Disabled In Action of
+  Metropolitan New York.
 - CoStar: the scripted flow is listing vs record vs scan, then the tour; the wheelchair search is the spoken
   alternative. Pick one.
 
@@ -421,7 +434,7 @@ wheelchair user, the family before a storm, the fire crew.
 
 ## Built (synced to `main`)
 
-Checked against `git log main` at `923bbe9` (2026-11-14, 8:20 pm ET). Update at each merge.
+Checked against `git log main` at `480147f` (2026-11-14, 9:16 pm ET). Update at each merge.
 
 **Merged**
 - [x] Data layer: Matterport, Vexcel and CoStar sources, normalized plan format with quality flags (`ws/data`)
@@ -456,6 +469,7 @@ Checked against `git log main` at `923bbe9` (2026-11-14, 8:20 pm ET). Update at 
 - [x] Six scripted demo flows, one per track, with spoken lines and recorded model answers; an offline laptop copy (`scripts/demo-sync`, `scripts/demo-up`) that replays without the network (`ws/demo`)
 - [x] Cranley over iMessage and voice on Photon 2.0: plan pictures, reply threads as investigations, approvals, photo/video/voice/location in, field visits, PDF in chat, weather alerts, ElevenLabs phone agent (`ws/photon`)
 - [x] Person profile across investigations, "Cranley knows" with Change and Forget, checks kept back by kind, measured adaptation in the app, `amazon-adaptive` flow (`ws/adaptive`)
+- [x] Changes from discovery: steps first, several chairs, bathroom door swing and clear space, aisles, elevators, garage depth and trailer checks (`ws/feedback` part 1)
 - [x] Website and docs at cranley.app, generated from the code and this file (`ws/site`)
 - [x] MCP server (stdio and `/mcp`), `threshold` CLI, deep agent over MCP, `docs/MCP.md` (`ws/mcp`)
 
