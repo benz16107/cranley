@@ -153,7 +153,9 @@ section.m-card .m-kv:not(:has(> div)) { display: grid; grid-template-columns: au
 .m-card > p { color: var(--ink-2); line-height: 1.4; }
 .m-card .link { justify-self: start; min-height: 44px; display: inline-flex; align-items: center; margin-block: -8px; font-size: var(--text-sm); color: var(--accent); text-decoration: none; }
 .m-step { min-height: 20px; border-radius: 6px; }
-.m-checks li { display: grid; grid-template-columns: 14px 1fr auto; gap: var(--s-2); align-items: baseline; padding: 7px 0; border-top: 1px solid var(--rule); font-size: var(--text-xs); }
+/* a check's value sits under its rule: beside it, a long rule wraps to four lines on a narrow phone */
+.m-checks li { display: grid; grid-template-columns: 14px 1fr; gap: 2px var(--s-2); align-items: baseline; padding: 7px 0; border-top: 1px solid var(--rule); font-size: var(--text-xs); }
+.m-checks li .num { grid-column: 2; color: var(--ink-2); }
 .m-checks i { font-style: normal; color: var(--ink-3); }
 .m-evidence li { display: grid; grid-template-columns: 14px 1fr; gap: var(--s-2); padding: 9px 0; border-top: 1px solid var(--rule); font-size: var(--text-xs); }
 .m-evidence b { font-size: var(--text-sm); }

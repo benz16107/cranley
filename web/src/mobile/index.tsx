@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Toaster } from 'sonner'
 import '../skins/sheet/design/base.css'
 import './mobile.css'
@@ -21,11 +21,16 @@ export function Mobile() {
   const [tab, setTab] = useState<Tab>('tasks')
   const [privacy, setPrivacy] = useState(false)
   // data-nav: a screen opened by a tap slides in; one restored by a reload does not
-  const go = useCallback((s: Screen) => { document.documentElement.setAttribute('data-nav', ''); history.pushState({ screen: s }, ''); setScreen(s); scrollTo(0, 0) }, [])
+  const homeY = useRef(0) // where the list was, so Back returns to the row that was opened
+  const go = useCallback((s: Screen) => { homeY.current = scrollY; document.documentElement.setAttribute('data-nav', ''); history.pushState({ screen: s }, ''); setScreen(s); scrollTo(0, 0) }, [])
   const back = useCallback(() => (history.state?.screen ? history.back() : setScreen({ at: 'home' })), [])
   useEffect(() => {
     void boot()
-    const pop = (e: PopStateEvent) => setScreen((e.state?.screen as Screen) ?? { at: 'home' })
+    const pop = (e: PopStateEvent) => {
+      const to = (e.state?.screen as Screen) ?? { at: 'home' }
+      setScreen(to)
+      if (to.at === 'home') requestAnimationFrame(() => scrollTo(0, homeY.current)) // after the list is drawn again
+    }
     const seen = () => { if (document.visibilityState === 'visible') void refresh() }
     addEventListener('popstate', pop); document.addEventListener('visibilitychange', seen)
     return () => { removeEventListener('popstate', pop); document.removeEventListener('visibilitychange', seen) }

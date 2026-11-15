@@ -99,12 +99,15 @@ export function Measure({ task, back }: Props & { task: Task }) {
   const [mode, setMode] = useState<'tape' | 'photo'>('tape')
   const unit = usePhone((st) => st.unit)
   const [text, setText] = useState('')
+  const [saved, setSaved] = useState<string | null>(null) // the text as it was saved: until it changes, the next step is Done
   const s = useSend()
   const m = toMetres(text, unit)
   const plausible = m != null && (task.kind === 'step' ? m <= 0.6 : m >= 0.3 && m <= 3)
+  const save = async () => { if (await s.go({ kind: 'reading', task: task.id, scan: task.sid, opening: task.opening, values: { value_m: m } })) setSaved(text) }
   return (
     <Page title={task.title} sub={`From ${task.tools.map(toolTitle).join(', ')}`} onBack={back}
-      actions={mode === 'tape' && <button className="btn m-btn solid wide" disabled={!plausible || s.busy != null} onClick={() => void s.go({ kind: 'reading', task: task.id, scan: task.sid, opening: task.opening, values: { value_m: m } })}>Save {m != null ? fmtLength(m, unit) : 'the measurement'}</button>}>
+      actions={mode === 'tape' && (saved != null && saved === text ? <button className="btn m-btn solid wide" onClick={back}>Done</button>
+        : <button className="btn m-btn solid wide" disabled={!plausible || s.busy != null} onClick={() => void save()}>Save {m != null ? fmtLength(m, unit) : 'the measurement'}</button>)}>
       <TaskHead task={task} />
       <Seg label="How to measure" options={[['tape', 'Tape measure'], ['photo', 'Photo']] as const} value={mode} onChange={setMode} />
       {mode === 'tape' ? (
