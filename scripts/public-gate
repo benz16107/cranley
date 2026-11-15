@@ -289,7 +289,7 @@ class Door(BaseHTTPRequestHandler):
             for k, v in r.getheaders():
                 if k.lower() not in HOP and k.lower() not in ("server", "date"):
                     self.send_header(k, v)
-            if length is None:  # a stream (SSE) or chunked: end it by closing the connection
+            if length is None and r.status not in (204, 304):  # a stream (SSE) or chunked: end it by closing the connection
                 self.send_header("Connection", "close")
                 self.close_connection = True
             self.end_headers()
