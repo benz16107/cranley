@@ -8,6 +8,11 @@ import Proof from '../../components/Proof.astro'
 import { INTERVIEW } from '../../site/proof'
 import Costar from '../../components/deep/Costar.astro'
 import Peri from '../../components/deep/Peri.astro'
+import Amazon from '../../components/deep/Amazon.astro'
+import Langchain from '../../components/deep/Langchain.astro'
+import Tiger from '../../components/deep/Tiger.astro'
+import Mongodb from '../../components/deep/Mongodb.astro'
+import Photon from '../../components/deep/Photon.astro'
 import { TRACKS } from '../../site/tracks'
 import { LABELS, filesOf } from '../../site/slots'
 
@@ -18,8 +23,8 @@ const { track } = Astro.props
 const entry = await getEntry('tracks', track.slug)
 const Content = entry ? (await render(entry)).Content : null
 // the tracks redesigned as deep dives, built only with PUBLIC_DEEP=1 until Ben has approved them (scripts/deploy.sh);
-// the rest keep the page below until theirs is built
-const Deep = import.meta.env.PUBLIC_DEEP !== '1' ? undefined : ({ costar: Costar, peri: Peri } as Record<string, typeof Costar>)[track.slug]
+// without the flag every track keeps the page below
+const Deep = import.meta.env.PUBLIC_DEEP !== '1' ? undefined : ({ costar: Costar, peri: Peri, amazon: Amazon, langchain: Langchain, 'tiger-data': Tiger, mongodb: Mongodb, photon: Photon } as Record<string, typeof Costar>)[track.slug]
 const title = entry?.data.title ?? `${track.name}: ${track.prize}`
 const shots = track.slots.filter((id) => LABELS || filesOf(id).length > 0)
 ---

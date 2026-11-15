@@ -1,0 +1,73 @@
+---
+// The LangChain track. Sentences are docs/story.md's and docs/devpost/about.md's; counts are read from deep.json.
+import Deep from "./Deep.astro"
+import Sec from "./Sec.astro"
+import Chart from "./Chart.astro"
+import Flow from "./Flow.astro"
+import Cards from "./Cards.astro"
+import Bars from "./Bars.astro"
+import Split from "./Split.astro"
+import Lanes from "./Lanes.astro"
+import deep from "../../generated/deep.json"
+import site from "../../generated/site.json"
+import type { Track } from "../../site/tracks"
+interface Props { track: Track; title: string }
+const { track, title } = Astro.props
+const c = site.counts
+const md = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/`([^`]+)`/g, "<code>$1</code>")
+const sp = deep.sponsors.langchain
+const stats = [{ n: sp.features.length, label: "deepagents, LangGraph and LangSmith features in use" }, { n: sp.left_out.length, label: "left out, each with the reason" }, { n: c.tools, label: "tools the investigator can call" }, { n: c.personas, label: "personas, one trace tag each" }]
+const features = sp.features.map((f) => ({ title: f.feature, what: f.why, code: f.code }))
+const sections: [string, string][] = [["problem", "Problem"], ["built", "A turn, in order"], ["features", "Features used"], ["proof", "Proof"], ["limits", "Left out"], ["writeup", "Write-up"], ["docs", "In the docs"]]
+const pause = "Both lanes pause on the approval card for the smoke simulation: interrupt_on with a when predicate."
+const resume = "Command(resume=...) picks the turn up from the MongoDB checkpoint, in any server process, even after a restart."
+const segs = [
+  { row: 0, from: 0, to: 1, tone: "soft" as const, label: "Plan", note: "write_todos: the todo list appears. The plan is the person's progress view, not hidden state." },
+  { row: 1, from: 1, to: 3, label: "Tools on house A", note: "One building per subagent, each with its own context. Middleware reports each tool call and the panel shows one lane per subagent." },
+  { row: 2, from: 1, to: 3, label: "Tools on house B", note: "Buildings are independent, so they are checked at the same time." },
+  { row: 1, from: 3, to: 4, tone: "wait" as const, label: "Paused", note: pause },
+  { row: 2, from: 3, to: 4, tone: "wait" as const, label: "Paused", note: pause },
+  { row: 3, from: 3, to: 4, tone: "soft" as const, label: "Run it", note: 'The person answers "Run it", "Skip it" or "Always run it here".' },
+  { row: 1, from: 4, to: 6, label: "Smoke simulation", note: resume },
+  { row: 2, from: 4, to: 6, label: "Smoke simulation", note: resume },
+  { row: 4, from: 6, to: 7, tone: "soft" as const, label: "Rubric verdict", note: "The rubric grader reads the closing message. It catches a message that states numbers or claims checks did not run." },
+  { row: 0, from: 6, to: 7, tone: "soft" as const, label: "Closing message", note: "The investigator closes the turn. Every turn is one LangSmith trace tagged by persona." },
+]
+---
+<Deep track={track} title={title} sections={sections} stats={stats}>
+  <Sec id="problem" title="Ten buildings do not fit in one context" sub="One building or one whole property per subagent, each with its own context, so ten buildings do not crowd one context window.">
+    <p class="txt">Buildings are independent, so they are checked at the same time. Middleware reports each tool call, and the panel shows one lane per subagent.</p>
+  </Sec>
+
+  <Sec id="built" title="One turn, in order" sub="A fire captain's brief over two houses. The blocks show the order of a turn, not its timing. Point at one to read it.">
+    <Lanes rows={["Investigator", "Subagent, house A", "Subagent, house B", "The person", "Grader"]} cols={7} segs={segs} />
+  </Sec>
+
+  <Sec id="features" title="Each feature, and the job it does" sub="A feature is used only where it does a job. Each links to the file that uses it.">
+    <Cards items={features} />
+  </Sec>
+
+  <Sec id="proof" title="The mistake that became a check" sub={'An agent turn once claimed "none of the checks ran" after twelve runs. That became the rubric grader.'}>
+    <Chart title="Features we considered" source="Counted from the feature table in our story and the list of what was left out.">
+      <Split unit="features considered" parts={[{ label: "In use, each doing a job", n: sp.features.length, tone: "main" }, { label: "Left out, with the reason", n: sp.left_out.length, tone: "mute" }]} />
+    </Chart>
+  </Sec>
+
+  <Sec id="limits" title="What we left out, and why" sub="A feature that would only decorate the product is not in it.">
+    <ul class="pairs">{sp.left_out.map((f) => <li><span set:html={md(f.feature)} /><span set:html={md(f.why)} /></li>)}</ul>
+  </Sec>
+
+  {track.video && (
+    <Sec id="video" title="The track in a video">
+      <figure class="video"><iframe src={`https://www.youtube-nocookie.com/embed/${track.video}`} title={`${track.name}: Cranley`} loading="lazy" allow="encrypted-media; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></figure>
+    </Sec>
+  )}
+
+  <Sec id="writeup" title="The write-up for the judges" sub="The track's section of our story, as written.">
+    <div class="prose"><slot /></div>
+  </Sec>
+
+  <Sec id="docs" title="In the docs">
+    <ul class="docs-links">{track.docs.map(([label, href]) => <li><a href={href}>{label}</a></li>)}</ul>
+  </Sec>
+</Deep>

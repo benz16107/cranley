@@ -1,0 +1,95 @@
+---
+// The Amazon track. Sentences are docs/story.md's; every number is read from src/generated/deep.json or site.json.
+import Deep from "./Deep.astro"
+import Sec from "./Sec.astro"
+import Chart from "./Chart.astro"
+import Flow from "./Flow.astro"
+import Cards from "./Cards.astro"
+import Bars from "./Bars.astro"
+import Split from "./Split.astro"
+import Lanes from "./Lanes.astro"
+import deep from "../../generated/deep.json"
+import site from "../../generated/site.json"
+import type { Track } from "../../site/tracks"
+interface Props { track: Track; title: string }
+const { track, title } = Astro.props
+const c = site.counts
+const md = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/`([^`]+)`/g, "<code>$1</code>")
+import Visits from "./Visits.astro"
+import Slot from "../Slot.astro"
+import Proof from "../Proof.astro"
+const n = deep.numbers.amazon
+const am = deep.sponsors.amazon
+const last = n.asked.length - 1
+const stats = [{ n: c.personas, label: "kinds of user, each with a named need" }, { n: c.tools, label: "tools the agent picks from" }, { n: n.asked[last], label: `questions asked on visit ${last + 1} of the replay` }, { n: n.kept_back[last], label: "checks kept back by then, of kinds the person waved off" }]
+const groups = site.groups.map((g) => ({ label: g.title, n: g.personas.length }))
+const focus = am.focus.map((f) => ({ title: f.area, what: f.sees, chips: [f.where] }))
+const criteria = am.criteria.map((f) => ({ title: f.criterion, what: f.serves }))
+const sections: [string, string][] = [["problem", "Problem"], ["built", "What we built"], ["adaptive", "Say it once"], ["proof", "Proof"], ["limits", "Limits"], ["writeup", "Write-up"], ["docs", "In the docs"]]
+const flow = [
+  { label: "A person", nodes: [
+    { title: "A sentence", what: "What they need, in plain words", note: "The person types what they need. The agent builds the interface for that need instead of a chat box." },
+    { title: "A phone scan", what: "Their own home, by iPhone", note: "The iPhone app scans a room with LiDAR (Apple RoomPlan) and converts it to the same plan format, so every geometry tool runs on a space that is in no dataset." },
+    { title: "What they said before", what: "A profile across investigations", note: "Who they are, what they answered, the settings they changed, the tools they removed and the kinds of check they marked useful or not relevant, each with where it came from and a way to change or forget it." },
+  ] },
+  { label: "Cranley", nodes: [
+    { title: "Composer", what: "Asks only what it does not know", note: "A new investigation starts from the profile: the composer picks the tools and asks only what it does not know." },
+    { title: "Tools", what: "Physics and geometry", note: "Physics and geometry instead of text answers. Each tool measures on the scan, and a number never passes through model text." },
+    { title: "Profile", what: "Remembers, and says so", note: "Tool inputs taken from the profile say so on the result, and checks of a kind the person waved off are kept back." },
+  ] },
+  { label: "What they get", nodes: [
+    { title: "A workspace", what: "One thing first on every screen", note: "One thing first on every screen, the rest folded, with plain-word reliability chips and every panel resizable." },
+    { title: "A PDF report", what: "From the phone, in seconds", note: "Scan a room with the iPhone app, name the business, pick Accessibility and get the PDF in seconds." },
+    { title: "Live sync", what: "Phone and desktop, one workspace", note: "The phone companion and the desktop show the same workspace, and it updates live on both." },
+  ] },
+]
+---
+<Deep track={track} title={title} sections={sections} stats={stats}>
+  <Sec id="problem" title="An answer you can act on, without learning a tool" sub="AI someone would use every day: a person with a real need about a building gets an answer they can act on. And it works on their own home, not only on a dataset.">
+    <Chart title={`Who it answers for: ${c.personas} kinds of user`} sub="Each is a named need with the tools that answer it, such as a wheelchair user, a fire captain or a truck owner." source="Counted from the persona files when this site was built.">
+      <Bars rows={groups} />
+    </Chart>
+    <p class="txt"><a href="/docs/reference/personas/">All {c.personas} kinds of user</a></p>
+  </Sec>
+
+  <Sec id="built" title="A sentence in, a workspace out" sub="Point at a step, or tab to it, to read what it does.">
+    <Flow cols={flow} />
+    <Slot id="iphone-app" phones />
+  </Sec>
+
+  <Sec id="adaptive" title="Say it once" sub={'Jean Ryan of Disabled In Action told us "a lot of people have more than one chair" and often do not know their widths, so a person should have to say it once.'}>
+    <Chart title="One wheelchair user, three visits to new homes" sub="The composer stops asking what it already knows, and holds back checks of kinds the person waved off." source="The evaluation threshold.agent.adapt_eval, run 14 Nov 2026, each number counted from operation logs. One persona on three buildings: a replay, not a user study.">
+      <Visits series={[{ title: "Questions the composer asked", values: n.asked, unit: "questions asked" }, { title: "Checks kept back", values: n.kept_back, unit: "checks kept back" }]} />
+    </Chart>
+    <h3 class="h3">Where a judge sees it</h3>
+    <Cards items={focus} />
+  </Sec>
+
+  <Sec id="proof" title="What a judge can check" sub={`About ${n.server_tests} server tests and ${n.web_tests} web tests, and every tool run on a made-up scan in the docs.`}>
+    <Cards items={criteria} />
+    {track.proof?.map((id) => <Proof id={id} />)}
+  </Sec>
+
+  <Sec id="limits" title="What the replay does not show" sub="Stated as the story states it.">
+    <ul class="txt">
+      <li>It is one persona on three buildings, a replay rather than a user study.</li>
+      <li>Time to the first result and the number of tool runs did not change in a way the replay can support: both follow the model's latency and choices.</li>
+      <li>The profile holds only facts some tool input uses (about {n.profile_keys} keys; no budget or risk tolerance), and it does not read facts out of free text.</li>
+      <li>There is no sign-in. The profile id lives in the browser, so anyone who has the id can open that profile.</li>
+    </ul>
+  </Sec>
+
+  {track.video && (
+    <Sec id="video" title="The track in a video">
+      <figure class="video"><iframe src={`https://www.youtube-nocookie.com/embed/${track.video}`} title={`${track.name}: Cranley`} loading="lazy" allow="encrypted-media; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></figure>
+    </Sec>
+  )}
+
+  <Sec id="writeup" title="The write-up for the judges" sub="The track's section of our story, as written.">
+    <div class="prose"><slot /></div>
+  </Sec>
+
+  <Sec id="docs" title="In the docs">
+    <ul class="docs-links">{track.docs.map(([label, href]) => <li><a href={href}>{label}</a></li>)}</ul>
+  </Sec>
+</Deep>

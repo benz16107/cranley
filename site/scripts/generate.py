@@ -531,6 +531,54 @@ def sponsor_md() -> str:
 
 
 # ---------- numbers for the track pages ----------
+# where each sponsor feature lives: the words its row in docs/story.md starts with, its file under server/threshold,
+# and a pattern that file must still contain (checked on every build, so a link cannot go stale quietly)
+FEATURE_CODE = {
+    "langchain": [("`create_deep_agent`", "agent/investigator.py", "create_deep_agent"), ("Parallel subagents", "agent/investigator.py", "subagents"),
+                  ("Planning", "agent/investigator.py", "write_todos"), ("Virtual filesystem", "agent/investigator.py", "CompositeBackend"),
+                  ("StoreBackend", "agent/investigator.py", "StoreBackend"), ("Skills", "agent/investigator.py", "skills"),
+                  ("Human-in-the-loop", "agent/investigator.py", "interrupt_on"), ("MongoDB checkpointer", "agent/durable.py", "MongoDBSaver"),
+                  ("Rubric grader", "agent/investigator.py", "rubric"), ("MCP tools", "agent/mongo_mcp.py", "mcp"), ("LangSmith", "agent/evaluate.py", "(?i)langsmith")],
+    "tiger-data": [("Hypertables", "facts/migrations/001_schema.sql", "hypertable"), ("Columnstore", "facts/stats.py", "compress"),
+                   ("Continuous aggregates", "facts/migrations/002_rollups_search.sql", "continuous"), ("`percentile_agg`", "facts/migrations/002_rollups_search.sql", "percentile_agg"),
+                   ("PostGIS", "facts/search.py", "(?i)st_dwithin|postgis"), ("pgvector", "facts/vectorizer.py", "diskann"), ("pgai vectorizer", "facts/vectorizer.py", "vectorizer"),
+                   ("TimescaleDB job", "facts/migrations/004_jobs_retention.sql", "add_job"), ("Retention policy", "facts/migrations/004_jobs_retention.sql", "retention"),
+                   ("Read-only role", "facts/ask.py", "(?i)read.only|readonly"), ("Database forks", "facts/forks.py", "fork")],
+    "mongodb": [("Documents with", "store/mongo.py", "unique=True"), ("Multi-document", "store/mongo.py", "transaction"), ("Change streams", "store/mongo.py", r"\.watch\("),
+                ("`$jsonSchema`", "store/mongo.py", "jsonSchema"), ("TTL index", "store/mongo.py", "expireAfterSeconds"), ("Atlas Search", "store/mongo.py", r"\$search"),
+                ("Vector Search", "store/mongo.py", r"\$vectorSearch"), ("Hybrid search", "store/mongo.py", "rankFusion"), ("Time series", "store/mongo.py", "timeseries"),
+                ("2dsphere", "store/mongo.py", "2dsphere|geoNear"), ("LangGraph checkpointer", "agent/durable.py", "MongoDBSaver|MongoDBStore"), ("MongoDB MCP server", "agent/mongo_mcp.py", "mcp")],
+}
+
+
+def story_table(sec: str, head: str) -> list[list[str]]:
+    """The rows of the table in `sec` whose header starts with `head`, as cells."""
+    rows = re.search(r"(\| " + re.escape(head) + r".*?)(?:\n\n|\Z)", sec, re.S).group(1).strip().split("\n")[2:]
+    return [[c.strip() for c in r.strip().strip("|").split(" | ")] for r in rows]
+
+
+def sponsor_features(story: str) -> dict:
+    """Each sponsor's feature table from the story, every row with the file that implements it."""
+    secs = [s for s in re.split(r"\n(?=### )", story) if s.startswith("### ")]
+    pick = lambda key: next(s for s in secs if key in s.split("\n", 1)[0])
+    out = {}
+    for key, slug in (("LangChain", "langchain"), ("Tiger", "tiger-data"), ("MongoDB", "mongodb")):
+        rows = []
+        for feature, why in story_table(pick(key), "Feature"):
+            start, file, pat = next(c for c in FEATURE_CODE[slug] if feature.startswith(c[0]))
+            path = REPO / "server/threshold" / file
+            assert path.is_file() and re.search(pat, path.read_text()), (slug, feature, file)
+            rows.append({"feature": feature, "why": why, "code": f"server/threshold/{file}"})
+        assert len(rows) == len(FEATURE_CODE[slug]), (slug, len(rows))
+        out[slug] = {"features": rows, "left_out": [{"feature": a, "why": b} for a, b in SKIPPED[slug]]}
+    assert (REPO / "server/threshold/photon").is_dir()
+    out["photon"] = {"features": [{"feature": a, "why": b, "code": "server/threshold/photon"} for a, b in story_table(pick("Photon"), "What a person does")]}
+    amazon = pick("Amazon")
+    out["amazon"] = {"focus": [dict(zip(("area", "sees", "where"), r)) for r in story_table(amazon, "Amazon focus area")],
+                     "criteria": [dict(zip(("criterion", "serves"), r)) for r in story_table(amazon, "Criterion")]}
+    return out
+
+
 COUNT_WORDS = {w: i for i, w in enumerate("zero one two three four five six seven eight nine ten".split())}
 FT = 0.3048
 
@@ -588,7 +636,19 @@ def deep(tools: dict, examples: dict) -> dict:
     feet = lambda m: f"{int(m / FT)} ft {round((m / FT - int(m / FT)) * 12)} in"
     vehicles = sorted(({"title": v.label, "kind": v.kind, "m": v.length, "ft": feet(v.length),
                         "spare_m": [round(bands[0]["m"][0] - v.length, 2), round(bands[0]["m"][1] - v.length, 2)]} for v in VEHICLES.values()), key=lambda v: v["m"])
-    return {"matrix": matrix, "by_need": dict(by_need), "outcomes": dict(collections.Counter(m["outcome"] for m in matrix)),
+    ints = lambda pat, text=story: [float(x) if "." in x else int(x) for x in re.search(pat, text, re.S).groups()]
+    asked_v = ints(r"questions asked went (\d+), (\d+), (\d+), and the checks kept\s+back (\d+), (\d+), (\d+)")
+    played = ints(r"played twice:\s+(\d+\.\d+) s and (\d+\.\d+) s, of which the agent's turn is (\d+) to (\d+) s")
+    ren = examples["renovate"]["result"]
+    numbers = {
+        "amazon": {"asked": asked_v[:3], "kept_back": asked_v[3:], "server_tests": ints(r"About (\d+) server tests")[0], "web_tests": ints(r"server tests and (\d+) web tests")[0],
+                   "profile_keys": ints(r"about (\d+) keys")[0], "flow_s": played[:2], "turn_s": played[2:]},
+        "tiger": {"mb": ints(r"(\d+) MB to (\d+) MB"), "fork_s": ints(r"ready in about (\d+) s")[0], "recall": ints(r"recall@10 of (\d+\.\d+)")[0]},
+        "photon": {"tests": ints(r"merged with (\d+) tests")[0]},
+        "renovate": {"verdict": ren["verdict"],
+                     "metrics": [{k: m.get(k) for k in ("id", "label", "value", "unit")} for m in ren["metrics"]]},
+    }
+    return {"matrix": matrix, "by_need": dict(by_need), "sponsors": sponsor_features(story), "numbers": numbers, "outcomes": dict(collections.Counter(m["outcome"] for m in matrix)),
             "said": dict(said), "said_total": sum(said.values()), "by_tool": [{"slug": i.replace("_", "-"), "title": tools[i].manifest.title, "n": n} for i, n in by_tool.most_common(10)],
             "quotes": quotes, "skipped": skipped, "funnel": {**counts, "replies": replied, "declines": declined, "interviews": len(re.findall(r"^## A call with", fb, re.M))},
             "garage": {"bands": bands, "vehicles": vehicles}}
