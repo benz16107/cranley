@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Dialog } from '@base-ui/react/dialog'
 import { Tooltip } from '@base-ui/react/tooltip'
 import { Drawer } from 'vaul'
@@ -67,14 +67,13 @@ export function Shell() {
   // made after the page loaded is never that one. Not on a phone during the guided first run either: there the page
   // is what is being shown.
   const docId = useWorkspace((s) => s.doc.id), lastId = useRef(docId)
-  const atLoad = useRef<string | null>(undefined)
-  if (atLoad.current === undefined) { try { atLoad.current = localStorage.getItem('threshold.workspace') } catch { atLoad.current = null } }
+  const [atLoad] = useState(() => { try { return localStorage.getItem('threshold.workspace') } catch { return null } })
   useEffect(() => {
-    const swapped = docId !== lastId.current && (docId === atLoad.current || docId === 'shared')
+    const swapped = docId !== lastId.current && (docId === atLoad || docId === 'shared')
     lastId.current = docId
     if (busy && !was.current && !swapped && !(phone && useUi.getState().first)) setRun(true)
     was.current = busy
-  }, [busy, docId, setRun, phone])
+  }, [busy, docId, atLoad, setRun, phone])
 
   useEffect(() => {
     let g = 0
