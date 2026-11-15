@@ -7,7 +7,7 @@
 # The site went public on 2026-11-14 (Ben, 8 pm). Project `cranley`; cranley.app and www.cranley.app are attached,
 # with DNS at GoDaddy (A @ 216.150.1.1 and 216.150.16.1, CNAME www f6551f9cad87df1d.vercel-dns-016.com, set with
 # `gddy dns` on macserver). vercel.json also proxies /app, /m, /api, /assets, /models and /enter to the public demo door
-# (the Funnel address in it), so https://cranley.app/app is the app behind its access code; take those rewrites out when
+# (the Funnel address in it), so https://cranley.app/app is the app (open during the event, no code); take those rewrites out when
 # the demo is switched off. The first production deployment was a one-line placeholder, because on this team a new
 # project's first deployment becomes production; it is the rollback target:
 #   on benmac:  vercel rollback cranley-iz8vdil4i-benz16107-1762s-projects.vercel.app --scope benz16107-1762s-projects
@@ -23,7 +23,7 @@ if [ -n "$prod" ]; then
   # the public site shows no empty picture frame and no slot note
   ! grep -rlE 'data-state="empty"|class="media hatch' dist || { echo "an empty picture frame is in the public build"; exit 1; }
 else
-  pnpm build
+  PUBLIC_DEEP=1 pnpm build   # the redesigned track pages, in previews only until Ben's OK; then set it for --prod too
 fi
 pnpm check
 cp vercel.json dist/vercel.json
