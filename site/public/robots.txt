@@ -1,3 +1,9 @@
 User-agent: *
 Allow: /
+Disallow: /app
+Disallow: /m$
+Disallow: /m/
+Disallow: /m?
+Disallow: /api/
+Disallow: /enter
 Sitemap: https://cranley.app/sitemap-index.xml

@@ -2,11 +2,13 @@
 import Base from '../layouts/Base.astro'
 import { LINKS } from '../site/links'
 ---
-<Base title="Privacy: Cranley" description="What this site collects (nothing you type, no analytics, no cookies) and what running Cranley yourself means for your data.">
+<Base title="Privacy: Cranley" description="What this site collects, what the event demo keeps, and what running Cranley yourself means for your data.">
   <article class="page">
     <div class="wrap">
       <h1>Privacy</h1>
-      <p class="intro">This site is a set of static pages about a hackathon project. It has no forms, no accounts, no analytics, no advertising and no cookies.</p>
+      <p class="intro">{LINKS.demo
+        ? 'The pages of this site are static: no accounts, no analytics, no advertising and no cookies. The live demo is the one part that asks for something, an access code, and sets one cookie. It is described below.'
+        : 'This site is a set of static pages about a hackathon project. It has no forms, no accounts, no analytics, no advertising and no cookies.'}</p>
       <div class="prose">
         <p class="small muted">Last updated November 14, 2026.</p>
 
@@ -25,7 +27,7 @@ import { LINKS } from '../site/links'
         {LINKS.demo && (
           <>
             <h2>The event demo</h2>
-            <p>For HackPrinceton there is a <a href={LINKS.demo}>live demo</a> behind a code from Ben. It asks for no name and no email address. What you type there is sent to our server and to the language model it uses. The demo keeps two things: a log of each request's IP address and path, which it needs to limit how often one visitor can ask, and the workspaces that visitors create. Both are deleted when the demo is switched off after the event. The building data in it is used under the event's terms and is deleted after the event.</p>
+            <p>For HackPrinceton there is a <a href={LINKS.demo}>live demo</a> behind a code from Ben. It runs on our own server; this site passes your requests on to it. Entering the code sets one cookie, <code>cranley_demo</code>, which keeps you signed in for three days and holds a random visitor number. The demo asks for no name and no email address. What you type there is sent to our server and to the language model it uses. The demo keeps two things: a log of each request's IP address and path, which it needs to limit how often one visitor can ask, and the workspaces that visitors create. Both are deleted when the demo is switched off after the event. The building data in it is used under the event's terms and is deleted after the event.</p>
           </>
         )}
 
