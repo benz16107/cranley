@@ -328,3 +328,34 @@ def pair_clearances(region, cars: list[tuple], sizes: list[tuple[float, float]])
                     "right": (right_of - u - w) if right_of is not None else (side[1] - u - w if side else None),
                     "front": (ahead[1] - v - l) if ahead else None, "rear": (v - ahead[0]) if ahead else None})
     return out
+
+
+RISER_M, TREAD_M = 0.178, 0.254   # a 7 in riser and a 10 in tread (IRC R311.7.5 allows 7 3/4 in and 10 in minimum)
+
+
+def house_steps(plan: dict, room: dict, poly, floor_z: float) -> list[dict]:
+    """Each person door from the garage into the house with its sill above the garage floor and, when that is a
+    step, the floor the steps down into the garage take: as wide as the door, one 10 in tread per 7 in riser
+    (an estimate; steps that turn or come down at an angle take more)."""
+    out = []
+    rz = room_floor_z(plan)
+    for o in _opens(plan, room["id"]):
+        if len(o.get("rooms") or []) < 2 or o["width"] >= VEHICLE_DOOR_M:
+            continue
+        other = next((r for r in o["rooms"] if r != room["id"]), None)
+        # a sunk garage: the house room's floor above the garage's (Matterport puts the sill on the garage side)
+        rise = max([x - floor_z for x in (rz.get(other), o.get("sill")) if x is not None], default=0.0)
+        n = round(rise / RISER_M)
+        fp = None
+        if n >= 1:
+            a, b = _wall_line(plan, o, poly)
+            t = _unit(a, b)
+            nrm = (-t[1], t[0])
+            c = o["center"]
+            if (poly.centroid.x - c[0]) * nrm[0] + (poly.centroid.y - c[1]) * nrm[1] < 0:
+                nrm = (-nrm[0], -nrm[1])
+            hw, run = max(o["width"], 0.9) / 2, n * TREAD_M
+            fp = shapely.Polygon([(c[0] + sx * hw * t[0] + d * nrm[0], c[1] + sx * hw * t[1] + d * nrm[1])
+                                  for sx, d in ((-1, 0), (1, 0), (1, run), (-1, run))])
+        out.append({"opening": o["id"], "rise": rise, "risers": n, "run": n * TREAD_M, "footprint": fp})
+    return out

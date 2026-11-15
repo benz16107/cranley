@@ -131,3 +131,20 @@ def pair(a: dict, d1: Dims, d2: Dims) -> dict:
                         "cars": cars, "clear": geom.pair_clearances(a["raw"], cars, [(x.width, x.length),
                                                                                      (y.width, y.length)])}
     return {"status": "fail", "which": None, "order": [d1, d2], "cars": [], "clear": []}
+
+
+def storage(a: dict, d: Dims, ceiling: float | None) -> dict:
+    """Room for stuff once the vehicles are parked with their door room and a walkway ahead: free floor (m²), the
+    depth of shelving the front wall can take, and the volume over the vehicles a ceiling rack can use."""
+    region = a["region"]
+    ps = parked(a, d)
+    need = d.door if not d.towed else 0.6
+    keep = shapely.union_all([box(u - need, v - geom.REAR_M, u + w + need, v + l + geom.FRONT_FITS_M)
+                              for u, v, w, l in ps]) if ps else None
+    free = region.difference(keep) if keep is not None else region
+    clear = a["clear"] if not a.get("pair") else a["pair"]["clear"]
+    fronts = [c["front"] for c in clear if c.get("front") is not None]
+    heights = [x.height for x in (a["pair"]["order"] if a.get("pair") else [d] * len(ps))]
+    over = sum(w * l * max(0.0, (ceiling or 0) - h - 0.15) for (u, v, w, l), h in zip(ps, heights)) if ceiling else None
+    return {"floor_m2": free.area, "shelf_m": max(0.0, min(fronts) - geom.FRONT_FITS_M) if fronts else None,
+            "overhead_m3": over}

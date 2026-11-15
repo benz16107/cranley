@@ -228,3 +228,44 @@ def test_the_garage_picks_the_car():
     assert st["fits.class_a_rv"].status == "fail"
     assert r.checks[0].status == "pass" and r.verdict.text.startswith(f"{int(r.metrics[0].value)} of ")
     assert "The longest that fits" in r.verdict.text
+
+
+def _house_door(p, x, rise):
+    """The garage sunk `rise` below the house, as a Matterport scan shows it: the garage's panoramas stand lower,
+    and the house door's sill is at the garage floor."""
+    o = next(o for o in p["openings"] if o["id"] == "HD")
+    o["center"][0] = x
+    if rise:
+        y1 = p["rooms"][1]["polygon"][0][1]
+        for i in range(3):  # more house doorways set the storey's floor level
+            p["openings"].append({"id": f"HX{i}", "wall": "hn", "floor": "f1", "type": "doorway", "width": 0.8,
+                                  "height": 2.03, "sill": rise, "center": [1.5 + i, y1 + 3], "rooms": ["H"]})
+        p["panos"] = [{"id": f"g{i}", "position": [2 + i, 0, 1.5], "floor": "f1", "room": "G"} for i in range(2)] + \
+                     [{"id": f"h{i}", "position": [2 + i, y1 + 1.5, 1.5 + rise], "floor": "f1", "room": "H"}
+                      for i in range(3)]
+    return p
+
+
+def test_steps_down_from_the_house_door_eat_the_parking_length():
+    # an owner's point: steps from the house into the garage take length the spec sheets never mention
+    aside = run(_house_door(garage_plan("st1"), 1.0, 0.36), vehicle="ford_f150", count=1)
+    c = check(aside, "steps.HD")
+    assert c.status == "pass" and "2 steps for 0.36 m, about 0.51 m out" in c.rule
+    ahead = run(_house_door(garage_plan("st2"), 3.1, 0.36), vehicle="ford_f150", count=1)
+    assert check(ahead, "steps.HD").status == "fail" and ahead.verdict.status == "fail"
+    assert "steps down from the house door reach the parking spot" in ahead.verdict.text
+    flat = run(garage_plan("st3"), vehicle="ford_f150", count=1)
+    assert check(flat, "steps.HD").status == "pass" and "none" in check(flat, "steps.HD").rule
+
+
+def test_outlet_distance_and_storage_left():
+    p = garage_plan("ev", depth=7.5)
+    p["objects"] = [{"id": "x0", "floor": "f1", "room": "G", "label": "outlet", "center": [6.1, 4.0, 0.4],
+                     "size": [0.1, 0.05, 0.1], "yaw_deg": 0}]
+    r = run(p, vehicle="ford_f150", count=1)
+    c = check(r, "outlet")
+    assert c.status == "pass" and 0 < c.measured < 6.1
+    assert check(run(p, vehicle="ford_f150", count=1, charge_cord_m=1.0), "outlet").status == "fail"
+    m = {x.id: x.value for x in r.metrics}
+    assert m["storage.shelf"] > 0.5 and m["storage.floor"] > 15 and m["storage.overhead"] > 5
+    assert any(x.id == "cannot.outlet" for x in run(garage_plan("noev"), vehicle="ford_f150", count=1).checks)
