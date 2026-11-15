@@ -85,6 +85,7 @@ const ask = 'I use a wheelchair. Can I reach the bathroom?'
   @media (min-width: 821px) { .steps > li:nth-child(2) { --t0: 900ms; } .steps > li:nth-child(3) { --t0: 1900ms; } }
   @media (prefers-reduced-motion: no-preference) {
     :global(html.js) [data-run]:not([data-seen]) :is(.field span, .send, .run li > *, .see span) { opacity: 0; }
+    :global(html.js) [data-run]:not([data-seen]) .run li > :global(.st) { opacity: 0; }
     [data-seen] .field span { animation: on 1ms calc(var(--i) * 22ms + 150ms) both; }
     [data-seen] .send { animation: on 240ms 1150ms var(--ease-out) both; }
     [data-seen] .run li > span:first-child { animation: on 240ms calc(var(--t0, 0ms) + var(--i) * 70ms) var(--ease-out) both; }
