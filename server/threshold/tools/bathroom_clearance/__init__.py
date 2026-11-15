@@ -15,14 +15,19 @@ from ...geometry._plan import VERDICT_STATUS, clear_width, floor_z, judge
 from .. import (Assumption, Check, Finding, Metric, OpeningAnchor, Pin, PinsOverlay, PointAnchor, RoomAnchor,
                 ScanScope, Source, ToolResult, Verdict, field, tool)
 from ..types import BoxOverlay, Media
-from .._access import (GEO, GEO_LOW, IN, STD, face_polygon, fmt, graph, implausible, quality, rect_fit, room_angle,
-                       rooms)
+from .._access import (GEO, GEO_LOW, IN, STD, cannot, face_polygon, floor_objects, fmt, graph, has_objects,
+                       implausible, quality, rect_fit, room_angle, rooms)
 from .._access import look
 
 WC_ADA = (60 * IN, 56 * IN)
 WC_FHA = [(48 * IN, 56 * IN), (48 * IN, 66 * IN), (60 * IN, 56 * IN)]
 DOOR_SPACE = (30 * IN, 48 * IN)
 SIDE_BAR, REAR_BAR = 54 * IN, 36 * IN     # side wall run needed from the rear wall; rear bar length
+CHAIR_SPACE = (30 * IN, 48 * IN)          # ADA 2010 305.3: a wheelchair's clear floor space, 30 x 48 in
+TOILET = (0.45, 0.70)                     # width and depth of a toilet when the scan has no size for it (assumed)
+SCAN_OBJ = Source(layer="matterport", method="geometry", confidence="medium",
+                  note="Object measured by the phone scan (Apple RoomPlan); its footprint blocks the floor")
+STD_OBJ = "ADA 2010 604.3.2: nothing but grab bars, dispensers and small accessories may overlap the toilet clearance"
 
 
 class Inputs(BaseModel):
@@ -42,6 +47,51 @@ def _toilet(objs: list[dict], room_id: str):
     hits = [o for o in objs if o["label"] == "toilet" and o["room"] == room_id and o["point"] and
             o["surface"] == "floor"]
     return hits[0] if hits else None
+
+
+def scanned_toilet(plan: dict, rid: str, poly) -> dict | None:
+    """A toilet the scan itself measured (RoomPlan), in the same shape as a panorama find, with its size."""
+    t = next((o for o in floor_objects(plan, rid, poly) if "toilet" in o["label"].lower()), None)
+    if t is None:
+        return None
+    return {"label": "toilet", "room": rid, "point": list(t["center"]), "surface": "floor", "size": t["size"][:2],
+            "id": t["id"], "finding": {"media": []}}
+
+
+def _rect(o, n, t, along_t: tuple[float, float], along_n: tuple[float, float]):
+    from shapely.geometry import Polygon
+    pts = [(a, b) for a, b in ((along_t[0], along_n[0]), (along_t[1], along_n[0]), (along_t[1], along_n[1]),
+                               (along_t[0], along_n[1]))]
+    return Polygon([(o[0] + a * t[0] + b * n[0], o[1] + a * t[1] + b * n[1]) for a, b in pts])
+
+
+def transfer_space(face, clear, pt, size=None) -> dict:
+    """Clear floor in front of and beside a toilet, square to the wall behind it (the nearest wall face).
+    `clear` is the floor less the objects in the room; returns the depth clear in front (in a 30 in wide strip),
+    the width clear beside on the better side (48 in deep from the rear wall), and the objects in the way."""
+    from shapely.geometry import Point
+    P = Point(pt[:2])
+    q = face.exterior.interpolate(face.exterior.project(P))
+    dx, dy = P.x - q.x, P.y - q.y
+    L = math.hypot(dx, dy) or 1.0
+    n, t = (dx / L, dy / L), (-dy / L, dx / L)
+    w, d = sorted(size)[:2] if size else TOILET
+    o = (q.x, q.y)  # rear wall face, behind the toilet's centre
+    eps, step = 0.02, 0.02
+
+    def most(make, top=2.5):
+        best, x = 0.0, step
+        while x <= top and clear.contains(make(x)):
+            best, x = x, x + step
+        return best
+    front0 = max(L, d / 2) + d / 2  # the toilet's front edge; a panorama point can sit nearer the wall than d / 2
+    front = most(lambda x: _rect(o, n, t, (-CHAIR_SPACE[0] / 2, CHAIR_SPACE[0] / 2), (front0, front0 + x)))
+    sides = [most(lambda x, s=s: _rect(o, n, t, sorted((s * w / 2, s * (w / 2 + x))), (eps, CHAIR_SPACE[1])), 2.0)
+             for s in (1, -1)]
+    return {"front": front, "front_zone": _rect(o, n, t, (-CHAIR_SPACE[0] / 2, CHAIR_SPACE[0] / 2),
+                                                (front0, front0 + CHAIR_SPACE[1])),
+            "side": max(sides), "side_zones": [_rect(o, n, t, sorted((s * w / 2, s * (w / 2 + CHAIR_SPACE[0]))),
+                                                     (eps, CHAIR_SPACE[1])) for s in (1, -1)]}
 
 
 def bath_one(ctx, plan, r, inputs, objs, name: str) -> dict:
@@ -69,6 +119,12 @@ def bath_one(ctx, plan, r, inputs, objs, name: str) -> dict:
     poly, face = None, face_polygon(plan, rid)
     from ...geometry._plan import polygons
     poly = polygons(plan).get(rid)
+    things = [o for o in floor_objects(plan, rid, poly) if "toilet" not in o["label"].lower()]
+    clear = face
+    if face is not None and things:
+        import shapely
+        clear = face.difference(shapely.union_all([o["footprint"] for o in things]))
+    door_space_ok = None
     for d in doors:
         cw, bad = clear_width(d), implausible(d)
         res = "measure on site" if bad else judge(cw, inputs.door_width_m)
@@ -79,23 +135,68 @@ def bath_one(ctx, plan, r, inputs, objs, name: str) -> dict:
             f"Opening {fmt(d['width'])}, about {fmt(cw)} clear with the door hung.",
             OpeningAnchor(sid=sid, opening=d["opening"]))
     if face is not None:
-        swing = face
+        swing = clear
         for d in doors:  # the door leaf sweeps a quarter circle as wide as the door; take the whole disc
             if d.get("width") and not implausible(d):
                 swing = swing.difference(Point(d["center"]).buffer(d["width"]))
         rect = rect_fit(poly, *DOOR_SPACE, inside=swing)
+        door_space_ok = rect is not None
         add("door_space", "30 x 48 in clear floor space outside the door swing", None, None, "", _status(rect is not None),
             STD["door_space"], "No 30 x 48 in space clear of the door swing",
             "Even in the empty room there is no 760 x 1220 mm rectangle clear of the door's swing.")
         if rect is not None:
             out["boxes"].append(_box(rect, plan, r, "30 x 48 in clear of the door", "pass"))
-    # toilet: located by the panorama reader, clearance measured by geometry
-    wc = _toilet(objs, rid) if objs is not None else None
+    # which way each door opens: the scan's own field, else the panorama, else "not in the scan"
+    ops = {o["id"]: o for o in plan.get("openings") or []}
+    for d in doors:
+        op = ops.get(d["opening"], {})
+        sw = {"swing": op["swing"], "media": []} if op.get("swing") in ("in", "out") else \
+            look.door_swing(plan, op, rid) if inputs.read_panoramas and op else {"error": "panoramas not read"}
+        way = sw.get("swing")
+        vsrc = GEO if op.get("swing") in ("in", "out") else Source(
+            layer="model", method="vision", confidence=sw.get("confidence", "low"), note="Vision model on the panorama")
+        if way == "in":
+            st = "fail" if door_space_ok is False else "warn"
+            add(f"swing.{d['opening']}", "door opens into the bathroom", None, None, "", st, STD["door_space"],
+                "Door opens into the bathroom",
+                "A door that opens in is blocked by the chair once you are inside" +
+                (", and there is no 30 x 48 in space clear of its swing." if st == "fail" else
+                 "; the 30 x 48 in space clear of its swing is checked separately."),
+                OpeningAnchor(sid=sid, opening=d["opening"]), vsrc, sw.get("media", []))
+        elif way in ("out", "sliding", "none"):
+            add(f"swing.{d['opening']}", {"out": "door opens out of the bathroom", "sliding": "sliding or pocket door",
+                                          "none": "no door leaf"}[way], None, None, "", "pass", STD["door_space"],
+                source=vsrc)
+        else:
+            add(f"swing.{d['opening']}", "which way the door opens: not in the scan", None, None, "", "unknown",
+                STD["door_space"], "Door swing not in the scan",
+                "The scan does not record which way the door opens" +
+                (f" and the panorama could not tell ({sw['error']})." if sw.get("error") else
+                 ", and the panorama could not tell.") + " If it opens in, a chair inside blocks it.",
+                OpeningAnchor(sid=sid, opening=d["opening"]), GEO_LOW)
+    # toilet: measured by the scan when it is a phone scan, else located by the panorama reader
+    wc = scanned_toilet(plan, rid, poly) or (_toilet(objs, rid) if objs is not None else None)
     if face is not None and wc is not None:
         pt = wc["point"][:2]
         media = wc["finding"]["media"]
-        a = rect_fit(poly, *WC_ADA, inside=face, contains=pt)
-        f = next((s for s in WC_FHA if rect_fit(poly, *s, inside=face, contains=pt)), None)
+        wsrc = SCAN_OBJ if wc.get("size") else GEO_LOW
+        a = rect_fit(poly, *WC_ADA, inside=clear, contains=pt)
+        f = next((s for s in WC_FHA if rect_fit(poly, *s, inside=clear, contains=pt)), None)
+        ts = transfer_space(face, clear, pt, wc.get("size"))
+        in_way = lambda zones: sorted({o["label"].lower() for o in things for z in zones if o["footprint"].intersects(z)})
+        fw, sw_ = in_way([ts["front_zone"]]), in_way(ts["side_zones"])
+        add("wc_front", "clear floor in front of the toilet (front transfer), 30 in wide", round(ts["front"], 2),
+            round(CHAIR_SPACE[1], 3), "m", judge_s(ts["front"], CHAIR_SPACE[1]), STD_OBJ,
+            "Not enough room in front of the toilet",
+            f"{fmt(ts['front'])} clear in front of the toilet; a chair needs {fmt(CHAIR_SPACE[1])}"
+            + (f". In the way: {', '.join(fw)}." if fw else "."), PointAnchor(sid=sid, point=tuple(wc["point"])),
+            wsrc, media)
+        add("wc_side", "clear floor beside the toilet (side transfer), 48 in deep", round(ts["side"], 2),
+            round(CHAIR_SPACE[0], 3), "m", judge_s(ts["side"], CHAIR_SPACE[0]), STD_OBJ,
+            "Not enough room beside the toilet",
+            f"{fmt(ts['side'])} clear beside the toilet on the roomier side; a chair needs {fmt(CHAIR_SPACE[0])}"
+            + (f". In the way: {', '.join(sw_)}." if sw_ else "."), PointAnchor(sid=sid, point=tuple(wc["point"])),
+            wsrc, media)
         add("wc_ada", "60 x 56 in clearance around the toilet", None, None, "", _status(a is not None), STD["wc_ada"],
             "No ADA clearance at the toilet", "No 1525 x 1420 mm rectangle around the toilet fits between the walls, "
             "even in the empty room.", PointAnchor(sid=sid, point=tuple(wc["point"])), GEO_LOW, media)
@@ -119,7 +220,7 @@ def bath_one(ctx, plan, r, inputs, objs, name: str) -> dict:
             judge_s(rear, REAR_BAR), STD["bar_rear"], "Short wall for a rear grab bar",
             f"Second free wall near the toilet {fmt(rear)}; a rear bar is {fmt(REAR_BAR)} long.", source=GEO_LOW)
     elif face is not None:
-        a = rect_fit(poly, *WC_ADA, inside=face)
+        a = rect_fit(poly, *WC_ADA, inside=clear)
         add("wc_any", "room could hold a 60 x 56 in toilet clearance somewhere", None, None, "", _status(a is not None),
             STD["wc_ada"], "Room too small for an ADA toilet clearance",
             "No 1525 x 1420 mm rectangle fits anywhere in the empty room. The toilet was not located in a panorama.")
@@ -215,6 +316,11 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                 c.rule.split(": ", 1)[1] for c in checks if c.status == "fail"}))[:200] + "."}[best]
     if err:
         text += " The panoramas could not be read, so the toilet, tub and grab bars are unknown."
+    checks += ([] if has_objects(plan) else [cannot("bath_objects", "bins, vanities, cabinets and baskets: this scan "
+                                                    "records walls only, so every clear space is the most there can "
+                                                    "be, and one bin can make an accessible stall unusable")]) + \
+        [cannot("toilet_height", "toilet seat height and whether the walls can hold grab bars"),
+         cannot("ada", "whether the bathroom is 'accessible' as claimed: the ADA has no certification or inspection")]
     n_ok = sum(s == "pass" for s in scores)
     turn = [c.measured for c in checks if c.id.endswith(".turn") and c.measured is not None]
     return ToolResult(scope=scope, verdict=Verdict(status=best, text=text), checks=checks, findings=findings,
