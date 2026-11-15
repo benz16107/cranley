@@ -64,3 +64,12 @@ def test_a_detached_garage_thirty_feet_out():
     c = {c.id: c for c in r.checks}["outbuilding"]
     assert c.rule.startswith("Detached building 9 m from the house") and c.status in ("warn", "fail")
     assert "The detached building gets about" in r.verdict.text
+
+
+def test_outbuilding_on_a_house_whose_rooms_do_not_touch():
+    p = make_home("apart")
+    k = next(r for r in p["rooms"] if r["id"] == "K")
+    k["polygon"] = [[20, 6], [24, 6], [24, 9], [20, 9]]   # a room off on its own: the house outline is two pieces
+    r = run_tool("wifi_coverage", {"scan": "apart", "router_room": "H", "outbuilding_m": 9.1},
+                 ToolContext(plans=lambda sid: p))
+    assert any(c.id == "outbuilding" for c in r.checks)
