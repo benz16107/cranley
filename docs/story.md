@@ -31,7 +31,9 @@ Answer these in the thread; the defaults below go in if there is no answer by ab
    - A. "Tell it what you need from a building. An agent builds the tools, measures the real thing inside and out, and shows its work."
    - B. "Listings say 'accessible' and 'two-car garage'. Cranley measures it: an agent that checks real buildings, inside and out, before you commit."
    - C. "One place where an agent assembles the tools your need requires, from the city map down to a measured doorway, and every number comes from a calculation."
-   Default: **B** (problem first, names the product, says what it does).
+   - D. "Ask anything about a building. Get a measured answer." (the cranley.app headline since 10:19 pm)
+   Default: **B** on Devpost for now (problem first, names the product, says what it does). D matches the site; switching
+   Devpost to it is one update if Ben prefers the two to agree.
 
 3. **Main HackPrinceton track.** The form allows exactly one of Healthcare, Sustainability, Business/Enterprise,
    Entertainment/Media, Education, Science & Discovery. Default: **Business/Enterprise** (the product is a working
