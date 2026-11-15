@@ -27,6 +27,7 @@ For the agent, the tool is described as: Pre-incident plan (NFPA 1620 sections) 
 | `read_panoramas` | boolean |  | `true` | Send unread panoramas to the vision model for utilities, protection systems and hazards. |
 | `max_scans_read` | integer |  | `2` | At most this many unread scans go to the vision model. Range: at least 0, at most 12. |
 | `min_width_m` | number (m) |  | `0.813` | Clear width an exit door needs. Saved preference `access.door_width_m`. Range: more than 0.3, at most 3.0. |
+| `collections` | boolean |  | `false` | The building holds collections (a library, museum or archive): add the supplies that protect them to the walk-around. Saved preference `preplan.collections`. |
 
 An input that nothing fills (the selected building, a saved preference, a persona's preset) becomes a question to the person. The agent asks only for those.
 
@@ -79,12 +80,12 @@ The tool sets the label for each value. A model never does. The tools give a sca
 
 This section was written by running the tool when the docs were built, on a hand-made RoomPlan export (no real place was scanned), with no sponsor keys and the network switched off.
 
-<p class="verdict"><span class="st unknown">Unknown</span> Pre-plan for Test cafe (made up): 5 lines filled from the data, 0 hazards or obstacles to note, 7 items to confirm on the walk-around.</p>
+<p class="verdict"><span class="st unknown">Unknown</span> Pre-plan for Test cafe (made up): 5 lines filled from the data, 0 hazards or obstacles to note, 9 items to confirm on the walk-around.</p>
 
 | Value | Result | Where it came from | Reliability |
 |---|---|---|---|
 | Lines filled | <span class="num">5</span> | Measured from the scan | high |
-| To confirm on site | <span class="num">7</span> | Looked up in a model | low |
+| To confirm on site | <span class="num">9</span> | Looked up in a model | low |
 | Hazards noted | <span class="num">0</span> | Seen in a model | medium |
 | Hose stretch inside | <span class="num">14.9 m</span> | Measured from the scan | high |
 
@@ -93,11 +94,11 @@ This section was written by running the tool when the docs were built, on a hand
 | §5.2 Construction: lines with data | <span class="num">1</span> | <span class="num">3 lines</span> | <span class="st warn">warn</span> |
 | §5.3 Building systems and utilities: lines with data | <span class="num">0</span> | <span class="num">2 lines</span> | <span class="st unknown">unknown</span> |
 | §5.4 Site and access: lines with data | <span class="num">0</span> | <span class="num">1 lines</span> | <span class="st unknown">unknown</span> |
-| §6 Occupants and means of egress: lines with data | <span class="num">4</span> | <span class="num">4 lines</span> | <span class="st pass">pass</span> |
+| §6 Occupants and means of egress: lines with data | <span class="num">4</span> | <span class="num">5 lines</span> | <span class="st warn">warn</span> |
 | §7 Water supply and protection systems: lines with data | <span class="num">0</span> | <span class="num">2 lines</span> | <span class="st unknown">unknown</span> |
-| §8 Hazards: lines with data | <span class="num">0</span> | <span class="num">0 lines</span> | <span class="st unknown">unknown</span> |
+| §8 Hazards: lines with data | <span class="num">0</span> | <span class="num">1 lines</span> | <span class="st unknown">unknown</span> |
 
-Findings: 6 pass, 7 unknown.
+Findings: 6 pass, 9 unknown.
 
 What it reported while it ran:
 
