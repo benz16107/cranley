@@ -27,6 +27,10 @@ Code: `server/threshold/photon/` (bridge), `server/threshold/api/photon.py` (pri
 | (nothing) | a National Weather Service alert at that building is texted once, with what their own flood check said | send into an open thread |
 | A phone call to Cranley's number | an ElevenLabs agent over SIP runs the same checks by voice; when the call ends, the plan, the lines and the link arrive in their iMessage thread | Voice on a Photon number, SIP profile, `call.ended` |
 
+The voice agent was recorded in a real conversation over ElevenLabs' web call (the tools answered the F-150 question
+in about a minute; `get_answer` long-polls up to 50 s so the agent asks once instead of looping). The Photon number is
+bought and wired (Photon Voice profile, inbound over TLS to ElevenLabs' SIP endpoint, number imported as a SIP trunk).
+
 ## Rules it keeps
 
 - **Numbers never pass through model text.** Every line Cranley sends is built from the tool result's verdict,
