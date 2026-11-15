@@ -1,4 +1,4 @@
-Code: [public repo link goes here]
+Code: https://github.com/benz16107/cranley
 Video (2:00): [link goes here]
 
 ## Measure the building before you commit
@@ -52,6 +52,7 @@ The same workspace works for 50 kinds of user. A Houston homeowner watches Hurri
 - **Workspace.** One document per session, changed only through typed operations by the agent and the person alike, logged with who, when and which run, with undo.
 - **Databases.** MongoDB Atlas for people's work (workspaces, op log, change streams, Atlas Search, Vector Search, `$rankFusion`, time series, TTL share links). Tiger Cloud for building facts (hypertables, compression, continuous aggregates, PostGIS, pgvectorscale, BM25, pgai vectorizer, jobs, forks).
 - **Web (React 19, Vite, TypeScript).** MapLibre and deck.gl for the map; three.js, React Three Fiber and Spark for the dollhouse, panoramas, meshes and splats. A shared core with the App look on top. Base UI, cmdk, Sonner, Vaul, NumberFlow and react-resizable-panels.
+- **Messaging (Photon 2.0).** A bridge turns iMessage events into agent turns: reply threads map to investigations, attachments to tools, and every outgoing line is built from the tool result. One signature-checked relay is the only public endpoint; an ElevenLabs agent over SIP answers calls with the same tools.
 - **Phone.** A companion web app paired by QR (GPS, camera, mic, barometer, tilt), and a native SwiftUI app with RoomPlan, ARKit LiDAR measuring and the barometer.
 - **Hardware.** Interior splats trained with Brush on an AMD mini PC's integrated Radeon 780M through Vulkan, no NVIDIA, 16 to 23 minutes per building. The same machine runs the API, CFAST and Ollama.
 
@@ -91,4 +92,4 @@ The same workspace works for 50 kinds of user. A Houston homeowner watches Hurri
 
 ## Built with and credits
 
-Our code was written during the event. Libraries and tools we used: FastAPI, Pydantic, Shapely, NumPy, LangChain deepagents, LangGraph, LangSmith, langchain-mcp-adapters, MongoDB MCP server, pymongo, pg8000, pgai, fastembed, Ollama (nomic-embed-text), Anthropic Claude, React, Vite, three.js, React Three Fiber, drei, Spark, MapLibre GL, deck.gl, Base UI, cmdk, Sonner, Vaul, NumberFlow, react-resizable-panels, zustand, Brush (splat training), NIST CFAST (fire model), Apple RoomPlan and ARKit, OpenStreetMap, USGS high-water marks. Data from CoStar, Matterport and Vexcel under the event's terms; none of it is in the repository.
+Our code was written during the event. Libraries and tools we used: FastAPI, Pydantic, Shapely, NumPy, LangChain deepagents, LangGraph, LangSmith, langchain-mcp-adapters, MongoDB MCP server, pymongo, pg8000, pgai, fastembed, Ollama (nomic-embed-text), Anthropic Claude, React, Vite, three.js, React Three Fiber, drei, Spark, MapLibre GL, deck.gl, Base UI, cmdk, Sonner, Vaul, NumberFlow, react-resizable-panels, zustand, Brush (splat training), NIST CFAST (fire model), Photon 2.0, ElevenLabs, Apple RoomPlan and ARKit, OpenStreetMap, USGS high-water marks. Data from CoStar, Matterport and Vexcel under the event's terms; none of it is in the repository.

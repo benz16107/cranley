@@ -128,7 +128,7 @@ All code here was written during the event. We built on: FastAPI, Pydantic, Shap
 LangGraph, LangSmith, langchain-mcp-adapters, the MongoDB MCP server, pymongo, pg8000, pgai, fastembed, Ollama, React,
 Vite, three.js, React Three Fiber, drei, Spark, MapLibre GL, deck.gl, Base UI, cmdk, Sonner, Vaul, NumberFlow,
 react-resizable-panels, zustand, Brush (Apache-2.0, run as an external binary), NIST CFAST (public domain, run as an
-external binary), Apple RoomPlan and ARKit, OpenStreetMap (ODbL) and USGS high-water marks.
+external binary), Apple RoomPlan and ARKit, Photon 2.0, ElevenLabs, OpenStreetMap (ODbL) and USGS high-water marks.
 
 ## Licence
 
