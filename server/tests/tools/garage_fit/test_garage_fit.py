@@ -14,14 +14,14 @@ from shapely.geometry import Polygon
 from threshold.tools import ToolContext, run_tool
 
 
-def garage_plan(sid="g", label="Garage", door_w=4.88, door_h=2.13, objects=(), size=6.2):
+def garage_plan(sid="g", label="Garage", door_w=4.88, door_h=2.13, objects=(), size=6.2, depth=None):
     walls, openings = [], []
 
     def wall(wid, a, b, rooms):
         walls.append({"id": wid, "floor": "f1", "a": list(a), "b": list(b), "type": "wall", "thickness": 0.1,
                       "length": math.dist(a, b), "rooms": list(rooms), "openings": []})
 
-    y0, y1 = -2.2, -2.2 + size
+    y0, y1 = -2.2, -2.2 + (depth or size)
     wall("gs", (0, y0), (size, y0), ["G"]); wall("ge", (size, y0), (size, y1), ["G"]); wall("gw", (0, y1), (0, y0), ["G"])
     wall("gh", (0, y1), (size, y1), ["G", "H"]); wall("hn", (0, y1 + 3), (size, y1 + 3), ["H"])
     wall("he", (size, y1), (size, y1 + 3), ["H"]); wall("hw", (0, y1 + 3), (0, y1), ["H"])
@@ -165,3 +165,41 @@ def test_parked_vehicles_name_a_model_that_ships():
     shipped = Path(__file__).parents[4] / "web/public/models"
     named = {model_of(v) for v in VEHICLES} | set(THING_MODEL.values()) | set(MODELS.values())
     assert not [m for m in named - {None} if not (shipped / f"{m}.glb").is_file()]
+
+
+def _back_wall_fittings(size=6.2):
+    """Shelving and fittings 0.3 m deep along the whole back wall, as a phone scan would measure them."""
+    y_face = -2.2 + size - 0.05
+    return [{"id": "x0", "floor": "f1", "room": "G", "label": "storage", "category": "storage",
+             "center": [size / 2, y_face - 0.15, 0.9], "size": [size - 0.2, 0.3, 1.8], "yaw_deg": 0}]
+
+
+def test_depth_is_its_own_check_and_back_wall_fittings_count():
+    plain = run(garage_plan("f150"), vehicle="ford_f150", count=1)        # 6.1 m (20 ft) inside
+    c = check(plain, "depth")
+    assert c.status == "warn" and abs(c.measured - 6.1) < 0.01               # 5.89 m truck: no room to walk round
+    assert any(x.id == "cannot.garage_depth" for x in plain.checks)          # a wall-graph scan cannot see fittings
+    full = run(garage_plan("f150b", objects=_back_wall_fittings()), vehicle="ford_f150", count=1)
+    c = check(full, "depth")
+    assert c.status == "fail" and abs(c.measured - 5.8) < 0.01 and "clear of 1 object" in c.rule
+    assert full.verdict.status == "fail" and not any(x.id == "cannot.garage_depth" for x in full.checks)
+
+
+def test_a_boat_garage_by_storage_length_and_door_opening():
+    # built around the boat: 24 x 25 ft inside, 9.5 ft ceiling, an 18 x 8 ft door
+    p = garage_plan("boat", door_w=18 * 0.3048, door_h=8 * 0.3048, size=24 * 0.3048 + 0.1, depth=25 * 0.3048 + 0.1)
+    next(r for r in p["rooms"] if r["id"] == "G")["height"] = 9.5 * 0.3048
+    overall = run(p, vehicle="boat_20ft", count=1)
+    assert check(overall, "depth").status == "warn"                            # 7.0 m overall
+    assert check(overall, "door_height").status == "warn"                      # 2.40 m boat under a 2.44 m opening
+    assert check(overall, "ceiling").status == "pass"                          # the ceiling is not the limit
+    assert "tight: little room to walk round" in overall.verdict.text
+    stored = run(p, vehicle="boat_20ft", count=1, storage_length_m=6.4)
+    assert check(stored, "depth").status == "pass"
+    assert any(a.id == "garage.storage_length_m" and a.value == 6.4 for a in stored.assumptions)
+
+
+def test_an_8_ft_trailer_does_not_clear_an_8_ft_door():
+    r = run(garage_plan("trailer", door_w=2.44), vehicle="utility_trailer", width_m=2.44, count=1)
+    c = check(r, "door_width")
+    assert c.status == "fail" and "fenders and side lights" in c.rule
