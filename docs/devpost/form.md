@@ -1,5 +1,7 @@
 # Devpost form: answers ready for Ben
 
+**SUBMITTED 2026-11-15 3:12 am ET** (submission 1303844, status Submitted) with Ben's go via the lead (~3:20 am, "yeah you can submit it"), using the answers below, Discord `bennyboy0406 - Ben Zhou`, and opt-ins CoStar 109286, Amazon 109287, Peri 109288, Photon 109283, MLH Tiger Data 109145, MLH MongoDB Atlas 109148 and LangChain deepagents 109306 (LangChain appeared on Devpost's prize list after the first read). Video and the recut interview links are added later with `update_project` / a re-submit.
+
 Hackathon `hackprinceton-fall-26` (id 31990). Deadline 8:00 am ET Sunday Nov 15 (Devpost closes 8:30 am; the rules say
 8:00, so treat 8:00 as the stop). Judging 9:30 am to 2 pm, 2-minute in-person demo required even with a video. Video
 optional, at most 2 minutes. Opt into every sponsor prize on Devpost before the deadline; an unticked prize is not judged.
@@ -27,7 +29,7 @@ description, tagline, links and built-with are filled in through the Devpost MCP
 | GenAI used, dropdown (29744) | Anthropic, ElevenLabs |
 | Did you implement a generative AI model or API (29745) | see below |
 | Gemini project number (29746) | N/A |
-| Discord usernames and names (29747) | ____________ - Ben Zhou (Ben fills in his Discord username) |
+| Discord usernames and names (29747) | bennyboy0406 - Ben Zhou |
 | Main HackPrinceton track (29748) | Business/Enterprise |
 | Rookie fraction (29749) | Less than 2/3 rookies |
 | Rules checkbox (29750) | Ben ticks |
@@ -45,7 +47,7 @@ would mean one rookie out of one, which is wrong; "Less than 2/3 rookies" is the
 - [Photon] Build a Messaging Agent using Photon 2.0 (winner, runner-up, Best Voice Agent)
 - [MLH] Best Use of Tiger Data
 - [MLH] Best Use of MongoDB Atlas
-- LangChain "Best use of deepagents" is not on Devpost's prize list: tell the LangChain judge at the table.
+- [LangChain] Best use of deepagents (added to Devpost's prize list during the night; opted in)
 
 Not entered: Gemini, Solana, Vultr, SpaceXSI, GoDaddy Registry, DEV Writing, Nessie, Arlequin, Physical AI.
 ChatOverflow needs no submission (it ranks connected agents).
@@ -78,7 +80,7 @@ queue refused answers until their next message. Tapbacks and polls are not avail
 
 **ElevenLabs.** We set up a voice agent that calls the same tools over SIP, with a script that creates the agent and its
 tools. Tool calling worked well with short spoken answers. Putting it on a phone number needs a Photon voice number.
-(Ben: if the number went live, add one sentence saying so; otherwise leave this as is.)
+
 
 **Vercel.** The Astro site and docs deploy with one command, with previews behind a login and production on our own
 domain. Pointing cranley.app at Vercel took one DNS change.
