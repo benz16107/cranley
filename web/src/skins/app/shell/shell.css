@@ -35,9 +35,23 @@
   .side .ws:hover, .side .who:hover, .side .nav button:not([aria-current='page']):hover { background: var(--pane-2); color: var(--ink); }
 }
 @media (pointer: coarse) { .side .nav button { height: 44px; } }
+.side .head { display: flex; align-items: center; gap: 2px; flex: none; }
+.side .head .ws { flex: 1; min-width: 0; width: auto; }
+/* Hidden is the third state. After a press of its button the pane's width travels: in over the look's drawer time,
+   out in 80% of it. The sidebar keeps its own width meanwhile, so its words are uncovered, not squeezed. From the
+   keyboard nothing travels, and reduced motion (tokens.css) brings both times to nothing. */
+.sidepane { overflow: hidden; }
+.sidepane.in { animation: side-in var(--dur-3) var(--ease-out); }
+.sidepane.out { animation: side-out calc(var(--dur-3) * 0.8) var(--ease-out) forwards; }
+.sidepane:is(.in, .out) > .side { min-width: var(--pane-w); }
+@keyframes side-in { from { max-width: 0; } to { max-width: var(--pane-w); } }
+@keyframes side-out { from { max-width: var(--pane-w); } to { max-width: 0; } }
+.top[data-side='hidden'] { padding-left: var(--s-2); }
 .side[data-rail] { padding: 8px 6px; align-items: stretch; }
 .side[data-rail] .grow, .side[data-rail] .count, .side[data-rail] .ws > svg { display: none; }
 .side[data-rail] .ws { padding: 0; justify-content: center; }
+.side[data-rail] .head { flex-direction: column; gap: 4px; }
+.side[data-rail] .head .ws { flex: none; width: 100%; }
 .side[data-rail] .nav button { justify-content: center; padding: 0; height: 32px; }
 .side[data-rail] .acct { flex-direction: column; }
 .side[data-rail] .who { padding: 0; justify-content: center; flex: none; width: 100%; }

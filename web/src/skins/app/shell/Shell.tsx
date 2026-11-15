@@ -28,7 +28,7 @@ import { useScheme } from './theme.ts'
 import { useIsPhone, useUi } from './store.ts'
 
 export const SHORTCUTS: [keys: string, what: string][] = [
-  ['Ctrl K', 'Search and commands'], ['/', 'Search'], [']', 'Show or hide the agent panel'], ['[', 'Narrow or widen the sidebar'],
+  ['Ctrl K', 'Search and commands'], ['/', 'Search'], [']', 'Show or hide the agent panel'], ['Ctrl B', 'Show or hide the sidebar'], ['[', 'Narrow or widen the sidebar'],
   ['G then H', 'Home'], ['G then E', 'Explore'], ['G then I', 'Investigations'], ['G then B', 'Saved buildings'], ['G then N', 'Insights'], ['G then T', 'Tools'], ['G then S', 'Settings'],
   ['C', 'On Home: write a new brief'], ['1 2 3 4', 'On a building: 3D, plan, inside, drone'], ['K', 'On a building: keep or stop keeping it'], ['Ctrl Z', 'Undo my last change'], ['Esc', 'Close what is open, or clear the selected building'], ['?', 'This list'],
 ]
@@ -53,7 +53,7 @@ export function Shell() {
   const place = usePlace()
   const scheme = useScheme()
   const phone = useIsPhone()
-  const { run, rail, nav, setRun } = useUi()
+  const { run, rail, hidden, sliding, nav, setRun } = useUi()
   const undo = useWorkspace((s) => s.undo)
   useEffect(() => { document.documentElement.dataset.scheme = scheme }, [scheme])
   const load = useBuildings((s) => s.load)
@@ -81,6 +81,7 @@ export function Shell() {
     const key = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey, k = e.key.toLowerCase(), ui = useUi.getState()
       if (mod && k === 'k') { e.preventDefault(); useUi.setState({ menu: ui.menu ? false : 'all' }); return }
+      if (mod && k === 'b' && !e.shiftKey && !e.altKey) { e.preventDefault(); ui.toggleSide(); return } // from the keyboard: no slide
       if (mod && k === 'z' && !typing(e)) { e.preventDefault(); undo(); return }
       if (mod || e.altKey || typing(e) || ui.menu) return
       if (e.key === 'Escape' && !e.defaultPrevented && !document.querySelector('[data-open], [role="dialog"], [role="menu"]') && currentRoute().path === '/map' && currentRoute().q.has('b')) { setQuery({ b: null }, false); return }
@@ -88,13 +89,14 @@ export function Shell() {
       if (k === 'g') { g = performance.now(); return }
       if (e.key === '/') { e.preventDefault(); useUi.setState({ menu: 'all' }) }
       else if (e.key === ']') ui.setRun(!ui.run)
-      else if (e.key === '[') ui.setRail(!ui.rail)
+      else if (e.key === '[') { if (ui.hidden) ui.setHidden(false); else ui.setRail(!ui.rail) } // hidden: the key brings it back as it was
       else if (e.key === '?') useUi.setState({ keys: true })
     }
     window.addEventListener('keydown', key)
     return () => window.removeEventListener('keydown', key)
   }, [undo])
 
+  const sidepane = sliding ? `sidepane ${sliding}` : 'sidepane'
   const page =
     place.page === 'home' ? <Home /> : place.page === 'explore' || (place.page === 'building' && place.sid && !phone) ? <Explore sid={place.page === 'building' ? place.sid : null} />
     : place.page === 'building' && place.sid ? <Building sid={place.sid} key={place.sid} />
@@ -105,10 +107,12 @@ export function Shell() {
     <Tooltip.Provider delay={450} closeDelay={0}>
       <div className="app" data-page={place.page} data-rail={rail || undefined} data-run={(run && !phone) || undefined}>
         <a className="skip" href="#main">Skip to the page</a>
-        {/* Sidebar, page and agent panel resize by the edges between them. The narrow sidebar is a fixed 52 px. */}
+        {/* Sidebar, page and agent panel resize by the edges between them. The sidebar has three states: full, a fixed
+            52 px of icons, and hidden. Dragging the full one's edge past half its smallest width hides it. */}
         <Split className="frame" off={phone}>
-          {!phone && (rail ? <Pane key="rail" id="rail" size={52} fixed><Sidebar /></Pane> : <Pane key="side" id="side" size={224} min={184} max={400}><Sidebar /></Pane>)}
-          {!phone && !rail && <Edge key="side-edge" of="side" label="Resize the sidebar" />}
+          {!phone && !hidden && (rail ? <Pane key="rail" id="rail" size={52} fixed className={sidepane}><Sidebar /></Pane>
+            : <Pane key="side" id="side" size={224} min={184} max={400} className={sidepane} onCollapse={() => { if (!useUi.getState().sliding) useUi.getState().setHidden(true) }}><Sidebar /></Pane>)}
+          {!phone && !hidden && !rail && <Edge key="side-edge" of="side" label="Resize the sidebar, or drag it shut" />}
           <Fill key="work" id="work" min={360} className="workpane">
             <FirstRun />
             <Topbar />

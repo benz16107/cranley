@@ -35,7 +35,7 @@ export function Settings() {
   const id = useWorkspace((s) => s.doc.id)
   const live = useCatalog((s) => s.live), shared = useCatalog((s) => s.shared), tools = useToolCatalog()
   const seen = useSeen((s) => Object.keys(s.all).length)
-  const { rail, setRail } = useUi()
+  const { rail, setRail, hidden, setHidden } = useUi()
   const known = useKnown()
   // layout choices share the prefix of the list of investigations: resetting the layout leaves that list alone
   const LIST = 'threshold.app.investigations'
@@ -46,7 +46,8 @@ export function Settings() {
         <header><h2>Appearance</h2></header>
         <div className="set"><div><b>Colour scheme</b><p>The 3D view reloads when this changes.</p></div>
           <Seg label="Colour scheme" value={theme} onChange={(t: Theme) => setTheme(t)} options={[{ id: 'system', label: 'System', icon: 'monitor' }, { id: 'light', label: 'Light', icon: 'sun' }, { id: 'dark', label: 'Dark', icon: 'moon' }]} /></div>
-        <div className="set"><div><b>Narrow sidebar</b><p>Icons only.</p></div><Switch.Root className="switch" checked={rail} onCheckedChange={setRail} aria-label="Narrow sidebar"><Switch.Thumb className="knob" /></Switch.Root></div>
+        <div className="set"><div><b>Sidebar</b><p>Ctrl B hides it or brings it back. Dragging its edge shut hides it too.</p></div>
+          <Seg label="Sidebar" value={hidden ? 'hidden' : rail ? 'icons' : 'full'} onChange={(v: 'full' | 'icons' | 'hidden') => { setHidden(v === 'hidden'); if (v !== 'hidden') setRail(v === 'icons') }} options={[{ id: 'full', label: 'Full' }, { id: 'icons', label: 'Icons' }, { id: 'hidden', label: 'Hidden' }]} /></div>
       </section>
       <Controls />
       <section className="card">
@@ -75,7 +76,7 @@ export function Settings() {
         </div>
         <div className="set"><div><b>Open investigation</b><p className="row"><span className="num">{id || 'none'}</span>{id && <Copy text={id} label="Copy the id" />}</p></div></div>
         <div className="set"><div><b>Investigations listed in this browser</b><p>{seen} listed. Clearing the list does not delete them from the server.</p></div><button className="btn" disabled={!seen} onClick={() => clear(LIST)}>Clear the list</button></div>
-        <div className="set"><div><b>Layout choices</b><p>Panel sizes, table columns and which panels are open. Drag a panel’s edge to resize it; double-click to put it back.</p></div><button className="btn" onClick={() => clear('threshold.app.')}>Reset</button></div>
+        <div className="set"><div><b>Layout choices</b><p>Panel sizes, table columns, the sidebar and which panels are open. Drag a panel’s edge to resize it; double-click to put it back.</p></div><button className="btn" onClick={() => clear('threshold.app.')}>Reset</button></div>
       </section>
       <section className="card">
         <header><h2>Keyboard</h2></header>

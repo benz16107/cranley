@@ -69,6 +69,10 @@ a tool a person works in all day. Tokens are in `tokens.css`, shared classes in 
     (arrow keys, Home, End). A pane keeps its pixels when the window changes, is remembered per browser under
     `threshold.app.size.<id>`, and goes back to its designed size on a double click. A new side panel is a `<Pane>`
     in a `<Split>`, never a fixed grid column. On a phone a split is off and nothing drags.
+    The sidebar has three states: full, icons (a fixed 52 px) and hidden. The button in its header and Ctrl B hide
+    it, the button at the left of the top bar brings it back, and dragging its edge past half its smallest width
+    hides it too (`<Pane onCollapse>`). A press with a pointer slides the width in 200 ms and out in 160; the
+    keyboard, a drag and reduced motion do not slide. `[` still swaps full and icons. Remembered per browser.
 14. **One thing first on every screen, the rest behind a fold.** A building leads with its verdict: a status beside
     its name, and a Summary tab that says the worst result in the tool's own words, then what to do next
     (`lib/verdict.ts`). Above the building there is one row of tools: the view, one button for how it looks, Play, and
