@@ -1,6 +1,6 @@
 # Devpost form: answers ready for Ben
 
-**SUBMITTED 2026-11-15 3:12 am ET** (submission 1303844, status Submitted) with Ben's go via the lead (~3:20 am, "yeah you can submit it"), using the answers below, Discord `bennyboy0406 - Ben Zhou`, and opt-ins CoStar 109286, Amazon 109287, Peri 109288, Photon 109283, MLH Tiger Data 109145, MLH MongoDB Atlas 109148 and LangChain deepagents 109306 (LangChain appeared on Devpost's prize list after the first read). Video and the recut interview links are added later with `update_project` / a re-submit.
+**SUBMITTED 2026-11-15 3:12 am ET** (submission 1303844, status Submitted) with Ben's go via the lead (~3:20 am, "yeah you can submit it"), using the answers below, Discord `bennyboy0406 - Ben Zhou`, and opt-ins CoStar 109286, Amazon 109287, Peri 109288, Photon 109283, MLH Tiger Data 109145, MLH MongoDB Atlas 109148 and LangChain deepagents 109306 (LangChain appeared on Devpost's prize list after the first read). Video and the recut interview links are added later with `update_project` / a re-submit. **Re-submitted 4:06 am** with Ben's yes via the lead: only the technology feedback answer (29743) changed (ElevenLabs paragraph, the voice line is live); the same seven opt-ins passed; every other answer and the entry video left as saved.
 
 Hackathon `hackprinceton-fall-26` (id 31990). Deadline 8:00 am ET Sunday Nov 15 (Devpost closes 8:30 am; the rules say
 8:00, so treat 8:00 as the stop). Judging 9:30 am to 2 pm, 2-minute in-person demo required even with a video. Video
@@ -79,7 +79,8 @@ mapped well to investigations. On the free shared line a person has to text firs
 queue refused answers until their next message. Tapbacks and polls are not available on the shared iMessage line yet.
 
 **ElevenLabs.** We set up a voice agent that calls the same tools over SIP, with a script that creates the agent and its
-tools. Tool calling worked well with short spoken answers. Putting it on a phone number needs a Photon voice number.
+tools. Tool calling worked well with short spoken answers. It now answers on a Photon voice number: on the first real call
+it ran the garage check, read the measured answer aloud, and the plan picture and the answer arrived by iMessage after the call.
 
 
 **Vercel.** The Astro site and docs deploy with one command, with previews behind a login and production on our own
