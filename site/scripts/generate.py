@@ -687,8 +687,45 @@ def deep(tools: dict, examples: dict) -> dict:
     }
     return {"matrix": matrix, "by_need": dict(by_need), "sponsors": sponsor_features(story), "layer_use": layer_use(tools), "numbers": numbers, "outcomes": dict(collections.Counter(m["outcome"] for m in matrix)),
             "said": dict(said), "said_total": sum(said.values()), "by_tool": [{"slug": i.replace("_", "-"), "title": tools[i].manifest.title, "n": n} for i, n in by_tool.most_common(10)],
-            "quotes": quotes, "skipped": skipped, "funnel": {**counts, "replies": replied, "declines": declined, "interviews": len(re.findall(r"^## A call with", fb, re.M))},
+            "quotes": quotes, "skipped": skipped, "changed": sorted(by_tool), "funnel": {**counts, "replies": replied, "declines": declined, "interviews": len(re.findall(r"^## A call with", fb, re.M))},
             "garage": {"bands": bands, "vehicles": vehicles}}
+
+
+# ---------- the tool catalog (/tools/) ----------
+RETURNS = {"MetricRow": "measurements", "CheckList": "checks", "FloorPlanMini": "the plan, marked", "MiniChart": "a chart",
+           "RankedTable": "a ranked table across scans", "EvidenceStrip": "photos as evidence", "AssumptionChips": "the assumptions it used",
+           "Controls": "values to try", "ActionBar": "next actions", "Note": "a note"}
+DATA_KIND = {"matterport": "scan", "vexcel": "aerial", "costar": "costar", "phone": "phone", "public": "public", "osm": "public",
+             "threshold": "facts", "drone": "drone"}
+
+
+def tool_catalog(tools: dict, examples: dict, by_group: dict, approve, changed: set) -> list[dict]:
+    """One entry per tool for the catalog page, all of it read from the manifest and from the tool's run on the made-up
+    test scan: who it is for, what it reads, what it takes and returns, and the reliability labels that run carried."""
+    group_of = {pid: g for g, ids in by_group.items() for pid in ids}
+    out = []
+    for tid, t in tools.items():
+        m, ex = t.manifest, examples[tid]
+        props = m.model_dump()["inputs"].get("properties", {})
+        # a layer the App look has no words for is named from its id: "public.census_acs" reads "Census acs (public data)"
+        words = lambda l: LAYER.get(l) or (l.split(".", 1)[1].replace("_", " ").replace(".", " ").capitalize()
+                                           + {"public": " (public data)", "phone": " (phone)", "osm": " (OpenStreetMap)", "drone": " (drone)"}.get(l.split(".")[0], ""))
+        required = list(dict.fromkeys(words(r.layer) for r in m.requires if r.need == "required"))
+        optional = [l for l in dict.fromkeys(words(r.layer) for r in m.requires if r.need != "required") if l not in required]
+        data = sorted({DATA_KIND[r.layer.split(".")[0]] for r in m.requires}) or ["none"]
+        sponsor = sorted(({"costar"} if {"scan", "aerial", "costar"} & set(data) else set()) | ({"tiger"} if "facts" in data else set())
+                         | ({"langchain"} if tid in approve else set()))
+        out.append({
+            "id": tid, "slug": tid.replace("_", "-"), "title": m.title, "summary": m.summary, "asks": (m.examples or [None])[0],
+            "inputs": [{"key": k, "asked": bool(p.get("x-ask"))} for k, p in props.items()], "examples": list(m.examples or []),
+            "returns": [RETURNS[b] for b in m.blocks if b in RETURNS],
+            "required": required, "optional": optional, "data": data, "sponsor": sponsor,
+            "who": list(dict.fromkeys(group_of[p] for p in m.personas if p in group_of)) or ["Anyone"],
+            "slow": m.annotations.cost == "slow", "approval": tid in approve, "writes": not m.annotations.read_only,
+            "outcome": ex["state"] if ex["state"] != "ran" else ex["result"]["verdict"]["status"], "changed": tid in changed,
+            "labels": list(dict.fromkeys(f"{source_words(s)}, {s['confidence']}" for s in sources_of(ex)))[:3]})
+    assert len(out) == len(tools) and all(e["who"] and e["data"] for e in out)
+    return out
 
 
 # ---------- the hero drawing ----------
@@ -820,7 +857,9 @@ def main() -> None:
         "home": drawing(HOME, tools, pref),
     }
     write(SITE / "src/generated/site.json", json.dumps(site, indent=1))
-    write(SITE / "src/generated/deep.json", json.dumps(deep(tools, examples), indent=1))
+    numbers = deep(tools, examples)
+    write(SITE / "src/generated/deep.json", json.dumps(numbers, indent=1))
+    write(SITE / "src/generated/catalog.json", json.dumps(tool_catalog(tools, examples, by_group, APPROVE, set(numbers["changed"])), indent=1))
 
     # self-check: the numbers the pages print, and nothing that looks like a real scan
     assert len(tools) >= 70 and len(people) >= 40 and n_ops >= 80, (len(tools), len(people), n_ops)

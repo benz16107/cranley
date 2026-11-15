@@ -55,6 +55,8 @@ code, .num { font-family: var(--font-mono); font-stretch: 80%; font-size: 0.86em
   .top nav { gap: var(--s-4); margin-left: 0; flex: 1; justify-content: flex-end; }
 }
 @media (max-width: 520px) { .top .btn { display: none; } } /* GitHub is in the footer; on a phone the three links need the room */
+/* four links on a narrow phone: closer together and a size down, so none is cut off at 320 px */
+@media (max-width: 400px) { .top nav { gap: 10px; } .top nav a { font-size: 0.8125rem; } .brand { font-size: 0.9375rem; gap: 6px; } .brand svg { width: 16px; height: 16px; } }
 
 /* ---------- sections ---------- */
 .sec { padding-block: clamp(56px, 8vw, 112px); }

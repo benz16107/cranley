@@ -17,6 +17,7 @@ const c = site.counts
 const md = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/`([^`]+)`/g, "<code>$1</code>")
 import Visits from "./Visits.astro"
 import Asked from "./Asked.astro"
+import ToolsCallout from "./ToolsCallout.astro"
 import Slot from "../Slot.astro"
 import Proof from "../Proof.astro"
 const n = deep.numbers.amazon
@@ -82,6 +83,7 @@ const flow = [
 
   <Sec id="focus" title="Every focus area Amazon named, and where it is" sub={`This track names no Amazon product, and we used none. It names ${am.focus.length} focus areas. Each is below with what a judge sees and where to find it in the app.`}>
     <Cards items={focus} />
+    <ToolsCallout param="phone=answers" what="tools that answer from a phone scan of your own home" />
   </Sec>
 
   <Sec id="adaptive" title="Say it once" sub={'Jean Ryan of Disabled In Action told us "a lot of people have more than one chair" and often do not know their widths, so a person should have to say it once.'}>

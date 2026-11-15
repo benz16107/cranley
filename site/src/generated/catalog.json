@@ -1,0 +1,5151 @@
+[
+ {
+  "id": "aging_in_place",
+  "slug": "aging-in-place",
+  "title": "Aging in place",
+  "summary": "Goes through the CDC home fall-prevention checklist for the parts the scan can answer, floor by floor: clear paths, steps, stairs, the night path from bed to bathroom, and grab bars.",
+  "asks": "Is this home safe for my mother to age in?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "read_panoramas",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Is this home safe for my mother to age in?",
+   "Where could someone trip in this house?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "the plan, marked",
+   "next actions"
+  ],
+  "required": [
+   "Wall outline",
+   "Room names"
+  ],
+  "optional": [],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Getting in and around"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "fail",
+  "changed": true,
+  "labels": [
+   "Measured from the scan, medium"
+  ]
+ },
+ {
+  "id": "amenity_census",
+  "slug": "amenity-census",
+  "title": "Amenity census",
+  "summary": "Finds and counts a community's amenities in its scans (gym equipment, laundry machines, pool, lounge, business centre, mail room, playground) and sets them beside what the listing claims.",
+  "asks": "What amenities does this community really have?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "property",
+    "asked": false
+   },
+   {
+    "key": "max_scans_read",
+    "asked": false
+   },
+   {
+    "key": "count_equipment",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "What amenities does this community really have?",
+   "How many treadmills are in the gym?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "a chart",
+   "photos as evidence"
+  ],
+  "required": [
+   "Property record",
+   "360\u00b0 photos"
+  ],
+  "optional": [],
+  "data": [
+   "costar",
+   "scan"
+  ],
+  "sponsor": [
+   "costar",
+   "langchain"
+  ],
+  "who": [
+   "Business",
+   "Research and underwriting",
+   "Home life"
+  ],
+  "slow": true,
+  "approval": true,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "area_profile",
+  "slug": "area-profile",
+  "title": "Area profile",
+  "summary": "Who lives around a building: population, density, household income, age mix, households, the share renting, rent and home value for its census tract, next to the county.",
+  "asks": "Who lives around here?",
+  "inputs": [
+   {
+    "key": "place",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Who lives around here?",
+   "Is this a family neighbourhood?",
+   "What do people earn around this shop?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "a note"
+  ],
+  "required": [
+   "public.census_acs"
+  ],
+  "optional": [],
+  "data": [
+   "public"
+  ],
+  "sponsor": [],
+  "who": [
+   "Anyone"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "bathroom_clearance",
+  "slug": "bathroom-clearance",
+  "title": "Bathroom clearance",
+  "summary": "Checks each bathroom for a wheelchair: door, turning space, floor space at the toilet and clear of the door, wall for grab bars, and whether the shower has a step.",
+  "asks": "Is the bathroom usable from a wheelchair?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "door_width_m",
+    "asked": false
+   },
+   {
+    "key": "diameter_m",
+    "asked": false
+   },
+   {
+    "key": "read_panoramas",
+    "asked": false
+   },
+   {
+    "key": "chairs",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Is the bathroom usable from a wheelchair?",
+   "Is there room for grab bars by the toilet?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "the plan, marked",
+   "the assumptions it used"
+  ],
+  "required": [
+   "Wall outline",
+   "Room names"
+  ],
+  "optional": [
+   "360\u00b0 photos"
+  ],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Getting in and around"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "fail",
+  "changed": true,
+  "labels": [
+   "Measured from the scan, medium",
+   "Measured from the scan, low"
+  ]
+ },
+ {
+  "id": "camera_coverage",
+  "slug": "camera-coverage",
+  "title": "Camera coverage",
+  "summary": "Shows what indoor security cameras would see, which doors, windows and entry paths they cover, and the blind spots; proposes camera spots if you have none.",
+  "asks": "Where should I put security cameras?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "cameras",
+    "asked": false
+   },
+   {
+    "key": "max_cameras",
+    "asked": false
+   },
+   {
+    "key": "fov_deg",
+    "asked": false
+   },
+   {
+    "key": "range_m",
+    "asked": false
+   },
+   {
+    "key": "doorbell_height_m",
+    "asked": false
+   },
+   {
+    "key": "doorbell_vfov_deg",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Where should I put security cameras?",
+   "Which doors does this camera miss?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "the plan, marked",
+   "values to try",
+   "the assumptions it used"
+  ],
+  "required": [
+   "Wall outline",
+   "Doors and windows"
+  ],
+  "optional": [],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Safety and hazards"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "pass",
+  "changed": true,
+  "labels": [
+   "Measured from the scan, medium"
+  ]
+ },
+ {
+  "id": "city_census",
+  "slug": "city-census",
+  "title": "City census",
+  "summary": "Rolls up what has been measured across the city: share of homes a wheelchair can live in by zip code, listed-versus-measured area by property type, smoke alarm coverage by building.",
+  "asks": "Which Houston zip codes have the highest share of homes a wheelchair can reach a bathroom in?",
+  "inputs": [
+   {
+    "key": "preset",
+    "asked": false
+   },
+   {
+    "key": "measure",
+    "asked": false
+   },
+   {
+    "key": "by",
+    "asked": false
+   },
+   {
+    "key": "stat",
+    "asked": false
+   },
+   {
+    "key": "city",
+    "asked": false
+   },
+   {
+    "key": "kind",
+    "asked": false
+   },
+   {
+    "key": "min_scans",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Which Houston zip codes have the highest share of homes a wheelchair can reach a bathroom in?",
+   "Median gap between listed and measured area by property type"
+  ],
+  "returns": [
+   "measurements",
+   "a ranked table across scans"
+  ],
+  "required": [
+   "Facts database"
+  ],
+  "optional": [],
+  "data": [
+   "facts"
+  ],
+  "sponsor": [
+   "langchain",
+   "tiger"
+  ],
+  "who": [
+   "Research and underwriting",
+   "Getting in and around",
+   "Business"
+  ],
+  "slow": false,
+  "approval": true,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "commute_fit",
+  "slug": "commute-fit",
+  "title": "Commute fit",
+  "summary": "Estimated drive time from where your people live to each candidate office: the median, who gets a long commute, and transit nearby.",
+  "asks": "Our people live in these zip codes; which office keeps commutes short?",
+  "inputs": [
+   {
+    "key": "candidates",
+    "asked": true
+   },
+   {
+    "key": "employees",
+    "asked": true
+   },
+   {
+    "key": "current",
+    "asked": false
+   },
+   {
+    "key": "long_min",
+    "asked": false
+   },
+   {
+    "key": "worse_min",
+    "asked": false
+   },
+   {
+    "key": "detour",
+    "asked": false
+   },
+   {
+    "key": "check_transit",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Our people live in these zip codes; which office keeps commutes short?"
+  ],
+  "returns": [
+   "measurements",
+   "a ranked table across scans",
+   "a chart",
+   "checks",
+   "photos as evidence"
+  ],
+  "required": [],
+  "optional": [
+   "osm"
+  ],
+  "data": [
+   "public"
+  ],
+  "sponsor": [],
+  "who": [
+   "Business"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "needs",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "connectivity",
+  "slug": "connectivity",
+  "title": "Connectivity",
+  "summary": "How well a place is connected: home broadband on offer (fiber, cable, how many providers), bus and rail stops within a walk, the nearest bikeway and the traffic on the nearest counted road. Offered speeds, not measured ones.",
+  "asks": "Can I work from home here?",
+  "inputs": [
+   {
+    "key": "place",
+    "asked": false
+   },
+   {
+    "key": "walk_m",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Can I work from home here?",
+   "Is there fiber?",
+   "How far is the nearest train?"
+  ],
+  "returns": [
+   "measurements",
+   "checks"
+  ],
+  "required": [
+   "public.broadband",
+   "public.transit"
+  ],
+  "optional": [],
+  "data": [
+   "public"
+  ],
+  "sponsor": [],
+  "who": [
+   "Anyone"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "curb_to_door",
+  "slug": "curb-to-door",
+  "title": "Curb to door",
+  "summary": "Looks at the way in from outside: parking near the entrance, accessible stalls if the aerial photo shows them, how far it is to the door, and steps at the door.",
+  "asks": "How far is it from parking to the front door?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "radius_m",
+    "asked": false
+   },
+   {
+    "key": "read_panoramas",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "How far is it from parking to the front door?",
+   "Are there steps up to the entrance?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "the assumptions it used"
+  ],
+  "required": [
+   "Aerial photo",
+   "Scan position"
+  ],
+  "optional": [
+   "360\u00b0 photos"
+  ],
+  "data": [
+   "aerial",
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Getting in and around"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "unknown",
+  "changed": true,
+  "labels": []
+ },
+ {
+  "id": "daycare_capacity",
+  "slug": "daycare-capacity",
+  "title": "Daycare capacity",
+  "summary": "How many children this space could be licensed for: indoor room area, outdoor play area, toilets and sinks against the Texas or California rule, with the limiting factor named.",
+  "asks": "How many kids could I license here?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "property_id",
+    "asked": false
+   },
+   {
+    "key": "lat",
+    "asked": false
+   },
+   {
+    "key": "lon",
+    "asked": false
+   },
+   {
+    "key": "state",
+    "asked": false
+   },
+   {
+    "key": "use_vision",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "How many kids could I license here?",
+   "Is there enough outdoor play space for a daycare?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "the plan, marked",
+   "photos as evidence",
+   "the assumptions it used"
+  ],
+  "required": [
+   "Rooms",
+   "Room names",
+   "Aerial property facts"
+  ],
+  "optional": [
+   "360\u00b0 photos"
+  ],
+  "data": [
+   "aerial",
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Business"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "daylight",
+  "slug": "daylight",
+  "title": "Daylight",
+  "summary": "Windows, glass area, the way each room faces and its hours of direct sun on a chosen day.",
+  "asks": "Which bedroom gets morning sun?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "date",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Which bedroom gets morning sun?",
+   "Is the living room bright in winter?"
+  ],
+  "returns": [
+   "measurements",
+   "a chart",
+   "checks",
+   "the plan, marked",
+   "values to try",
+   "the assumptions it used"
+  ],
+  "required": [
+   "Doors and windows"
+  ],
+  "optional": [
+   "Scan position"
+  ],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Home life",
+   "Getting in and around",
+   "Business"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "pass",
+  "changed": false,
+  "labels": [
+   "Measured from the scan, high"
+  ]
+ },
+ {
+  "id": "derived_fields",
+  "slug": "derived-fields",
+  "title": "Derived fields",
+  "summary": "Proposes the record fields this property lacks, measured from the scan and the aerial photo.",
+  "asks": "What could we add to this record?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "aerial",
+    "asked": false
+   },
+   {
+    "key": "vision",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "What could we add to this record?",
+   "What does the scan know that CoStar doesn't?"
+  ],
+  "returns": [
+   "measurements",
+   "a chart",
+   "checks",
+   "photos as evidence"
+  ],
+  "required": [
+   "Rooms"
+  ],
+  "optional": [
+   "Property record",
+   "Aerial photo"
+  ],
+  "data": [
+   "aerial",
+   "costar",
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Research and underwriting"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "pass",
+  "changed": false,
+  "labels": [
+   "Measured from the scan, high",
+   "Looked up in the scan, medium",
+   "Looked up in the scan, high"
+  ]
+ },
+ {
+  "id": "door_widths",
+  "slug": "door-widths",
+  "title": "Door widths",
+  "summary": "Measures every doorway and flags the ones too narrow for you or what you are moving.",
+  "asks": "Can my wheelchair get through every door?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "min_width_m",
+    "asked": true
+   },
+   {
+    "key": "warn_margin_m",
+    "asked": false
+   },
+   {
+    "key": "standard",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Can my wheelchair get through every door?",
+   "Will a 90 cm sofa fit through?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "the plan, marked",
+   "values to try",
+   "the assumptions it used",
+   "next actions"
+  ],
+  "required": [
+   "Doors and windows"
+  ],
+  "optional": [
+   "Room names"
+  ],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Getting in and around",
+   "Safety and hazards",
+   "Business"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "fail",
+  "changed": true,
+  "labels": [
+   "Measured from the scan, medium"
+  ]
+ },
+ {
+  "id": "driveway_fit",
+  "slug": "driveway-fit",
+  "title": "Driveway fit",
+  "summary": "Estimates the driveway's length and width from the aerial photo, how many cars park on it, and whether a trailer, RV or boat fits off the street.",
+  "asks": "How many cars fit on the driveway?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "property_id",
+    "asked": false
+   },
+   {
+    "key": "lat",
+    "asked": false
+   },
+   {
+    "key": "lon",
+    "asked": false
+   },
+   {
+    "key": "vehicle",
+    "asked": true
+   },
+   {
+    "key": "length_m",
+    "asked": false
+   },
+   {
+    "key": "width_m",
+    "asked": false
+   },
+   {
+    "key": "towing",
+    "asked": false
+   },
+   {
+    "key": "overhang_m",
+    "asked": false
+   },
+   {
+    "key": "ground_clearance_m",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "How many cars fit on the driveway?",
+   "Can I park my boat trailer off the street here?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "the assumptions it used"
+  ],
+  "required": [
+   "Aerial photo",
+   "Aerial property facts"
+  ],
+  "optional": [],
+  "data": [
+   "aerial"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Getting in and around"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": true,
+  "labels": []
+ },
+ {
+  "id": "egress_routes",
+  "slug": "egress-routes",
+  "title": "Egress routes",
+  "summary": "The way out of every room: how far, how narrow, which rooms have one way out, and the hose stretch.",
+  "asks": "How do people get out of each bedroom?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "min_width_m",
+    "asked": false
+   },
+   {
+    "key": "long_route_m",
+    "asked": false
+   },
+   {
+    "key": "hose_m",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "How do people get out of each bedroom?",
+   "How much hose do we need to reach the back bedroom?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "the plan, marked",
+   "the assumptions it used"
+  ],
+  "required": [
+   "Doors and windows"
+  ],
+  "optional": [
+   "Room names"
+  ],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Safety and hazards",
+   "Getting in and around",
+   "Business"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "pass",
+  "changed": false,
+  "labels": [
+   "Measured from the scan, medium"
+  ]
+ },
+ {
+  "id": "facility_audit",
+  "slug": "facility-audit",
+  "title": "Facility audit",
+  "summary": "Your building in one pass: doors, restrooms, ways out, life-safety equipment seen, occupant load and cleaning cost, ending in a prioritised fix list with rough costs.",
+  "asks": "Audit our office for accessibility and life safety",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "door_width_m",
+    "asked": false
+   },
+   {
+    "key": "read_panoramas",
+    "asked": false
+   },
+   {
+    "key": "cleaning",
+    "asked": false
+   },
+   {
+    "key": "pallet_aisle_m",
+    "asked": false
+   },
+   {
+    "key": "cart_m",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Audit our office for accessibility and life safety",
+   "What should we fix first in this building, and what will it cost?"
+  ],
+  "returns": [
+   "measurements",
+   "a chart",
+   "checks",
+   "photos as evidence",
+   "the assumptions it used"
+  ],
+  "required": [
+   "Doors and windows"
+  ],
+  "optional": [
+   "360\u00b0 photos"
+  ],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Business"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "warn",
+  "changed": true,
+  "labels": [
+   "Measured from the scan, high",
+   "Measured from a model, medium",
+   "Simulated, low"
+  ]
+ },
+ {
+  "id": "facts_query",
+  "slug": "facts-query",
+  "title": "Ask the facts database",
+  "summary": "Answers questions across every scanned building that no fixed tool covers, with the SQL shown.",
+  "asks": "Which property type has the worst listed-versus-measured area gap?",
+  "inputs": [
+   {
+    "key": "question",
+    "asked": false
+   },
+   {
+    "key": "sql",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Which property type has the worst listed-versus-measured area gap?",
+   "How many Houston houses take water in more than half their rooms at 0.5 m?"
+  ],
+  "returns": [
+   "checks"
+  ],
+  "required": [
+   "Facts database"
+  ],
+  "optional": [],
+  "data": [
+   "facts"
+  ],
+  "sponsor": [
+   "tiger"
+  ],
+  "who": [
+   "Research and underwriting"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "needs",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "feng_shui",
+  "slug": "feng-shui",
+  "title": "Feng shui reading",
+  "summary": "How a feng shui practitioner would read this home: the front door's direction, the Bagua grid on each floor, the command position for beds and desks, and the usual layout notes. A cultural tradition, not a measured effect.",
+  "asks": "Where should the bed go for good feng shui?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "convention",
+    "asked": false
+   },
+   {
+    "key": "birth_year",
+    "asked": false
+   },
+   {
+    "key": "gender",
+    "asked": false
+   },
+   {
+    "key": "bed",
+    "asked": false
+   },
+   {
+    "key": "front_door",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Where should the bed go for good feng shui?",
+   "Is the front door in line with the back door?",
+   "I was born in 1988 and I'm a woman: which rooms suit my directions?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "the plan, marked",
+   "the assumptions it used",
+   "a note"
+  ],
+  "required": [
+   "Wall outline",
+   "Rooms"
+  ],
+  "optional": [
+   "Scan position"
+  ],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Home life"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "pass",
+  "changed": false,
+  "labels": [
+   "Measured from the scan, high"
+  ]
+ },
+ {
+  "id": "field_audit",
+  "slug": "field-audit",
+  "title": "Field audit",
+  "summary": "Across many scans, which record fields disagree with what the scans measure, ranked, with evidence.",
+  "asks": "Where are our records most often wrong?",
+  "inputs": [
+   {
+    "key": "scans",
+    "asked": false
+   },
+   {
+    "key": "sample",
+    "asked": false
+   },
+   {
+    "key": "deep_top",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Where are our records most often wrong?"
+  ],
+  "returns": [
+   "measurements",
+   "a chart",
+   "checks",
+   "photos as evidence"
+  ],
+  "required": [
+   "Property record",
+   "Rooms"
+  ],
+  "optional": [],
+  "data": [
+   "costar",
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Research and underwriting"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "field_check",
+  "slug": "field-check",
+  "title": "Field check",
+  "summary": "Lists what the scan could not settle and a person on site can, and records what they found: confirmed, contradicted or measured.",
+  "asks": "What should I check when I visit?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "tasks",
+    "asked": false
+   },
+   {
+    "key": "offer_phone",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "What should I check when I visit?",
+   "What did the visit change?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "the plan, marked"
+  ],
+  "required": [
+   "phone.capture"
+  ],
+  "optional": [],
+  "data": [
+   "phone"
+  ],
+  "sponsor": [],
+  "who": [
+   "Getting in and around",
+   "Safety and hazards",
+   "Business"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "unknown",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "fire_preplan",
+  "slug": "fire-preplan",
+  "title": "Fire pre-plan",
+  "summary": "Writes the pre-incident plan from the scans, the aerial photo and the property record, with a one-page printable sheet.",
+  "asks": "Write the pre-plan for this building",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "whole_property",
+    "asked": false
+   },
+   {
+    "key": "property_id",
+    "asked": false
+   },
+   {
+    "key": "read_panoramas",
+    "asked": false
+   },
+   {
+    "key": "max_scans_read",
+    "asked": false
+   },
+   {
+    "key": "min_width_m",
+    "asked": false
+   },
+   {
+    "key": "collections",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Write the pre-plan for this building",
+   "Pre-plan the whole apartment complex"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "the plan, marked",
+   "a note",
+   "next actions"
+  ],
+  "required": [
+   "Rooms"
+  ],
+  "optional": [
+   "Doors and windows",
+   "Aerial photo",
+   "Property record",
+   "360\u00b0 photos"
+  ],
+  "data": [
+   "aerial",
+   "costar",
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Safety and hazards",
+   "Business",
+   "Research and underwriting"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "unknown",
+  "changed": true,
+  "labels": [
+   "Measured from the scan, high",
+   "Looked up in a model, low",
+   "Seen in a model, medium"
+  ]
+ },
+ {
+  "id": "flood_rehearsal",
+  "slug": "flood-rehearsal",
+  "title": "Flood rehearsal",
+  "summary": "Shows what a flood does inside this house: how deep in each room, which doors and windows go under, and the order rooms flood, with the floor-height error carried through.",
+  "asks": "What happens inside if 60 cm of water comes up the street?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "depth_m",
+    "asked": true
+   },
+   {
+    "key": "scenario",
+    "asked": false
+   },
+   {
+    "key": "floor_height_m",
+    "asked": false
+   },
+   {
+    "key": "use_drone",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "What happens inside if 60 cm of water comes up the street?",
+   "Rehearse Harvey in this house"
+  ],
+  "returns": [
+   "measurements",
+   "values to try",
+   "the plan, marked",
+   "checks",
+   "photos as evidence",
+   "a chart",
+   "the assumptions it used",
+   "next actions"
+  ],
+  "required": [
+   "Rooms"
+  ],
+  "optional": [
+   "Doors and windows",
+   "Drone photos",
+   "Ground heights"
+  ],
+  "data": [
+   "aerial",
+   "drone",
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Safety and hazards",
+   "Research and underwriting"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "fail",
+  "changed": false,
+  "labels": [
+   "Simulated from the scan, medium",
+   "Measured from a model, low",
+   "Looked up in a model, high"
+  ]
+ },
+ {
+  "id": "floor_height",
+  "slug": "floor-height",
+  "title": "Floor height",
+  "summary": "Narrows the floor's height above the ground, the flood result's widest uncertainty, from steps counted and fixes taken at your own front door.",
+  "asks": "How high is my floor above the yard?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "steps",
+    "asked": false
+   },
+   {
+    "key": "riser_m",
+    "asked": false
+   },
+   {
+    "key": "door",
+    "asked": false
+   },
+   {
+    "key": "street",
+    "asked": false
+   },
+   {
+    "key": "baro_rise_m",
+    "asked": false
+   },
+   {
+    "key": "depth_m",
+    "asked": false
+   },
+   {
+    "key": "use_drone",
+    "asked": false
+   },
+   {
+    "key": "capture",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "How high is my floor above the yard?",
+   "Narrow the flood range"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "the assumptions it used",
+   "next actions"
+  ],
+  "required": [
+   "Rooms"
+  ],
+  "optional": [
+   "phone.gps",
+   "Ground heights"
+  ],
+  "data": [
+   "aerial",
+   "phone",
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Anyone"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "unknown",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "furniture_fit",
+  "slug": "furniture-fit",
+  "title": "Furniture fit",
+  "summary": "Checks whether a sofa, bed, piano or fridge can be carried from the entrance to a room: each door and turn with its margin, and where it would stick.",
+  "asks": "Will my sofa fit into the living room?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "object",
+    "asked": true
+   },
+   {
+    "key": "room",
+    "asked": false
+   },
+   {
+    "key": "length_m",
+    "asked": false
+   },
+   {
+    "key": "depth_m",
+    "asked": false
+   },
+   {
+    "key": "height_m",
+    "asked": false
+   },
+   {
+    "key": "entrance",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Will my sofa fit into the living room?",
+   "Can we get a piano in here?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "the plan, marked",
+   "values to try",
+   "the assumptions it used",
+   "next actions"
+  ],
+  "required": [
+   "Wall outline",
+   "Doors and windows"
+  ],
+  "optional": [],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Getting in and around"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "warn",
+  "changed": false,
+  "labels": [
+   "Measured from the scan, medium"
+  ]
+ },
+ {
+  "id": "garage_fit",
+  "slug": "garage-fit",
+  "title": "Garage fit",
+  "summary": "Checks whether your car, truck, van or trailer fits in a scanned garage: how many side by side, the room to open doors, headroom for a lift or roof box, and room for a bench or charger.",
+  "asks": "Will my F-150 fit in this garage?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "vehicle",
+    "asked": true
+   },
+   {
+    "key": "second_vehicle",
+    "asked": false
+   },
+   {
+    "key": "count",
+    "asked": false
+   },
+   {
+    "key": "length_m",
+    "asked": false
+   },
+   {
+    "key": "storage_length_m",
+    "asked": false
+   },
+   {
+    "key": "width_m",
+    "asked": false
+   },
+   {
+    "key": "mirror_width_m",
+    "asked": false
+   },
+   {
+    "key": "height_m",
+    "asked": false
+   },
+   {
+    "key": "lift_in",
+    "asked": false
+   },
+   {
+    "key": "roof_load_m",
+    "asked": false
+   },
+   {
+    "key": "uses",
+    "asked": false
+   },
+   {
+    "key": "charge_cord_m",
+    "asked": false
+   },
+   {
+    "key": "lifter_height_m",
+    "asked": false
+   },
+   {
+    "key": "room",
+    "asked": false
+   },
+   {
+    "key": "which_fit",
+    "asked": false
+   },
+   {
+    "key": "search_city",
+    "asked": false
+   },
+   {
+    "key": "limit",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Will my F-150 fit in this garage?",
+   "Can I park two cars and still have a workbench?",
+   "Houses in Houston whose garage fits two F-150s",
+   "Is there headroom for my lifted Jeep with a roof box?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "the plan, marked",
+   "a ranked table across scans",
+   "the assumptions it used",
+   "next actions"
+  ],
+  "required": [
+   "Wall outline",
+   "Rooms"
+  ],
+  "optional": [],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Getting in and around",
+   "Home life"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "unknown",
+  "changed": true,
+  "labels": []
+ },
+ {
+  "id": "hazard_profile",
+  "slug": "hazard-profile",
+  "title": "Hazard profile",
+  "summary": "Every hazard map at an address in one place: FEMA flood zone, hurricane evacuation zone, storm surge, Hurricane Harvey's high-water marks nearby, sea level rise, earthquake faults, liquefaction and landslide zones, fire hazard zones, urban heat, traffic noise, and weather alerts, earthquakes and wildfires now.",
+  "asks": "Is this house in a flood zone?",
+  "inputs": [
+   {
+    "key": "place",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Is this house in a flood zone?",
+   "What hazards should a family know about here?",
+   "Is this on a fault?"
+  ],
+  "returns": [
+   "measurements",
+   "checks"
+  ],
+  "required": [
+   "public.hazards"
+  ],
+  "optional": [],
+  "data": [
+   "public"
+  ],
+  "sponsor": [],
+  "who": [
+   "Anyone"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "home_search",
+  "slug": "home-search",
+  "title": "Home search for pets and kids",
+  "summary": "Finds scanned homes across Houston or Los Angeles that suit your pets or kids: apartments that allow your dog's weight or cats, houses with a fenced, flat yard and no pool, near playgrounds, parks or dog parks.",
+  "asks": "Houston houses with a flat yard over 100 m2 and no pool",
+  "inputs": [
+   {
+    "key": "city",
+    "asked": true
+   },
+   {
+    "key": "kind",
+    "asked": false
+   },
+   {
+    "key": "dog_lb",
+    "asked": false
+   },
+   {
+    "key": "cats",
+    "asked": false
+   },
+   {
+    "key": "max_pet_rent",
+    "asked": false
+   },
+   {
+    "key": "fenced",
+    "asked": false
+   },
+   {
+    "key": "no_pool",
+    "asked": false
+   },
+   {
+    "key": "min_yard_m2",
+    "asked": false
+   },
+   {
+    "key": "min_flat_pct",
+    "asked": false
+   },
+   {
+    "key": "near",
+    "asked": false
+   },
+   {
+    "key": "near_set",
+    "asked": false
+   },
+   {
+    "key": "walk_min",
+    "asked": false
+   },
+   {
+    "key": "limit",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Houston houses with a flat yard over 100 m2 and no pool",
+   "LA apartments that allow dogs over 50 lb",
+   "Houston homes within a 10-minute walk of a playground and a park"
+  ],
+  "returns": [
+   "measurements",
+   "a ranked table across scans",
+   "checks"
+  ],
+  "required": [
+   "Property record"
+  ],
+  "optional": [
+   "osm.places"
+  ],
+  "data": [
+   "costar",
+   "public"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Home life"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "needs",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "industrial_fit",
+  "slug": "industrial-fit",
+  "title": "Industrial fit",
+  "summary": "Warehouse check: clear height, dock and drive-in doors, truck court and trailer parking, sprinklers, highway, rail, port and power nearby, and flood zone.",
+  "asks": "Does this warehouse work for 53 ft trailers?",
+  "inputs": [
+   {
+    "key": "place",
+    "asked": false
+   },
+   {
+    "key": "clear_min_ft",
+    "asked": false
+   },
+   {
+    "key": "docks_min",
+    "asked": false
+   },
+   {
+    "key": "court_min_m",
+    "asked": false
+   },
+   {
+    "key": "site_tools",
+    "asked": false
+   },
+   {
+    "key": "read_panoramas",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Does this warehouse work for 53 ft trailers?",
+   "Clear height, docks and power for this building"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "the assumptions it used"
+  ],
+  "required": [],
+  "optional": [
+   "Property record",
+   "Aerial photo",
+   "Rooms",
+   "osm"
+  ],
+  "data": [
+   "aerial",
+   "costar",
+   "public",
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Business",
+   "Research and underwriting"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "fail",
+  "changed": false,
+  "labels": [
+   "Measured from the scan, high"
+  ]
+ },
+ {
+  "id": "kids_fit",
+  "slug": "kids-fit",
+  "title": "Kids fit",
+  "summary": "Whether a home suits young children: stairs that need gates, the pool path with no barrier, windows a child could fall from, a back yard the kitchen looks onto, and the walk to playgrounds, parks and schools.",
+  "asks": "Is this house safe for my toddler?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "youngest_age",
+    "asked": true
+   },
+   {
+    "key": "lat",
+    "asked": false
+   },
+   {
+    "key": "lon",
+    "asked": false
+   },
+   {
+    "key": "use_vision",
+    "asked": false
+   },
+   {
+    "key": "nearby",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Is this house safe for my toddler?",
+   "Is there a playground within walking distance?",
+   "Which windows need a window guard?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "the plan, marked",
+   "the assumptions it used"
+  ],
+  "required": [
+   "Doors and windows"
+  ],
+  "optional": [
+   "Aerial property facts",
+   "osm.places"
+  ],
+  "data": [
+   "aerial",
+   "public",
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Home life",
+   "Safety and hazards"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "pass",
+  "changed": false,
+  "labels": [
+   "Measured from the scan, low",
+   "Measured from the scan, medium"
+  ]
+ },
+ {
+  "id": "life_safety_census",
+  "slug": "life-safety-census",
+  "title": "Smoke alarm census",
+  "summary": "Checks every bedroom's ceiling photo for a smoke alarm and lists where none was seen, as leads to check.",
+  "asks": "Do the bedrooms in this complex have smoke alarms?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "whole_property",
+    "asked": false
+   },
+   {
+    "key": "property_id",
+    "asked": false
+   },
+   {
+    "key": "read_panoramas",
+    "asked": false
+   },
+   {
+    "key": "max_scans_read",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Do the bedrooms in this complex have smoke alarms?",
+   "Which units should the install crew visit?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "the plan, marked",
+   "a note"
+  ],
+  "required": [
+   "360\u00b0 photos",
+   "Room names"
+  ],
+  "optional": [],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar",
+   "langchain"
+  ],
+  "who": [
+   "Safety and hazards",
+   "Business",
+   "Home life"
+  ],
+  "slow": true,
+  "approval": true,
+  "writes": false,
+  "outcome": "unknown",
+  "changed": false,
+  "labels": [
+   "Seen in a model, medium",
+   "Seen in a model, low"
+  ]
+ },
+ {
+  "id": "listing_claims",
+  "slug": "listing-claims",
+  "title": "Listing claims",
+  "summary": "Checks what a listing says against the scan, and lists what it leaves out.",
+  "asks": "Is this listing honest?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "text",
+    "asked": true
+   },
+   {
+    "key": "deep",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Is this listing honest?",
+   "What does the listing not tell me?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "the plan, marked",
+   "the assumptions it used",
+   "next actions"
+  ],
+  "required": [
+   "Rooms"
+  ],
+  "optional": [
+   "Doors and windows",
+   "Listing"
+  ],
+  "data": [
+   "costar",
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Home life"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "loading_docks",
+  "slug": "loading-docks",
+  "title": "Loading docks",
+  "summary": "Counts dock doors and drive-in doors on each wall from the oblique aerial views and beside the CoStar record.",
+  "asks": "How many dock doors does this warehouse have?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "property_id",
+    "asked": false
+   },
+   {
+    "key": "lat",
+    "asked": false
+   },
+   {
+    "key": "lon",
+    "asked": false
+   },
+   {
+    "key": "use_vision",
+    "asked": false
+   },
+   {
+    "key": "inside",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "How many dock doors does this warehouse have?",
+   "Which side are the docks on?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "next actions"
+  ],
+  "required": [
+   "Angled aerial photos"
+  ],
+  "optional": [
+   "Property record",
+   "360\u00b0 photos"
+  ],
+  "data": [
+   "aerial",
+   "costar",
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Research and underwriting",
+   "Business"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "market_comps",
+  "slug": "market-comps",
+  "title": "Market comps",
+  "summary": "Comparable properties from CoStar: asking rent, sale price per ft\u00b2, class, year built and space for lease, and where this building sits against them.",
+  "asks": "What do comparable warehouses rent for near this one?",
+  "inputs": [
+   {
+    "key": "place",
+    "asked": false
+   },
+   {
+    "key": "property_type",
+    "asked": false
+   },
+   {
+    "key": "size_sf",
+    "asked": false
+   },
+   {
+    "key": "radius_km",
+    "asked": false
+   },
+   {
+    "key": "size_band",
+    "asked": false
+   },
+   {
+    "key": "max_comps",
+    "asked": false
+   },
+   {
+    "key": "same_class",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "What do comparable warehouses rent for near this one?",
+   "Is this office's asking rent above the market?",
+   "Pull sale comps for this building"
+  ],
+  "returns": [
+   "measurements",
+   "a ranked table across scans",
+   "checks",
+   "photos as evidence",
+   "a note"
+  ],
+  "required": [
+   "Property record"
+  ],
+  "optional": [],
+  "data": [
+   "costar"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Research and underwriting",
+   "Business"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "measure_search",
+  "slug": "measure-search",
+  "title": "Measure search",
+  "summary": "Finds homes by what is measured inside them: door widths on the way to the bathroom, turning space, wall lengths, floors, steps. No listing site can search this.",
+  "asks": "Homes where a wheelchair can reach a bathroom through 0.81 m doors, on one floor",
+  "inputs": [
+   {
+    "key": "need",
+    "asked": true
+   },
+   {
+    "key": "criteria",
+    "asked": false
+   },
+   {
+    "key": "city",
+    "asked": false
+   },
+   {
+    "key": "kind",
+    "asked": false
+   },
+   {
+    "key": "sort",
+    "asked": false
+   },
+   {
+    "key": "limit",
+    "asked": false
+   },
+   {
+    "key": "near",
+    "asked": false
+   },
+   {
+    "key": "within_km",
+    "asked": false
+   },
+   {
+    "key": "rooms",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Homes where a wheelchair can reach a bathroom through 0.81 m doors, on one floor",
+   "Apartments with a bedroom wall of at least 2.2 m and a 1.5 m turning circle in the bathroom"
+  ],
+  "returns": [
+   "measurements",
+   "a ranked table across scans",
+   "photos as evidence",
+   "next actions"
+  ],
+  "required": [
+   "Measures table"
+  ],
+  "optional": [],
+  "data": [
+   "facts"
+  ],
+  "sponsor": [
+   "tiger"
+  ],
+  "who": [
+   "Getting in and around",
+   "Home life"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "unknown",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "nearby",
+  "slug": "nearby",
+  "title": "Nearby",
+  "summary": "Parks, playgrounds, schools, sports courts and fields, vets, shops and transit near a home, with the walk or ride to the nearest of each along the streets.",
+  "asks": "Is there a playground within a 10-minute walk?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "property_id",
+    "asked": false
+   },
+   {
+    "key": "lat",
+    "asked": false
+   },
+   {
+    "key": "lon",
+    "asked": false
+   },
+   {
+    "key": "profile",
+    "asked": true
+   },
+   {
+    "key": "categories",
+    "asked": false
+   },
+   {
+    "key": "mode",
+    "asked": false
+   },
+   {
+    "key": "ok_min",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Is there a playground within a 10-minute walk?",
+   "How far is the nearest pickleball court?",
+   "Where is the closest emergency vet?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "a chart",
+   "the assumptions it used"
+  ],
+  "required": [
+   "osm.places"
+  ],
+  "optional": [],
+  "data": [
+   "public"
+  ],
+  "sponsor": [],
+  "who": [
+   "Home life"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "noise_level",
+  "slug": "noise-level",
+  "title": "Noise level",
+  "summary": "How loud each room is, from the phone's microphone: an uncalibrated A-weighted level per room, best read as which rooms are quieter.",
+  "asks": "Which bedroom is quietest?",
+  "inputs": [
+   {
+    "key": "readings",
+    "asked": false
+   },
+   {
+    "key": "scan",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Which bedroom is quietest?",
+   "How loud is the street side?"
+  ],
+  "returns": [
+   "measurements",
+   "a chart",
+   "checks",
+   "the plan, marked",
+   "the assumptions it used"
+  ],
+  "required": [
+   "phone.microphone"
+  ],
+  "optional": [],
+  "data": [
+   "phone"
+  ],
+  "sponsor": [],
+  "who": [
+   "Anyone"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "needs",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "office_fit",
+  "slug": "office-fit",
+  "title": "Office fit",
+  "summary": "Whether your team fits this suite as built: desks, private offices, meeting rooms and kitchen, with the listed size and the last tenant beside it.",
+  "asks": "Will 28 people with 6 private offices and two meeting rooms fit here?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "headcount",
+    "asked": true
+   },
+   {
+    "key": "private_offices",
+    "asked": true
+   },
+   {
+    "key": "meeting_rooms",
+    "asked": true
+   },
+   {
+    "key": "meeting_seats",
+    "asked": true
+   },
+   {
+    "key": "kitchen",
+    "asked": false
+   },
+   {
+    "key": "desk_m2",
+    "asked": false
+   },
+   {
+    "key": "seat_m2",
+    "asked": false
+   },
+   {
+    "key": "office_min_m2",
+    "asked": false
+   },
+   {
+    "key": "label_with_vision",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Will 28 people with 6 private offices and two meeting rooms fit here?",
+   "How many desks does this suite hold?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "a chart",
+   "the plan, marked",
+   "the assumptions it used",
+   "values to try",
+   "photos as evidence"
+  ],
+  "required": [
+   "Rooms"
+  ],
+  "optional": [
+   "360\u00b0 photos",
+   "Property record"
+  ],
+  "data": [
+   "costar",
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Business",
+   "Research and underwriting"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "fail",
+  "changed": true,
+  "labels": [
+   "Simulated from the scan, medium",
+   "Measured from the scan, high",
+   "Seen in a model, medium"
+  ]
+ },
+ {
+  "id": "parking_count",
+  "slug": "parking-count",
+  "title": "Parking count",
+  "summary": "Counts parking stalls and parked cars from the aerial photo and compares them with the record.",
+  "asks": "How many parking spaces does this property have?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "property_id",
+    "asked": false
+   },
+   {
+    "key": "lat",
+    "asked": false
+   },
+   {
+    "key": "lon",
+    "asked": false
+   },
+   {
+    "key": "use_vision",
+    "asked": false
+   },
+   {
+    "key": "agree_pct",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "How many parking spaces does this property have?",
+   "Is the lot full?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "the assumptions it used"
+  ],
+  "required": [
+   "Aerial photo",
+   "Aerial property facts"
+  ],
+  "optional": [
+   "Property record"
+  ],
+  "data": [
+   "aerial",
+   "costar"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Research and underwriting",
+   "Business"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "path_to_water",
+  "slug": "path-to-water",
+  "title": "Path to water",
+  "summary": "Traces every route a small child could take from each bedroom to the pool and names the missing barrier.",
+  "asks": "Could my toddler get from the bedroom to the pool?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "property_id",
+    "asked": false
+   },
+   {
+    "key": "lat",
+    "asked": false
+   },
+   {
+    "key": "lon",
+    "asked": false
+   },
+   {
+    "key": "max_doors",
+    "asked": false
+   },
+   {
+    "key": "use_vision",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Could my toddler get from the bedroom to the pool?",
+   "Which door needs an alarm?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "the plan, marked",
+   "a note"
+  ],
+  "required": [
+   "Doors and windows",
+   "Room names",
+   "360\u00b0 photos",
+   "Aerial property facts",
+   "Aerial photo"
+  ],
+  "optional": [],
+  "data": [
+   "aerial",
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Safety and hazards",
+   "Getting in and around",
+   "Research and underwriting"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "permit_history",
+  "slug": "permit-history",
+  "title": "Permit history",
+  "summary": "What was permitted at and near an address, by type and year, and any code enforcement cases (Los Angeles); residents' recent service requests to the city nearby in Houston.",
+  "asks": "What was permitted here?",
+  "inputs": [
+   {
+    "key": "place",
+    "asked": false
+   },
+   {
+    "key": "radius_m",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "What was permitted here?",
+   "Any code violations at this address?",
+   "Is the block being redeveloped?"
+  ],
+  "returns": [
+   "measurements",
+   "a chart",
+   "checks"
+  ],
+  "required": [
+   "public.permits"
+  ],
+  "optional": [],
+  "data": [
+   "public"
+  ],
+  "sponsor": [],
+  "who": [
+   "Anyone"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "pet_fit",
+  "slug": "pet-fit",
+  "title": "Pet fit",
+  "summary": "Whether a home suits your dog, cat or small animal: stairs, floors, a crate and litter spot, a pet door, fall-risk windows, the yard's size, slope, shade and fence, the pool, busy roads, the pet policy and fees, and dog parks and vets nearby.",
+  "asks": "Is this house good for my 70 lb lab?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "property_id",
+    "asked": false
+   },
+   {
+    "key": "lat",
+    "asked": false
+   },
+   {
+    "key": "lon",
+    "asked": false
+   },
+   {
+    "key": "pets",
+    "asked": false
+   },
+   {
+    "key": "dog_lb",
+    "asked": false
+   },
+   {
+    "key": "dog_age",
+    "asked": false
+   },
+   {
+    "key": "cat",
+    "asked": false
+   },
+   {
+    "key": "small_animal",
+    "asked": false
+   },
+   {
+    "key": "use_vision",
+    "asked": false
+   },
+   {
+    "key": "nearby",
+    "asked": false
+   },
+   {
+    "key": "riser_m",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Is this house good for my 70 lb lab?",
+   "Does this apartment allow a dog over 50 lb?",
+   "Can my older dog live here without stairs?",
+   "Is it safe for an indoor cat?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "the plan, marked",
+   "the assumptions it used"
+  ],
+  "required": [
+   "Rooms"
+  ],
+  "optional": [
+   "Aerial property facts",
+   "Property record",
+   "osm.places"
+  ],
+  "data": [
+   "aerial",
+   "costar",
+   "public",
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Home life"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "pass",
+  "changed": false,
+  "labels": [
+   "Measured from the scan, low",
+   "Measured from the scan, medium",
+   "Measured from a model, medium"
+  ]
+ },
+ {
+  "id": "photo_measure",
+  "slug": "photo-measure",
+  "title": "Photo measure",
+  "summary": "Measures a width or a height from one photo that has a bank card, a sheet of paper or a door of known size in it.",
+  "asks": "Measure this doorway from my photo",
+  "inputs": [
+   {
+    "key": "capture",
+    "asked": false
+   },
+   {
+    "key": "reference",
+    "asked": false
+   },
+   {
+    "key": "door_width_m",
+    "asked": false
+   },
+   {
+    "key": "what",
+    "asked": false
+   },
+   {
+    "key": "points",
+    "asked": false
+   },
+   {
+    "key": "points_from",
+    "asked": false
+   },
+   {
+    "key": "threshold_m",
+    "asked": false
+   },
+   {
+    "key": "standard",
+    "asked": false
+   },
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "room",
+    "asked": false
+   },
+   {
+    "key": "opening",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Measure this doorway from my photo"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "the assumptions it used"
+  ],
+  "required": [
+   "phone.photo"
+  ],
+  "optional": [],
+  "data": [
+   "phone"
+  ],
+  "sponsor": [],
+  "who": [
+   "Anyone"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "needs",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "property_coverage",
+  "slug": "property-coverage",
+  "title": "Property coverage",
+  "summary": "For whoever manages or researches a whole property: which of its floor plans and shared spaces have a scan, and which none covers.",
+  "asks": null,
+  "inputs": [
+   {
+    "key": "place",
+    "asked": false
+   }
+  ],
+  "examples": [],
+  "returns": [
+   "measurements",
+   "checks"
+  ],
+  "required": [
+   "Property record",
+   "Scan index"
+  ],
+  "optional": [],
+  "data": [
+   "costar",
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Business",
+   "Research and underwriting"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "quake_ready",
+  "slug": "quake-ready",
+  "title": "Earthquake readiness",
+  "summary": "A safe spot in each room away from windows, tall or heavy furniture near the beds, and where to find the gas shutoff on site.",
+  "asks": "Where should we take cover in each room during an earthquake?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "look",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Where should we take cover in each room during an earthquake?",
+   "Is anything tall near the kids' beds?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "a note"
+  ],
+  "required": [
+   "Wall outline"
+  ],
+  "optional": [
+   "360\u00b0 photos"
+  ],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Safety and hazards"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "pass",
+  "changed": false,
+  "labels": [
+   "Measured from the scan, high",
+   "Seen in a model, low",
+   "Looked up in a model, high"
+  ]
+ },
+ {
+  "id": "quiet_rooms",
+  "slug": "quiet-rooms",
+  "title": "Quiet rooms",
+  "summary": "Ranks the bedrooms and office from quietest to loudest against road, rail and aircraft noise, from the national noise map, the nearest roads and which way each room faces.",
+  "asks": "Which bedroom is quietest?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "windows_open",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Which bedroom is quietest?",
+   "Is the office on the road side?",
+   "Will planes keep me up?"
+  ],
+  "returns": [
+   "measurements",
+   "a chart",
+   "checks",
+   "the plan, marked",
+   "the assumptions it used"
+  ],
+  "required": [
+   "Wall outline",
+   "Scan position"
+  ],
+  "optional": [],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Home life"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "unknown",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "record_vs_reality",
+  "slug": "record-vs-reality",
+  "title": "Record versus reality",
+  "summary": "Sets each fact in the CoStar or listing record beside what the scan and the aerial photo measure, with the evidence.",
+  "asks": "Does this listing match the scan?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "deep",
+    "asked": false
+   },
+   {
+    "key": "area_low",
+    "asked": false
+   },
+   {
+    "key": "area_high",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Does this listing match the scan?",
+   "Is the record's square footage right?",
+   "How many parking spaces does it really have?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "the plan, marked",
+   "the assumptions it used",
+   "next actions"
+  ],
+  "required": [
+   "Property record",
+   "Rooms"
+  ],
+  "optional": [
+   "Room names",
+   "Aerial photo"
+  ],
+  "data": [
+   "aerial",
+   "costar",
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Research and underwriting",
+   "Home life",
+   "Business"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "renovate",
+  "slug": "renovate",
+  "title": "What if: renovate",
+  "summary": "What it would take to make this home wheelchair-ready: the edits, what each one fixes and what it costs, with the renovated plan to compare side by side.",
+  "asks": "What would it take to make this apartment wheelchair-ready?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "goal",
+    "asked": true
+   },
+   {
+    "key": "edits",
+    "asked": false
+   },
+   {
+    "key": "city",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "What would it take to make this apartment wheelchair-ready?",
+   "Widen the bathroom door to 36 inches: what changes?"
+  ],
+  "returns": [
+   "measurements",
+   "a ranked table across scans",
+   "checks",
+   "the assumptions it used",
+   "next actions"
+  ],
+  "required": [
+   "Wall outline",
+   "Doors and windows"
+  ],
+  "optional": [],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Getting in and around",
+   "Business"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "warn",
+  "changed": false,
+  "labels": [
+   "Simulated, low",
+   "Measured from the scan, medium"
+  ]
+ },
+ {
+  "id": "retail_site",
+  "slug": "retail-site",
+  "title": "Retail site",
+  "summary": "Parking counted from the air and its ratio, the road the site faces, anchors and neighbouring shops, and walk-in proxies.",
+  "asks": "Is this a good spot for our next store?",
+  "inputs": [
+   {
+    "key": "place",
+    "asked": false
+   },
+   {
+    "key": "store_sf",
+    "asked": false
+   },
+   {
+    "key": "parking_ratio_min",
+    "asked": false
+   },
+   {
+    "key": "radius_m",
+    "asked": false
+   },
+   {
+    "key": "count_parking",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Is this a good spot for our next store?",
+   "How much parking does this retail site have per 1,000 ft\u00b2?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "the assumptions it used"
+  ],
+  "required": [
+   "osm"
+  ],
+  "optional": [
+   "Aerial photo"
+  ],
+  "data": [
+   "aerial",
+   "public"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Business",
+   "Research and underwriting"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "unknown",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "risk_sheet",
+  "slug": "risk-sheet",
+  "title": "Risk sheet",
+  "summary": "One printable page for an underwriter: roof, flood position, wildfire space, pool, trees and interior hazards, each with its evidence and confidence.",
+  "asks": "Give me a risk summary of this house",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "property_id",
+    "asked": false
+   },
+   {
+    "key": "lat",
+    "asked": false
+   },
+   {
+    "key": "lon",
+    "asked": false
+   },
+   {
+    "key": "use_vision",
+    "asked": false
+   },
+   {
+    "key": "max_panos",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Give me a risk summary of this house",
+   "Should I send an inspector to this property?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "next actions"
+  ],
+  "required": [
+   "Aerial property facts",
+   "Ground heights"
+  ],
+  "optional": [
+   "360\u00b0 photos"
+  ],
+  "data": [
+   "aerial",
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Research and underwriting",
+   "Safety and hazards"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "robot_fit",
+  "slug": "robot-fit",
+  "title": "Robot fit",
+  "summary": "Shows which rooms a robot of a given width, turning circle and step height can reach and turn in, across one home or many, and which single change to the robot gains the most.",
+  "asks": "What share of homes can a 50 cm robot reach every room of?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "scans",
+    "asked": false
+   },
+   {
+    "key": "body_width_m",
+    "asked": false
+   },
+   {
+    "key": "turning_diameter_m",
+    "asked": false
+   },
+   {
+    "key": "step_height_m",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "What share of homes can a 50 cm robot reach every room of?",
+   "Would a narrower robot or a better step climber help more?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "the plan, marked",
+   "values to try",
+   "the assumptions it used"
+  ],
+  "required": [
+   "Wall outline"
+  ],
+  "optional": [],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Getting in and around"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "pass",
+  "changed": false,
+  "labels": [
+   "Measured from the scan, medium"
+  ]
+ },
+ {
+  "id": "roof_facts",
+  "slug": "roof-facts",
+  "title": "Roof facts",
+  "summary": "Roof material, shape, condition, defects, solar, rooftop objects, trees over the roof and height, read from the aerial photo.",
+  "asks": "What shape is this roof in?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "property_id",
+    "asked": false
+   },
+   {
+    "key": "lat",
+    "asked": false
+   },
+   {
+    "key": "lon",
+    "asked": false
+   },
+   {
+    "key": "max_tree_cover_pct",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "What shape is this roof in?",
+   "Is there damage on the roof?",
+   "Does it have solar?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "a chart",
+   "the assumptions it used"
+  ],
+  "required": [
+   "Aerial property facts",
+   "Aerial photo"
+  ],
+  "optional": [],
+  "data": [
+   "aerial"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Research and underwriting",
+   "Safety and hazards"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "room_census",
+  "slug": "room-census",
+  "title": "Room census",
+  "summary": "Which rooms this space has, how big each kind is, and which rooms have no type.",
+  "asks": "What rooms does this unit have?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "What rooms does this unit have?",
+   "How big are the bedrooms?"
+  ],
+  "returns": [
+   "measurements",
+   "a chart",
+   "the plan, marked"
+  ],
+  "required": [
+   "Rooms"
+  ],
+  "optional": [
+   "Room names"
+  ],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Home life",
+   "Business",
+   "Research and underwriting",
+   "Getting in and around"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "pass",
+  "changed": false,
+  "labels": [
+   "Measured from the scan, high",
+   "Looked up in the scan, medium"
+  ]
+ },
+ {
+  "id": "room_labeller",
+  "slug": "room-labeller",
+  "title": "Room labeller",
+  "summary": "Names every room of a commercial space from its panoramas, shows what decided each call, and learns from your corrections.",
+  "asks": "What rooms does this office have?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "corrections",
+    "asked": false
+   },
+   {
+    "key": "include_labelled",
+    "asked": false
+   },
+   {
+    "key": "relabel",
+    "asked": false
+   },
+   {
+    "key": "max_rooms",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "What rooms does this office have?",
+   "Label the rooms in this suite",
+   "That room is a kitchen, not storage"
+  ],
+  "returns": [
+   "measurements",
+   "photos as evidence",
+   "the plan, marked"
+  ],
+  "required": [
+   "360\u00b0 photos",
+   "Rooms"
+  ],
+  "optional": [
+   "Property record"
+  ],
+  "data": [
+   "costar",
+   "scan"
+  ],
+  "sponsor": [
+   "costar",
+   "langchain"
+  ],
+  "who": [
+   "Business",
+   "Research and underwriting"
+  ],
+  "slow": true,
+  "approval": true,
+  "writes": true,
+  "outcome": "pass",
+  "changed": false,
+  "labels": [
+   "Measured from the scan, high",
+   "Seen in a model, medium"
+  ]
+ },
+ {
+  "id": "room_sizes",
+  "slug": "room-sizes",
+  "title": "Room sizes",
+  "summary": "Every room's floor area, width, depth and ceiling height, biggest first.",
+  "asks": "What's the biggest room, and how high is its ceiling?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "min_area_m2",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "What's the biggest room, and how high is its ceiling?"
+  ],
+  "returns": [
+   "measurements",
+   "a ranked table across scans",
+   "checks"
+  ],
+  "required": [
+   "Rooms"
+  ],
+  "optional": [],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Home life"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "pass",
+  "changed": false,
+  "labels": [
+   "Measured from the scan, high",
+   "Measured from the scan, medium"
+  ]
+ },
+ {
+  "id": "similar_rooms",
+  "slug": "similar-rooms",
+  "title": "Similar rooms",
+  "summary": "Finds rooms by what they look like ('a sunlit kitchen with an island'), with measured filters: over 12 m\u00b2, in Houston, room for a wheelchair to turn.",
+  "asks": "A sunlit kitchen with an island, over 12 m\u00b2, in Houston",
+  "inputs": [
+   {
+    "key": "query",
+    "asked": true
+   },
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "room",
+    "asked": false
+   },
+   {
+    "key": "label",
+    "asked": false
+   },
+   {
+    "key": "city",
+    "asked": false
+   },
+   {
+    "key": "min_area_m2",
+    "asked": false
+   },
+   {
+    "key": "min_turn_m",
+    "asked": false
+   },
+   {
+    "key": "words",
+    "asked": false
+   },
+   {
+    "key": "limit",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "A sunlit kitchen with an island, over 12 m\u00b2, in Houston",
+   "Bathrooms like this one with room to turn a wheelchair"
+  ],
+  "returns": [
+   "photos as evidence",
+   "checks"
+  ],
+  "required": [
+   "Room descriptions"
+  ],
+  "optional": [],
+  "data": [
+   "facts"
+  ],
+  "sponsor": [
+   "tiger"
+  ],
+  "who": [
+   "Home life",
+   "Getting in and around",
+   "Research and underwriting"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "site_scorecard",
+  "slug": "site-scorecard",
+  "title": "Site scorecard",
+  "summary": "Ranks candidate buildings against your requirements and weights, with a score per criterion, the deal-breakers and the evidence for each cell.",
+  "asks": "Find me a 40,000 to 80,000 ft\u00b2 distribution warehouse in Houston under $12 a foot with 24 ft clear",
+  "inputs": [
+   {
+    "key": "profile",
+    "asked": true
+   },
+   {
+    "key": "candidates",
+    "asked": false
+   },
+   {
+    "key": "place",
+    "asked": false
+   },
+   {
+    "key": "search_km",
+    "asked": false
+   },
+   {
+    "key": "city",
+    "asked": false
+   },
+   {
+    "key": "max_candidates",
+    "asked": false
+   },
+   {
+    "key": "size_min_sf",
+    "asked": false
+   },
+   {
+    "key": "size_max_sf",
+    "asked": false
+   },
+   {
+    "key": "budget_sf_yr",
+    "asked": false
+   },
+   {
+    "key": "headcount",
+    "asked": false
+   },
+   {
+    "key": "docks_min",
+    "asked": false
+   },
+   {
+    "key": "clear_height_min_ft",
+    "asked": false
+   },
+   {
+    "key": "parking_ratio_min",
+    "asked": false
+   },
+   {
+    "key": "step_free",
+    "asked": false
+   },
+   {
+    "key": "highway_max_km",
+    "asked": false
+   },
+   {
+    "key": "transit_max_m",
+    "asked": false
+   },
+   {
+    "key": "flood",
+    "asked": false
+   },
+   {
+    "key": "employees",
+    "asked": false
+   },
+   {
+    "key": "weights",
+    "asked": false
+   },
+   {
+    "key": "must",
+    "asked": false
+   },
+   {
+    "key": "deep",
+    "asked": false
+   },
+   {
+    "key": "use_osm",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Find me a 40,000 to 80,000 ft\u00b2 distribution warehouse in Houston under $12 a foot with 24 ft clear",
+   "Compare these three office buildings for a 120-person team",
+   "Score these retail sites for our next store"
+  ],
+  "returns": [
+   "measurements",
+   "a ranked table across scans",
+   "a chart",
+   "checks",
+   "photos as evidence",
+   "the assumptions it used",
+   "next actions"
+  ],
+  "required": [
+   "Property record"
+  ],
+  "optional": [
+   "osm",
+   "Rooms"
+  ],
+  "data": [
+   "costar",
+   "public",
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Business",
+   "Research and underwriting"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "size_up_quiz",
+  "slug": "size-up-quiz",
+  "title": "Size-up quiz",
+  "summary": "Training: read a house from outside (bedrooms, stairs, kitchen side, floors) and get graded against its measured interior.",
+  "asks": "Give me a size-up drill on this house",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "answers",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Give me a size-up drill on this house",
+   "Score my size-up"
+  ],
+  "returns": [
+   "photos as evidence",
+   "checks",
+   "measurements"
+  ],
+  "required": [
+   "Rooms",
+   "Room names",
+   "Aerial photo"
+  ],
+  "optional": [
+   "Drone photos"
+  ],
+  "data": [
+   "aerial",
+   "drone",
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Safety and hazards"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "unknown",
+  "changed": false,
+  "labels": [
+   "Measured from the scan, high",
+   "Looked up in the drone capture, high"
+  ]
+ },
+ {
+  "id": "slope_check",
+  "slug": "slope-check",
+  "title": "Slope check",
+  "summary": "Uses the phone as a level: a ramp's slope and cross slope against the ADA limits, a threshold's bevel, or how far a door frame is out of plumb.",
+  "asks": "Is this ramp too steep for a wheelchair?",
+  "inputs": [
+   {
+    "key": "mode",
+    "asked": false
+   },
+   {
+    "key": "reading_deg",
+    "asked": false
+   },
+   {
+    "key": "flipped_deg",
+    "asked": false
+   },
+   {
+    "key": "cross_deg",
+    "asked": false
+   },
+   {
+    "key": "cross_flipped_deg",
+    "asked": false
+   },
+   {
+    "key": "spread_deg",
+    "asked": false
+   },
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "room",
+    "asked": false
+   },
+   {
+    "key": "opening",
+    "asked": false
+   },
+   {
+    "key": "capture",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Is this ramp too steep for a wheelchair?",
+   "Is the door frame straight?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "the assumptions it used"
+  ],
+  "required": [
+   "phone.tilt"
+  ],
+  "optional": [],
+  "data": [
+   "phone"
+  ],
+  "sponsor": [],
+  "who": [
+   "Anyone"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "needs",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "smoke_clock",
+  "slug": "smoke-clock",
+  "title": "Smoke clock",
+  "summary": "Minutes of survivable air in each bedroom with its door open and closed, from NIST's fire model run on the measured rooms.",
+  "asks": "How long do the kids have if the living room catches fire?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "fire_room",
+    "asked": true
+   },
+   {
+    "key": "growth",
+    "asked": false
+   },
+   {
+    "key": "peak_kw",
+    "asked": false
+   },
+   {
+    "key": "escape_min",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "How long do the kids have if the living room catches fire?",
+   "Does closing the bedroom door help?"
+  ],
+  "returns": [
+   "measurements",
+   "a chart",
+   "checks",
+   "the plan, marked",
+   "the assumptions it used"
+  ],
+  "required": [
+   "Doors and windows",
+   "Room names"
+  ],
+  "optional": [],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar",
+   "langchain"
+  ],
+  "who": [
+   "Safety and hazards",
+   "Getting in and around"
+  ],
+  "slow": true,
+  "approval": true,
+  "writes": false,
+  "outcome": "slow",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "solar_roof",
+  "slug": "solar-roof",
+  "title": "Solar roof",
+  "summary": "Usable roof for solar after setbacks and shade, how many panels, kW, kWh a year and payback.",
+  "asks": "Is my roof good for solar?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "property_id",
+    "asked": false
+   },
+   {
+    "key": "lat",
+    "asked": false
+   },
+   {
+    "key": "lon",
+    "asked": false
+   },
+   {
+    "key": "cost_per_w",
+    "asked": false
+   },
+   {
+    "key": "price_per_kwh",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Is my roof good for solar?",
+   "How many panels fit and what would they save?"
+  ],
+  "returns": [
+   "measurements",
+   "a chart",
+   "checks",
+   "the assumptions it used"
+  ],
+  "required": [
+   "Aerial property facts",
+   "Roof heights"
+  ],
+  "optional": [],
+  "data": [
+   "aerial"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Home life",
+   "Safety and hazards"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "stairs_count",
+  "slug": "stairs-count",
+  "title": "Stairs",
+  "summary": "Counts the floors, estimates the steps between the entrance and the bedrooms, and finds steps at doorways, floor by floor.",
+  "asks": "How many stairs are there to the bedrooms?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "riser_m",
+    "asked": false
+   },
+   {
+    "key": "read_panoramas",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "How many stairs are there to the bedrooms?",
+   "Is everything on one floor?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "a chart",
+   "the assumptions it used"
+  ],
+  "required": [
+   "Rooms"
+  ],
+  "optional": [],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Getting in and around"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "pass",
+  "changed": true,
+  "labels": [
+   "Measured from the scan, medium",
+   "Measured from the scan, low"
+  ]
+ },
+ {
+  "id": "step_free_route",
+  "slug": "step-free-route",
+  "title": "Step-free route",
+  "summary": "Draws the route from the entrance to each room you need, with every door's width, the narrowest point and any step, and says whether you can get there.",
+  "asks": "Can I get from the front door to the bathroom in my wheelchair?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "destinations",
+    "asked": false
+   },
+   {
+    "key": "min_width_m",
+    "asked": false
+   },
+   {
+    "key": "entrance",
+    "asked": false
+   },
+   {
+    "key": "read_panoramas",
+    "asked": false
+   },
+   {
+    "key": "chairs",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Can I get from the front door to the bathroom in my wheelchair?",
+   "Is there a step-free way to the bedroom?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "the plan, marked",
+   "values to try",
+   "the assumptions it used",
+   "next actions"
+  ],
+  "required": [
+   "Doors and windows",
+   "Rooms"
+  ],
+  "optional": [
+   "360\u00b0 photos"
+  ],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Getting in and around"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "fail",
+  "changed": true,
+  "labels": [
+   "Measured from the scan, medium",
+   "Measured from the scan, low"
+  ]
+ },
+ {
+  "id": "storage_space",
+  "slug": "storage-space",
+  "title": "Storage space",
+  "summary": "Totals closet and storage area and its share of the unit, and finds bedrooms without a closet room.",
+  "asks": "How much closet space does this unit have?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "label_with_vision",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "How much closet space does this unit have?",
+   "Which bedrooms have no closet?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "a chart",
+   "the plan, marked"
+  ],
+  "required": [
+   "Rooms"
+  ],
+  "optional": [
+   "Room names"
+  ],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Home life",
+   "Business"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "warn",
+  "changed": false,
+  "labels": [
+   "Measured from the scan, high",
+   "Looked up in the scan, medium"
+  ]
+ },
+ {
+  "id": "storm_plan",
+  "slug": "storm-plan",
+  "title": "Storm plan",
+  "summary": "An ordered plan for the hours before the storm: what to carry up first, where it goes, plywood cut from your real window sizes, sandbags per door, which shutoffs to turn off, and where a generator can safely stand. It changes when the storm or the household changes.",
+  "asks": "The storm is 72 hours out and there are two of us. What do we do first?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "depth_m",
+    "asked": true
+   },
+   {
+    "key": "scenario",
+    "asked": false
+   },
+   {
+    "key": "floor_height_m",
+    "asked": false
+   },
+   {
+    "key": "use_drone",
+    "asked": false
+   },
+   {
+    "key": "hours_left",
+    "asked": true
+   },
+   {
+    "key": "adults",
+    "asked": true
+   },
+   {
+    "key": "upper_floor",
+    "asked": false
+   },
+   {
+    "key": "attic",
+    "asked": false
+   },
+   {
+    "key": "board_windows",
+    "asked": false
+   },
+   {
+    "key": "max_rooms",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "The storm is 72 hours out and there are two of us. What do we do first?",
+   "We only have 6 hours now. What changes?"
+  ],
+  "returns": [
+   "measurements",
+   "values to try",
+   "checks",
+   "the plan, marked",
+   "photos as evidence",
+   "the assumptions it used",
+   "next actions"
+  ],
+  "required": [
+   "Doors and windows",
+   "360\u00b0 photos"
+  ],
+  "optional": [
+   "Building footprint"
+  ],
+  "data": [
+   "aerial",
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Safety and hazards"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "warn",
+  "changed": false,
+  "labels": [
+   "Simulated, medium",
+   "Seen in a model, low",
+   "Measured from the scan, high"
+  ]
+ },
+ {
+  "id": "stretcher_route",
+  "slug": "stretcher-route",
+  "title": "Stretcher route",
+  "summary": "Checks whether a flat ambulance stretcher can be carried from the entrance to each bedroom, and where it would have to be tilted.",
+  "asks": "Could paramedics get a stretcher to the bedroom?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "length_m",
+    "asked": false
+   },
+   {
+    "key": "width_m",
+    "asked": false
+   },
+   {
+    "key": "height_m",
+    "asked": false
+   },
+   {
+    "key": "rooms",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Could paramedics get a stretcher to the bedroom?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "the plan, marked",
+   "the assumptions it used"
+  ],
+  "required": [
+   "Wall outline"
+  ],
+  "optional": [],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Safety and hazards",
+   "Getting in and around"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "warn",
+  "changed": false,
+  "labels": [
+   "Measured from the scan, medium"
+  ]
+ },
+ {
+  "id": "sun_rooms",
+  "slug": "sun-rooms",
+  "title": "Sun by room",
+  "summary": "Hours of direct sun in each room on a day and at the solstices and equinoxes, with neighbours and trees in the way, and the best room for plants, a home office and a cool bedroom.",
+  "asks": "Which room is best for my plants?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "date",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Which room is best for my plants?",
+   "Where should my home office go to avoid glare?",
+   "Which bedroom stays coolest in summer?"
+  ],
+  "returns": [
+   "measurements",
+   "a chart",
+   "a ranked table across scans",
+   "checks",
+   "the plan, marked",
+   "values to try",
+   "the assumptions it used"
+  ],
+  "required": [
+   "Doors and windows",
+   "Scan position"
+  ],
+  "optional": [
+   "Roof heights"
+  ],
+  "data": [
+   "aerial",
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Home life"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "unknown",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "takeoff_bid",
+  "slug": "takeoff-bid",
+  "title": "Takeoff bid",
+  "summary": "Quantities for a trade from the scan (floor by finish, paintable wall, glass, doors, fixtures), priced with your own rates: a cleaning bid, an apartment unit turn, or a fit-out estimate.",
+  "asks": "What would it cost to clean this office three nights a week?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "trade",
+    "asked": true
+   },
+   {
+    "key": "carpet_ft2_per_hour",
+    "asked": false
+   },
+   {
+    "key": "hard_ft2_per_hour",
+    "asked": false
+   },
+   {
+    "key": "fixture_minutes",
+    "asked": false
+   },
+   {
+    "key": "glass_ft2_per_hour",
+    "asked": false
+   },
+   {
+    "key": "glass_visits_per_month",
+    "asked": false
+   },
+   {
+    "key": "visits_per_week",
+    "asked": false
+   },
+   {
+    "key": "wage",
+    "asked": false
+   },
+   {
+    "key": "markup",
+    "asked": false
+   },
+   {
+    "key": "paint_per_ft2",
+    "asked": false
+   },
+   {
+    "key": "paint_ft2_per_gallon",
+    "asked": false
+   },
+   {
+    "key": "carpet_per_yd2",
+    "asked": false
+   },
+   {
+    "key": "replace_carpet",
+    "asked": false
+   },
+   {
+    "key": "carpet_clean_per_ft2",
+    "asked": false
+   },
+   {
+    "key": "hard_floor_per_ft2",
+    "asked": false
+   },
+   {
+    "key": "per_door",
+    "asked": false
+   },
+   {
+    "key": "per_window",
+    "asked": false
+   },
+   {
+    "key": "per_fixture",
+    "asked": false
+   },
+   {
+    "key": "flooring_per_ft2",
+    "asked": false
+   },
+   {
+    "key": "ceiling_per_ft2",
+    "asked": false
+   },
+   {
+    "key": "partition_per_lf",
+    "asked": false
+   },
+   {
+    "key": "new_door",
+    "asked": false
+   },
+   {
+    "key": "add_offices",
+    "asked": false
+   },
+   {
+    "key": "contingency",
+    "asked": false
+   },
+   {
+    "key": "label_with_vision",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "What would it cost to clean this office three nights a week?",
+   "Scope the turn for this unit",
+   "Rough fit-out price for this suite"
+  ],
+  "returns": [
+   "measurements",
+   "a chart",
+   "the plan, marked",
+   "the assumptions it used",
+   "values to try",
+   "photos as evidence"
+  ],
+  "required": [
+   "360\u00b0 photos"
+  ],
+  "optional": [
+   "Wall outline"
+  ],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Business"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "pass",
+  "changed": false,
+  "labels": [
+   "Measured from the scan, high",
+   "Simulated, low",
+   "Seen in a model, medium"
+  ]
+ },
+ {
+  "id": "tour",
+  "slug": "tour",
+  "title": "Tour",
+  "summary": "Answers by showing: a camera tour from the way in to each piece of evidence the other tools found, with one spoken line at each stop. The last step of a fire pre-plan or a wheelchair check of a home.",
+  "asks": "Show me what matters for a fire crew in this house",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "question",
+    "asked": false
+   },
+   {
+    "key": "findings",
+    "asked": false
+   },
+   {
+    "key": "min_width_m",
+    "asked": false
+   },
+   {
+    "key": "standard",
+    "asked": false
+   },
+   {
+    "key": "max_stops",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Show me what matters for a fire crew in this house",
+   "Walk me through what a wheelchair user would hit"
+  ],
+  "returns": [
+   "photos as evidence"
+  ],
+  "required": [
+   "Rooms"
+  ],
+  "optional": [
+   "Doors and windows"
+  ],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Safety and hazards",
+   "Getting in and around"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "fail",
+  "changed": false,
+  "labels": [
+   "Looked up in a model, medium",
+   "Measured from the scan, medium",
+   "Seen in a model, low"
+  ]
+ },
+ {
+  "id": "truck_access",
+  "slug": "truck-access",
+  "title": "Truck access",
+  "summary": "Whether a 53 ft trailer can reach and back to the docks: entrance, gate, court depth, turning room, overhead obstructions, arrival directions and a route on the aerial photo.",
+  "asks": "Can a 53 foot trailer get into this warehouse?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "property_id",
+    "asked": false
+   },
+   {
+    "key": "lat",
+    "asked": false
+   },
+   {
+    "key": "lon",
+    "asked": false
+   },
+   {
+    "key": "court_min_m",
+    "asked": false
+   },
+   {
+    "key": "entrance_min_m",
+    "asked": false
+   },
+   {
+    "key": "use_vision",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Can a 53 foot trailer get into this warehouse?",
+   "Which entrance do trucks use here?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "a note",
+   "the assumptions it used"
+  ],
+  "required": [
+   "Aerial photo",
+   "Roof heights",
+   "Angled aerial photos"
+  ],
+  "optional": [
+   "Street map",
+   "Property record"
+  ],
+  "data": [
+   "aerial",
+   "costar",
+   "public"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Business"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "turning_space",
+  "slug": "turning-space",
+  "title": "Turning space",
+  "summary": "Finds the largest clear circle in each room and checks it against the turning circle you need.",
+  "asks": "Can I turn my wheelchair around in the bathroom?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "diameter_m",
+    "asked": false
+   },
+   {
+    "key": "rooms",
+    "asked": false
+   },
+   {
+    "key": "aisle_width_m",
+    "asked": false
+   },
+   {
+    "key": "chairs",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Can I turn my wheelchair around in the bathroom?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "the plan, marked",
+   "values to try",
+   "the assumptions it used"
+  ],
+  "required": [
+   "Rooms",
+   "Wall outline"
+  ],
+  "optional": [],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Getting in and around"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "fail",
+  "changed": true,
+  "labels": [
+   "Measured from the scan, medium"
+  ]
+ },
+ {
+  "id": "unit_compare",
+  "slug": "unit-compare",
+  "title": "Unit compare",
+  "summary": "Ranks several units or suites side by side on measured area, rooms, storage, windows and door widths, with rent per measured square foot.",
+  "asks": "Compare the units in this building",
+  "inputs": [
+   {
+    "key": "scans",
+    "asked": false
+   },
+   {
+    "key": "property",
+    "asked": false
+   },
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "max_units",
+    "asked": false
+   },
+   {
+    "key": "label_with_vision",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Compare the units in this building",
+   "Which floor plan gives the most space for the rent?"
+  ],
+  "returns": [
+   "measurements",
+   "a ranked table across scans",
+   "a chart",
+   "checks",
+   "photos as evidence"
+  ],
+  "required": [
+   "Rooms"
+  ],
+  "optional": [
+   "Property record"
+  ],
+  "data": [
+   "costar",
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Business",
+   "Home life",
+   "Research and underwriting"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "valuables_height",
+  "slug": "valuables-height",
+  "title": "What sits below the water",
+  "summary": "Finds the belongings, appliances, outlets and utilities in the rooms that flood, how high each sits off the floor, and what the water would cost, as a range.",
+  "asks": "What would I lose at two feet of water?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "depth_m",
+    "asked": true
+   },
+   {
+    "key": "scenario",
+    "asked": false
+   },
+   {
+    "key": "floor_height_m",
+    "asked": false
+   },
+   {
+    "key": "use_drone",
+    "asked": false
+   },
+   {
+    "key": "max_rooms",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "What would I lose at two feet of water?",
+   "Is the water heater high enough?"
+  ],
+  "returns": [
+   "measurements",
+   "values to try",
+   "checks",
+   "photos as evidence",
+   "the plan, marked",
+   "the assumptions it used",
+   "next actions"
+  ],
+  "required": [
+   "360\u00b0 photos",
+   "Rooms"
+  ],
+  "optional": [
+   "Empty-room photos"
+  ],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar",
+   "langchain"
+  ],
+  "who": [
+   "Safety and hazards",
+   "Research and underwriting"
+  ],
+  "slow": true,
+  "approval": true,
+  "writes": false,
+  "outcome": "unknown",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "walkthrough",
+  "slug": "walkthrough",
+  "title": "Walk-through",
+  "summary": "A quick safety census of a home with no scan, from a short video you record walking through it: rooms, smoke alarms, hazards and belongings.",
+  "asks": "Check my own home for smoke alarms",
+  "inputs": [
+   {
+    "key": "capture",
+    "asked": false
+   },
+   {
+    "key": "geo",
+    "asked": false
+   },
+   {
+    "key": "max_frames",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Check my own home for smoke alarms",
+   "My home was never scanned"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "photos as evidence",
+   "the assumptions it used"
+  ],
+  "required": [
+   "phone.video"
+  ],
+  "optional": [],
+  "data": [
+   "phone"
+  ],
+  "sponsor": [],
+  "who": [
+   "Anyone"
+  ],
+  "slow": true,
+  "approval": false,
+  "writes": false,
+  "outcome": "needs",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "where_am_i",
+  "slug": "where-am-i",
+  "title": "Where am I",
+  "summary": "Finds the scanned building you are standing in from the phone's GPS, or says there is none here.",
+  "asks": "Which building am I in?",
+  "inputs": [
+   {
+    "key": "geo",
+    "asked": false
+   },
+   {
+    "key": "accuracy_m",
+    "asked": false
+   },
+   {
+    "key": "capture",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Which building am I in?",
+   "Is this address scanned?"
+  ],
+  "returns": [
+   "measurements",
+   "photos as evidence",
+   "next actions"
+  ],
+  "required": [
+   "phone.gps"
+  ],
+  "optional": [],
+  "data": [
+   "phone"
+  ],
+  "sponsor": [],
+  "who": [
+   "Anyone"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "needs",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "wifi_coverage",
+  "slug": "wifi-coverage",
+  "title": "Wi-Fi coverage",
+  "summary": "Estimates Wi-Fi strength in every room from a router spot, finds dead zones, the best router spot for the bedrooms and office, and where a mesh node helps most.",
+  "asks": "Where should the router go?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "router_room",
+    "asked": false
+   },
+   {
+    "key": "router_point",
+    "asked": false
+   },
+   {
+    "key": "router_floor",
+    "asked": false
+   },
+   {
+    "key": "router",
+    "asked": false
+   },
+   {
+    "key": "targets",
+    "asked": false
+   },
+   {
+    "key": "wall_materials",
+    "asked": false
+   },
+   {
+    "key": "outbuilding_m",
+    "asked": false
+   },
+   {
+    "key": "outbuilding_wall",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Where should the router go?",
+   "Will Wi-Fi reach the back bedroom?",
+   "Do I need a mesh node?"
+  ],
+  "returns": [
+   "measurements",
+   "a chart",
+   "checks",
+   "the plan, marked",
+   "the assumptions it used"
+  ],
+  "required": [
+   "Wall outline",
+   "Doors and windows"
+  ],
+  "optional": [
+   "Room names"
+  ],
+  "data": [
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Home life"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "pass",
+  "changed": true,
+  "labels": [
+   "Simulated from the scan, low"
+  ]
+ },
+ {
+  "id": "wildfire_space",
+  "slug": "wildfire-space",
+  "title": "Wildfire defensible space",
+  "summary": "Vegetation and tree canopy in California's 5, 30 and 100 ft zones round the house, what to clear first, roof material, slope, the nearest fire station and the CAL FIRE hazard zone.",
+  "asks": "Is my defensible space good enough?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "property_id",
+    "asked": false
+   },
+   {
+    "key": "lat",
+    "asked": false
+   },
+   {
+    "key": "lon",
+    "asked": false
+   },
+   {
+    "key": "station_radius_km",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Is my defensible space good enough?",
+   "What should I clear first before fire season?"
+  ],
+  "returns": [
+   "measurements",
+   "a chart",
+   "checks",
+   "photos as evidence",
+   "the assumptions it used"
+  ],
+  "required": [
+   "Aerial photo",
+   "Roof heights",
+   "Aerial property facts"
+  ],
+  "optional": [],
+  "data": [
+   "aerial"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Safety and hazards",
+   "Research and underwriting"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": true,
+  "labels": []
+ },
+ {
+  "id": "window_check",
+  "slug": "window-check",
+  "title": "Window check",
+  "summary": "Point the phone out of a window: its compass confirms or corrects which way the room faces and its hours of sun.",
+  "asks": "Does the bedroom really face east?",
+  "inputs": [
+   {
+    "key": "scan",
+    "asked": false
+   },
+   {
+    "key": "room",
+    "asked": false
+   },
+   {
+    "key": "heading_deg",
+    "asked": false
+   },
+   {
+    "key": "magnetic",
+    "asked": false
+   },
+   {
+    "key": "heading_accuracy_deg",
+    "asked": false
+   },
+   {
+    "key": "lat",
+    "asked": false
+   },
+   {
+    "key": "lon",
+    "asked": false
+   },
+   {
+    "key": "date",
+    "asked": false
+   },
+   {
+    "key": "capture",
+    "asked": false
+   },
+   {
+    "key": "by_hand",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Does the bedroom really face east?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "the assumptions it used"
+  ],
+  "required": [
+   "phone.compass"
+  ],
+  "optional": [
+   "Scan position"
+  ],
+  "data": [
+   "phone",
+   "scan"
+  ],
+  "sponsor": [
+   "costar"
+  ],
+  "who": [
+   "Anyone"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "needs",
+  "changed": false,
+  "labels": []
+ },
+ {
+  "id": "zoning_check",
+  "slug": "zoning-check",
+  "title": "Zoning check",
+  "summary": "What the zoning allows on a lot: the zone, its main uses and height or density limits in Los Angeles; in Houston, which has no zoning, the city's lot-size, building-line and historic rules.",
+  "asks": "Can I open a cafe here?",
+  "inputs": [
+   {
+    "key": "place",
+    "asked": false
+   },
+   {
+    "key": "use",
+    "asked": false
+   }
+  ],
+  "examples": [
+   "Can I open a cafe here?",
+   "Is this lot zoned for apartments?",
+   "How tall can I build?"
+  ],
+  "returns": [
+   "measurements",
+   "checks",
+   "a note"
+  ],
+  "required": [
+   "public.zoning"
+  ],
+  "optional": [],
+  "data": [
+   "public"
+  ],
+  "sponsor": [],
+  "who": [
+   "Anyone"
+  ],
+  "slow": false,
+  "approval": false,
+  "writes": false,
+  "outcome": "cannot",
+  "changed": false,
+  "labels": []
+ }
+]

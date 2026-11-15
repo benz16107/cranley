@@ -11,6 +11,7 @@ import Split from './Split.astro'
 import Funnel from './Funnel.astro'
 import Quotes from './Quotes.astro'
 import Asked from './Asked.astro'
+import ToolsCallout from './ToolsCallout.astro'
 import Proof from '../Proof.astro'
 import deep from '../../generated/deep.json'
 import { INTERVIEW } from '../../site/proof'
@@ -109,6 +110,7 @@ const flow = [
     <Quotes />
     <h3 class="h3">Where those changes are in the code</h3>
     <Cards items={code} />
+    <ToolsCallout param="changed=1" what="tools changed by what people told us" />
   </Sec>
 
   <Sec id="evidence" title="The evidence" sub="The recording, and the questions and answers as they were posted.">

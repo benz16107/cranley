@@ -3,7 +3,7 @@ import '../styles/base.css'
 import Mark from '../components/Mark.astro'
 import { LINKS, TEAM } from '../site/links'
 import { TRACKS } from '../site/tracks'
-interface Props { title: string; description: string; nav?: 'home' | 'how' | 'tracks' }
+interface Props { title: string; description: string; nav?: 'home' | 'how' | 'tools' | 'tracks' }
 const { title, description, nav } = Astro.props
 const realVisuals = process.env.CRANLEY_REAL_VISUALS === '1'
 const url = new URL(Astro.url.pathname, Astro.site)
@@ -38,6 +38,7 @@ const url = new URL(Astro.url.pathname, Astro.site)
         <a class="brand" href="/" aria-label="Cranley, home"><Mark />Cranley</a>
         <nav aria-label="Main">
           <a href="/how/" aria-current={nav === 'how' ? 'page' : undefined}>How it works</a>
+          <a href="/tools/" aria-current={nav === 'tools' ? 'page' : undefined}>Tools</a>
           <a href="/tracks/" aria-current={nav === 'tracks' ? 'page' : undefined}>Tracks</a>
           <a href="/docs/">Docs</a>
         </nav>
