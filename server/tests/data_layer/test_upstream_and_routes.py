@@ -212,6 +212,21 @@ def test_buildings_group_by_property_then_address_then_spot(small_index):
     assert "p77" in regrouped and "p5" not in regrouped
 
 
+def test_buildings_route_revalidates_with_an_etag(small_index, monkeypatch):
+    monkeypatch.setattr(api.costar, "property_id_of", lambda sid: None)  # the index column, not a kit on this machine
+    api._buildings_cache.cache_clear(); api._buildings_body.cache_clear()
+    try:
+        c = TestClient(app)
+        r = c.get("/api/buildings")
+        assert r.status_code == 200 and r.headers["cache-control"] == "no-cache" and len(r.json()["features"]) == len(index.buildings(api.costar.property_id_of))
+        again = c.get("/api/buildings", headers={"If-None-Match": r.headers["etag"]})
+        assert again.status_code == 304 and not again.content
+        assert c.get("/api/buildings", headers={"If-None-Match": '"other"'}).status_code == 200
+        assert len(c.get("/api/buildings", params={"city": "los angeles"}).json()["features"]) == 1  # filters still work
+    finally:
+        api._buildings_cache.cache_clear(); api._buildings_body.cache_clear()
+
+
 def test_scans_route(small_index):
     c = TestClient(app)
     d = c.get("/api/scans", params={"kind": "apartment_unit", "limit": 1}).json()

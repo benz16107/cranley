@@ -6,8 +6,8 @@
 // Whether a scan has one is asked of /api/world/<sid>/interior first, which always answers: most scans have none,
 // and asking for a file that is not there would print an error in the console on every building.
 import * as THREE from 'three'
-import { SplatMesh } from '@sparkjsdev/spark'
-import { SplatCut, sparkFor } from '../scene/engine/splat.ts'
+import type { SplatMesh } from '@sparkjsdev/spark'
+import { SplatCut, loadSpark, sparkFor } from '../scene/engine/splat.ts'
 
 export class InteriorSplat {
   group = new THREE.Group()
@@ -44,8 +44,9 @@ export class InteriorSplat {
 
   private async load() {
     this.status = 'loading'; this.onChange()
-    sparkFor(this.renderer, this.scene, () => this.onChange())
     try {
+      await sparkFor(this.renderer, this.scene, () => this.onChange())
+      const { SplatMesh } = await loadSpark()
       const mesh = new SplatMesh({ url: this.url })
       await mesh.initialized
       if (this.gone) { mesh.dispose(); return }

@@ -76,12 +76,15 @@ export function search(all: Building[], q: string, limit = 8): Building[] {
 }
 
 type Store = { all: Building[]; state: 'loading' | 'ready' | 'error'; load: () => void }
+let inFlight = false // the shell and Home's ask both call load() on the first render: one request, not two
 export const useBuildings = create<Store>((set, get) => ({
   all: [], state: 'loading',
   load: () => {
-    if (get().all.length) return
+    if (get().all.length || inFlight) return
+    inFlight = true
     set({ state: 'loading' })
     fetch('/api/buildings').then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json() })
       .then((g) => set({ all: toBuildings(g.features), state: 'ready' }), () => set({ state: 'error' }))
+      .finally(() => { inFlight = false })
   },
 }))
