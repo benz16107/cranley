@@ -4,6 +4,7 @@ import { useCatalog, useRoute, userOp } from '../../../core/index.ts'
 import { Empty, Icon } from '../design/ui.tsx'
 import { Sheet } from '../design/split.tsx'
 import { sheetFocus } from '../lib/split.ts'
+import { FIRST_RUN_KEY } from '../lib/firstrun.ts'
 import { become, loadPerson, mark, openKnows, usePerson, type Fact, type Note } from '../lib/person.ts'
 import { useUi } from './store.ts'
 import './knows.css'
@@ -81,7 +82,12 @@ export function Knows() {
   const about = p?.facts.filter((f) => f.group === 'about') ?? [], matters = p?.facts.filter((f) => f.group === 'matters') ?? []
   useEffect(() => { if (open) void loadPerson(true) }, [open])
   const as = useRoute().q.get('as') // a link that opens the app as a named person
-  useEffect(() => become(as), [as])
+  useEffect(() => {
+    if (!become(as)) return
+    // someone opened by name is not on a first run: the guide does not open over their page
+    try { localStorage.setItem(FIRST_RUN_KEY, '1') } catch { /* it asks on the next visit */ }
+    if (useUi.getState().first === 'ask') useUi.setState({ first: null })
+  }, [as])
   return (
     <Dialog.Root open={open} onOpenChange={(o) => openKnows(o)}>
       <Dialog.Portal>

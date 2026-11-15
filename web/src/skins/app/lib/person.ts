@@ -61,13 +61,15 @@ async function loadNotes() {
 }
 /** Open Cranley as a named person: a link with `?as=<profile>`. There is no sign-in, so the profile id kept in this
     browser is who you are; another person's next brief starts a new investigation. Used by the demo's returning
-    person, and by anyone who wants their history on a second device. */
-export function become(id: string | null) {
-  if (!id || !/^[A-Za-z0-9_-]{1,64}$/.test(id) || id === profile() || useCatalog.getState().shared) return
-  try { localStorage.setItem('threshold.profile', id) } catch { return } // a private window: stay who you are
+    person, and by anyone who wants their history on a second device. True when the page is now that person's. */
+export function become(id: string | null): boolean {
+  if (!id || !/^[A-Za-z0-9_-]{1,64}$/.test(id) || useCatalog.getState().shared) return false
+  if (id === profile()) return true
+  try { localStorage.setItem('threshold.profile', id) } catch { return false } // a private window: stay who you are
   startOver()
   usePerson.setState({ person: null, notes: [] })
   void loadPerson()
+  return true
 }
 export const openKnows = (open = true) => { usePerson.setState({ open }); if (open) void loadPerson(true) }
 
