@@ -3,8 +3,10 @@ floor plans, the splat, drone photos and the CoStar record. Every upstream respo
 from __future__ import annotations
 
 import functools
+import hashlib
 import json
 import re
+import threading
 
 import httpx
 from fastapi import APIRouter, HTTPException, Query, Request, Response
@@ -62,6 +64,21 @@ def _buildings_cache() -> tuple:
     return tuple(feats)
 
 
+@functools.lru_cache(maxsize=1)
+def _buildings_body() -> tuple[bytes, str]:
+    """The unfiltered answer, the one the map asks for: its bytes and an ETag, made once."""
+    body = json.dumps({"type": "FeatureCollection", "features": list(_buildings_cache())}, separators=(",", ":")).encode()
+    return body, '"' + hashlib.sha1(body).hexdigest()[:20] + '"'
+
+
+def _warm_buildings() -> None:
+    """Build the list in the background at start, so the first visitor after a restart does not wait for it."""
+    threading.Thread(target=_buildings_body, name="warm-buildings", daemon=True).start()
+
+
+router.add_event_handler("startup", _warm_buildings)
+
+
 @router.get("/buildings")
 def buildings(request: Request, segment: str | None = None, city: str | None = None, splat: bool | None = None,
               bbox: str | None = Query(None, description="west,south,east,north")) -> Response:
@@ -75,6 +92,13 @@ def buildings(request: Request, segment: str | None = None, city: str | None = N
             assert len(box) == 4
         except (ValueError, AssertionError):
             raise HTTPException(422, "bbox is west,south,east,north") from None
+    if not (segment or city or splat is not None or box):
+        body, etag = _buildings_body()
+        # no-cache: the browser keeps it and asks again each visit; an unchanged list answers 304 with no body
+        headers = {"ETag": etag, "Cache-Control": "no-cache"}
+        if etag in (request.headers.get("if-none-match") or ""):
+            return Response(status_code=304, headers=headers)
+        return Response(body, media_type="application/json", headers=headers)
     feats = [f for f in _buildings_cache()
              if (not segment or f["properties"]["segment"] == segment)
              and (not city or city.lower() in (f["properties"]["city"] or "").lower())

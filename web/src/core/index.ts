@@ -28,6 +28,7 @@ export {
   type Building, type Scan, type Kind, type CityId, type Filters,
 } from './buildings.ts'
 export { useMapModel, geoMarks, nearestBuilding, type GeoMarks } from './place.ts'
+import 'maplibre-gl/dist/maplibre-gl.css' // here, not in maplibre.ts, so MapLibre's 1 MB of JS loads only with a map
 export { Map as MapLibre, Marker } from './maplibre.ts'
 export { mapStyle, BASE_VIEWS, SLOT, MAP_CREDIT, type MapPalette, type BaseView, type MapStyleOptions } from './basemap.ts'
 
