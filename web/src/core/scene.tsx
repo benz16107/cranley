@@ -51,11 +51,13 @@ export class SceneBoundary extends Component<{ children: ReactNode; fallback: Re
 }
 
 /** Where "inside" starts when the person has not chosen a position: in the room of the thing being looked at, else
-    the first position that stands in a room (a scan's first position is often outside on the path), else the first. */
+    a position in the largest outlined room (a scan's first position is often outside on the path), else the first. */
 function firstInside(plan: ScanPlan | null, at: Anchor | null) {
   if (!plan) return undefined
   const rooms = at && 'room' in at ? [at.room] : at && 'opening' in at ? plan.openings.find((o) => o.id === at.opening)?.rooms ?? [] : []
-  return plan.panos.find((p) => p.room && rooms.includes(p.room)) ?? plan.panos.find((p) => p.room) ?? plan.panos[0]
+  // the largest room with an outline: a house's garden and drive are "rooms" too, with no outline, and the first is often a closet
+  const inside = plan.rooms.filter((r) => r.polygon.length > 2).sort((x, y) => (y.area ?? 0) - (x.area ?? 0)).map((r) => plan.panos.find((p) => p.room === r.id)).find(Boolean)
+  return plan.panos.find((p) => p.room && rooms.includes(p.room)) ?? inside ?? plan.panos.find((p) => p.room) ?? plan.panos[0]
 }
 
 const MODES: Mode[] = ['dollhouse', 'plan', 'pano', 'splat']

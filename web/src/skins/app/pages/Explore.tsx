@@ -290,7 +290,7 @@ export function Explore({ sid = null }: { sid?: string | null }) {
           <div className="ex-scene" ref={setScene} />
           {!covered && <>
             <HoverTip />
-            <MapTools base={base} onBase={setBase} layers={layers} on={on} toggle={toggle} reset={() => { setPicked(null); setQuery({ app_l: null }) }} city={city} />
+            <MapTools base={base} onBase={setBase} layers={layers} on={on} toggle={toggle} reset={() => { setPicked(null); setQuery({ app_l: null }) }} />
             {on.includes('weather') && <WeatherChip city={city} source={layers.find((l) => l.id === 'weather')} />}
             <MapNav />
             <div className="mapfoot">

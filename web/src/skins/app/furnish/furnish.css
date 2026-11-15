@@ -2,9 +2,10 @@
 
 .menu .fz-fine { max-width: 280px; margin: 0; padding: 4px 8px 6px; color: var(--ink-3); font-size: var(--text-2xs); line-height: 1.4; white-space: normal; }
 
-/* Bottom right: the scene keeps its floor chooser top left, its inset plan bottom left and its cut slider on the right edge above this. */
+/* Bottom right: the scene keeps its floor chooser top left, its inset plan bottom left and its cut slider on the right edge above this.
+   Its width stops short of the inset plan (the scene's clamp), down to 300 px on a phone. */
 .fz-card {
-  position: absolute; z-index: 12; right: 12px; bottom: 12px; width: min(468px, calc(100% - 24px)); display: grid; gap: 8px; padding: 8px;
+  position: absolute; z-index: 12; right: 12px; bottom: 12px; width: min(468px, max(300px, calc(100% - clamp(132px, 22%, 236px) - 36px))); display: grid; gap: 8px; padding: 8px;
   border-radius: var(--r-2); background: var(--pane); box-shadow: var(--lift); font-size: var(--text-xs);
 }
 .fz-card > header { display: flex; align-items: center; gap: 8px; min-width: 0; padding-left: 4px; }
@@ -14,3 +15,5 @@
 .fz-card .stats > div { min-width: 0; padding: 6px 8px 7px; }
 .fz-card > footer { display: flex; align-items: center; gap: 8px; padding: 0 4px; font-size: var(--text-2xs); }
 @container (max-width: 520px) { .fz-card > header .num { display: none; } }
+/* the card stands where the scene's note on its surroundings does: while a piece is selected the card speaks */
+.scene-host:has(.fz-card) .th-note-layers { display: none; }

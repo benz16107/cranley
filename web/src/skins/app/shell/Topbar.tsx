@@ -5,6 +5,7 @@ import { go, usePlace } from '../lib/place.ts'
 import { leaveShared, useSeen } from '../lib/pending.ts'
 import { useIsPhone, useUi } from './store.ts'
 import { DemoMenu } from '../demo/DemoMenu.tsx'
+import { isApproval, useStopped } from './AgentLive.tsx'
 
 type Crumb = { label: string; to?: () => void }
 const TITLE = { home: 'Home', explore: 'Explore', investigations: 'Investigations', buildings: 'Buildings', insights: 'Insights', tools: 'Tools', settings: 'Settings' } as const
@@ -28,7 +29,9 @@ export function Topbar({ actions }: { actions?: ReactNode }) {
   const doc = useWorkspace((s) => s.doc)
   const shared = useCatalog((s) => s.shared?.state === 'ready')
   const running = doc.runs.filter((r) => r.status === 'running').length, open = doc.questions.filter((q) => q.answer == null).length
-  const working = running > 0 || doc.plan.some((s) => s.status === 'active')
+  const stopped = useStopped()
+  const approving = doc.questions.some((q) => q.answer == null && isApproval(q)) // paused for the person: a dot, not a spinner
+  const working = !stopped && !approving && (running > 0 || doc.plan.some((s) => s.status === 'active'))
   return (
     <header className="top">
       {phone && <IconBtn icon="menu" label="Open the navigation" onClick={() => useUi.setState({ nav: true })} />}

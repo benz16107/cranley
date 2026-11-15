@@ -110,7 +110,7 @@ function Census() {
 
 export function Insights() {
   return (
-    <div className="page"><div className="inner">
+    <div className="page insights"><div className="inner">
       <section className="card">
         <header><h2>Measured access</h2><p className="grow">How many scanned homes meet each condition. A bar is the share of the homes that could be answered.</p><SourceChip source={{ layer: 'matterport', method: 'geometry', confidence: 'medium', note: 'From each scan’s wall outline and doorways. A scan with no wall outline cannot be answered and is not in the denominator.' }} /></header>
         <table className="tbl">
@@ -120,7 +120,7 @@ export function Insights() {
               <tr key={q.label}>
                 <td>{q.label}</td>
                 {CITY_IDS.map((c) => <CountCell key={c} where={q.where} city={c} />)}
-                <td className="r"><button className="btn sm quiet" onClick={() => navigate('/map', { app_m: q.where.join(';'), app_view: 'split' })}>See them<Icon name="go" size={11} /></button></td>
+                <td className="r"><button className="btn sm quiet" onClick={() => navigate('/map', { app_m: q.where.join(';'), app_view: 'split' })} aria-label={`See them on the map: ${q.label}`}><span className="lbl">See them</span><Icon name="go" size={11} /></button></td>
               </tr>
             ))}
           </tbody>

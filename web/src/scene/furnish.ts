@@ -185,7 +185,7 @@ export function furnish(m: Model, items: Stood[], selected: string | null): { ch
     }
     const status: Status = through || doors.length || turning?.blocked ? 'fail' : 'pass'
     checks.push({ id: p.id, status, room: rooms[i] >= 0 ? m.plan.rooms[rooms[i]].id : null, through, sides, doors, turning })
-    overlays.push({ kind: 'box', center: p.center, size: p.size, yaw_deg: p.yaw_deg, label: p.label, status, model: p.model, quiet: !on })
+    overlays.push({ kind: 'box', center: p.center, size: p.size, yaw_deg: p.yaw_deg, label: on ? '' : p.label, status, model: p.model, quiet: !on }) // the selected piece is named by the look's own card, not by a chip over its measurements
     if (lines.length || chips.length) overlays.push({ kind: 'marks', floor: f, id: p.id, lines, chips })
   })
   return { checks, overlays }

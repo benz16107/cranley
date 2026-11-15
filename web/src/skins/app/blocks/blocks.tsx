@@ -7,6 +7,7 @@ import { fetchPlan, focusAnchor, focusFinding, navigate, panoFace, runAction, us
 import { Icon, RunState, SourceChip, St, StatusGlyph, ToolKey } from '../design/ui.tsx'
 import { dur, num as fmt } from '../lib/format.ts'
 import { PlanDrawing } from '../shell/PlanDrawing.tsx'
+import { useNames } from '../shell/store.ts'
 import { oneSource, splitChecks } from '../lib/source.ts'
 
 /* The twelve panel blocks, set at the density of a work tool. A panel is only ever built from these.
@@ -216,7 +217,7 @@ function Controls({ b }: { b: Extract<Block, { type: 'Controls' }> }) {
                 <Slider.Root value={c.value as number} min={c.min} max={c.max} step={c.step} onValueCommitted={(v) => set(v as number)} aria-label={c.label}>
                   <Slider.Control className="slider"><Slider.Track className="track"><Slider.Indicator className="range" /><Slider.Thumb className="thumb" /></Slider.Track></Slider.Control>
                 </Slider.Root>
-                <span className="num val">{fmt(c.value as number)} {c.unit}</span>
+                <span className="num val">{fmt(c.value as number, 3)} {c.unit}</span>{/* three places: a threshold such as 0.813 m is not rounded away from the value the checks print */}
               </>
             )}
             {c.kind === 'toggle' && <Switch.Root className="switch" checked={c.value as boolean} onCheckedChange={set} aria-label={c.label}><Switch.Thumb className="knob" /></Switch.Root>}
@@ -282,6 +283,9 @@ function ActionBar({ b, ctx }: { b: Extract<Block, { type: 'ActionBar' }>; ctx: 
   return <div className="b-actions">{b.actions.map((a: Action) => <button key={a.id} className="btn sm" onClick={() => runAction(a, ctx.panel)}>{a.label}</button>)}</div>
 }
 
+/** The agent's own words. It writes a scan by its id; a person reads its name. */
+function Note({ text }: { text: string }) { return <p className="b-note">{useNames().named(text)}</p> }
+
 function BlockView({ block: b, ctx }: { block: Block; ctx: Ctx }): ReactNode {
   switch (b.type) {
     case 'VerdictHeader': return <VerdictHeader b={b} />
@@ -294,7 +298,7 @@ function BlockView({ block: b, ctx }: { block: Block; ctx: Ctx }): ReactNode {
     case 'Controls': return <Controls b={b} />
     case 'AssumptionChips': return <AssumptionChips b={b} ctx={ctx} />
     case 'StepLog': return <StepLog b={b} />
-    case 'Note': return <p className="b-note">{b.text}</p>
+    case 'Note': return <Note text={b.text} />
     case 'ActionBar': return <ActionBar b={b} ctx={ctx} />
   }
 }

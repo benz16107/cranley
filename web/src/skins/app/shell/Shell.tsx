@@ -19,6 +19,7 @@ import { Settings } from '../pages/Settings.tsx'
 import { Tools } from '../pages/Tools.tsx'
 import { CommandMenu } from './CommandMenu.tsx'
 import { PanelDrawer, RunPanel } from './RunPanel.tsx'
+import { LiveLink } from './AgentLive.tsx'
 import { Knows } from './Knows.tsx'
 import { StartTool } from './StartTool.tsx'
 import { PAGE_KEYS, Sidebar } from './Sidebar.tsx'
@@ -61,8 +62,19 @@ export function Shell() {
   // The run panel opens by itself when the agent starts working or needs an answer. Closing it is the person's.
   const busy = useWorkspace((s) => s.doc.plan.some((p) => p.status === 'active') || ((s.doc.plan.length > 0 || s.doc.runs.length > 0 || !s.doc.brief) && s.doc.questions.some((q) => q.answer == null)))
   const was = useRef(busy)
-  // not on a phone during the guided first run: there the panel is a sheet over the page, and the page is what is being shown
-  useEffect(() => { if (busy && !was.current && !(phone && useUi.getState().first)) setRun(true); was.current = busy }, [busy, setRun, phone])
+  // Not when the busy document is the one this page load opened (a reload, another investigation opened, a read-only
+  // link): that is not the agent starting, and on a phone the sheet would cover every page as it opens. A workspace
+  // made after the page loaded is never that one. Not on a phone during the guided first run either: there the page
+  // is what is being shown.
+  const docId = useWorkspace((s) => s.doc.id), lastId = useRef(docId)
+  const atLoad = useRef<string | null>(undefined)
+  if (atLoad.current === undefined) { try { atLoad.current = localStorage.getItem('threshold.workspace') } catch { atLoad.current = null } }
+  useEffect(() => {
+    const swapped = docId !== lastId.current && (docId === atLoad.current || docId === 'shared')
+    lastId.current = docId
+    if (busy && !was.current && !swapped && !(phone && useUi.getState().first)) setRun(true)
+    was.current = busy
+  }, [busy, docId, setRun, phone])
 
   useEffect(() => {
     let g = 0
@@ -116,6 +128,7 @@ export function Shell() {
             <Drawer.Portal><Drawer.Overlay className="backdrop" /><Drawer.Content className="rundrawer" aria-describedby={undefined}><Drawer.Handle className="grip" /><Drawer.Title className="sr">Agent</Drawer.Title><RunPanel onClose={() => setRun(false)} /></Drawer.Content></Drawer.Portal>
           </Drawer.Root>
         )}
+        <LiveLink />
         <CommandMenu />
         <Shortcuts />
         <PanelDrawer />

@@ -43,6 +43,36 @@ class Inputs(Where):
     length_m: float | None = field(None, gt=1, le=20, unit="m", pref="driveway.length_m",
                                    description="Custom vehicle length, with tongue or hitch")
     width_m: float | None = field(None, gt=0.5, le=3.5, unit="m", pref="driveway.width_m", description="Custom width")
+    towing: Literal[tuple(VEHICLES)] | None = field(None, pref="driveway.towing",
+                                                    description="A trailer or camper hitched behind the vehicle; the "
+                                                                "two must fit end to end")
+
+
+HITCH_M = 0.3  # coupler and hitch between a truck's bumper and the trailer's tongue (an assumption, editable as length)
+
+
+def long_vehicle(inputs) -> tuple[float, float, float, str]:
+    """(length, width, height, name) of what must fit off the street: the vehicle, or the vehicle and its trailer."""
+    v = VEHICLES[inputs.vehicle]
+    vl, vw = inputs.length_m or v.length, inputs.width_m or v.width
+    name = v.label if not (inputs.length_m or inputs.width_m) else "Custom vehicle"
+    if inputs.towing and not inputs.length_m:
+        t = VEHICLES[inputs.towing]
+        return (round(vl + HITCH_M + t.length, 2), max(vw, t.width), max(v.height, t.height),
+                f"{name.split(',')[0]} towing a {t.label[0].lower() + t.label[1:]}")
+    return vl, vw, v.height, name
+
+
+def long_checks(length: float, width: float | None, vl: float, vw: float, name: str) -> list[Check]:
+    need_l, need_w = vl + 0.3, vw + 0.3
+    st_l = "pass" if length >= need_l else "warn" if length >= vl else "fail"
+    st_w = "unknown" if width is None else "pass" if width >= need_w else "warn" if width >= vw else "fail"
+    return [Check(id="long_length", rule=f"Driveway long enough for the {name.split(',')[0]} off the street",
+                  measured=round(length, 2), threshold=round(need_l, 2), unit="m", status=st_l,
+                  standard="Vehicle length plus 0.3 m; the sidewalk stays clear"),
+            Check(id="long_width", rule=f"Driveway wide enough for the {name.split(',')[0]}",
+                  measured=round(width, 2) if width else None, threshold=round(need_w, 2), unit="m", status=st_w,
+                  standard="Vehicle width plus 0.3 m")]
 
 
 def _start_axis(ctx, s, fp_m, lat0, drives_m):
@@ -101,9 +131,7 @@ def _run_inside(geom_m, p0, u, cap: float = 60.0, step: float = 0.25) -> float:
       overlays=["pins", "route", "box"], annotations={"cost": "slow"},
       examples=["How many cars fit on the driveway?", "Can I park my boat trailer off the street here?"])
 def run(ctx, inputs: Inputs) -> ToolResult:
-    v = VEHICLES[inputs.vehicle]
-    vl, vw = inputs.length_m or v.length, inputs.width_m or v.width
-    name = v.label if not (inputs.length_m or inputs.width_m) else "Custom vehicle"
+    vl, vw, vh, name = long_vehicle(inputs)
     s = locate(ctx, inputs)
     lat0 = s.lat
     pc, fp = parcel(s), footprint(s)
@@ -162,15 +190,8 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     lsrc = LEN_SRC if how == "garage door" else Source(**{**LEN_SRC.model_dump(), "confidence": "low",
                                                           "note": "From the house edge toward the detected driveway to the parcel line; the garage door is not known"})
     # the long vehicle
-    need_l, need_w = vl + 0.3, vw + 0.3
-    st_l = "pass" if length >= need_l else "warn" if length >= vl else "fail"
-    st_w = "unknown" if width is None else "pass" if width >= need_w else "warn" if width >= vw else "fail"
-    checks = [Check(id="long_length", rule=f"Driveway long enough for the {name.split(',')[0]} off the street",
-                    measured=round(length, 2), threshold=round(need_l, 2), unit="m", status=st_l,
-                    standard="Vehicle length plus 0.3 m; the sidewalk stays clear"),
-              Check(id="long_width", rule=f"Driveway wide enough for the {name.split(',')[0]}",
-                    measured=round(width, 2) if width else None, threshold=round(need_w, 2), unit="m", status=st_w,
-                    standard="Vehicle width plus 0.3 m")]
+    checks = long_checks(length, width, vl, vw, name)
+    st_l, st_w = checks[0].status, checks[1].status
     status = "fail" if "fail" in (st_l, st_w) else "warn" if "warn" in (st_l, st_w) or st_w == "unknown" else "pass"
     short = name.split(",")[0].split(" (")[0]  # garage_fit.short() takes its Dims; this is the same cut
     text = (f"The driveway is about {length:.0f} m long and {width:.1f} m wide: room for {cars} car{'s' if cars != 1 else ''}"
@@ -197,8 +218,8 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         mid = 0.15 + vl / 2
         from ...geometry._plan import floor_z
         z = min(floor_z(plan).values(), default=0.0)
-        overlays.append(BoxOverlay(center=(round(cx + out[0] * mid, 3), round(cy + out[1] * mid, 3), round(z + v.height / 2, 3)),
-                                   size=(round(vl, 2), round(vw, 2), v.height), yaw_deg=round(math.degrees(math.atan2(out[1], out[0])), 1),
+        overlays.append(BoxOverlay(center=(round(cx + out[0] * mid, 3), round(cy + out[1] * mid, 3), round(z + vh / 2, 3)),
+                                   size=(round(vl, 2), round(vw, 2), vh), yaw_deg=round(math.degrees(math.atan2(out[1], out[0])), 1),
                                    label=short, status=status))
     metrics = [Metric(id="length", label="Driveway length", value=round(length, 1), unit="m", source=lsrc),
                Metric(id="width", label="Driveway width", value=round(width, 1) if width else None, unit="m", source=wsrc),

@@ -258,7 +258,7 @@ what they said.
 | Workplaces: a chef who takes over kitchens (r/Chefit), restaurant operators (r/restaurant), a Walmart receiving associate (r/walmart), managers (r/AskManagers), emergency management (r/EmergencyManagement) | Written answers | Check cart and hand-truck access, cooler space and 3-phase power before taking a kitchen; hot water that never reaches the far sinks; a dock that unloads around a 90 degree corner; an office under a bathroom; a library emergency review that found gaps a routine inspection missed. |
 | 340 organisations and businesses in New Jersey, New York, Texas and elsewhere | Email | Three people replied: the interview above and two declines; the rest were automatic replies or silence. |
 
-**2. Build.** What changed because of it, on main the same night (`ws/feedback`, merged at `480147f` and `f69fd81`).
+**2. Build.** What changed because of it, on main the same night (`ws/feedback`, merged at `480147f`, `f69fd81` and `41e90a9`).
 Every quote, the change it caused (tool and commit) or why it was skipped is in `docs/feedback.md`.
 
 1. Steps first: step-free route now opens with a steps check per destination, counts steps seen in the panoramas against
@@ -281,6 +281,15 @@ Every quote, the change it caused (tool and commit) or why it was skipped is in 
    flags offices with a restroom on the floor above (the manager); 3-phase power, filtration, cold storage and noise
    are "not in the scan" lines.
 9. Steps at the door: step-free route names a step at the entrance door and says when the entrance itself may have one.
+10. From the home networking and home automation answers: Wi-Fi coverage lets a person mark walls as metal ductwork,
+    coated or clear glass, masonry or drywall, and gives a detached building its own estimate through the house wall;
+    camera coverage checks a doorbell camera's mount height against a visitor's face and where a scanned porch ceiling
+    enters the view (night-vision glare).
+11. From the truck, camper and garage answers: driveway fit checks a vehicle towing a trailer or camper end to end off
+    the street; garage fit checks steps down from the house door against the parked vehicles, the charging outlet's
+    distance against the cord (when the scan has outlets), storage left after parking (floor, front-wall shelf depth,
+    ceiling racks), two different vehicles side by side, and which vehicles in its table fit alone, best first; a
+    side-entry turn is a "not in the scan" line.
 
 **3. Evidence.** Jean Ryan agreed before the call to be filmed and to have anything from it shared. In her words
 (times in the recording):
@@ -443,7 +452,7 @@ wheelchair user, the family before a storm, the fire crew.
 
 ## Built (synced to `main`)
 
-Checked against `git log main` at `9ecbd65` (2026-11-14, 10:05 pm ET). Update at each merge.
+Checked against `git log main` at `41e90a9` (2026-11-14, 10:35 pm ET). Update at each merge.
 
 **Merged**
 - [x] Data layer: Matterport, Vexcel and CoStar sources, normalized plan format with quality flags (`ws/data`)
@@ -479,6 +488,7 @@ Checked against `git log main` at `9ecbd65` (2026-11-14, 10:05 pm ET). Update at
 - [x] Cranley over iMessage and voice on Photon 2.0: plan pictures, reply threads as investigations, approvals, photo/video/voice/location in, field visits, PDF in chat, weather alerts, ElevenLabs phone agent (`ws/photon`)
 - [x] Person profile across investigations, "Cranley knows" with Change and Forget, checks kept back by kind, measured adaptation in the app, `amazon-adaptive` flow (`ws/adaptive`)
 - [x] Changes from discovery: steps first, several chairs, bathroom door swing and clear space, aisles, elevators, garage depth and trailer checks (`ws/feedback` part 1); facility audit rack route, storage area, water heater distance and office-under-restroom check from the workplace answers, and `docs/feedback.md` (part 2)
+- [x] Audit passes on the shell, scene and phone: failed 360 photos say so with a retry, layers a city lacks are hidden, phone layout fixes, ids read as names (`audit/*`, partial merges)
 - [x] Home rebuilt as one entry: a sentence about any building or one picked, starting points by who you are, recent work (`ws/home2`)
 - [x] Website and docs at cranley.app, generated from the code and this file (`ws/site`)
 - [x] MCP server (stdio and `/mcp`), `threshold` CLI, deep agent over MCP, `docs/MCP.md` (`ws/mcp`)
