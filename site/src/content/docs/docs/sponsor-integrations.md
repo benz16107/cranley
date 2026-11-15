@@ -113,7 +113,7 @@ Rules it keeps: every sent line is built from the tool result, never from model 
 rendered pictures leave the server; the main API stays private behind one signature-checked relay; each event is
 handled once, in order per chat.
 
-**State (7:50 pm):** merged with 14 tests; the live line is up with sends limited to an allowlist; a first real round
-trip had not been confirmed; the phone agent needs a voice number.
+**State (4:20 am):** merged with 14 tests; the live line is up with sends limited to an allowlist; the voice line is
+wired (`edbfc67`) and Ben made the first real call at about 4 am. A full live round trip is not confirmed yet.
 
 The track page: [Photon](/tracks/photon/).

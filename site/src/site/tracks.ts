@@ -32,7 +32,7 @@ export const TRACKS: Track[] = [
   },
   {
     slug: 'photon', name: 'Photon', prize: 'Build a Messaging Agent using Photon 2.0',
-    summary: 'The same agent and the same measuring tools answer in iMessage and on a phone call. The iMessage line is live for an allowlist of numbers. The voice agent is waiting on a phone number, and a first round trip is not yet confirmed.',
+    summary: 'The same agent and the same measuring tools answer in iMessage and on a phone call. The iMessage line is live for an allowlist of numbers, and the voice agent answered its first real phone call on 15 Nov. A full live round trip is not confirmed yet.',
     docs: [['Sponsor integrations', '/docs/sponsor-integrations/#photon'], ['The agent', '/docs/concepts/agent/'], ['Phone and iPhone app', '/docs/phone/'], ['Findings and reliability', '/docs/concepts/findings-and-reliability/']],
     slots: [],
   },
