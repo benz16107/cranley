@@ -243,3 +243,26 @@ def test_the_sample_home_is_found_by_name(tmp_path, monkeypatch):
     assert words.named_scan("check the test cafe for me") == "u_ccc"
     assert words.named_scan("will a sofa fit at 12 Elm St") is None
     assert words.place_name("u_ccc").startswith("Test cafe")
+
+
+def test_a_second_question_in_a_call_gets_its_own_workspace(tmp_path, monkeypatch):
+    """A composed workspace starts no new tools, so each new question on a call opens a fresh one; an answer to the
+    check's question continues the open workspace."""
+    from threshold.photon import voice
+    st = State(tmp_path / "s.json")
+    monkeypatch.setattr(voice, "_st", lambda: st)
+    opened, asked = [], []
+
+    def fake_session(ws):
+        sid = ws or f"ws_{len(opened) + 1}"
+        opened.append(ws)
+        return SimpleNamespace(base=SimpleNamespace(id=sid), doc=SimpleNamespace(questions=[], runs=[]), submit=lambda *a, **k: None)
+    monkeypatch.setattr(router, "session", fake_session)
+    monkeypatch.setattr("threshold.mcp.core.ask", lambda brief, workspace_id=None: asked.append((brief, workspace_id)) or
+                        {"status": "done", "runs": [{"id": f"run_{len(asked)}"}]})
+    voice._turn("+15550001111", "Will an F-150 fit in the garage at 1 Test St?")
+    voice._turn("+15550001111", "Is it wheelchair accessible, any steps at the entrance?")
+    voice._turn("+15550001111", None)  # answering the second check's question
+    assert opened == [None, None, "ws_2"]
+    assert [w for _, w in asked] == ["ws_1", "ws_2", "ws_2"]
+    assert st.data["calls"]["+15550001111"]["runs"] == ["run_1", "run_2", "run_3"]
