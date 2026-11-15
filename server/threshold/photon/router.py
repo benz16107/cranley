@@ -42,8 +42,11 @@ def state() -> State:
 class Chat:
     """Where replies go: one Space, as the agent user that received the message."""
 
-    def __init__(self, space: str, agent: str, platform: str, parent: str | None = None, api=client, st: State | None = None):
-        self.space, self.agent, self.platform, self.parent, self.api, self.st = space, agent, platform, parent, api, st
+    def __init__(self, space: str, agent: str, platform: str, parent: str | None = None, api=client, st: State | None = None,
+                 threaded: bool = True):
+        # a native reply out fails on Photon's shared iMessage line (message_failed, tested 2026-11-14); replies in still work
+        self.space, self.agent, self.platform, self.api, self.st = space, agent, platform, api, st
+        self.parent = parent if threaded else None
 
     def say(self, text: str, reply: bool = True) -> str:
         try:
@@ -136,7 +139,8 @@ def handle(event: dict, st: State | None = None, api=client) -> None:
         return
     space, agent = m["space"]["id"], (m.get("receivedBy") or {}).get("id")
     t = st.update(space, handle=sender.get("handle"), platform=m.get("platform"), agent=agent, touched=time.time())
-    chat = Chat(space, agent, m.get("platform", ""), m["id"], api, st)
+    shared = m.get("platform") == "imessage" and ((m.get("receivedBy") or {}).get("details") or {}).get("type") == "shared"
+    chat = Chat(space, agent, m.get("platform", ""), m["id"], api, st, threaded=not shared)
     waiting = t.get("pending") or []
     if waiting:
         st.update(space, pending=[])

@@ -222,3 +222,11 @@ def test_thumbs_up_reply_shortlists_the_building(tmp_path, monkeypatch):
     assert subs[0].op == "shortlist.add" and "shortlist (1)" in api.sent[-1][1]
     router.handle(event("👎", "pho_msg_f2", parent="pho_msg_ans"), st, api)
     assert subs[-1].op == "pref.set" and subs[-1].key == "tool.off.garage_fit"
+
+
+def test_no_native_reply_out_on_a_shared_imessage_line(tmp_path):
+    st, api = State(tmp_path / "s.json"), FakeAPI()
+    e = event("hi", "pho_msg_sh1")
+    e["data"]["object"]["receivedBy"]["details"] = {"type": "shared"}
+    router.handle(e, st, api)
+    assert api.sent[0][2] is None
