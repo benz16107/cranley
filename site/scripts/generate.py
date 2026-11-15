@@ -551,6 +551,40 @@ FEATURE_CODE = {
 }
 
 
+# which product each feature row belongs to, by the words the row starts with
+PRODUCT = {
+    "langchain": {"`create_deep_agent`": "deepagents", "Parallel subagents": "deepagents", "Planning": "deepagents", "Virtual filesystem": "deepagents",
+                  "StoreBackend": "deepagents", "Skills": "deepagents", "Human-in-the-loop": "deepagents", "Rubric grader": "deepagents",
+                  "MongoDB checkpointer": "LangGraph", "MCP tools": "langchain-mcp-adapters", "LangSmith": "LangSmith"},
+    "tiger-data": {"Hypertables": "TimescaleDB", "Columnstore": "TimescaleDB", "Continuous aggregates": "TimescaleDB", "TimescaleDB job": "TimescaleDB",
+                   "Retention policy": "TimescaleDB", "`percentile_agg`": "TimescaleDB Toolkit", "PostGIS": "PostGIS", "pgvector": "pgvector and pgvectorscale",
+                   "pgai vectorizer": "pgai", "Read-only role": "PostgreSQL on Tiger Cloud", "Database forks": "Tiger Cloud"},
+    "mongodb": {"Documents with": "Atlas database", "Multi-document": "Atlas database", "Change streams": "Atlas database", "`$jsonSchema`": "Atlas database",
+                "TTL index": "Atlas database", "Time series": "Atlas database", "2dsphere": "Atlas database", "Atlas Search": "Atlas Search",
+                "Hybrid search": "Atlas Search", "Vector Search": "Atlas Vector Search", "LangGraph checkpointer": "LangGraph on MongoDB",
+                "MongoDB MCP server": "MongoDB MCP server"},
+}
+PROVIDER_CODE = {"matterport": "server/threshold/sources/matterport.py", "vexcel": "server/threshold/aerial/vexcel.py", "costar": "server/threshold/sources/costar.py"}
+FIGURE = re.compile(r"\d+ MB to \d+ MB|about \d+ s\b|recall@10 of \d+\.\d+|about a second")  # a measured figure inside a row's own sentence
+
+
+def layer_use(tools: dict) -> dict:
+    """For each of the event's three providers: every layer of theirs, with how many tools require it and how many more
+    read it when it is there. Counted from the manifests."""
+    out = {}
+    for prov, code in PROVIDER_CODE.items():
+        assert (REPO / code).is_file(), code
+        req, opt = collections.defaultdict(set), collections.defaultdict(set)
+        for tid, t in tools.items():
+            for r in t.manifest.requires:
+                if r.layer.split(".")[0] == prov:
+                    (req if r.need == "required" else opt)[LAYER.get(r.layer, r.layer)].add(tid)
+        labels = sorted(set(req) | set(opt), key=lambda l: (-len(req[l] | opt[l]), l))
+        out[prov] = {"code": code, "tools": len({t for group in (req, opt) for ids in group.values() for t in ids}),
+                     "layers": [{"label": l, "n": len(req[l]), "n2": len(opt[l] - req[l])} for l in labels]}
+    return out
+
+
 def story_table(sec: str, head: str) -> list[list[str]]:
     """The rows of the table in `sec` whose header starts with `head`, as cells."""
     rows = re.search(r"(\| " + re.escape(head) + r".*?)(?:\n\n|\Z)", sec, re.S).group(1).strip().split("\n")[2:]
@@ -568,11 +602,14 @@ def sponsor_features(story: str) -> dict:
             start, file, pat = next(c for c in FEATURE_CODE[slug] if feature.startswith(c[0]))
             path = REPO / "server/threshold" / file
             assert path.is_file() and re.search(pat, path.read_text()), (slug, feature, file)
-            rows.append({"feature": feature, "why": why, "code": f"server/threshold/{file}"})
+            figure = FIGURE.search(why)
+            rows.append({"feature": feature, "why": why, "code": f"server/threshold/{file}", "product": PRODUCT[slug][start], "figure": figure and figure.group(0)})
         assert len(rows) == len(FEATURE_CODE[slug]), (slug, len(rows))
         out[slug] = {"features": rows, "left_out": [{"feature": a, "why": b} for a, b in SKIPPED[slug]]}
     assert (REPO / "server/threshold/photon").is_dir()
-    out["photon"] = {"features": [{"feature": a, "why": b, "code": "server/threshold/photon"} for a, b in story_table(pick("Photon"), "What a person does")]}
+    out["photon"] = {"features": [{"feature": a, "why": b, "code": "server/threshold/photon", "figure": None,
+                                   "product": "Voice, with ElevenLabs over SIP" if a.startswith("Calls") else "iMessage on Photon 2.0"}
+                                  for a, b in story_table(pick("Photon"), "What a person does")]}
     amazon = pick("Amazon")
     out["amazon"] = {"focus": [dict(zip(("area", "sees", "where"), r)) for r in story_table(amazon, "Amazon focus area")],
                      "criteria": [dict(zip(("criterion", "serves"), r)) for r in story_table(amazon, "Criterion")]}
@@ -643,12 +680,12 @@ def deep(tools: dict, examples: dict) -> dict:
     numbers = {
         "amazon": {"asked": asked_v[:3], "kept_back": asked_v[3:], "server_tests": ints(r"About (\d+) server tests")[0], "web_tests": ints(r"server tests and (\d+) web tests")[0],
                    "profile_keys": ints(r"about (\d+) keys")[0], "flow_s": played[:2], "turn_s": played[2:]},
-        "tiger": {"mb": ints(r"(\d+) MB to (\d+) MB"), "fork_s": ints(r"ready in about (\d+) s")[0], "recall": ints(r"recall@10 of (\d+\.\d+)")[0]},
+        "tiger": {"mb": (mb := ints(r"(\d+) MB to (\d+) MB")), "cut_pct": round((1 - mb[1] / mb[0]) * 100), "fork_s": ints(r"ready in about (\d+) s")[0], "recall": ints(r"recall@10 of (\d+\.\d+)")[0]},
         "photon": {"tests": ints(r"merged with (\d+) tests")[0]},
         "renovate": {"verdict": ren["verdict"],
                      "metrics": [{k: m.get(k) for k in ("id", "label", "value", "unit")} for m in ren["metrics"]]},
     }
-    return {"matrix": matrix, "by_need": dict(by_need), "sponsors": sponsor_features(story), "numbers": numbers, "outcomes": dict(collections.Counter(m["outcome"] for m in matrix)),
+    return {"matrix": matrix, "by_need": dict(by_need), "sponsors": sponsor_features(story), "layer_use": layer_use(tools), "numbers": numbers, "outcomes": dict(collections.Counter(m["outcome"] for m in matrix)),
             "said": dict(said), "said_total": sum(said.values()), "by_tool": [{"slug": i.replace("_", "-"), "title": tools[i].manifest.title, "n": n} for i, n in by_tool.most_common(10)],
             "quotes": quotes, "skipped": skipped, "funnel": {**counts, "replies": replied, "declines": declined, "interviews": len(re.findall(r"^## A call with", fb, re.M))},
             "garage": {"bands": bands, "vehicles": vehicles}}
