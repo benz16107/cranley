@@ -49,6 +49,8 @@ Jean Ryan, President of Disabled In Action of Metropolitan New York, who uses a 
 
 A truck owner on r/f150
 
+![Truck and boat owners on garage depth, and what garage fit now checks](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/817/datas/gallery.jpg)
+
 The scans, the aerial photos and the records that answer these questions exist, but each sits in its own product, one listing at a time.
 
 ---
