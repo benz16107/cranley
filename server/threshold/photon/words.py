@@ -38,7 +38,43 @@ def place_name(sid: str | None) -> str:
         row = index.rows().get(sid) or {}
     except Exception:  # noqa: BLE001 - a name is a nicety
         row = {}
-    return row.get("address") or row.get("name") or "this building"
+    return row.get("address") or row.get("name") or (user_scans().get(sid) or {}).get("name") or "this building"
+
+
+def user_scans() -> dict[str, dict]:
+    """Scans people uploaded (iPhone RoomPlan, or the hand-made test home and cafe): sid -> meta."""
+    import json
+    from ..config import DATA
+    out = {}
+    for f in (DATA / "user_scans").glob("u_*/meta.json"):
+        try:
+            out[f.parent.name] = json.loads(f.read_text())
+        except ValueError:
+            continue
+    return out
+
+
+TEST_NAMES = {r"\b(sample|test|demo) (home|house)\b": "sample home", r"\b(test|sample|demo) (cafe|café|coffee shop)\b": "test cafe"}
+
+
+def named_scan(text: str | None) -> str | None:
+    """The made-up test home or cafe when the person names it ("the sample home"); the search index only has real
+    scans, so the agent could not find these by name. The newest upload of that name wins."""
+    if not text:
+        return None
+    want = next((v for k, v in TEST_NAMES.items() if re.search(k, text, re.I)), None)
+    if not want:
+        return None
+    hits = [(m.get("created", ""), sid) for sid, m in user_scans().items() if (m.get("name") or "").lower().startswith(want)]
+    return max(hits)[1] if hits else None
+
+
+def scope_named(s, text: str | None) -> None:
+    """Point the workspace at the test home or cafe when the text names it."""
+    sid = named_scan(text)
+    if sid:
+        from ..agent.workspace import BriefSet, Scope
+        s.submit(BriefSet(scope=Scope(sids=[sid])), by="user")
 
 
 def metric_line(m: dict) -> str:
