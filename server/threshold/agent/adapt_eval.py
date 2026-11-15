@@ -93,7 +93,7 @@ def visit(n: int, sid: str, root: pathlib.Path, who: str) -> dict:
              tools=[t.id for t in s.doc.tools if t.enabled or t.id == removed], removed=removed,
              checks_that_matter=worth, share_that_matter=round(worth / len(seen), 2) if seen else None,
              similar_hidden_by_one_click=hidden_now,
-             because=[f"{x['text']} ({x['why']})" for x in profile.because(s.doc)["notes"] if x["kind"] != "first"])
+             because=[f"{x['text']} ({x['why']})" for x in profile.because(s.doc, s.log)["notes"] if x["kind"] != "first"])
     print(f"visit {n + 1} on {sid}: {m['questions_asked']} questions, {m['tool_runs']} tool runs, first result after "
           f"{m['first_result_s']} s, {worth} of {len(seen)} checks matter to the person", flush=True)
     return m

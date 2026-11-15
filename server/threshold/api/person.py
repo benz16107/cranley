@@ -32,7 +32,8 @@ def person_get(id: str, workspace: str | None = None, sessions: bool = True) -> 
 
 @router.get("/workspace/{id}/because")
 def because_get(id: str) -> dict:
-    return profile.because(session(id).doc)
+    s = session(id)
+    return profile.because(s.doc, s.log)
 
 
 class FeedbackIn(BaseModel):

@@ -25,7 +25,9 @@ export type Person = {
   adapted: { id: string; label: string; values: (number | null)[] }[]
 }
 export type Note = {
-  kind: 'input' | 'not_asked' | 'left_out' | 'kept_back' | 'first'; key: string; text: string; why: string; origin: Origin | null
+  kind: 'input' | 'not_asked' | 'left_out' | 'kept_back' | 'first'; key: string; text: string
+  /** Where the knowledge came from: `why` in full ("you told me on 14 Nov in “…”"), `when` without the investigation's name. */
+  why: string; when: string; origin: Origin | null
   runs?: string[]; tools?: string[]; tool?: string; findings?: string[]; count?: number
   /** For an input: the profile brought it (false: said in this investigation). */
   carried?: boolean

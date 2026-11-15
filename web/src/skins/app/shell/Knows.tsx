@@ -94,6 +94,8 @@ export function Knows() {
             <div className="body knows">
               <p className="kn-lede">What you have told Cranley, kept between investigations so a new one does not ask again. Each line says where it came from. Change or forget any of it.</p>
               {!p && loading && <div className="kn-sec"><span className="sk" style={{ width: '62%' }} /><span className="sk" style={{ width: '44%' }} /><span className="sk" style={{ width: '52%' }} /></div>}
+              {/* once there are two investigations to compare, how they went leads: it is what the rest is for */}
+              {p && p.adapted.length > 0 && <section className="kn-sec"><h3>How Cranley has adapted to you</h3><Adapted /></section>}
               {p && !p.who && !p.facts.length && <Empty icon="user" title="Nothing yet">Answer a question, change a setting, remove a tool or mark a check. It is kept here, with where it came from.</Empty>}
               {p?.who && (
                 <section className="kn-sec">
@@ -103,7 +105,7 @@ export function Knows() {
               )}
               {about.length > 0 && <section className="kn-sec"><h3>About you</h3><ul className="kn-list">{about.map((f) => <FactRow key={f.key} f={f} />)}</ul></section>}
               {matters.length > 0 && <section className="kn-sec"><h3>What matters to you</h3><ul className="kn-list">{matters.map((f) => <FactRow key={f.key} f={f} />)}</ul></section>}
-              {p && (p.who || p.facts.length > 0) && <section className="kn-sec"><h3>How Cranley has adapted to you</h3><Adapted /></section>}
+              {p && !p.adapted.length && (p.who || p.facts.length > 0) && <section className="kn-sec"><h3>How Cranley has adapted to you</h3><Adapted /></section>}
               {p && p.on_buildings > 0 && <p className="kn-foot">{p.on_buildings} more {p.on_buildings === 1 ? 'correction belongs' : 'corrections belong'} to one building each (a room’s name, a check you rejected). They are listed under Learned in that investigation.</p>}
               <p className="kn-foot">Kept on the Cranley server under an id held in this browser. Anyone using this browser sees it.</p>
             </div>
@@ -114,13 +116,14 @@ export function Knows() {
   )
 }
 
-const chip = (n: Note) => (n.kind === 'first' ? n.text.charAt(0).toUpperCase() + n.text.slice(1) : n.text)
-/** One "because you" chip: what was done, and on the next line where the knowledge came from. Opens the page. */
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+/** One "because you" chip: what was done, then when the person said so. The whole source is its title and on the
+    page it opens. */
 function Chip({ n }: { n: Note }) {
   return (
     <li>
-      <button type="button" className="because" onClick={() => openKnows()} title="See what Cranley knows about you">
-        <Icon name="user" size={12} /><span className="grow"><span className="t">{chip(n)}</span><small>{n.why.charAt(0).toUpperCase() + n.why.slice(1)}.</small></span>
+      <button type="button" className="because" onClick={() => openKnows()} title={`${cap(n.why)}. Open what Cranley knows about you.`}>
+        <Icon name="user" size={12} /><span className="grow"><span className="t">{n.text}</span><small>{cap(n.when)}</small></span>
       </button>
     </li>
   )
@@ -133,7 +136,7 @@ export function Because({ run }: { run?: string }) {
   if (run) return <ul className="becauses" aria-label="Because of what Cranley knows about you">{mine.map((n) => <Chip key={n.kind + n.key} n={n} />)}</ul>
   return (
     <section className="rp-sec kn-used" aria-label="Because of what Cranley knows about you">
-      <header><h3>Because of what Cranley knows about you</h3><KnowsButton /></header>
+      <header><h3>Because of what Cranley knows about you</h3><span className="count">{mine.length}</span></header>
       <ul className="becauses">{mine.map((n) => <Chip key={n.kind + n.key} n={n} />)}</ul>
     </section>
   )

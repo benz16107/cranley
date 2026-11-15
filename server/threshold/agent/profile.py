@@ -21,7 +21,7 @@ from typing import Any
 
 from . import prefs
 from .catalog import catalog, personas
-from .workspace import SESSION, LogEntry, Origin, QuestionAsk, Workspace, replay
+from .workspace import SESSION, BriefSet, LogEntry, Origin, PrefSet, QuestionAsk, RunStart, Workspace, replay
 
 # Keys that are about one building, one storm or one turn. Everything else a person answers is about them.
 SITUATIONAL = ("approval.", "label.", "doubt.", "mute.", "storm.", "daylight.", "bid.", "site.", SESSION)
@@ -90,8 +90,9 @@ def fmt(value: Any, unit: str | None = None) -> str:
     return f"{value} {unit}" if unit and unit not in ("None",) else str(value)
 
 
-def why(o: Origin | dict | None, here: str | None = None, key: str = "") -> str:
-    """Where a fact came from, said to the person: "you told me on 14 Nov in “…”". `key` words a mark on a check."""
+def why(o: Origin | dict | None, here: str | None = None, key: str = "", short: bool = False) -> str:
+    """Where a fact came from, said to the person: "you told me on 14 Nov in “…”". `key` words a mark on a check;
+    `short` leaves the investigation's name out, for a chip."""
     if not o:
         return "from an earlier investigation"
     o = o if isinstance(o, Origin) else Origin.model_validate(o)
@@ -99,7 +100,7 @@ def why(o: Origin | dict | None, here: str | None = None, key: str = "") -> str:
     if o.workspace == here:
         return f"{verb} in this investigation"
     when = time.strftime("%-d %b", time.localtime(o.at))
-    return f"{verb} on {when}" + (f" in “{o.investigation}”" if o.investigation else "")
+    return f"{verb} on {when}" + (f" in “{o.investigation}”" if o.investigation and not short else "")
 
 
 def fact(p: dict, here: str | None = None) -> dict:
@@ -144,11 +145,20 @@ def known(doc: Workspace) -> list[str]:
     return out
 
 
-def _unasked(doc: Workspace) -> list[tuple[str, str]]:
+def brought(doc: Workspace, log: list[LogEntry] | None = None) -> dict[str, Origin]:
+    """Key -> origin of what the profile brought into this workspace. Read from the log when there is one (the
+    entries `Session.create` wrote), so changing or forgetting a fact later does not rewrite what happened before."""
+    if log is None:
+        return {k: p.origin for k, p in carried(doc).items()}
+    return {e.op.key: e.op.origin for e in log if isinstance(e.op, PrefSet) and e.op.by == "system"
+            and e.op.origin and e.op.origin.workspace != doc.id}
+
+
+def _unasked(doc: Workspace, mine: dict[str, Origin]) -> list[tuple[str, str]]:
     """(key, question) the enabled tools need that the person answered in an earlier investigation, so it was not
     asked again here. A persona's default is not their answer: without the profile they would have to say it again."""
     from .composer import questions
-    mine = {k: p for k, p in carried(doc).items() if p.origin.how == "answer"}
+    mine = {k for k, o in mine.items() if o.how == "answer"}
     if not mine:
         return []
     tools = [t.id for t in doc.tools if t.enabled]
@@ -161,8 +171,10 @@ def _hidden(doc: Workspace) -> dict[str, list[str]]:
     """Kind -> titles of findings the tools reported that were kept back because the person marked that kind not
     relevant before the run."""
     off, have, out = prefs.less(doc), {f.id for f in doc.findings}, {}
-    for r in doc.runs:
-        for f in (r.result.findings if r.status == "done" and r.result else []):
+    # the latest run of each tool on each place: a re-run reports the same checks again, and they count once
+    latest = {(r.tool, r.sid or (r.place.key() if r.place else "")): r for r in doc.runs if r.status == "done" and r.result}
+    for r in latest.values():
+        for f in r.result.findings:
             key = prefs.kind(r.tool, f.title)[0]
             if key in off and f.id not in have:
                 out.setdefault(key, []).append(f.title)
@@ -172,15 +184,17 @@ def _hidden(doc: Workspace) -> dict[str, list[str]]:
 def measure(doc: Workspace, log: list[LogEntry]) -> dict:
     """What one investigation asked of the person and gave back, counted from its log."""
     asked = {e.op.question.key for e in log if isinstance(e.op, QuestionAsk) and not e.op.question.key.startswith("approval.")}
-    mine = carried(doc)
+    mine = brought(doc, log)
     done = [r for r in doc.runs if r.status == "done" and r.result]
     first = min((r.finished for r in done if r.finished), default=None)
+    # the clock starts when the person asked (their brief, or a tool they ran), not when the workspace was made
+    began = min((e.at for e in log if (isinstance(e.op, BriefSet) and e.op.text) or isinstance(e.op, RunStart)), default=doc.created)
     seen = [f for f in doc.findings if not f.superseded_by]
     said = (doc.brief.summary or doc.brief.text).strip()
     return {"workspace": doc.id, "created": doc.created, "investigation": said[:80], "started": bool(doc.brief.text or doc.runs),
-            "questions_asked": len(asked), "questions_not_asked": len(_unasked(doc)),
+            "questions_asked": len(asked), "questions_not_asked": len(_unasked(doc, mine)),
             "inputs_from_profile": len({(r.tool, n) for r in doc.runs for n, k in r.inputs_from.items() if k in mine}),
-            "tool_runs": len(done), "first_result_s": round(first - doc.created, 1) if first else None,
+            "tool_runs": len(done), "first_result_s": round(first - began, 1) if first else None,
             "checks_shown": len(seen), "checks_kept_back": sum(len(v) for v in _hidden(doc).values()),
             "marked_useful": sum(1 for f in seen if f.feedback and f.feedback.verdict == "confirmed"),
             "marked_not_relevant": sum(1 for f in seen if f.feedback and f.feedback.verdict == "rejected"
@@ -224,17 +238,18 @@ def person(store, profile: str, here: str | None = None, sessions: bool = True) 
             "adapted": [{"id": k, "label": text, "values": [m[k] for m in measured]} for k, text in ADAPTED] if len(measured) > 1 else []}
 
 
-def because(doc: Workspace) -> dict:
+def because(doc: Workspace, log: list[LogEntry] | None = None) -> dict:
     """Where this workspace used what is known about the person. Each note: `kind` (input, not_asked, left_out,
-    kept_back, first), `text` (what was done), `why` (where the knowledge came from), and what it is attached to
-    (`runs`, `tool`, `findings`). `key` is the preference; `pref.set` with value null forgets it."""
+    kept_back, first), `text` (what was done), `why` (where the knowledge came from; `when` is the same without the
+    investigation's name), and what it is attached to (`runs`, `tool`, `findings`). `key` is the preference;
+    `pref.set` with value null forgets it."""
     notes: list[dict] = []
-    mine = carried(doc)
+    mine = brought(doc, log)
 
     def note(kind: str, key: str, text: str, **at) -> None:
-        p = doc.prefs[key]
-        notes.append({"kind": kind, "key": key, "text": text, "why": why(p.origin, doc.id, key),
-                      "origin": p.origin.model_dump() if p.origin else None, **at})
+        o = doc.prefs[key].origin if key in doc.prefs else mine.get(key)
+        notes.append({"kind": kind, "key": key, "text": text, "why": why(o, doc.id, key),
+                      "when": why(o, doc.id, key, short=True), "origin": o.model_dump() if o else None, **at})
 
     used: dict[str, list[str]] = {}  # the person's own value in a tool input: from the profile, or said in this investigation
     for r in doc.runs:
@@ -244,11 +259,11 @@ def because(doc: Workspace) -> dict:
     for key, runs in used.items():
         name, unit = label(key)
         note("input", key, f"Using your {LABELS[key][1] if key in LABELS else name.lower()}: {fmt(doc.prefs[key].value, unit)}", runs=runs, tools=sorted({r.tool for r in doc.runs if r.id in runs}),
-             carried=key in mine)
-    for key, text in _unasked(doc):
+             carried=doc.prefs[key].origin.workspace != doc.id)
+    for key, text in _unasked(doc, mine):
         note("not_asked", key, f"Did not ask “{text.split('?')[0]}?”")
     for key in mine:
-        if key.startswith("tool.off."):
+        if key.startswith("tool.off.") and key in doc.prefs:
             note("left_out", key, f"Left out {_title(key[len('tool.off.'):])}", tool=key[len("tool.off."):])
     for key, titles in _hidden(doc).items():
         if f"less.{key}" in doc.prefs:

@@ -178,3 +178,24 @@ def test_an_answer_counts_as_reused_even_where_a_persona_has_a_default(tmp_path)
     Investigation(b).run("door_widths", {"scan": "t2"})
     m = profile.measure(b.doc, b.log)
     assert (m["questions_asked"], m["questions_not_asked"], m["inputs_from_profile"]) == (0, 1, 1)
+
+
+def test_what_was_measured_does_not_change_when_a_fact_is_edited_or_a_tool_runs_again(tmp_path):
+    a = new(tmp_path)
+    (q,) = composed(a, Fake("furniture_mover", ["door_widths"]), "Moving a wide chair in")
+    a.submit({"op": "question.answer", "id": q.id, "value": 0.9}, by="user")
+    Investigation(a).run("door_widths", {"scan": "t1"})
+    f = a.doc.findings[0]
+    a.submit({"op": "finding.add", "finding": {**f.model_dump(), "feedback": {"verdict": "rejected", "reason": prefs.NOT_RELEVANT}}}, by="user")
+    b = new(tmp_path, "t2")
+    composed(b, Fake("furniture_mover", ["door_widths"]))
+    Investigation(b).run("door_widths", {"scan": "t2"})
+    before = profile.measure(b.doc, b.log)
+    assert (before["questions_not_asked"], before["inputs_from_profile"], before["checks_kept_back"]) == (1, 1, 3)  # the three doorways
+    b.submit({"op": "pref.set", "key": "access.door_width_m", "value": 0.95}, by="user")  # the person changes it here
+    Investigation(b).run("door_widths", {"scan": "t2"})  # and the tool runs again
+    after = profile.measure(b.doc, b.log)
+    assert (after["questions_not_asked"], after["inputs_from_profile"], after["checks_kept_back"]) == (1, 1, 3)  # not six
+    notes = {n["kind"]: n for n in profile.because(b.doc, b.log)["notes"]}
+    assert notes["input"]["why"] == "you set it in this investigation" and not notes["input"]["carried"]
+    assert notes["not_asked"]["why"].startswith("you told me on ")  # it was not asked because of the earlier answer
