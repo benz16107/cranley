@@ -476,7 +476,9 @@ def tracks_md() -> dict[str, str]:
         for pattern, to in ((r"\s*\(question \d\)", ""), (r"\s*See question \d\.", ""), (r"\s*Track pick: question \d\.", ""),
                             (r";[^.;]*\$THRESHOLD_DATA_DIR[^.]*\.", "."), (r"\s*\(asked of Ben\)", "")):
             body = re.sub(pattern, to, body)
-        assert not re.search(r"question \d|THRESHOLD_DATA_DIR", body), head
+        # notes to the speaker and the demo runbook are for the team, not for the page
+        body = "\n\n".join(par for par in body.split("\n\n") if not par.lstrip().startswith(("How to say the numbers", "**Scripted flow")))
+        assert not re.search(r"question \d|THRESHOLD_DATA_DIR|lead's server|\?as=", body), head
         slug = next((s for key, s in (("CoStar", "costar"), ("Amazon", "amazon"), ("Peri", "peri"), ("LangChain", "langchain"), ("Photon", "photon"),
                                       ("Tiger", "tiger-data"), ("MongoDB", "mongodb"), ("HackPrinceton", "hackprinceton")) if key in head), None)
         if slug and slug != "hackprinceton":  # the main-track note is a choice still open, not a page
