@@ -1,3 +1,10 @@
+import type { Seen } from '../lib/pending.ts'
+
+/** How an investigation's state is said on Home and in the list of investigations. */
+export const STATUS: Record<Seen['status'], { label: string; state: 'pending' | 'running' | 'done' }> = {
+  setup: { label: 'Setting up', state: 'pending' }, working: { label: 'Working', state: 'running' }, waiting: { label: 'Needs an answer', state: 'pending' }, done: { label: 'Finished', state: 'done' },
+}
+
 /* What pressing Start does, decided from what the person gave: a sentence, a building, or both. Pure, so it runs
    under `node --test`. */
 export type Picked = { id: string; metro: string | null; scans: { sid: string }[] }

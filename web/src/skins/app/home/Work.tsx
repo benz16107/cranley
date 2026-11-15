@@ -2,14 +2,11 @@ import { useState } from 'react'
 import type { Doc } from '../../../core/index.ts'
 import { Icon, RunState } from '../design/ui.tsx'
 import { ago } from '../lib/format.ts'
-import { openSeen, started, statusOf, useSeen, type Seen } from '../lib/pending.ts'
+import { openSeen, started, statusOf, useSeen } from '../lib/pending.ts'
 import { go, goInvestigation } from '../lib/place.ts'
 import { useUi } from '../shell/store.ts'
 import { Activity } from './Activity.tsx'
-
-export const STATUS: Record<Seen['status'], { label: string; state: 'pending' | 'running' | 'done' }> = {
-  setup: { label: 'Setting up', state: 'pending' }, working: { label: 'Working', state: 'running' }, waiting: { label: 'Needs an answer', state: 'pending' }, done: { label: 'Finished', state: 'done' },
-}
+import { STATUS } from './entry.ts'
 
 /** The person's investigations, the open one first: one line each, a status, and when it last changed. Kept in this
     browser. What is happening in the open one (runs, failures, what a paired phone sent) is behind Activity. */

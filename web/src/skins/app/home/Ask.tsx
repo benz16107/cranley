@@ -32,6 +32,7 @@ function At({ value, onChange, back }: { value: Building | null; onChange: (b: B
         <Popover.Trigger className="btn quiet" aria-label={value ? `About ${value.address}. Change the building.` : 'Choose a building or address'}>
           {value ? <Aerial lat={value.lat} lon={value.lon} /> : <Icon name="building" size={14} />}
           <span className="trunc">{value ? lines(value.address)[0] : 'Any building'}</span>
+          {!value && <Icon name="down" size={11} />}
         </Popover.Trigger>
         <Popover.Portal>
           <Popover.Positioner sideOffset={6} align="start" style={{ zIndex: 60 }}>
