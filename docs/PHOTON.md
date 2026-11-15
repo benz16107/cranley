@@ -5,6 +5,15 @@ wheelchair reach the bathroom, how high does the water come. On Photon 2.0, the 
 answer in iMessage and on a phone call, where those people already are: walking through a viewing, driving to one, or
 standing in a doorway with a tape measure.
 
+Photon makes Cranley feel like texting or calling your real estate agent (or your contractor, inspector or property
+manager): a person you can just ask about a building, who answers with what was measured.
+
+**State (15 Nov 2026, 3:46 am ET): first real phone round trip done.** A call from a phone to Cranley's Photon number
+reached the ElevenLabs agent over SIP; the caller asked whether a Ford F-150 fits a garage, the agent ran `start_check`
+and `get_answer` against Cranley's tools and read the measured answer about 95 seconds into the call; after the caller
+hung up, Cranley sent the plan picture and the answer to their iMessage thread (Photon accepted all four sends; they
+show `dispatched`, and Photon reported no delivery receipt). Recorded with the caller's consent.
+
 Code: `server/threshold/photon/` (bridge), `server/threshold/api/photon.py` (private routes), `server/scripts/setup_voice.py`
 (ElevenLabs phone agent). Tests: `server/tests/photon/`.
 
