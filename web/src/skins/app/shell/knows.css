@@ -34,7 +34,7 @@
 /* ---------- marks on a check ---------- */
 .flist li { border-bottom: 1px solid var(--rule); }
 .flist li > button { border-bottom: 0; }
-.flist li[data-first] > button .t::after { content: 'Listed first'; margin-left: 8px; font-size: var(--text-2xs); font-weight: 500; color: var(--accent); white-space: nowrap; }
+.flist li[data-first] > button .t::after { content: 'Listed first'; margin-left: 8px; font-size: var(--text-2xs); font-weight: 500; color: var(--ink-3); white-space: nowrap; } /* not the accent: that is selection and focus */
 .marks { display: flex; gap: 2px; padding: 0 var(--s-4) 6px calc(var(--s-4) + 18px - 8px); }
 /* `.flist button` is the row itself (full width, ruled): these two are not rows */
 .flist .marks .btn { display: inline-flex; width: auto; padding: 0 8px; border-bottom: 0; color: var(--ink-3); }

@@ -21,6 +21,13 @@ a tool a person works in all day. Tokens are in `tokens.css`, shared classes in 
   and on its site when there is one) and holds the page there until that building has results, then says what was
   found and where to look next. Shown once per browser (`threshold.firstrun`), left at any moment, started again
   from Settings.
+- **What Cranley knows** (`shell/Knows.tsx`, `lib/person.ts`, `shell/knows.css`): the person's profile across
+  investigations. `<Knows>` is its page, a drawer opened from the agent panel, Home and Settings: how the
+  investigations have gone (counted by the server), then each fact with its source, Change and Forget.
+  `<Because>` lists what an investigation did because of the profile, as ruled rows in the agent panel and on a
+  result's drawer. `<Marks>` is Useful and Not relevant on a check; the toast says how many similar checks went
+  with it and takes it back. The server writes every sentence and number shown here. `?as=<profile>` in the address
+  opens the app as that person.
 - **Blocks** (`blocks/`): the twelve panel blocks. A tool's result is only ever built from these.
 - **Stand-ins** (`lib/pending.ts`, `lib/tools.ts`): what core does not give yet. Each part names the request that
   replaces it.
