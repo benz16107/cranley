@@ -11,7 +11,7 @@
 import { existsSync } from 'node:fs'
 
 export type SlotInfo = {
-  /** docs/site-plan.md re-shoot number, or 'real' for a shot that only exists on sponsor data */
+  /** docs/site-plan.md re-shoot number, 'real' for a shot that only exists on sponsor data, or 'new' for one the plan does not list */
   shot: string
   title: string
   /** what must be on screen */
@@ -24,6 +24,8 @@ export type SlotInfo = {
 
 export const SLOTS = {
   'hero-loop': { shot: '1', source: 'T', title: 'Hero loop, 10 s', expects: 'Type the need, the composer adds tools, an agent lane runs, the verdict, the route draws, the failing door turns red. App look on the test home, measured 3D cut open, 1440 px, light theme.', alt: 'The Cranley workspace checking a wheelchair route through the test home' },
+  'building-view': { shot: 'new', source: 'T', title: '3D building view', expects: 'The Building page in the final look: a building in 3D with one tool\'s result drawn on it.', alt: 'A building in 3D in the Cranley app with a route drawn through it' },
+  'result-drawer': { shot: 'new', source: 'T', title: 'Tool result', expects: 'A tool\'s result open beside the building in the final look: the verdict, the checks that failed, the source of each number.', alt: 'A tool result in the Cranley app with its verdict, checks and sources' },
   'home-composer': { shot: '2', source: 'T', title: 'Home with the composer', expects: 'Home page with the field for a need and the persona list. Fresh profile, empty Recent and Saved, footer count hidden.', alt: 'Cranley home page with the field where a person types what they need' },
   'agent-lanes': { shot: '3', source: 'T', title: 'Agent panel', expects: 'Plan todos, two parallel lanes (test home and test cafe), both paused on the smoke-simulation approval card. Cropped to the agent panel.', alt: 'The agent panel with a plan, two buildings checked in parallel and an approval card' },
   'langsmith-trace': { shot: '4', source: 'T', title: 'LangSmith trace', expects: 'The trace of the same turn, with the project\'s other runs cropped out.', alt: 'A LangSmith trace of one agent turn' },
@@ -68,7 +70,7 @@ export function filesOf(id: SlotId): { src: string; video: boolean; real: boolea
 /** The note the preview shows on a slot: which shot it takes and where that shot may come from. */
 export function noteOf(id: SlotId, filled: boolean, real: boolean): string {
   const s: SlotInfo = SLOTS[id]
-  const what = s.shot === 'real' ? 'Real product shot' : `Shot ${s.shot} of the site plan`
+  const what = s.shot === 'real' ? 'Real product shot' : s.shot === 'new' ? 'New shot for the home page' : `Shot ${s.shot} of the site plan`
   if (real) return `${what}: ${s.title}. Showing the real product.`
   const state = filled ? (s.source === 'real' ? 'Filled' : 'Filled with a safe visual; takes the real product after CoStar\'s yes') : s.source === 'real' ? 'Empty until CoStar confirms the website' : 'Not shot yet'
   return `${what}: ${s.title}. ${state}. Source: ${SOURCE[s.source]}. Expects: ${s.expects}`

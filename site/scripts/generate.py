@@ -646,6 +646,8 @@ def main() -> None:
                                              for i in ids if i in index]} for g, ids in by_group.items() if any(i in index for i in ids)],
         "tracks": sorted(tracks),
         "asked": asked(),
+        "asked_counts": dict(zip(("minutes", "people", "communities", "emails"), map(int, re.search(
+            r"(\d+)-minute phone interview.*?from (\d+) people in (\d+) online communities,? and (\d+) emails", asked()).groups()))),
         "home": drawing(HOME, tools, pref),
     }
     write(SITE / "src/generated/site.json", json.dumps(site, indent=1))
