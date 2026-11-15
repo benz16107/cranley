@@ -4,10 +4,10 @@
 // line gave a measured garage's size). Copying a fresh render over them undoes that. The picture of the email replies
 // is held back until the proof thread's redacted version arrives: two of the people in it have not agreed to be shown.
 export const INTERVIEW = {
-  url: 'https://youtu.be/q5reRgHfS8Y',
-  embed: 'https://www.youtube-nocookie.com/embed/q5reRgHfS8Y',
+  url: 'https://youtu.be/EoHyoNs2idg', // the conversation cut (15 Nov, 3:25 am): each question, then her answer
+  embed: 'https://www.youtube-nocookie.com/embed/EoHyoNs2idg',
   title: 'Interview with Jean Ryan, President of Disabled In Action of Metropolitan New York',
-  caption: 'Highlights of the recorded call with Jean Ryan, President of Disabled In Action of Metropolitan New York, who agreed to be filmed and named.',
+  caption: 'The recorded call with Jean Ryan, President of Disabled In Action of Metropolitan New York, cut to the conversation: each question, then her answer. She agreed to be filmed and named.',
 }
 
 const BLURRED = 'Usernames are blurred.'
