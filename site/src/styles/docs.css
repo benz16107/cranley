@@ -58,7 +58,7 @@ code, pre, kbd { font-stretch: 80%; }
 .st { font-weight: 580; white-space: nowrap; }
 .st::before { content: ''; display: inline-block; width: 0.62em; height: 0.62em; margin-right: 0.4em; background: currentColor; }
 .st.pass { color: var(--pass); } .st.pass::before { border-radius: 50%; }
-.st.warn { color: var(--warn); } .st.warn::before { clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.st.warn { color: var(--warn-text); } .st.warn::before { clip-path: polygon(50% 0, 100% 100%, 0 100%); }
 .st.fail { color: var(--fail); }
 .st.unknown { color: var(--ink-3); } .st.unknown::before { background: none; border: 1.5px dashed currentColor; border-radius: 50%; }
 .verdict { padding: 10px 12px; border: 1px solid var(--rule-strong); border-radius: var(--r-2); background: var(--pane); }
