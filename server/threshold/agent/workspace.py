@@ -250,6 +250,15 @@ class PlanStep(Strict):
     status: Literal["pending", "in_progress", "completed"] = "pending"
 
 
+class Origin(Strict):
+    """Where something known about the person came from. It stays with the preference when the profile carries it
+    into a later investigation, so every use can say "you told me on <date> in <investigation>"."""
+    workspace: str
+    investigation: str = Field("", description="That workspace's brief, shortened")
+    at: float
+    how: Literal["answer", "edit", "removed", "feedback"] = "edit"
+
+
 class Pref(Strict):
     key: str
     value: Any
@@ -259,6 +268,7 @@ class Pref(Strict):
                                                   "that spread); forgetting that one forgets this")
     by: By = "user"
     at: float | None = None
+    origin: Origin | None = None
 
 
 class ShortlistItem(Strict):
@@ -388,6 +398,7 @@ class PrefSet(OpBase):
     reason: str = ""
     cause: int | None = None
     because: str | None = None
+    origin: Origin | None = None
 
 
 class ShortlistAdd(OpBase):
@@ -481,7 +492,7 @@ def apply(doc: Workspace, op: BaseModel, at: float | None = None) -> Workspace:
                 d.prefs.pop(op.key, None)
             else:
                 d.prefs[op.key] = Pref(key=op.key, value=op.value, reason=op.reason, cause=op.cause,
-                                       because=op.because, by=op.by, at=at)
+                                       because=op.because, by=op.by, at=at, origin=op.origin)
             label_sid = op.key.split(".")[1] if op.key.startswith(("label.", "doubt.")) and op.key.count(".") >= 2 else None
             for r in d.runs:
                 if r.status == "done" and (op.key in r.inputs_from.values() or (label_sid and r.sid == label_sid)):
@@ -688,6 +699,7 @@ def _no_plans(sid: str) -> dict:
 
 
 TRIES = 8  # attempts when another writer keeps appending first
+SESSION = "session."  # profile keys that list the profile's workspaces; never copied into a workspace
 
 
 def pick_store(root=None, store=None):
@@ -780,10 +792,15 @@ class Session:
         """A new workspace that starts with what this profile learned in earlier sessions."""
         s = cls(new_id("ws"), profile, root=root, store=store)
         for p in s.store.profile(profile):
-            if p.get("value") is not None:  # a dated deletion
+            if p.get("value") is not None and not p["key"].startswith(SESSION):  # None is a dated deletion
                 s.submit(PrefSet(by="system", key=p["key"], value=p["value"], because=p.get("because"),
-                                 reason=p.get("reason") or "From an earlier session"))
+                                 origin=p.get("origin"), reason=p.get("reason") or "From an earlier session"))
         s.save(len(s.log))  # each submit above saved its entry; this writes the workspace itself
+        # the profile lists its investigations, so the person's page can measure how each one went (agent/profile.py)
+        # shortcut: one marker per workspace, kept for good and read on every create; move them to their own
+        # collection when a profile passes a few thousand investigations
+        s.store.merge_profile(profile, {SESSION + s.base.id: (s.base.created, {"key": SESSION + s.base.id,
+                                                                               "value": {"created": s.base.created}})})
         return s
 
     # changes
@@ -835,6 +852,8 @@ class Session:
                 except ValidationError as e:
                     raise Rejected(str(e.errors()[0]["msg"]) + f" at {e.errors()[0]['loc']}") from None
             before = self.doc
+            if isinstance(parsed, PrefSet) and parsed.by == "user" and parsed.value is not None and parsed.origin is None:
+                parsed.origin = prefs.origin(before, "edit")
             entries = [self._append(parsed, cause=cause)]
             if parsed.by == "user":
                 for learned in prefs.derive(before, parsed, self.plans, self.siblings):

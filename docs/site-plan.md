@@ -1,4 +1,11 @@
-# External site plan (no build yet)
+# External site plan
+
+**Built and live (2026-11-14, 8 pm):** https://cranley.app, from `site/` (`ws/site`, Astro and Starlight, static,
+Vercel). Track pages are generated from `docs/story.md`; docs from the tool manifests and the OpenAPI schema. Every
+picture is a slot (`site/src/site/slots.ts`): safe files in `site/public/media/` are committed; real-product files go
+in the git-ignored `site/public/media/real/` and are used only with `CRANLEY_REAL_VISUALS=1`, after CoStar confirms
+websites. Production deploys (`site/scripts/deploy.sh --prod`) need Ben's yes; the rollback target is in that script.
+The plan below is what the site was built from.
 
 A one-page site in the style of Ben's earlier submissions (tesseraphoto.com had a hero, how it works, and one page
 per sponsor track). Source of every word: `docs/story.md`.
@@ -11,7 +18,7 @@ per sponsor track). Source of every word: `docs/story.md`.
 | Demo video | **Yes** | No | same answer |
 | In-person demo to judges | Yes | No | same answer |
 | Public repo (`benz16107/cranley`) | No: no screenshots of sponsor content, no data | No | the terms; the README says sponsor data is not included and "All rights reserved; see the event terms" |
-| External website | **Ask CoStar first.** Until then, the conservative plan below | No | the question did not cover a website |
+| External website (cranley.app) | **Ask CoStar first.** Until then, only safe slots (`CRANLEY_REAL_VISUALS` off) | No | the question did not cover a website |
 
 Even where allowed, prefer frames without a private home's street address in large type; crop the address line when
 it adds nothing. Gallery picks with captions: `$THRESHOLD_DATA_DIR/submission/gallery/CAPTIONS.md`.
@@ -148,4 +155,4 @@ Everything under `$THRESHOLD_DATA_DIR/shots/` except the folders marked safe abo
 ## Hosting
 
 Static site (Astro or plain HTML) on Vercel or GitHub Pages; no server, no form. The live app itself is never public:
-its API serves sponsor data. A domain is question 1 in `docs/story.md`.
+its API serves sponsor data. The domain is cranley.app.

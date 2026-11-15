@@ -60,6 +60,13 @@ def prompt(text: str, doc: Workspace, recalled: list[str] | None = None) -> tupl
         lines += ["", "Questions the tools may ask (key: question):"] + [f"- {k}: {q}" for k, (q, _) in asks.items()]
     if off:
         lines += ["", "The person removed these before; do not choose them: " + ", ".join(sorted(off))]
+    from .profile import known
+    mine = known(doc)
+    if mine:  # a returning person: what their earlier investigations learned, so they need not say it again
+        lines += ["", "What you already know about this person from their own earlier investigations. They do not "
+                      "need to say it again: unless they say otherwise now, they are the same person with the same "
+                      "needs, so keep that persona, choose tools that serve these facts, and leave out a tool whose "
+                      "checks they marked not relevant:", *mine]
     if recalled:  # from the store's memory: earlier people with a similar need
         lines += ["", "Similar needs from earlier sessions (how they were set up and what those people changed; "
                       "start from what fits this person, leave out what they removed):", *recalled]
@@ -93,21 +100,25 @@ def from_quote(quote: str, text: str, unit: str | None) -> float | None:
     return round(float(n) * TO_M[u.lower()], 3)
 
 
-def questions(doc: Workspace, tool_ids: list[str]) -> list[Question]:
-    """Required inputs of the chosen ready tools that no preference, answer or preset fills."""
+def questions(doc: Workspace, tool_ids: list[str], also: frozenset[str] = frozenset()) -> list[Question]:
+    """Required inputs of the chosen ready tools that no preference, answer or preset fills; and the inputs keyed in
+    `also` (sizes the person stated), which a preset's default must not answer for them."""
     out: dict[str, Question] = {}
     for tid in tool_ids:
         m = catalog().get(tid)
         if not m or m.status != "ready":
             continue
-        for name, s in resolve(m, doc)[2]:
+        missing = resolve(m, doc)[2]
+        stated = [(n, s) for n, s in m.inputs.get("properties", {}).items()
+                  if s.get("x-pref") in also and all(n != x for x, _ in missing)]
+        for name, s in stated + missing:
             # a person can answer a number, a yes or no, a choice or a line of text in a form; a list of search
             # criteria (measure_search) is the investigator's to write from the brief, so it is never asked
             if "x-ask" not in s or s.get("type") not in ("number", "integer", "boolean", "string"):
                 continue
             key = s.get("x-pref") or f"{tid}.{name}"
             if key in out:
-                out[key].tools.append(tid)
+                out[key].tools += [tid] if tid not in out[key].tools else []
             else:
                 out[key] = Question(id=f"q_{key}", key=key, text=s["x-ask"], tools=[tid],
                                     input={k: v for k, v in s.items() if k not in ("x-ask", "title")})
@@ -134,7 +145,9 @@ def compose(text: str, doc: Workspace, model: Model, run: str | None = None, rec
             picks.append(p)
             ops.append(ToolEnable(tool=p.id, reason=p.reason, status=catalog()[p.id].status, run=run))
     future = apply(doc, ops[0])
-    for q in questions(future, [p.id for p in picks]):
+    # a size the person stated is theirs even when the persona has a default for it: ask it, filled in, to confirm
+    theirs = frozenset(k for k in said if k not in doc.prefs and k not in doc.brief.facts)
+    for q in questions(future, [p.id for p in picks], theirs):
         if any(x.key == q.key and x.answered for x in doc.questions):
             continue
         if q.key in said:  # pre-filled from the person's words; they confirm it

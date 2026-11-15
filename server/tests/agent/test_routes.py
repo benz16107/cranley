@@ -137,3 +137,27 @@ def test_a_run_a_restart_cut_off_ends_as_an_error(tmp_path, monkeypatch):
     runs = {r["id"]: r for r in c.get(f"/api/workspace/{wid}").json()["doc"]["runs"]}
     assert runs["run_old"]["status"] == "error" and "stopped" in runs["run_old"]["error"]
     assert runs["run_new"]["status"] == "running"
+
+
+def test_feedback_and_the_person_document(tmp_path, monkeypatch):
+    """Not relevant hides the kind, the reply counts what went with it, and the person's page lists what was learned."""
+    from threshold.api import agent as api
+
+    from .conftest import plans
+    monkeypatch.setattr(workspace, "STORE", tmp_path)
+    c = TestClient(app)
+    ws = c.post("/api/workspace?profile=maya").json()["doc"]["id"]
+    api._sessions[ws].plans = plans
+    c.post(f"/api/workspace/{ws}/ops", json={"op": "brief.set", "scope": {"sids": ["t1"]}})
+    assert c.post(f"/api/tools/door_widths/run?workspace={ws}", json={"scan": "t1", "min_width_m": 0.9}).status_code == 200
+    seen = c.get(f"/api/workspace/{ws}").json()["doc"]["findings"]
+    r = c.post(f"/api/workspace/{ws}/feedback", json={"finding": seen[0]["id"], "verdict": "not_relevant"}).json()
+    assert r["hidden"] == len(seen) - 1 and r["kind"] == "Doorway"
+    assert all(f["feedback"]["verdict"] == "rejected" for f in r["doc"]["findings"])
+    assert c.post(f"/api/workspace/{ws}/feedback", json={"finding": "nope", "verdict": "useful"}).status_code == 404
+    who = c.get(f"/api/person/maya?workspace={ws}").json()
+    assert who["schema"] == "person/1" and [f["label"] for f in who["facts"]] == ["Not relevant to you"]
+    assert who["facts"][0]["why"] == "you marked one not relevant in this investigation"
+    assert c.get(f"/api/workspace/{ws}/because").json()["notes"] == []
+    assert c.post(f"/api/workspace/{ws}/undo", json={"seq": r["undo"]}).status_code == 200
+    assert c.get("/api/person/maya").json()["facts"] == []

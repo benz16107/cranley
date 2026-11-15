@@ -854,6 +854,23 @@ export interface Pref {
   because?: string | null;
   by?: "agent" | "user" | "system";
   at?: number | null;
+  origin?: Origin | null;
+}
+/**
+ * Where something known about the person came from. It stays with the preference when the profile carries it
+ * into a later investigation, so every use can say "you told me on <date> in <investigation>".
+ *
+ * This interface was referenced by `WorkspaceContract`'s JSON-Schema
+ * via the `definition` "Origin".
+ */
+export interface Origin {
+  workspace: string;
+  /**
+   * That workspace's brief, shortened
+   */
+  investigation?: string;
+  at: number;
+  how?: "answer" | "edit" | "removed" | "feedback";
 }
 /**
  * This interface was referenced by `WorkspaceContract`'s JSON-Schema
@@ -1103,6 +1120,7 @@ export interface PrefSet {
   reason?: string;
   cause?: number | null;
   because?: string | null;
+  origin?: Origin | null;
 }
 /**
  * This interface was referenced by `WorkspaceContract`'s JSON-Schema

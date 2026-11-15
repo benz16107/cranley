@@ -12,8 +12,10 @@ import { goScan } from '../lib/place.ts'
 import { newInvestigation } from './Sidebar.tsx'
 import { useUi } from './store.ts'
 import { ApprovalCard, ApproveAll, isApproval, Lanes } from './AgentLive.tsx'
+import { Because, KnowsButton, Marks, useFirst } from './Knows.tsx'
 
-const prefText = (p: Pick<Pref, 'value' | 'unit'>) => (typeof p.value === 'boolean' ? (p.value ? 'yes' : 'no') : `${p.value}${p.unit ? ' ' + p.unit : ''}`)
+// a mark on a check or a kind of check has no value to print: its sentence says it
+const prefText = (p: Pick<Pref, 'value' | 'unit'>) => (typeof p.value === 'boolean' ? (p.value ? 'yes' : 'no') : typeof p.value === 'object' ? '' : `${p.value}${p.unit ? ' ' + p.unit : ''}`)
 
 /* ---------- a question a tool needs answered: choice, number or text, with the value on offer ---------- */
 export function QuestionForm({ q }: { q: Question }) {
@@ -153,17 +155,19 @@ function Plan() {
 function Findings() {
   const doc = useWorkspace((s) => s.doc)
   const order = { fail: 0, warn: 1, unknown: 2, pass: 3 } as const
-  const items = [...doc.findings].sort((a, b) => order[a.status] - order[b.status])
+  const first = useFirst() // kinds the person marked useful lead, within each status
+  const items = [...doc.findings].sort((a, b) => order[a.status] - order[b.status] || +first.has(b.id) - +first.has(a.id))
   if (!items.length) return <p className="rp-none">Nothing checked yet. Each check links to its place in the building.</p>
   return (
     <ul className="flist">
       {items.slice(0, 80).map((f) => (
-        <li key={f.id}>
+        <li key={f.id} data-first={first.has(f.id) || undefined} title={first.has(f.id) ? `Listed first: ${first.get(f.id)}` : undefined}>
           <button type="button" disabled={!f.anchor} aria-current={doc.camera?.finding === f.id || undefined} onClick={() => focusFinding(f)} title={f.anchor ? 'Show this in the building' : 'This check has no place to show'}>
             <StatusGlyph status={f.status} />
             <span className="grow"><span className="t">{f.title}</span>{f.detail && <span className="s">{f.detail}</span>}</span>
             {f.anchor && <Icon name="target" size={13} />}
           </button>
+          <Marks id={f.id} title={f.title} />
         </li>
       ))}
       {items.length > 80 && <li className="rp-none">Showing 80 of {items.length}. The investigation page lists all of them.</li>}
@@ -202,10 +206,12 @@ export function RunPanel({ onClose }: { onClose: () => void }) {
       <header className="rp-head">
         <h2>Agent</h2>
         <span className="grow trunc">{active || running.length ? <RunState state="running">{active?.label ?? running[0].label}</RunState> : open ? <span className="rs" data-state="ask">{open} to answer</span> : doc.plan.length ? <RunState state="done">Finished</RunState> : <span className="muted">Idle</span>}</span>
+        <KnowsButton />
         <IconBtn icon="close" label="Close the agent panel" kbd="]" onClick={onClose} />
       </header>
       <div className="rp-body scroll">
         <Brief />
+        <Because />
         {(doc.plan.length > 0 || doc.runs.length > 0 || doc.findings.length > 0 || doc.prefs.length > 0) && (
           <Tabs.Root value={tab} onValueChange={(v) => setTab(String(v))}>
             <Tabs.List className="tabs">
@@ -256,7 +262,7 @@ export function PanelDrawer() {
                 {panel.sid && <button className="btn sm" onClick={() => { useUi.setState({ panel: null }); goScan(panel.sid!) }}>Open the building<Icon name="go" size={12} /></button>}
                 <Dialog.Close render={<button className="btn icon quiet" aria-label="Close" />}><Icon name="close" /></Dialog.Close>
               </header>
-              <div className="body"><PanelView panel={panel} bare /></div>
+              <div className="body"><Because run={panel.run} /><PanelView panel={panel} bare /></div>
             </Sheet>
           )}
         </Dialog.Popup>

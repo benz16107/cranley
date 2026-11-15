@@ -29,14 +29,20 @@ class FileStore:
         tmp.write_text(json.dumps({**meta, "log": [e.model_dump(mode="json", by_alias=True) for e in log]}))
         tmp.replace(path)
 
+    def _prof(self, profile: str) -> pathlib.Path:
+        """The profile's file. The id comes from a request, so it must be a plain name, never a path."""
+        if not profile or pathlib.PurePath(profile).name != profile or "\\" in profile:
+            raise ValueError(f"not a profile id: {profile!r}")
+        return self.root / "profiles" / f"{profile}.json"
+
     def profile(self, profile: str) -> list[dict]:
-        prof = self.root / "profiles" / f"{profile}.json"
+        prof = self._prof(profile)
         return list(json.loads(prof.read_text()).values()) if prof.exists() else []
 
     def merge_profile(self, profile: str, changes: dict[str, tuple[float, dict | None]]) -> None:
         """changes: key -> (when this workspace changed it, the preference or None if removed). A key is written
         unless another workspace changed it later; a removal stays as a dated deletion."""
-        prof = self.root / "profiles" / f"{profile}.json"
+        prof = self._prof(profile)
         prof.parent.mkdir(parents=True, exist_ok=True)
         with open(prof.with_suffix(".lock"), "w") as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)  # other processes and threads on the same profile wait here

@@ -1,4 +1,5 @@
 Code: https://github.com/benz16107/cranley
+Site and docs: https://cranley.app
 Video (2:00): [link goes here]
 
 ## Measure the building before you commit

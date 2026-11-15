@@ -1651,6 +1651,39 @@
       "title": "OpeningAnchor",
       "type": "object"
     },
+    "Origin": {
+      "additionalProperties": false,
+      "description": "Where something known about the person came from. It stays with the preference when the profile carries it\ninto a later investigation, so every use can say \"you told me on <date> in <investigation>\".",
+      "properties": {
+        "workspace": {
+          "type": "string"
+        },
+        "investigation": {
+          "default": "",
+          "description": "That workspace's brief, shortened",
+          "type": "string"
+        },
+        "at": {
+          "type": "number"
+        },
+        "how": {
+          "default": "edit",
+          "enum": [
+            "answer",
+            "edit",
+            "removed",
+            "feedback"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace",
+        "at"
+      ],
+      "title": "Origin",
+      "type": "object"
+    },
     "OverlayUpsert": {
       "additionalProperties": false,
       "properties": {
@@ -2145,6 +2178,17 @@
             }
           ],
           "default": null
+        },
+        "origin": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Origin"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -2208,6 +2252,17 @@
           "anyOf": [
             {
               "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "origin": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Origin"
             },
             {
               "type": "null"
