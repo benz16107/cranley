@@ -1,0 +1,128 @@
+---
+// The hero drawing: the made-up test home, with the route and door widths the engine returned for it when
+// scripts/generate.py last ran. Every number printed here is read from src/generated/site.json; only the format is ours.
+import site from '../generated/site.json'
+import St from './St.astro'
+
+const home = site.home
+const doors = home.results.door_widths
+const route = home.routes.find((r) => r.label.endsWith('Bathroom'))!
+const schedule = doors.checks.map((c, i) => ({ ...c, n: i + 1, name: c.rule.replace(/^Doorway width, /, ''), opening: home.openings.find((o) => o.id === c.id)! }))
+
+// Where each door's tag sits, so it stays off the route. A door not named here gets its tag on its centre.
+const TAG: Record<string, [number, number]> = { o0: [54, -30], o1: [72, 0], o2: [66, 0], o3: [-34, 0], o4: [-34, 0], o10: [0, 36] }
+const ROOM: Record<string, [number, number]> = { 'Living Room': [130, 0], Bathroom: [-52, 46], Hallway: [76, 12] }
+const tag = (o: (typeof home.openings)[number]) => [o.c[0] + (TAG[o.id]?.[0] ?? 0), o.c[1] + (TAG[o.id]?.[1] ?? 0)]
+const pts = (p: number[][]) => p.map((q) => q.join(',')).join(' ')
+// the route as far as the first doorway that fails, then the rest of it
+const stop = route.points.findIndex((p) => route.chokes.some((c) => c.status === 'fail' && c.at[0] === p[0] && c.at[1] === p[1]))
+const open = stop < 0 ? route.points : route.points.slice(0, stop + 1)
+const shut = stop < 0 ? [] : route.points.slice(stop)
+const src = doors.source!
+---
+<figure class="plan">
+  <svg viewBox="-30 -62 1065 890" role="img" aria-label={`Floor plan of a made-up test home with six rooms. A route runs from the entrance to the bathroom and stops at the bathroom doorway, which is ${schedule[0].measured} metres wide against the ${schedule[0].threshold} metres needed.`}>
+    <g class="rooms">
+      {home.rooms.map((r) => <text x={r.c[0] + (ROOM[r.label]?.[0] ?? 0)} y={r.c[1] + (ROOM[r.label]?.[1] ?? 0)} text-anchor="middle">{r.label}</text>)}
+    </g>
+    <g class="walls">{home.walls.map((w) => <line x1={w.a[0]} y1={w.a[1]} x2={w.b[0]} y2={w.b[1]} />)}</g>
+    <g class="gaps">{home.openings.map((o) => <line x1={o.a[0]} y1={o.a[1]} x2={o.b[0]} y2={o.b[1]} />)}</g>
+    <g class="glass">{home.openings.filter((o) => o.type === 'window').map((o) => <line x1={o.a[0]} y1={o.a[1]} x2={o.b[0]} y2={o.b[1]} />)}</g>
+    <g class="leaves">{schedule.map((d) => <line class={d.status} x1={d.opening.a[0]} y1={d.opening.a[1]} x2={d.opening.b[0]} y2={d.opening.b[1]} />)}</g>
+    <polyline class="route" points={pts(open)} pathLength="1" />
+    {shut.length > 1 && <polyline class="route shut" points={pts(shut)} />}
+    <circle class="start" cx={route.points[0][0]} cy={route.points[0][1]} r="9" />
+    <g class="tags">
+      {schedule.map((d) => {
+        const [x, y] = tag(d.opening)
+        return (
+          <g class={d.status} transform={`translate(${x} ${y})`} style={`--i: ${d.n}`}>
+            {d.status === 'fail' ? <rect x="-19" y="-19" width="38" height="38" /> : d.status === 'warn' ? <path d="M0 -24 25 19H-25Z" /> : <circle r="20" />}
+            <text y={d.status === 'warn' ? 13 : 8} text-anchor="middle">{d.n}</text>
+          </g>
+        )
+      })}
+    </g>
+  </svg>
+  <figcaption>
+    <span class="key"><i class="line"></i>Route from the entrance to the bathroom</span>
+    <span class="key"><i class="line shut"></i>Too narrow to pass</span>
+    <span class="key">Numbers are the doorways in the schedule below</span>
+  </figcaption>
+</figure>
+
+<div class="schedule">
+  <div class="verdict">
+    <span class="tool">{doors.title}</span>
+    <St status={doors.verdict.status as 'fail'} />
+    <p>{doors.verdict.text}</p>
+  </div>
+  <ol>
+    {schedule.map((d) => (
+      <li style={`--i: ${d.n}`}>
+        <span class="n num">{d.n}</span>
+        <span class="name">{d.name}</span>
+        <span class="w num">{d.measured} {d.unit}</span>
+        <St status={d.status as 'fail'} label={d.status === 'warn' ? 'Close' : undefined} />
+      </li>
+    ))}
+  </ol>
+  <p class="source">
+    {home.name}, {home.area} m² in {home.rooms.length} rooms: a hand-made phone scan, no real place. Drawn from the engine's result for the
+    preset "{home.persona}" (needs <span class="num">{schedule[0].threshold} {schedule[0].unit}</span>) when this site was built.
+    Measured from the scan, {src.confidence} reliability: {src.note!.charAt(0).toLowerCase() + src.note!.slice(1)}.
+  </p>
+</div>
+
+<style>
+  .plan { min-width: 0; display: grid; gap: var(--s-2); }
+  svg { width: 100%; overflow: visible; }
+  .rooms text { font: 500 24px var(--font-sans); fill: var(--ink-3); }
+  .walls line { stroke: var(--ink); stroke-width: 12; stroke-linecap: square; }
+  .gaps line { stroke: var(--paper); stroke-width: 18; }
+  .glass line { stroke: var(--ink-3); stroke-width: 3; }
+  .leaves line { stroke-width: 6; stroke: var(--pass); }
+  .leaves .warn { stroke: var(--warn); }
+  .leaves .fail { stroke: var(--fail); }
+  .route { fill: none; stroke: var(--accent); stroke-width: 6; stroke-linejoin: round; stroke-linecap: round; }
+  .route.shut { stroke: var(--fail); stroke-dasharray: 3 13; }
+  .start { fill: var(--accent); }
+  .tags :is(rect, path, circle) { fill: var(--pass); stroke: var(--paper); stroke-width: 4; }
+  .tags .warn path { fill: var(--warn); }
+  .tags .fail rect { fill: var(--fail); }
+  .tags text { font: 600 22px var(--font-mono); font-stretch: 80%; fill: var(--paper); }
+  figcaption { display: flex; flex-wrap: wrap; gap: 4px var(--s-5); font-size: 0.8125rem; color: var(--ink-3); }
+  .key { display: inline-flex; align-items: center; gap: 8px; }
+  .key .line { width: 22px; border-top: 3px solid var(--accent); }
+  .key .line.shut { border-top: 3px dotted var(--fail); }
+
+  .schedule { grid-column: 1 / -1; border-top: 1px solid var(--rule-strong); display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 9fr); gap: 0 var(--s-6); padding-top: var(--s-4); }
+  .verdict { display: grid; gap: 4px; align-content: start; }
+  .verdict .tool { font-size: 0.8125rem; color: var(--ink-3); }
+  .verdict p { font-size: 0.9375rem; line-height: 1.45; }
+  ol { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 var(--s-5); }
+  li { display: grid; grid-template-columns: 1.4em minmax(0, 1fr) auto; gap: 0 var(--s-2); align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--rule); font-size: 0.875rem; }
+  li .n { color: var(--ink-3); }
+  li .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  li .w { grid-column: 2; color: var(--ink-2); }
+  li :global(.st) { grid-column: 3; grid-row: 1 / span 2; align-self: center; font-size: 0.8125rem; }
+  .source { grid-column: 1 / -1; margin-top: var(--s-4); font-size: 0.8125rem; line-height: 1.5; color: var(--ink-3); max-width: 110ch; }
+  @media (max-width: 900px) {
+    .schedule { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
+    ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 560px) {
+    ol { grid-template-columns: minmax(0, 1fr); }
+    .rooms text { font-size: 34px; }
+  }
+
+  /* The page's one moving part: the route draws once, then the doorways and their schedule arrive. The finished
+     drawing is the resting state, so it is complete with motion off or before the styles load. */
+  @media (prefers-reduced-motion: no-preference) {
+    .route:not(.shut) { stroke-dasharray: 1; animation: draw 1100ms 250ms cubic-bezier(0.77, 0, 0.175, 1) both; }
+    .route.shut, .tags g, li { animation: arrive 320ms var(--ease-out) both; animation-delay: calc(1300ms + var(--i, 0) * 60ms); }
+    .tags g { transform-box: fill-box; transform-origin: center; }
+  }
+  @keyframes draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+  @keyframes arrive { from { opacity: 0; } to { opacity: 1; } }
+</style>

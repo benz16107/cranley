@@ -1,0 +1,43 @@
+---
+// One sponsor track. The body is the track's section of docs/story.md (src/content/tracks, written by
+// scripts/generate.py); the links and the demo slots come from src/site/tracks.ts.
+import { getEntry, render } from 'astro:content'
+import Base from '../../layouts/Base.astro'
+import Slot from '../../components/Slot.astro'
+import { TRACKS } from '../../site/tracks'
+import { LABELS, filesOf } from '../../site/slots'
+
+export function getStaticPaths() {
+  return TRACKS.map((track) => ({ params: { slug: track.slug }, props: { track } }))
+}
+const { track } = Astro.props
+const entry = await getEntry('tracks', track.slug)
+const Content = entry ? (await render(entry)).Content : null
+const shots = track.slots.filter((id) => LABELS || filesOf(id).length > 0)
+---
+<Base title={`${track.name}: Cranley`} description={track.summary} nav="tracks">
+  <article class="page">
+    <div class="wrap">
+      <p class="small"><a href="/tracks/">Tracks</a></p>
+      <h1>{entry?.data.title ?? `${track.name}: ${track.prize}`}</h1>
+      <p class="intro">{track.summary}</p>
+      <div class="prose">
+        {Content ? <Content /> : track.body?.map((p) => <p>{p}</p>)}
+        {shots.length > 0 && (
+          <>
+            <h2>The demo</h2>
+            <div class="shots">{shots.map((id) => <Slot id={id} phones={id === 'field-visit' || id === 'iphone-app'} />)}</div>
+          </>
+        )}
+        <h2>In the docs</h2>
+        <ul>{track.docs.map(([label, href]) => <li><a href={href}>{label}</a></li>)}</ul>
+      </div>
+    </div>
+  </article>
+</Base>
+
+<style>
+  .shots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-5) var(--s-4); }
+  .shots :global(.phones) { grid-column: 1 / -1; }
+  @media (max-width: 620px) { .shots { grid-template-columns: minmax(0, 1fr); } }
+</style>

@@ -1,0 +1,13 @@
+---
+// The docs header's links back to the rest of the site (replaces Starlight's icon row).
+import { LINKS } from '../site/links'
+---
+<a href="/">Home</a>
+<a href="/tracks/">Tracks</a>
+<a href={LINKS.github}>GitHub</a>
+
+<style>
+  a { color: var(--ink-2); text-decoration: none; font-size: 0.9375rem; padding: 0.4em 0; }
+  a + a { margin-left: 1rem; }
+  @media (hover: hover) and (pointer: fine) { a:hover { color: var(--ink); } }
+</style>
