@@ -1,7 +1,13 @@
 // The drone Gaussian splat, drawn by Spark in the same three.js scene. The file is 70 to 660 MB and its Gaussians are in
 // no spatial order, so a prefix is a fair sample of the whole: we read one stream and show 4 MB, then 24 MB, then 72 MB.
 import * as THREE from 'three'
-import { SparkRenderer, SplatEdit, SplatEditSdf, SplatEditSdfType, SplatMesh } from '@sparkjsdev/spark'
+import type { SparkRenderer, SplatEdit, SplatEditSdf, SplatMesh } from '@sparkjsdev/spark'
+
+type Spark = typeof import('@sparkjsdev/spark')
+let spark: Spark | null = null
+let loading: Promise<Spark> | null = null
+/** Spark is 2.7 MB, so it loads with the first splat shown, not with the building view. */
+export const loadSpark = (): Promise<Spark> => (loading ??= import('@sparkjsdev/spark').then((m) => (spark = m)))
 import { splatUrlDev } from '../dev/splatSource.ts'
 
 /** The one place that knows where a splat comes from. Swap the body for the data route once it lands. */
@@ -48,7 +54,8 @@ export function plyPrefix(buf: Uint8Array, len: number, stray?: (x: number, y: n
 }
 
 /** Spark draws every splat in the scene through one renderer object. Whoever shows a splat first makes it. */
-export function sparkFor(renderer: THREE.WebGLRenderer, scene: THREE.Scene, onDirty: () => void): SparkRenderer {
+export async function sparkFor(renderer: THREE.WebGLRenderer, scene: THREE.Scene, onDirty: () => void): Promise<SparkRenderer> {
+  const { SparkRenderer } = await loadSpark()
   const held = scene.userData as { spark?: SparkRenderer }
   // Each Gaussian is drawn out to sqrt(6) standard deviations (Spark's default is sqrt(8)) and no wider than 256 px:
   // a quarter less of the screen to fill per Gaussian, which is what a close view of a capture is short of.
@@ -59,24 +66,29 @@ export function sparkFor(renderer: THREE.WebGLRenderer, scene: THREE.Scene, onDi
 export interface CutBox { centre: number[]; half: number[] }
 /** Hides the Gaussians of one splat inside boxes and beyond a radius: the roof off a house, the haze off a horizon. */
 export class SplatCut {
-  private edit = new SplatEdit({ softEdge: 0.15 })
+  // made on first use: a mesh means Spark has loaded
+  private edit: SplatEdit | null = null
   private pool: SplatEditSdf[] = []
-  private far = new SplatEditSdf({ type: SplatEditSdfType.SPHERE, opacity: 0, invert: true })
+  private far: SplatEditSdf | null = null
   private key = ''
   /** boxes: centres and half sizes in the splat's own frame. beyond: metres from `about`, 0 for no limit. */
   set(mesh: SplatMesh | null, boxes: CutBox[], beyond = 0, about: number[] = [0, 0, 0]) {
-    if (!mesh) return
+    if (!mesh || !spark) return
+    const { SplatEdit, SplatEditSdf, SplatEditSdfType } = spark
+    this.edit ??= new SplatEdit({ softEdge: 0.15 })
+    this.far ??= new SplatEditSdf({ type: SplatEditSdfType.SPHERE, opacity: 0, invert: true })
+    const { edit, far } = this
     const on = boxes.length > 0 || beyond > 0
-    if (on && this.edit.parent !== mesh) mesh.add(this.edit); else if (!on) this.edit.removeFromParent()
+    if (on && edit.parent !== mesh) mesh.add(edit); else if (!on) edit.removeFromParent()
     const key = JSON.stringify([boxes, beyond, about, mesh.uuid])
     if (key === this.key) return
     this.key = key
     while (this.pool.length < boxes.length) this.pool.push(new SplatEditSdf({ type: SplatEditSdfType.BOX, opacity: 0 }))
     const used = this.pool.slice(0, boxes.length)
     used.forEach((sdf, i) => { sdf.position.set(boxes[i].centre[0], boxes[i].centre[1], boxes[i].centre[2]); sdf.scale.set(boxes[i].half[0], boxes[i].half[1], boxes[i].half[2]) })
-    if (beyond > 0) { this.far.position.set(about[0], about[1], about[2]); this.far.radius = beyond }
-    this.edit.sdfs = [...used, ...(beyond > 0 ? [this.far] : [])]
-    for (const sdf of this.edit.sdfs) { if (sdf.parent !== this.edit) this.edit.add(sdf); sdf.updateMatrixWorld(true) }
+    if (beyond > 0) { far.position.set(about[0], about[1], about[2]); far.radius = beyond }
+    edit.sdfs = [...used, ...(beyond > 0 ? [far] : [])]
+    for (const sdf of edit.sdfs) { if (sdf.parent !== edit) edit.add(sdf); sdf.updateMatrixWorld(true) }
   }
 }
 
@@ -94,6 +106,7 @@ export class SplatView {
   private mesh: SplatMesh | null = null
   private opacity = { cur: 0, goal: 0 }
   private abort: AbortController | null = null
+  private gone = false
 
   private renderer: THREE.WebGLRenderer; private scene: THREE.Scene; private api: string; private sid: string
   private stray?: (x: number, y: number, z: number) => boolean
@@ -107,7 +120,9 @@ export class SplatView {
     if (this.status !== 'idle') return
     this.status = 'loading'; this.onChange()
     try {
-      this.spark = sparkFor(this.renderer, this.scene, () => this.onChange())
+      const sr = await sparkFor(this.renderer, this.scene, () => this.onChange())
+      if (this.gone) return // closed while Spark loaded; dispose() already cleared the scene
+      this.spark = sr
       this.abort = new AbortController()
       const res = await fetch(await splatUrl(this.api, this.sid), { signal: this.abort.signal })
       if (!res.ok || !res.body) throw new Error(`splat ${res.status}`)
@@ -136,6 +151,7 @@ export class SplatView {
   private async swap(buf: Uint8Array, len: number) {
     const p = plyPrefix(buf, len, this.stray)
     if (!p) return
+    const { SplatMesh } = spark! // loaded by sparkFor in load()
     const mesh = new SplatMesh({ fileBytes: p.bytes, fileName: 'splat.ply' } as ConstructorParameters<typeof SplatMesh>[0])
     await mesh.initialized
     mesh.opacity = this.opacity.cur
@@ -159,6 +175,7 @@ export class SplatView {
   }
 
   dispose() {
+    this.gone = true
     this.abort?.abort(); this.mesh?.dispose(); this.mesh = null
     if (this.spark) { this.spark.removeFromParent(); (this.spark as unknown as { dispose?: () => void }).dispose?.(); delete (this.scene.userData as { spark?: SparkRenderer }).spark }
   }

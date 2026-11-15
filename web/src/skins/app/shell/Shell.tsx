@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Dialog } from '@base-ui/react/dialog'
 import { Tooltip } from '@base-ui/react/tooltip'
 import { Drawer } from 'vaul'
@@ -9,9 +9,7 @@ import { FirstRun } from './FirstRun.tsx'
 import { go, usePlace } from '../lib/place.ts'
 import '../lib/pending.ts' // keeps the index of investigations seen in this browser
 import { useBuildings } from '../../../core/index.ts'
-import { Building } from '../pages/Building.tsx'
 import { Buildings } from '../pages/Buildings.tsx'
-import { Explore } from '../pages/Explore.tsx'
 import { Home } from '../pages/Home.tsx'
 import { Insights } from '../pages/Insights.tsx'
 import { Investigation, Investigations } from '../pages/Investigations.tsx'
@@ -26,6 +24,15 @@ import { PAGE_KEYS, Sidebar } from './Sidebar.tsx'
 import { Topbar } from './Topbar.tsx'
 import { useScheme } from './theme.ts'
 import { useIsPhone, useUi } from './store.ts'
+
+// The map and the building view bring MapLibre, deck.gl and the scene with them (about 2 MB), which Home and the list
+// pages never draw. They load on their own: at once when the address is already one of theirs, else when the page is idle.
+const loadExplore = () => import('../pages/Explore.tsx')
+const loadBuilding = () => import('../pages/Building.tsx')
+const Explore = lazy(() => loadExplore().then((m) => ({ default: m.Explore })))
+const Building = lazy(() => loadBuilding().then((m) => ({ default: m.Building })))
+if (/\/(map|scan)(\/|$)/.test(location.pathname)) void loadExplore()
+const whenIdle = (f: () => void) => ('requestIdleCallback' in window ? requestIdleCallback(f, { timeout: 4000 }) : setTimeout(f, 2000))
 
 export const SHORTCUTS: [keys: string, what: string][] = [
   ['Ctrl K', 'Search and commands'], ['/', 'Search'], [']', 'Show or hide the agent panel'], ['Ctrl B', 'Show or hide the sidebar'], ['[', 'Narrow or widen the sidebar'],
@@ -58,6 +65,7 @@ export function Shell() {
   useEffect(() => { document.documentElement.dataset.scheme = scheme }, [scheme])
   const load = useBuildings((s) => s.load)
   useEffect(load, [load]) // every page names buildings: the breadcrumb, the search, the saved list
+  useEffect(() => { whenIdle(() => { void loadExplore(); void loadBuilding() }) }, []) // so the first visit to the map does not wait
 
   // The run panel opens by itself when the agent starts working or needs an answer. Closing it is the person's.
   const busy = useWorkspace((s) => s.doc.plan.some((p) => p.status === 'active') || ((s.doc.plan.length > 0 || s.doc.runs.length > 0 || !s.doc.brief) && s.doc.questions.some((q) => q.answer == null)))
@@ -115,7 +123,7 @@ export function Shell() {
           <Fill key="work" id="work" min={360} className="workpane">
             <FirstRun />
             <Topbar />
-            <main className="main" id="main" tabIndex={-1}>{page}</main>
+            <main className="main" id="main" tabIndex={-1}><Suspense fallback={null}>{page}</Suspense></main>
           </Fill>
           {run && !phone && <Edge key="run-edge" of="run" label="Resize the agent panel" />}
           {run && !phone && <Pane key="run" id="run" size={window.innerWidth <= 1700 ? 344 : 372} min={300} max={720}><RunPanel onClose={() => setRun(false)} /></Pane>}

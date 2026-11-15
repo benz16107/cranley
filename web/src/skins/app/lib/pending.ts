@@ -1,6 +1,5 @@
 import { create } from 'zustand'
-import * as core from '../../../core/index.ts'
-import { ask, currentRoute, isLive, navigate, useWorkspace, type Doc } from '../../../core/index.ts'
+import { ask, currentRoute, fetchFactHistory, fetchFloodWet, isLive, navigate, useWorkspace, type Doc } from '../../../core/index.ts'
 
 /* Everything in this file stands in for something asked of core in reports/core-requests.md ("App", 2026-11-14).
    Nothing here fetches: a look may not. Each part says which request replaces it. */
@@ -14,7 +13,8 @@ type Facts = {
   fetchFloodWet: () => Promise<FloodLevel[]>
   fetchFactHistory: (sid: string) => Promise<Record<string, unknown>[]>
 }
-export const facts = core as unknown as Partial<Facts>
+// named, not `import * as core`: reading the whole namespace kept every export of core (MapLibre too) on every page
+export const facts: Partial<Facts> = { fetchFloodWet, fetchFactHistory } as Partial<Facts>
 
 /* ---------- App 4: past work. An index of the investigations this browser has seen, kept by the look. ---------- */
 export type Seen = { id: string; brief: string; first: number; last: number; steps: number; done: number; runs: number; failed: number; findings: number; kept: number; tools: number; status: 'setup' | 'working' | 'waiting' | 'done'
