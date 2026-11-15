@@ -33,9 +33,9 @@ Each track page has the details.
 | MongoDB Atlas | [page](https://cranley.app/tracks/mongodb/) | Asked to build with Atlas; we use 12 Atlas features: op log with transactions, change streams, Atlas Search, Vector Search with automated embedding, `$rankFusion`, time series, TTL, 2dsphere, schema validation, LangGraph checkpointer and store, MCP | A door width typed on the phone reaches the desktop in about a second | |
 | Tiger Data | [page](https://cranley.app/tracks/tiger-data/) | Asked to show Tiger powering the app; we built the facts database on hypertables, compression, continuous aggregates and hyperfunctions, plus PostGIS, DiskANN, BM25, the pgai vectorizer, jobs, retention, read-only agent SQL and forks | A zero-copy fork ready in 31 s for a city-wide what-if; 234 MB compressed to 58 MB | |
 
-![Amazon: two occupational therapists' home-assessment lists and the aging-in-place checks they became](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/256/datas/gallery.jpg)
-
-![Photon: Cranley's actual replies to a garage question, shown in a messages frame](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/153/datas/gallery.jpg)
+| Amazon: what two occupational therapists check, and the checks it became | Photon: Cranley's actual replies, shown in a messages frame |
+|---|---|
+| ![Two occupational therapists' home-assessment lists and the aging-in-place checks they became](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/256/datas/gallery.jpg) | ![Cranley's actual replies to a garage question, shown in a messages frame](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/153/datas/gallery.jpg) |
 
 ---
 
@@ -74,9 +74,9 @@ Before and while building we asked people what goes wrong with their buildings: 
 
 Their answers changed the tools the same night. Every quote and its change: [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md).
 
-![Outreach at a glance: a recorded interview, 58 people in 17 communities, 491 emails, six human replies](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/100/datas/gallery.jpg)
-
-![What people told us and what we changed that night, each with its tool and commit](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/113/datas/gallery.jpg)
+| Who we asked | What it changed |
+|---|---|
+| ![Outreach at a glance: a recorded interview, 58 people in 17 communities, 491 emails, six human replies](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/100/datas/gallery.jpg) | ![What people told us and what we changed that night, each with its tool and commit](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/113/datas/gallery.jpg) |
 
 ---
 
