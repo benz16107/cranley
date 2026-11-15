@@ -18,7 +18,7 @@ from . import client, words
 from .state import State
 
 log = logging.getLogger("threshold.photon")
-WAIT_S = 20
+WAIT_S = 12  # under the relay's and ElevenLabs' tool timeouts
 _pool = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="voice")
 _jobs: dict[str, concurrent.futures.Future] = {}
 _lock = threading.Lock()
@@ -76,14 +76,19 @@ def spoken(caller: str, out: dict) -> str:
     runs = [r.model_dump(mode="json") for r in s.doc.runs if r.id in ids]
     if not runs:
         return "I couldn't run a check for that. Try naming the city or the street address."
+    lines_head = f"At {words.place_name(runs[0].get('sid'))}." if runs[0].get("sid") else ""
     lines = []
-    for r in runs[:3]:
+    for r in runs[:2]:
         res = r.get("result") or {}
         v = res.get("verdict") or {}
         m = (res.get("metrics") or [])[:1]
-        lines.append(f"{words.title(r['tool'])} at {words.place_name(r.get('sid'))}: {words.STATUS_WORD.get(v.get('status'), '')}. "
-                     f"{v.get('text', '')}" + (f" {words.metric_line(m[0])}." if m else ""))
-    return words.speakable("\n".join(lines)) + " I'll text you the plan and the details when we hang up."
+        said = f"{words.title(r['tool'])}: {words.STATUS_WORD.get(v.get('status'), '')}. {v.get('text', '')}"
+        if m and not any(ch.isdigit() for ch in v.get("text", "")):  # a verdict with no number gets its first metric
+            said += f" {words.metric_line(m[0]).split(' (')[0]}."
+        lines.append(said)
+    if len(runs) > 2:
+        lines.append(f"And {len(runs) - 2} more checks.")
+    return words.speakable("\n".join([lines_head, *lines])) + " I'll text you the plan and the details when we hang up."
 
 
 def tool(name: str, body: dict) -> dict:
