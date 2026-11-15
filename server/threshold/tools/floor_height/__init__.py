@@ -146,8 +146,9 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     text = (f"The floor height range is now {f1['lo_m']:.2f} to {f1['hi_m']:.2f} m, {shrink}% narrower than before "
             f"({f0['lo_m']:.2f} to {f0['hi_m']:.2f} m)." if narrowed else
             f"The phone's inputs did not narrow the floor height: it stays {f1['lo_m']:.2f} to {f1['hi_m']:.2f} m.")
-    text += (f" With {inputs.depth_m:.2f} m of water outside, rooms taking water: {r1[0]} to {r1[1]} (was {r0[0]} to {r0[1]})."
-             if r1 != r0 else f" With {inputs.depth_m:.2f} m of water outside, {r1[0]} to {r1[1]} rooms take water, as before.")
+    span = lambda r: str(r[0]) if r[0] == r[1] else f"{r[0]} to {r[1]}"
+    text += (f" With {inputs.depth_m:.2f} m of water outside, rooms taking water: {span(r1)} (was {span(r0)})."
+             if r1 != r0 else f" With {inputs.depth_m:.2f} m of water outside, {span(r1)} rooms take water, as before.")
     if f1.get("widened_by"):
         text += " The methods disagree, so the range was widened to take them all in."
     fid = f"floor_height:{sid}:door"
