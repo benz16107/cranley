@@ -19,9 +19,11 @@ It is for the person the listing fails: a wheelchair user signing a lease, a Hou
 | MLH Tiger Data | The building facts database: hypertables, compression, continuous aggregates, DiskANN room search, pgai vectorizer, forks for what-ifs | Search by measurement, Insights, Renovate |
 | MLH MongoDB Atlas | Workspaces and their operation log, change-stream live sync with the phone, hybrid search, time series, vector memory, guarded MCP | Investigations, the phone, share links |
 
-## The problem
+## Inspiration
 
 The information to answer "will this work for me" exists: laser scans of the interior, aerial photos sharp enough to count parking spaces, market records for the same address. Each sits in its own product, and every feature that exists works inside one listing at a time. Nobody joins the layers, and nobody asks your question across a whole city.
+
+We built Cranley forward-deployed. Before and while building, we asked people and businesses what goes wrong with the inside and outside of their buildings: a 31-minute phone interview with the president of a New York City disability rights organisation, written answers from 40 people in 15 online communities (truck, boat and RV owners, home networking, a chef who takes over kitchens, restaurant operators, a Walmart receiving associate, managers, emergency management, wildfire), and 340 emails to organisations and businesses, which brought three human replies (the interview and two declines). What they said changed the tools: the wheelchair route now leads with "any steps?", a person can keep more than one chair, and garage fit measures depth because truck owners told us depth, not width, decides it.
 
 ## What it does
 
@@ -35,6 +37,8 @@ The information to answer "will this work for me" exists: laser scans of the int
 The same workspace works for 50 kinds of user. A Houston homeowner watches Hurricane Harvey's measured water levels rise through their own house and gets the list of what to carry upstairs first. A fire captain gets a pre-plan with search routes and a smoke simulation run through NIST's CFAST model on the measured rooms. A car owner learns whether two trucks fit the garage. An office tenant tests whether the team fits, room by room, and a tenant rep ranks candidate sites on a weighted scorecard with market comps.
 
 ## It learns you once
+
+The disability rights leader we interviewed told us many people own more than one chair and do not know their widths. A person should only have to say it once.
 
 Tell Cranley your wheelchair is 70 cm wide on the first home you look at. On the next home you type six words, "Is this one workable for me?", and it asks nothing: it measures every doorway against your chair, leaves out the tool you removed last time and keeps back the kinds of check you said were not relevant. Each of those decisions is written on screen with where it came from ("You told me on 14 Nov"), and one click changes or forgets it.
 
@@ -85,6 +89,7 @@ Tell Cranley your wheelchair is 70 cm wide on the first home you look at. On the
 - The value is in the join. Each layer alone answers little; the floor height from the air plus the sill from the scan answers the flood question.
 - An agent is most useful when it never states a number. Choosing, asking and explaining is its job; measuring is the code's.
 - Saying "this scan cannot tell" is a feature people trust more than a guess.
+- Ask before you build. The question people really ask is "are there any steps?", not "is it accessible?", and "how deep is the garage?", not "is it a two-car garage?".
 
 ## What's next
 
