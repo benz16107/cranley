@@ -466,7 +466,7 @@ wheelchair user, the family before a storm, the fire crew.
 
 ## Built (synced to `main`)
 
-Checked against `git log main` at `fa64b95` (2026-11-15, 3:57 am ET). Update at each merge.
+Checked against `git log main` at `fb7344f` (2026-11-15, 4:36 am ET). Update at each merge.
 
 **Merged**
 - [x] Data layer: Matterport, Vexcel and CoStar sources, normalized plan format with quality flags (`ws/data`)
@@ -506,6 +506,7 @@ Checked against `git log main` at `fa64b95` (2026-11-15, 3:57 am ET). Update at 
 - [x] Home rebuilt as one entry: a sentence about any building or one picked, starting points by who you are, recent work (`ws/home2`)
 - [x] Website and docs at cranley.app, generated from the code and this file (`ws/site`)
 - [x] The live app at cranley.app/app and the phone page at /m through the same domain, open to everyone with a global cap; track pages lead with their proof and what each sponsor asked for beside what we built; an /about page (`ws/site`)
+- [x] Tool catalog at cranley.app/tools/ (78 cards from the manifests, filterable by data source); every site screenshot in dark mode; the Photon page plays the real recorded call with a synced transcript, address bleeped (`ws/site`)
 - [x] Faster first load: demo buildings warmed, Home loaded lazily, gzip and cache headers (`ws/perf`, partial)
 - [x] iPhone app icon (the Cranley mark) and a TestFlight build
 - [x] MCP server (stdio and `/mcp`), `threshold` CLI, deep agent over MCP, `docs/MCP.md` (`ws/mcp`)
