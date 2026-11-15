@@ -237,10 +237,10 @@ export function WorldMap(props: Props) {
     let raf = 0, tipRaf = 0
     const onMove = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { useWorld.setState((s) => ({ tick: s.tick + 1, zoom: map.getZoom(), pitch: map.getPitch(), bearing: map.getBearing() })); draw() }) }
     // MapLibre's wheel zoom ends with no originalEvent, so "the person did this" is also: they touched the map a moment ago
-    let input = 0, lastZ = map.getZoom()
-    const touched = () => { input = performance.now() }
+    let input = 0, lastZ = map.getZoom(), pointer: [number, number] | null = null // where the wheel was turned: what the person is aiming at
+    const touched = (e: Event) => { input = performance.now(); pointer = e.type === 'wheel' ? [(e as WheelEvent).clientX, (e as WheelEvent).clientY] : null }
     for (const t of ['wheel', 'pointerdown', 'dblclick', 'keydown']) el.current!.addEventListener(t, touched, { passive: true, capture: true })
-    const settle = (e?: { originalEvent?: unknown }) => {
+    const settle = () => {
       const z = map.getZoom(), c = map.getCenter(), now = live.current
       const closer = z > lastZ + 0.01; lastZ = z // zooming out past a building (on the way back from one) must not open it again
       mesh?.setShown(z >= MESH_Z - 0.2)
@@ -251,11 +251,31 @@ export function WorldMap(props: Props) {
       }
       mesh?.shadowsAt(c.lng, c.lat)
       loadGrid()
-      if (!(e?.originalEvent || performance.now() - input < 1200) || !closer || now.held || z < ENTER_Z) return
-      // the person zoomed right in: a scanned building at the middle of the view is the one they mean
-      const near = now.buildings.map((b) => [metres(c, b), b] as const).sort((p, q) => p[0] - q[0])[0]
+      if (closer) aim()
+    }
+    /** The person zoomed right in: a scanned building under the pointer, or at the middle of the view, is the one they mean. */
+    const aim = () => {
+      const z = map.getZoom(), c = map.getCenter(), now = live.current
+      if (now.held || z < ENTER_Z || performance.now() - input > 1200) return
+      const r = el.current!.getBoundingClientRect(), at = pointer ? map.unproject([pointer[0] - r.left, pointer[1] - r.top]) : c
+      const near = now.buildings.map((b) => [Math.min(metres(c, b), metres(at, b)), b] as const).sort((p, q) => p[0] - q[0])[0]
       if (near && near[0] < Math.max(35, 9000 / 2 ** (z - 12))) now.onNear?.(near[1])
     }
+    // a wheel kept turning has no moveend until it stops: look as the zoom passes, so the map does not run on to its limit first
+    let looked = 0
+    map.on('zoom', () => { if (map.getZoom() > lastZ && performance.now() - looked > 250) { looked = performance.now(); aim() } })
+    // Satellite tiles one zoom level in from the view, asked for while the map rests: the next step in finds them in
+    // the browser's cache. Only the world mosaic (it is the far-out picture), each tile once, at most 16 a rest.
+    const warmed = new Set<string>()
+    const warm = () => {
+      const url = (map.getSource('sat') as { tiles?: string[] } | undefined)?.tiles?.[0], z = Math.floor(map.getZoom() + 1) + 1 // 256 px tiles are drawn one level above the map's zoom
+      if (!url || z < 4 || z > 13 || live.current.held) return
+      for (const [x, y] of tilesIn(map, z, 16)) {
+        const u = url.replace('{z}', String(z)).replace('{x}', String(x)).replace('{y}', String(y))
+        if (!warmed.has(u)) { warmed.add(u); void fetch(u).catch(() => warmed.delete(u)) }
+      }
+    }
+    map.on('idle', warm)
     map.on('move', onMove)
     map.on('moveend', settle)
     map.on('styledata', ensure); map.on('idle', ensure)
