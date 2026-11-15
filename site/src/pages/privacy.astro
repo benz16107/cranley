@@ -25,7 +25,7 @@ import { LINKS } from '../site/links'
         {LINKS.demo && (
           <>
             <h2>The event demo</h2>
-            <p>For HackPrinceton there is a <a href={LINKS.demo}>live demo</a> behind a code from Ben. It asks for no name and no email address. What you type there is sent to our server and to the language model it uses, and it is kept with the demo's workspaces until the demo is switched off after the event. The building data in it is used under the event's terms and is deleted after the event.</p>
+            <p>For HackPrinceton there is a <a href={LINKS.demo}>live demo</a> behind a code from Ben. It asks for no name and no email address. What you type there is sent to our server and to the language model it uses. The demo keeps two things: a log of each request's IP address and path, which it needs to limit how often one visitor can ask, and the workspaces that visitors create. Both are deleted when the demo is switched off after the event. The building data in it is used under the event's terms and is deleted after the event.</p>
           </>
         )}
 
