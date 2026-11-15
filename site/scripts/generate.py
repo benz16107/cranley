@@ -708,7 +708,7 @@ def tool_catalog(tools: dict, examples: dict, by_group: dict, approve, changed: 
         m, ex = t.manifest, examples[tid]
         props = m.model_dump()["inputs"].get("properties", {})
         # a layer the App look has no words for is named from its id: "public.census_acs" reads "Census acs (public data)"
-        words = lambda l: LAYER.get(l) or (l.split(".", 1)[1].replace("_", " ").replace(".", " ").capitalize()
+        words = lambda l: LAYER.get(l) or (l.split(".", 1)[-1].replace("_", " ").replace(".", " ").capitalize()
                                            + {"public": " (public data)", "phone": " (phone)", "osm": " (OpenStreetMap)", "drone": " (drone)"}.get(l.split(".")[0], ""))
         required = list(dict.fromkeys(words(r.layer) for r in m.requires if r.need == "required"))
         optional = [l for l in dict.fromkeys(words(r.layer) for r in m.requires if r.need != "required") if l not in required]

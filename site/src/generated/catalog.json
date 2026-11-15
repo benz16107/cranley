@@ -131,7 +131,7 @@
    "a note"
   ],
   "required": [
-   "public.census_acs"
+   "Census acs (public data)"
   ],
   "optional": [],
   "data": [
@@ -398,7 +398,7 @@
   ],
   "required": [],
   "optional": [
-   "osm"
+   "Osm (OpenStreetMap)"
   ],
   "data": [
    "public"
@@ -440,8 +440,8 @@
    "checks"
   ],
   "required": [
-   "public.broadband",
-   "public.transit"
+   "Broadband (public data)",
+   "Transit (public data)"
   ],
   "optional": [],
   "data": [
@@ -1157,7 +1157,7 @@
    "the plan, marked"
   ],
   "required": [
-   "phone.capture"
+   "Capture (phone)"
   ],
   "optional": [],
   "data": [
@@ -1389,7 +1389,7 @@
    "Rooms"
   ],
   "optional": [
-   "phone.gps",
+   "Gps (phone)",
    "Ground heights"
   ],
   "data": [
@@ -1619,7 +1619,7 @@
    "checks"
   ],
   "required": [
-   "public.hazards"
+   "Hazards (public data)"
   ],
   "optional": [],
   "data": [
@@ -1710,7 +1710,7 @@
    "Property record"
   ],
   "optional": [
-   "osm.places"
+   "Places (OpenStreetMap)"
   ],
   "data": [
    "costar",
@@ -1776,7 +1776,7 @@
    "Property record",
    "Aerial photo",
    "Rooms",
-   "osm"
+   "Osm (OpenStreetMap)"
   ],
   "data": [
    "aerial",
@@ -1849,7 +1849,7 @@
   ],
   "optional": [
    "Aerial property facts",
-   "osm.places"
+   "Places (OpenStreetMap)"
   ],
   "data": [
    "aerial",
@@ -2259,7 +2259,7 @@
    "the assumptions it used"
   ],
   "required": [
-   "osm.places"
+   "Places (OpenStreetMap)"
   ],
   "optional": [],
   "data": [
@@ -2304,7 +2304,7 @@
    "the assumptions it used"
   ],
   "required": [
-   "phone.microphone"
+   "Microphone (phone)"
   ],
   "optional": [],
   "data": [
@@ -2575,7 +2575,7 @@
    "checks"
   ],
   "required": [
-   "public.permits"
+   "Permits (public data)"
   ],
   "optional": [],
   "data": [
@@ -2667,7 +2667,7 @@
   "optional": [
    "Aerial property facts",
    "Property record",
-   "osm.places"
+   "Places (OpenStreetMap)"
   ],
   "data": [
    "aerial",
@@ -2754,7 +2754,7 @@
    "the assumptions it used"
   ],
   "required": [
-   "phone.photo"
+   "Photo (phone)"
   ],
   "optional": [],
   "data": [
@@ -3076,7 +3076,7 @@
    "the assumptions it used"
   ],
   "required": [
-   "osm"
+   "Osm (OpenStreetMap)"
   ],
   "optional": [
    "Aerial photo"
@@ -3640,7 +3640,7 @@
    "Property record"
   ],
   "optional": [
-   "osm",
+   "Osm (OpenStreetMap)",
    "Rooms"
   ],
   "data": [
@@ -3774,7 +3774,7 @@
    "the assumptions it used"
   ],
   "required": [
-   "phone.tilt"
+   "Tilt (phone)"
   ],
   "optional": [],
   "data": [
@@ -4818,7 +4818,7 @@
    "the assumptions it used"
   ],
   "required": [
-   "phone.video"
+   "Video (phone)"
   ],
   "optional": [],
   "data": [
@@ -4865,7 +4865,7 @@
    "next actions"
   ],
   "required": [
-   "phone.gps"
+   "Gps (phone)"
   ],
   "optional": [],
   "data": [
@@ -5082,7 +5082,7 @@
    "the assumptions it used"
   ],
   "required": [
-   "phone.compass"
+   "Compass (phone)"
   ],
   "optional": [
    "Scan position"
@@ -5131,7 +5131,7 @@
    "a note"
   ],
   "required": [
-   "public.zoning"
+   "Zoning (public data)"
   ],
   "optional": [],
   "data": [
