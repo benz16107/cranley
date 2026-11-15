@@ -14,6 +14,7 @@ It is for the person the listing fails: a wheelchair user signing a lease, a Hou
 |---|---|---|
 | CoStar: Inside and Out | All three layers (Matterport interiors, Vexcel aerial and 3D city, CoStar records) in one frame; an agent that plans, fans out per building and checks claims across layers | Record versus reality, flood, garage and driveway fit, site tools, search by measurement |
 | Amazon: Practical AI | Ask in plain words, get a workspace you can act on; it learns the person once and adapts every later investigation, with the adaptation measured on screen; works on your own home through the iPhone scan | "Cranley knows", Home, the phone companion, PDF reports |
+| Peri: Forward Deployed | Built from discovery: a recorded interview with Jean Ryan, President of Disabled In Action of Metropolitan New York, changed the wheelchair tools (steps first, several chairs, bathroom door swing and clear space, aisles, floors and elevators) | "Forward deployed" below |
 | LangChain deepagents | Planning, parallel subagents shown live, human approval with resume from a MongoDB checkpoint, skills, memory, a rubric grader, LangSmith experiments | The agent panel on any investigation |
 | Photon 2.0 | The same agent over iMessage and a phone call: marked plan pictures, reply threads as investigations, approvals by reply, photos and voice notes in, the PDF in the chat | Text or call the Cranley line |
 | MLH Tiger Data | The building facts database: hypertables, compression, continuous aggregates, DiskANN room search, pgai vectorizer, forks for what-ifs | Search by measurement, Insights, Renovate |
@@ -23,7 +24,21 @@ It is for the person the listing fails: a wheelchair user signing a lease, a Hou
 
 The information to answer "will this work for me" exists: laser scans of the interior, aerial photos sharp enough to count parking spaces, market records for the same address. Each sits in its own product, and every feature that exists works inside one listing at a time. Nobody joins the layers, and nobody asks your question across a whole city.
 
-We built Cranley forward-deployed. Before and while building, we asked people and businesses what goes wrong with the inside and outside of their buildings: a 31-minute phone interview with the leader of a disability rights group, a wheelchair user; written answers from 40 people in 15 online communities (truck, boat and RV owners, home networking, a chef who takes over kitchens, restaurant operators, a Walmart receiving associate, managers, emergency management, wildfire); and 340 emails to organisations and businesses, which brought three human replies (the interview and two declines). What they said is changing the tools tonight: the wheelchair route leads with "any steps?", and a person can keep more than one chair. It also confirmed choices already made: truck owners told us depth, not width, decides whether a truck fits, which is what garage fit measures from the scan.
+We built Cranley forward-deployed. Before and while building, we asked people and businesses what goes wrong with the inside and outside of their buildings: a recorded 31-minute phone interview with Jean Ryan, President of Disabled In Action of Metropolitan New York (an all-volunteer disability rights group) and a powered-wheelchair user; written answers from 40 people in 15 online communities (truck, boat and RV owners, home networking, a chef who takes over kitchens, restaurant operators, a Walmart receiving associate, managers, emergency management, wildfire); and 340 emails to organisations and businesses, which brought three human replies (the interview and two declines). What they said is changing the tools tonight: the wheelchair route leads with "any steps?", and a person can keep more than one chair. It also confirmed choices already made: truck owners told us depth, not width, decides whether a truck fits, which is what garage fit measures from the scan.
+
+## Forward deployed: what Jean Ryan told us
+
+Jean Ryan is President of Disabled In Action of Metropolitan New York and uses a 400-pound powered wheelchair. She replied to our email on Saturday night and we spoke for 31 minutes.
+
+> "I don't ask them if it's a wheelchair accessible. I ask them if they have any steps." (07:05)
+
+> "Is it wheelchair accessible? Yes. I get there, and there's a step, and I couldn't go in. I have a 400-pound chair." (05:22)
+
+> "I could get in the bookstore, but I couldn't go to the books." (05:57)
+
+> "If it opens in, you typically cannot get in because the door is blocking them." (09:45, on bathroom stall doors)
+
+What we changed that night: the wheelchair route now leads with whether there are any steps between the entrance and the room, including steps inside and before the elevators; a person keeps more than one chair and each is checked; bathroom clearance says which way the door opens and counts a bin beside the toilet as blocking; turning space counts objects on the floor and checks the aisle; other floors say when the only way is an elevator.
 
 ## What it does
 
@@ -38,7 +53,7 @@ The same workspace works for 50 kinds of user. A Houston homeowner watches Hurri
 
 ## It learns you once
 
-The disability rights leader we interviewed told us many people own more than one chair and do not know their widths. A person should only have to say it once.
+Jean Ryan of Disabled In Action told us "a lot of people have more than one chair", and many people do not know their widths. A person should only have to say it once.
 
 Tell Cranley your wheelchair is 70 cm wide on the first home you look at. On the next home you type six words, "Is this one workable for me?", and it asks nothing: it measures every doorway against your chair, leaves out the tool you removed last time and keeps back the kinds of check you said were not relevant. Each of those decisions is written on screen with where it came from ("You told me on 14 Nov"), and one click changes or forgets it.
 
