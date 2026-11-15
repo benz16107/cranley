@@ -61,6 +61,7 @@ def from_trace(trace: pathlib.Path) -> list[str]:
     return sorted(seen)
 
 
+WHOLE = ("cache/vexcel/ortho_tile", "cache/vexcel/3d_tileset", "cache/layers")  # map tiles and layers: ~80 MB
 SID = re.compile(r"^(?:[A-Za-z0-9]{11}|u_[0-9a-f]{12})$")
 
 
@@ -95,7 +96,9 @@ def listing(lean: bool = False) -> list[str]:
     whole = [] if lean else [str(p.relative_to(DATA)) for sid in flow_sids()
                              for d in DATA.glob(f"cache/*/{sid}*")  # splat/<sid>/ is training input; the trace has what is served
                              for p in ([d] if d.is_file() else d.rglob("*")) if p.is_file() and not SKIP.search(str(p.relative_to(DATA)))]
-    return sorted(set(files) | set(llm) | set(whole) | set(people()))
+    # whatever the map's viewport asks for, which no two plays trace alike: small enough to copy whole
+    tiles = [str(p.relative_to(DATA)) for d in WHOLE for p in (DATA / d).rglob("*") if p.is_file() and not SKIP.search(str(p.relative_to(DATA)))]
+    return sorted(set(files) | set(llm) | set(whole) | set(people()) | set(tiles))
 
 
 def size(files: list[str]) -> int:
