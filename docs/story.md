@@ -169,7 +169,7 @@ by measurement, with all three layers checking each other.
 |---|---|
 | Use of the data (30%) | All three layers in one frame: walls and doorways from Matterport, elevation, ortho, property facts and the 3D city from Vexcel, records from CoStar. Cross-layer tools: record versus reality (listed vs measured area, claims check), flood (Vexcel ground elevation + Matterport door sills), garage and driveway fit (interior garage + aerial driveway), site tools (docks, truck access, parking from the air), drone splat aligned to the scan. Search by measurement over every scan with a wall graph. |
 | Agentic depth (30%) | A deepagents investigator that plans (todo list the person watches), fans out one subagent per building in parallel, asks before expensive steps, remembers what it learned per building, and resumes after a restart from a MongoDB checkpoint. The composer picks tools for the need from more than 75, asks only the missing inputs, and the workspace is a document the agent and the person edit with the same operations (with undo). |
-| Usefulness (25%) | Checked against discovery (Peri section): truck owners told us garage depth decides whether a truck fits, and that newer subdivision garages run 19.5 to 20 ft deep; garage fit, built earlier the same day, measures the scanned garage instead of trusting "two-car garage" in the listing. 50 personas, each a real user with a named need: wheelchair user, fire captain, Houston homeowner before a storm, truck dispatcher, office tenant, CoStar researcher, insurance underwriter, daycare operator, car owner. For the people who open CoStar every morning: a tenant rep's weighted site scorecard across candidates, market comps from CoStar records, industrial fit (clear height, docks, truck court), retail site screening, commute fit for a whole team, and a facility audit PDF. PDF report a person can hand to a landlord. |
+| Usefulness (25%) | Checked against discovery (Peri section): truck owners told us garage depth decides whether a truck fits, and that newer subdivision garages run 19.5 to 20 ft deep; garage fit, built earlier the same day, measures the scanned garage instead of trusting "two-car garage" in the listing, and after their answers it checks depth to the back wall on its own, boats by the maker's storage length and a trailer's side lights at the door. 50 personas, each a real user with a named need: wheelchair user, fire captain, Houston homeowner before a storm, truck dispatcher, office tenant, CoStar researcher, insurance underwriter, daycare operator, car owner. For the people who open CoStar every morning: a tenant rep's weighted site scorecard across candidates, market comps from CoStar records, industrial fit (clear height, docks, truck court), retail site screening, commute fit for a whole team, and a facility audit PDF. PDF report a person can hand to a landlord. |
 | Demo and polish (15%) | Photoreal building on its site, flood rising in the street, smoke filling rooms, the agent's lanes working in parallel. A dense working tool, not a showcase. |
 
 **Scripted flow:** `web/src/skins/app/demo/flows/costar.json`, "Check a listing against the scan, then tour it": the agent reads the
@@ -259,17 +259,22 @@ what they said.
 | Workplaces: a chef who takes over kitchens (r/Chefit), restaurant operators (r/restaurant), a Walmart receiving associate (r/walmart), managers (r/AskManagers), emergency management (r/EmergencyManagement) | Written answers | Check cart and hand-truck access, cooler space and 3-phase power before taking a kitchen; hot water that never reaches the far sinks; a dock that unloads around a 90 degree corner; an office under a bathroom; a library emergency review that found gaps a routine inspection missed. |
 | 340 organisations and businesses in New Jersey, New York, Texas and elsewhere | Email | Three people replied: the interview above and two declines; the rest were automatic replies or silence. |
 
-**2. Build.** What changed because of it (items 1 to 5 are written on the `ws/feedback` branch, merging tonight; each is marked when it lands on main):
+**2. Build.** What changed because of it, on main the same night (`ws/feedback`, merged at `480147f`):
 
-1. Steps first: the wheelchair route's headline is whether there are any steps or level changes between the entrance and
-   the room, including steps inside past the front door and before the elevators.
-2. Several chairs per person (everyday and travel), each checked.
-3. Bathroom door swing (opens in or out) and clear floor space beside and in front of the toilet, with objects such as
-   a bin counted as blocking.
-4. Aisles and turning space with objects on the floor counted, for shops.
-5. Floors and elevators: which rooms are reachable without stairs, and a plain line when the only way is an elevator.
-6. What a scan cannot tell, on every result: temporary obstructions, an elevator out of service, whether anyone
-   enforces the rules.
+1. Steps first: step-free route now opens with a steps check per destination, counts steps seen in the panoramas against
+   the route, and lists the rooms reached with no step, including steps inside past the front door.
+2. Several chairs per person: the profile keeps each chair (everyday and travel) with the door width it needs, and the
+   route, bathroom and turning checks run for each chair.
+3. Bathroom: which way each door opens (from the scan, else the panorama, else "not in the scan"), and clear floor in
+   front of and beside the toilet, with scanned objects such as bins counted as blocking.
+4. Aisles: turning space counts the objects a phone scan measured on the floor and checks the aisle from the doorway to
+   the turning spot between them.
+5. Floors and elevators: other floors say "elevator only" when the scan has one.
+6. What a scan cannot tell: the step, bathroom and turning checks each end with it (for example a temporary obstruction
+   or an elevator out of service).
+7. From the truck and boat owners: garage fit checks depth to the back wall on its own, clear of objects the scan
+   measured, with a "not in the scan" line for fittings on the wall; boats and trailers use the maker's storage length;
+   the door opening is checked at a trailer's fenders and side lights.
 
 **3. Evidence.** Jean Ryan agreed before the call to be filmed and to have anything from it shared. In her words
 (times in the recording):
@@ -429,7 +434,7 @@ wheelchair user, the family before a storm, the fire crew.
 
 ## Built (synced to `main`)
 
-Checked against `git log main` at `923bbe9` (2026-11-14, 8:20 pm ET). Update at each merge.
+Checked against `git log main` at `480147f` (2026-11-14, 9:16 pm ET). Update at each merge.
 
 **Merged**
 - [x] Data layer: Matterport, Vexcel and CoStar sources, normalized plan format with quality flags (`ws/data`)
@@ -464,6 +469,7 @@ Checked against `git log main` at `923bbe9` (2026-11-14, 8:20 pm ET). Update at 
 - [x] Six scripted demo flows, one per track, with spoken lines and recorded model answers; an offline laptop copy (`scripts/demo-sync`, `scripts/demo-up`) that replays without the network (`ws/demo`)
 - [x] Cranley over iMessage and voice on Photon 2.0: plan pictures, reply threads as investigations, approvals, photo/video/voice/location in, field visits, PDF in chat, weather alerts, ElevenLabs phone agent (`ws/photon`)
 - [x] Person profile across investigations, "Cranley knows" with Change and Forget, checks kept back by kind, measured adaptation in the app, `amazon-adaptive` flow (`ws/adaptive`)
+- [x] Changes from discovery: steps first, several chairs, bathroom door swing and clear space, aisles, elevators, garage depth and trailer checks (`ws/feedback` part 1)
 - [x] Website and docs at cranley.app, generated from the code and this file (`ws/site`)
 - [x] MCP server (stdio and `/mcp`), `threshold` CLI, deep agent over MCP, `docs/MCP.md` (`ws/mcp`)
 
