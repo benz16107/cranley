@@ -20,7 +20,7 @@ export const TRACKS: Track[] = [
   {
     slug: 'peri', name: 'Peri', prize: 'Forward Deployed Challenge',
     summary: 'Built forward-deployed: we asked people and businesses what goes wrong with their buildings, in one phone interview, written answers from 40 people in 15 online communities and 340 emails, then changed the tools to match.',
-    docs: [['Phone and iPhone app', '/docs/phone/'], ['Fire pre-plan', '/docs/tools/fire-preplan/'], ['Egress routes', '/docs/tools/egress-routes/'], ['Facility audit', '/docs/tools/facility-audit/'], ['Door widths', '/docs/tools/door-widths/']],
+    docs: [['What people told us, in full (on GitHub)', 'https://github.com/benz16107/cranley/blob/main/docs/feedback.md'], ['Phone and iPhone app', '/docs/phone/'], ['Fire pre-plan', '/docs/tools/fire-preplan/'], ['Egress routes', '/docs/tools/egress-routes/'], ['Facility audit', '/docs/tools/facility-audit/'], ['Door widths', '/docs/tools/door-widths/']],
     slots: ['field-visit', 'pdf-report', 'fire-preplan'],
   },
   {

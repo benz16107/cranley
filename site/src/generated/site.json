@@ -2324,7 +2324,7 @@
      },
      {
       "id": "stepfree.rooms",
-      "rule": "Rooms on the entrance floor reached with no step at any doorway: bathroom, bedroom, hallway, kitchen, living room",
+      "rule": "Rooms on the entrance floor reached with no step at any doorway: bathroom, bedroom (2), hallway, kitchen, living room",
       "measured": 6.0,
       "threshold": null,
       "unit": "rooms",

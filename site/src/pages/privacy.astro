@@ -22,8 +22,15 @@ import { LINKS } from '../site/links'
         <h2>Links to other sites</h2>
         <p>The links to GitHub, Devpost and the sources we credit lead to sites with their own privacy policies.</p>
 
+        {LINKS.demo && (
+          <>
+            <h2>The event demo</h2>
+            <p>For HackPrinceton there is a <a href={LINKS.demo}>live demo</a> behind a code from Ben. It asks for no name and no email address. What you type there is sent to our server and to the language model it uses. The demo keeps two things: a log of each request's IP address and path, which it needs to limit how often one visitor can ask, and the workspaces that visitors create. Both are deleted when the demo is switched off after the event. The building data in it is used under the event's terms and is deleted after the event.</p>
+          </>
+        )}
+
         <h2>If you run Cranley yourself</h2>
-        <p>There is no hosted Cranley. The software runs on a machine you control, and so does its data.</p>
+        <p>{LINKS.demo ? 'Apart from the event demo, there is no hosted Cranley.' : 'There is no hosted Cranley.'} The software runs on a machine you control, and so does its data.</p>
         <ul>
           <li>What you type as a need is sent to your own server and to the language model you configured for it.</li>
           <li>A scan from the iPhone app, and anything a paired phone measures (its location, photos, sound level, tilt and typed values), is stored in your server's data folder or in the databases you connected.</li>
