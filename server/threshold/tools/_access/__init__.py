@@ -10,6 +10,8 @@ from __future__ import annotations
 import math
 import statistics
 
+from pydantic import BaseModel, Field
+
 from ...geometry import room_graph
 from ...geometry._plan import IMPLAUSIBLE_DOOR_M, cached, floor_z, implausible
 from .. import Source
@@ -153,7 +155,7 @@ def fmt(x: float | None, unit: str = "m", nd: int = 2) -> str:
     return "?" if x is None or (isinstance(x, float) and math.isnan(x)) else f"{x:.{nd}f} {unit}".strip()
 
 
-__all__ = ["GEO", "GEO_LOW", "IMPLAUSIBLE_DOOR_M", "IN", "LIVING", "RISER_M", "STD", "STEP_M", "VISION",
+__all__ = ["GEO", "GEO_LOW", "IMPLAUSIBLE_DOOR_M", "IN", "Chair", "cannot", "chair_list", "floor_objects", "has_objects", "LIVING", "RISER_M", "STD", "STEP_M", "VISION",
            "elevations", "entrances", "floor_name", "fmt", "graph", "implausible", "label", "links_of",
            "pick_entrance", "quality", "rooms", "sill_step", "start_point", "step_kind"]
 
@@ -214,3 +216,50 @@ def face_polygon(plan: dict, room_id: str):
     half = (statistics.median(ts) if ts else 0.12) / 2
     inner = p.buffer(-half, join_style="mitre")
     return inner if not inner.is_empty else None
+
+
+class Chair(BaseModel):
+    """One wheelchair, scooter or walker a person uses. People often own more than one (an everyday chair and a
+    narrower travel chair) and often do not know their sizes; leave a size out to use the person's default."""
+    name: str = Field(description="What the person calls it: everyday chair, travel chair, scooter")
+    door_width_m: float | None = Field(None, gt=0.3, le=2.0, description="Clear door width this chair needs, metres")
+    turning_diameter_m: float | None = Field(None, gt=0.3, le=3.0, description="Turning circle it needs, metres")
+
+
+def chair_list(chairs: list[Chair] | None, door_m: float, turn_m: float | None = None) -> list[dict]:
+    """[{name, door, turn}] for each chair, widest first; one unnamed entry with the defaults when there are none."""
+    out = [{"name": c.name, "door": c.door_width_m or door_m, "turn": c.turning_diameter_m or turn_m}
+           for c in chairs or []]
+    return sorted(out, key=lambda c: -c["door"]) or [{"name": "", "door": door_m, "turn": turn_m}]
+
+
+def floor_objects(plan: dict, rid: str, poly=None, skip: tuple[str, ...] = ()) -> list[dict]:
+    """Objects the scan measured standing in a room (RoomPlan: storage, bins, fridges, tables...), as floor
+    footprints. Matterport scans record none, so an empty list there means "not in the scan", not "clear"."""
+    from shapely import affinity
+    from shapely.geometry import Point, box
+    out = []
+    for x in plan.get("objects") or []:
+        c, s = x.get("center"), x.get("size")
+        lab = x.get("label") or x.get("category") or "object"
+        if not c or not s or lab.lower() in skip or (x.get("category") or "").lower() in skip:
+            continue
+        if not (x.get("room") == rid or (poly is not None and poly.contains(Point(c[0], c[1])))):
+            continue
+        fp = affinity.rotate(box(c[0] - s[0] / 2, c[1] - s[1] / 2, c[0] + s[0] / 2, c[1] + s[1] / 2),
+                             x.get("yaw_deg") or 0, origin=(c[0], c[1]))
+        out.append({"id": x.get("id"), "label": lab, "footprint": fp, "size": s, "center": c,
+                    "yaw_deg": x.get("yaw_deg") or 0, "category": x.get("category")})
+    return out
+
+
+def has_objects(plan: dict) -> bool:
+    """Whether this kind of scan records objects at all (phone LiDAR scans do; Matterport wall graphs do not)."""
+    return bool((plan.get("has") or {}).get("objects") or plan.get("objects"))
+
+
+def cannot(cid: str, text: str, standard: str | None = None):
+    """A line the scan cannot answer, as an 'unknown' check, so the person sees what was not checked."""
+    from .. import Check
+    return Check(id=f"cannot.{cid}", rule=f"Not in the scan: {text}", measured=None, threshold=None, unit="",
+                 status="unknown", standard=standard)
