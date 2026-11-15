@@ -46,9 +46,11 @@ export function QuestionForm({ q }: { q: Question }) {
   )
 }
 
-/** Open a run's result: over the page when it has a panel, else its building. */
+/** Open a run's result over the page. A tool keeps one result per building, so an earlier run of the same tool there
+    opens the result that replaced it; a run with no result at all opens its building. */
 export function openRun(r: Run) {
-  const p = useWorkspace.getState().doc.panels.find((x) => x.run === r.id)
+  const panels = useWorkspace.getState().doc.panels
+  const p = panels.find((x) => x.run === r.id) ?? (r.sid ? panels.find((x) => x.tool === r.tool && x.sid === r.sid) : undefined)
   if (p) useUi.setState({ panel: p.id }); else if (r.sid) goScan(r.sid)
 }
 export function RunRow({ r }: { r: Run }) {

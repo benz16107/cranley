@@ -75,9 +75,14 @@ a tool a person works in all day. Tokens are in `tokens.css`, shared classes in 
     what is drawn on it. In a result, the checks that failed or need a look stay in view; the ones that passed fold
     into one line (`lib/source.ts` `splitChecks`), and so does how the result was worked out, with its queries and
     timings. Run times and ids live in folds and on the Activity tab, never in a heading.
+    The agent panel leads with the agent's own closing note once a turn has ended, with the way to its ranking and to
+    the building it kept; the agents that worked fold to one line; approvals that read the same are one card. Its
+    header says a state in a few words: "Step 3 of 5", "2 to approve", "Stopped at step 3", "Finished".
 15. **Plain words for where a number came from.** "Measured from the scan", "Seen in aerial photos", "From the
     property record" (`sourceWords`), with the three marks for how sure, never a code. Values that share a source
     say it once. The visible word for a finding is "check"; a run of a tool is "activity".
+    The agent writes a scan or a property by its id; wherever its words are shown (a note, a plan step, a lane, an
+    approval) `useNames().named` puts the name in its place. Numbers are never touched.
 16. **Sections are set apart by space and a heading.** Hairlines are for rows of a list and cells of a row of values.
     A box is for something that floats or is typed into.
 
