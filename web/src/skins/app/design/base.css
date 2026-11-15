@@ -56,6 +56,9 @@ p { text-wrap: pretty; }
   transition: background-color var(--dur-1) ease, border-color var(--dur-1) ease, scale var(--dur-1) var(--ease-out);
 }
 .btn:active { scale: 0.97; }
+/* an icon that swaps to say it worked (copy to check) arrives instead of blinking */
+.btn[data-swapped] svg { animation: swap-in 180ms var(--ease-out); }
+@keyframes swap-in { from { opacity: 0; scale: 0.25; filter: blur(4px); } }
 .btn[disabled], .btn[aria-disabled='true'] { opacity: 0.45; pointer-events: none; }
 .btn.solid { background: var(--ink); color: var(--pane); border-color: var(--ink); }
 .btn.quiet { border-color: transparent; background: none; color: var(--ink-2); padding: 0 8px; }
@@ -147,6 +150,9 @@ button.src { text-decoration: underline dotted var(--rule-strong); text-underlin
   transition: opacity var(--dur-2) var(--ease-out), scale var(--dur-2) var(--ease-out);
 }
 .pop[data-starting-style], .pop[data-ending-style], .menu[data-starting-style], .menu[data-ending-style] { opacity: 0; scale: 0.97; }
+/* closing takes about 20% less time than opening: the person already decided to leave */
+.pop[data-ending-style], .menu[data-ending-style], .dialog[data-ending-style] { transition-duration: calc(var(--dur-2) * 0.8); }
+.drawerwrap[data-ending-style], .backdrop[data-ending-style] { transition-duration: calc(var(--dur-3) * 0.8); }
 .pop { padding: var(--s-3); max-width: 320px; }
 .pop h4 { font-weight: 620; margin-bottom: 6px; }
 .menu { padding: 4px; min-width: 180px; max-height: min(420px, var(--available-height, 420px)); overflow-y: auto; outline: 0; }

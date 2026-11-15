@@ -119,13 +119,16 @@ or, with the API running, `claude mcp add --transport http threshold-http http:/
 The `threshold` command (`threshold tools`, `run`, `search`, `building`, `ask`) wraps the same registry. Claude Desktop,
 Cursor and a LangChain deep agent over MCP are in [`docs/MCP.md`](docs/MCP.md).
 
+Demo flows: six scripted walkthroughs, one per sponsor track, live in `web/src/skins/app/demo/flows/` (how they run,
+record and replay offline: [`web/src/skins/app/demo/README.md`](web/src/skins/app/demo/README.md)).
+
 ## Credits
 
 All code here was written during the event. We built on: FastAPI, Pydantic, Shapely, NumPy, LangChain deepagents,
 LangGraph, LangSmith, langchain-mcp-adapters, the MongoDB MCP server, pymongo, pg8000, pgai, fastembed, Ollama, React,
 Vite, three.js, React Three Fiber, drei, Spark, MapLibre GL, deck.gl, Base UI, cmdk, Sonner, Vaul, NumberFlow,
 react-resizable-panels, zustand, Brush (Apache-2.0, run as an external binary), NIST CFAST (public domain, run as an
-external binary), Apple RoomPlan and ARKit, OpenStreetMap (ODbL) and USGS high-water marks.
+external binary), Apple RoomPlan and ARKit, Photon 2.0, ElevenLabs, OpenStreetMap (ODbL) and USGS high-water marks.
 
 ## Licence
 

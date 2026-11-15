@@ -119,6 +119,8 @@ rejects any number it states.
 | Web app (`/app`) | Home, Explore (one view from the map to the room, 66 layers), Building (3D, plan, inside, drone; measured or photoreal; alone or on its site), Investigations, Insights, Tools, Settings | merged |
 | Phone companion (`/m`) | Pairs by QR with a desktop workspace; GPS, camera, mic, barometer, tilt and typed measurements feed tools live | merged |
 | iPhone LiDAR app | RoomPlan scan of your own space, LiDAR tape measure, barometer floor height, compass window facing, scan-to-report | merged; builds and runs in the simulator; not on a phone yet (Apple licence agreement) |
+| Offline demo copy | The laptop replays the six demo flows with recorded model answers when the venue network fails | merged |
+| iMessage and phone (Photon 2.0) | Ask by text or call; plan pictures, reply threads, photos and voice notes in, PDF in the chat | merged; live round trip not yet confirmed |
 | PDF reports | Site report for any workspace: plan with numbered fixes, evidence, occupant load, smoke-alarm census, what was not checked | merged |
 | MCP server and CLI | Every tool for Claude Code, Claude Desktop, Cursor or a LangChain agent; resources and prompts; `threshold` on the command line | merged |
 | Shared databases | MongoDB Atlas for people's work, Tiger Cloud for building facts | merged |
@@ -161,6 +163,10 @@ by measurement, with all three layers checking each other.
 | Usefulness (25%) | 50 personas, each a real user with a named need: wheelchair user, fire captain, Houston homeowner before a storm, truck dispatcher, office tenant, CoStar researcher, insurance underwriter, daycare operator, car owner. For the people who open CoStar every morning: a tenant rep's weighted site scorecard across candidates, market comps from CoStar records, industrial fit (clear height, docks, truck court), retail site screening, commute fit for a whole team, and a facility audit PDF. PDF report a person can hand to a landlord. |
 | Demo and polish (15%) | Photoreal building on its site, flood rising in the street, smoke filling rooms, the agent's lanes working in parallel. A dense working tool, not a showcase. |
 
+**Scripted flow:** `web/src/skins/app/demo/flows/costar.json`, "Check a listing against the scan, then tour it": the agent reads the
+listing, the CoStar record and the scan side by side, the camera goes to the room where they disagree, then the tour
+plays every finding. The wheelchair path below is the spoken alternative.
+
 **Demo path (2 minutes).**
 1. Home. Type "I use a wheelchair, 81 cm wide. Find a one-bedroom in Houston I can get into and use the bathroom."
 2. The composer adds step-free route, door widths, turning space and bathroom clearance, asks nothing (width given).
@@ -189,6 +195,8 @@ without learning a tool. And it works on their own home, not only on a dataset.
 **Adaptive intelligence** (a named focus area): the agent's memory per building and per person, "what I learned about
 you" with undo per item, past investigations searchable by words and meaning.
 
+**Scripted flow:** `web/src/skins/app/demo/flows/amazon.json`, "A phone scan becomes a PDF report".
+
 **Demo path.** Phone: scan a room with the iPhone app (demo cafe in the simulator), name the business, pick
 Accessibility, get the PDF in seconds. Desktop: the same workspace updates live. Then the wheelchair search above.
 
@@ -204,6 +212,8 @@ shop, and the same tools answer the questions a fire inspector or a wheelchair-u
 route from the door to the counter, door widths, occupant load from the measured floor area, exits, smoke alarms seen
 in photos. The output is a PDF the owner keeps, with numbered fixes and what was not checked. They could use it the
 same day.
+
+**Scripted flow:** `web/src/skins/app/demo/flows/peri.json`, "A business checks an office and keeps the report".
 
 **Demo path.** The owner's quote and photo first, then their problem in their words, then the scan-to-report flow on
 their space (or the demo cafe if they declined a scan), then the report.
@@ -227,6 +237,8 @@ was skipped and why is `$THRESHOLD_DATA_DIR/reports/sponsor-features.md`.
 | MCP tools via langchain-mcp-adapters | The read-only MongoDB MCP server's tools, behind a guard, answer counts over the person's own past work. |
 | LangSmith traces, datasets and experiments | Every turn is one trace tagged by persona; the composer's briefs are a dataset, and each prompt change is an experiment scored per check. |
 
+**Scripted flow:** `web/src/skins/app/demo/flows/langchain.json`, "Subagents in parallel, approval before a slow step".
+
 **Demo path.** A fire captain's brief over two houses: the todo list appears, two lanes run in parallel, both pause
 on the CFAST approval card, "Run it" resumes from the checkpoint, the rubric verdict and the LangSmith trace close it.
 
@@ -247,6 +259,8 @@ Tiger Cloud is the building facts database: what was measured, when, and how it 
 | Retention policy | The analytics copy of the op log deletes itself after the event, as CoStar's terms require. |
 | Read-only role for the agent's SQL | The agent can ask its own questions of the facts and cannot write. |
 | Database forks | City-wide what-if on a zero-copy fork, ready in about 31 s on the free plan, deleted after. |
+
+**Scripted flow:** `web/src/skins/app/demo/flows/tiger.json`, "A renovation what-if on a database fork".
 
 **Demo path.** Search by measurement (one query, a ranked table), then renovate: widen a door, re-run city-wide on a
 fork, compare Now and After, the fork deleted.
@@ -270,8 +284,40 @@ Atlas holds the people side: workspaces, their operation logs, live sync, memory
 | LangGraph checkpointer and store | Paused agent turns and long-term memory next to the workspaces. |
 | MongoDB MCP server (read-only, guarded) | The agent counts and groups over the person's own past work. |
 
+**Scripted flow:** `web/src/skins/app/demo/flows/mongodb.json`, "Live sync between two windows, then search past work".
+
 **Demo path.** Pair the phone by QR, type a door width on the phone, watch it land on the desktop; Copy link opens a
 read-only shared workspace; search past work for a phrase that is not in it word for word.
+
+### Photon: Build a Messaging Agent using Photon 2.0
+
+Prizes: winner, runner-up, and Best Voice Agent. Built on `ws/photon` (merged at `a8c7348`); details in `docs/PHOTON.md`.
+
+**Angle.** The people who need a building checked are rarely at a desk: they are walking through a viewing, driving to
+one, or standing in a doorway with a tape measure. On Photon, the same agent and the same measuring tools answer in
+iMessage and on a phone call.
+
+| What a person does | Why it is a real use of Photon 2.0 |
+|---|---|
+| Asks in plain words, gets the floor plan picture marked with findings, the verdict, the measurements and a workspace link | Shared iMessage line, native replies, attachment upload, typing indicator |
+| Replies to an earlier answer ("what about a 76 cm chair?") | The reply thread is the investigation (`parentMessageId` in and out) |
+| Says "yes", "no" or "always" to a slow step | Approvals by native reply |
+| Sends a photo of a doorway with a bank card, a ceiling photo, a short video, a voice note, a location | Inbound attachments, video, audio and vCard locations each run a tool |
+| Types "visit" | Unsettled checks arrive one at a time; each reply settles one and the desktop workspace updates live |
+| Types "report" | The PDF arrives in the chat, ready to forward |
+| Turns "voice on" | Answers also arrive as native iMessage voice messages |
+| Does nothing | The chat background becomes the building's plan; a National Weather Service alert at that building arrives once with their own flood result |
+| Calls the number | An ElevenLabs agent over SIP runs the same checks by voice; the plan and link follow in iMessage after the call (Best Voice Agent) |
+
+Rules it keeps: every sent line is built from the tool result, never from model text; a typed size needs a unit; only
+rendered pictures leave the server; the main API stays private behind one signature-checked relay; each event is
+handled once, in order per chat.
+
+**State (7:50 pm):** merged with 14 tests; the live line is up with sends limited to an allowlist; a first real round
+trip had not been confirmed; the phone agent needs a voice number (asked of Ben).
+
+**Demo path.** Text the line "will an F-150 fit in this garage?" with a building link, get the marked plan back, reply
+"what about two?", then "report" for the PDF. For Best Voice: call, ask the same, hang up, show the iMessage that follows.
 
 ### HackPrinceton main track (one of six)
 
@@ -294,7 +340,7 @@ wheelchair user, the family before a storm, the fire crew. Track pick: question 
 
 ## Built (synced to `main`)
 
-Checked against `git log main` at `34f3a12` (2026-11-14, 5:40 pm ET). Update at each merge.
+Checked against `git log main` at `a8c7348` (2026-11-14, 7:40 pm ET). Update at each merge.
 
 **Merged**
 - [x] Data layer: Matterport, Vexcel and CoStar sources, normalized plan format with quality flags (`ws/data`)
@@ -325,10 +371,12 @@ Checked against `git log main` at `34f3a12` (2026-11-14, 5:40 pm ET). Update at 
 - [x] World explorer: one continuous view from the map to aerial to the 3D city to the scanned building, inspector beside it, sun and shadow slider (`ws/explorer`)
 - [x] 66 map layers in eight groups (live, people, rules, hazards, getting around, services, imagery, coverage), most from free public sources, each served with its source and fetch date; area profile, zoning check, permit history, hazard profile and connectivity tools (`ws/datalayers`)
 - [x] Real 3D models for vehicles and furniture, scaled to each tool's exact dimensions, drag to place with live clearance (`ws/models`)
+- [x] App look motion polish: shorter exits, switch and copy feedback, staggered tool list (`ws/motion`)
+- [x] Six scripted demo flows, one per track, with spoken lines and recorded model answers; an offline laptop copy (`scripts/demo-sync`, `scripts/demo-up`) that replays without the network (`ws/demo`)
+- [x] Cranley over iMessage and voice on Photon 2.0: plan pictures, reply threads as investigations, approvals, photo/video/voice/location in, field visits, PDF in chat, weather alerts, ElevenLabs phone agent (`ws/photon`)
 - [x] MCP server (stdio and `/mcp`), `threshold` CLI, deep agent over MCP, `docs/MCP.md` (`ws/mcp`)
 
-**Not merged yet (building tonight)**
-- [ ] Offline demo copy and six demo flows (`ws/demo`)
+**Not merged yet:** none of the planned build branches (all merged by 7:36 pm).
 
 **Not merged on purpose:** the Overflight look (`ws/design2`).
 

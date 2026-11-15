@@ -129,7 +129,7 @@ export function Stats({ items }: { items: { label: string; value: ReactNode; uni
 }
 export function Copy({ text, label = 'Copy' }: { text: string; label?: string }) {
   const [done, setDone] = useState(false)
-  return <IconBtn icon={done ? 'check' : 'copy'} label={done ? 'Copied' : label} className="btn icon quiet sm" size={13} onClick={() => { void navigator.clipboard?.writeText(text).then(() => { setDone(true); setTimeout(() => setDone(false), 1400) }) }} />
+  return <IconBtn icon={done ? 'check' : 'copy'} label={done ? 'Copied' : label} className="btn icon quiet sm" data-swapped={done || undefined} size={13} onClick={() => { void navigator.clipboard?.writeText(text).then(() => { setDone(true); setTimeout(() => setDone(false), 1400) }) }} />
 }
 /** A button that opens a menu. Children are Menu.Item, Menu.CheckboxItem and so on. */
 export function MenuBtn({ trigger, children, align = 'start', side = 'bottom' }: { trigger: React.ReactElement; children: ReactNode; align?: 'start' | 'end' | 'center'; side?: 'bottom' | 'top' | 'right' }) {
