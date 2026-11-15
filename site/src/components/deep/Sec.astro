@@ -1,0 +1,10 @@
+---
+// One section of a track page: a title, one line under it, and its body.
+interface Props { id: string; title: string; sub?: string }
+const { id, title, sub } = Astro.props
+---
+<section class="dsec" id={id}>
+  <h2>{title}</h2>
+  {sub && <p class="sub">{sub}</p>}
+  <slot />
+</section>

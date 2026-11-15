@@ -1,0 +1,124 @@
+---
+// The Peri track: who we asked, what they said and what it changed. Sentences are docs/story.md's and
+// docs/feedback.md's; every number is read from src/generated/deep.json. Only Jean Ryan is named: she agreed.
+import Deep from './Deep.astro'
+import Sec from './Sec.astro'
+import Chart from './Chart.astro'
+import Flow from './Flow.astro'
+import Cards from './Cards.astro'
+import Bars from './Bars.astro'
+import Split from './Split.astro'
+import Funnel from './Funnel.astro'
+import Quotes from './Quotes.astro'
+import Proof from '../Proof.astro'
+import deep from '../../generated/deep.json'
+import { INTERVIEW } from '../../site/proof'
+import type { Track } from '../../site/tracks'
+interface Props { track: Track; title: string }
+const { track, title } = Astro.props
+const f = deep.funnel
+const said = deep.said as Record<string, number>
+const first = deep.quotes[0].said.match(/"([^"]+)"/)![1]
+const stats = [{ n: f.emails, label: 'emails sent' }, { n: f.people, label: `people answered, in ${f.communities} online communities` }, { n: deep.said_total, label: 'things said, logged one by one' }, { n: said.changed, label: 'of them changed a tool' }]
+const sections: [string, string][] = [['problem', 'Problem'], ['asked', 'Who we asked'], ['loop', 'How it worked'], ['changed', 'What changed'], ['evidence', 'Evidence'], ['limits', 'Limits'], ['writeup', 'Write-up'], ['docs', 'In the docs']]
+const panels = [
+  { title: 'By email', scaled: true, steps: [
+    { n: f.emails, label: 'emails to organisations and businesses' },
+    { n: f.replies, label: 'people replied', note: `${f.declines} of them to decline` },
+    { n: f.interviews, label: 'recorded phone interview', note: `${f.minutes} minutes, with Jean Ryan` },
+  ] },
+  { title: 'In online communities', steps: [
+    { n: f.communities, label: 'communities, one question posted in each' },
+    { n: f.people, label: 'people answered in writing' },
+  ] },
+  { title: 'What it turned into', scaled: true, steps: [
+    { n: deep.said_total, label: 'things said, logged one row each' },
+    { n: said.changed, label: 'changed a tool, each with a commit' },
+  ] },
+]
+const parts = [
+  { label: 'Changed a tool', n: said.changed, tone: 'main' as const },
+  { label: 'Already covered, no change', n: said.covered, tone: 'soft' as const },
+  { label: 'Skipped, with the reason', n: said.skipped, tone: 'mute' as const },
+  { label: 'Noted as not in the scan', n: said.not_in_scan, tone: 'hatch' as const },
+].filter((p) => p.n)
+const tools = deep.by_tool.map((t) => ({ label: t.title, n: t.n, href: `/docs/tools/${t.slug}/` }))
+const code = deep.by_tool.slice(0, 6).map((t) => ({ title: t.title, href: `/docs/tools/${t.slug}/`, what: `Changed by ${t.n} of the things people said.`, code: `server/threshold/tools/${t.slug.replaceAll('-', '_')}` }))
+const flow = [
+  { label: 'Ask', nodes: [
+    { title: 'A phone call', what: 'Recorded, with consent', note: 'One recorded interview with the president of a disability rights group, made the night she replied to our email.' },
+    { title: 'Online communities', what: 'One question in each', note: 'A question posted in each community for the people who live with the problem: truck and boat owners, occupational therapists, store staff, chefs, managers.' },
+    { title: 'Email', what: 'A few questions and an offer of a call', note: 'Emails to organisations and businesses that run buildings, each with a few questions and an offer of a ten-minute call.' },
+  ] },
+  { label: 'Decide', nodes: [
+    { title: 'Change a tool', what: 'When the scan can measure it', note: 'A change the scan can measure. Every new number comes from geometry on the scan, never from model text.' },
+    { title: 'Say it is not in the scan', what: 'A line in the result', note: 'When a scan cannot hold the thing, the result now says so under "Not in the scan" instead of staying silent.' },
+    { title: 'Skip it', what: 'With the reason written down', note: 'Some things are outside what a building scan is. Each one is logged with why it was skipped.' },
+  ] },
+  { label: 'Ship', nodes: [
+    { title: 'A test', what: 'On a small hand-made plan', note: 'Each change has a test on a small hand-made plan, so no real building is needed to check it.' },
+    { title: 'A commit, the same night', what: 'Logged beside the quote', note: 'The log pairs every quote with the tool it changed and the commit, so anyone can trace a sentence to the code.' },
+  ] },
+]
+---
+<Deep track={track} title={title} sections={sections} stats={stats}>
+  <Sec id="problem" title="The question people really ask" sub={'Jean Ryan no longer asks whether a place is "wheelchair accessible", because she has been told yes and arrived to find a step.'}>
+    <blockquote class="pull">"{first}"<cite>Jean Ryan, President, Disabled In Action of Metropolitan New York</cite></blockquote>
+    <p class="txt">Cranley started from the problem, not the data. Before and while building, we asked consumers and businesses what goes wrong with the inside and outside of their buildings, then changed the tools to match what they said.</p>
+  </Sec>
+
+  <Sec id="asked" title="Who we asked, and who answered" sub="Three ways in. Email was the widest and the quietest; one reply to it became the interview.">
+    <Funnel panels={panels} />
+    <p class="txt">Counts are from our story and the feedback log. Under "By email" and "What it turned into", the thin bars share one scale within their panel.</p>
+  </Sec>
+
+  <Sec id="loop" title="Ask, decide, ship the same night" sub="Point at a step, or tab to it, to read what it does.">
+    <Flow cols={flow} />
+  </Sec>
+
+  <Sec id="changed" title="What people said, and what it became" sub={`${deep.said_total} things said, each logged with what we did about it.`}>
+    <div class="pair">
+      <Chart title="What became of each thing said" source="Counted from the rows of docs/feedback.md when this site was built. A row with a commit counts as a change.">
+        <Split parts={parts} unit="things said" />
+      </Chart>
+      <Chart title="The tools those changes landed in" sub="A thing said can change more than one tool." source="The ten tools named most often in rows that carry a commit.">
+        <Bars rows={tools} />
+      </Chart>
+    </div>
+    <h3 class="h3">The interview, point by point</h3>
+    <Quotes />
+    <h3 class="h3">Where those changes are in the code</h3>
+    <Cards items={code} />
+  </Sec>
+
+  <Sec id="evidence" title="The evidence" sub="The recording, and the questions and answers as they were posted.">
+    <figure class="video" id="interview">
+      <iframe src={INTERVIEW.embed} title={INTERVIEW.title} loading="lazy" allow="encrypted-media; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+      <figcaption>{INTERVIEW.caption} <a href={INTERVIEW.url}>Watch it on YouTube</a></figcaption>
+    </figure>
+    {track.proof?.map((id) => <Proof id={id} />)}
+  </Sec>
+
+  <Sec id="limits" title="What we did not build" sub="Each thing we skipped is in the log with its reason.">
+    <ul class="skipped">{deep.skipped.map((s) => <li><span>{s.said}</span><span>{s.why}</span></li>)}</ul>
+    <p class="txt">Commenters are not named anywhere on this site. Jean Ryan agreed to be named and quoted.</p>
+  </Sec>
+
+  <Sec id="writeup" title="The write-up for the judges" sub="The track's section of our story, as written: discovery, build and evidence.">
+    <div class="prose"><slot /></div>
+  </Sec>
+
+  <Sec id="docs" title="In the docs">
+    <ul class="docs-links">{track.docs.map(([label, href]) => <li><a href={href}>{label}</a></li>)}</ul>
+  </Sec>
+</Deep>
+
+<style>
+  .pull { max-width: 30ch; font-size: clamp(1.375rem, 1.1rem + 1.2vw, 1.875rem); font-stretch: 104%; letter-spacing: -0.015em; line-height: 1.25; text-wrap: balance; }
+  .pull cite { display: block; margin-top: var(--s-3); font-size: 0.875rem; font-style: normal; letter-spacing: 0; line-height: 1.4; color: var(--ink-3); }
+  .h3 { margin-top: var(--s-4); font-size: 1.0625rem; font-weight: 600; }
+  .skipped { display: grid; border-top: 1px solid var(--rule-strong); }
+  .skipped li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-5); padding: 12px 0; border-bottom: 1px solid var(--rule); font-size: 0.875rem; line-height: 1.5; }
+  .skipped li span:last-child { color: var(--ink-2); }
+  @media (max-width: 620px) { .skipped li { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+</style>

@@ -1,0 +1,65 @@
+---
+// Pickup lengths from the garage tool's own table, against the garage depths one owner reported. A dot plot, not
+// bars: the axis starts near the shortest truck, and a dot's position is what is read.
+import deep from '../../generated/deep.json'
+const rows = deep.garage.vehicles.filter((v) => v.kind === 'pickup')
+const [newer, older] = deep.garage.bands
+const lo = Math.floor(rows[0].m) - 0.5
+const hi = Math.ceil(Math.max(rows[rows.length - 1].m, newer.m[1]) * 2) / 2 + 0.5 // the older homes' depths lie past this edge
+const x = (m: number) => ((m - lo) / (hi - lo)) * 100
+const f = (n: number) => Math.abs(n).toFixed(2)
+const ticks = Array.from({ length: Math.floor(hi) - Math.ceil(lo) + 1 }, (_, i) => Math.ceil(lo) + i)
+const reading = (v: (typeof rows)[number]) =>
+  v.spare_m[1] < 0 ? `${f(v.spare_m[1])} m longer than the deepest of those garages.`
+  : v.spare_m[0] < 0 ? `Longer than the shallowest of those garages; ${f(v.spare_m[1])} m to spare in the deepest.`
+  : `${f(v.spare_m[0])} to ${f(v.spare_m[1])} m to spare in those garages, before anyone walks round it.`
+---
+<div class="garage" data-scope>
+  <div class="plot" style={`--rows: ${rows.length}`}>
+    <div class="bands" aria-hidden="true">
+      <span class="band new" style={`left: ${x(newer.m[0])}%; width: ${x(newer.m[1]) - x(newer.m[0])}%`}></span>
+      {ticks.map((t) => <span class="tick" style={`left: ${x(t)}%`}><i class="num">{t} m</i></span>)}
+    </div>
+    <ol>
+      {rows.map((v) => (
+        <li tabindex="0" data-say={`${v.title}: ${v.m.toFixed(2)} m (${v.ft}). ${reading(v)}`} class:list={{ over: v.spare_m[1] < 0 }}>
+          <span class="lab">{v.title}</span>
+          <span class="lane"><i style={`left: ${x(v.m)}%`}></i></span>
+          <span class="num">{v.m.toFixed(2)} m</span>
+        </li>
+      ))}
+    </ol>
+  </div>
+  <ul class="key">
+    <li><i class="band new"></i>{newer.label}: {newer.ft[0]} to {newer.ft[1]} ft ({newer.m[0].toFixed(2)} to {newer.m[1].toFixed(2)} m)</li>
+    <li><i class="dot"></i>Length of the truck</li>
+    <li><i class="dot over"></i>Longer than the deepest of them</li>
+  </ul>
+  <p class="aside">{older.label}: {older.ft[0]} to {older.ft[1]} ft ({older.m[0].toFixed(2)} to {older.m[1].toFixed(2)} m), past the right edge of this chart.{rows.every((v) => v.m < older.m[0]) && ' Every truck here is shorter than those.'}</p>
+  <p class="readout" aria-live="polite">Point at a truck to compare its length with the reported depths.</p>
+</div>
+
+<style>
+  .garage { display: grid; gap: var(--s-4); }
+  .plot { display: grid; grid-template-columns: fit-content(44%) minmax(0, 1fr) max-content; column-gap: var(--s-4); padding-bottom: 22px; }
+  .bands { grid-column: 2; grid-row: 1; position: relative; }
+  ol { grid-column: 1 / -1; grid-row: 1; display: grid; grid-template-columns: subgrid; }
+  li { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; min-height: 26px; font-size: 0.875rem; border-radius: var(--r-1); cursor: default; }
+  li[data-on] { background: color-mix(in srgb, var(--ink) 5%, transparent); }
+  .lab { line-height: 1.25; padding-block: 3px; }
+  .lane { position: relative; height: 100%; }
+  .lane i { position: absolute; top: 50%; width: 10px; height: 10px; translate: -50% -50%; border-radius: 50%; background: var(--ink); box-shadow: 0 0 0 2px var(--pane); }
+  .over .lane i { border-radius: 1px; background: var(--fail); }
+  .num { text-align: end; }
+  .band { position: absolute; inset-block: 0; }
+  .band.new { background: color-mix(in srgb, var(--accent) 34%, var(--pane)); min-width: 3px; }
+  .aside { font-size: 0.8125rem; line-height: 1.45; color: var(--ink-2); max-width: 76ch; }
+  @media (max-width: 560px) { .tick:nth-child(odd) i { display: none; } }
+  .tick { position: absolute; inset-block: 0; border-inline-start: 1px solid var(--rule); }
+  .tick i { position: absolute; top: calc(100% + 4px); translate: -50% 0; font-style: normal; color: var(--ink-3); white-space: nowrap; }
+  .key { display: flex; flex-wrap: wrap; gap: 6px var(--s-5); font-size: 0.8125rem; color: var(--ink-2); }
+  .key li { display: flex; align-items: center; gap: 8px; min-height: 0; grid-column: auto; }
+  .key i { flex: none; position: static; width: 14px; height: 12px; }
+  .key .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ink); }
+  .key .dot.over { border-radius: 1px; background: var(--fail); }
+</style>

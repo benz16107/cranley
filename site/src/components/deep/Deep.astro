@@ -1,0 +1,63 @@
+---
+// A track page: the heading, a list of its sections that follows the reader, and the sections themselves.
+// At phone width the list becomes a tab bar under the header.
+import Base from '../../layouts/Base.astro'
+import type { Track } from '../../site/tracks'
+import '../../styles/deep.css'
+interface Props { track: Track; title: string; sections: [string, string][]; stats?: { n: number; label: string }[] }
+const { track, title, sections, stats } = Astro.props
+---
+<Base title={`${track.name}: Cranley`} description={track.summary} nav="tracks">
+  <div class="deep wrap">
+    <header class="deep-head">
+      <p class="small"><a href="/tracks/">Tracks</a></p>
+      <h1>{title}</h1>
+      <p class="lead">{track.summary}</p>
+      {stats && <ul class="deep-stats">{stats.map((s) => <li><span class="num">{s.n}</span><span>{s.label}</span></li>)}</ul>}
+    </header>
+    <nav class="deep-nav" aria-label="On this page">
+      <ul>{sections.map(([id, label], i) => <li><a href={`#${id}`} aria-current={i === 0 ? 'true' : undefined}>{label}</a></li>)}</ul>
+    </nav>
+    <div class="deep-body"><slot /></div>
+  </div>
+</Base>
+
+<script is:inline>
+  (() => {
+    const d = document
+    // the section list follows the reader
+    const list = d.querySelector('.deep-nav ul')
+    const links = [...list.querySelectorAll('a')]
+    const spy = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        const a = e.isIntersecting && links.find((l) => l.hash === '#' + e.target.id)
+        if (!a) continue
+        links.forEach((l) => l.removeAttribute('aria-current'))
+        a.setAttribute('aria-current', 'true')
+        if (list.scrollWidth > list.clientWidth) list.scrollTo({ left: a.offsetLeft - (list.clientWidth - a.offsetWidth) / 2, behavior: 'smooth' })
+      }
+    }, { rootMargin: '-25% 0px -65% 0px' })
+    d.querySelectorAll('.dsec').forEach((s) => spy.observe(s))
+    // charts and the diagram play once, when first seen
+    const seen = new IntersectionObserver((entries) => entries.forEach((e) => { if (e.isIntersecting) { e.target.dataset.seen = ''; seen.unobserve(e.target) } }), { threshold: 0.2 })
+    d.querySelectorAll('[data-play]').forEach((el) => seen.observe(el))
+    // a mark says what it is in its chart's readout line
+    const say = (el) => {
+      const scope = el.closest('[data-scope]')
+      if (!scope) return
+      scope.querySelector('.readout').textContent = el.dataset.say
+      scope.querySelectorAll('[data-on]').forEach((x) => delete x.dataset.on)
+      el.dataset.on = ''
+    }
+    for (const type of ['pointerover', 'focusin']) d.addEventListener(type, (e) => { const el = e.target.closest && e.target.closest('[data-say]'); if (el) say(el) })
+    // a legend entry keeps one kind and dims the rest; a second press shows all again
+    d.addEventListener('click', (e) => {
+      const b = e.target.closest && e.target.closest('[data-filter]')
+      if (!b) return
+      const scope = b.closest('[data-scope]')
+      const off = b.getAttribute('aria-pressed') === 'true'
+      scope.querySelectorAll('[data-filter]').forEach((x) => x.setAttribute('aria-pressed', String(x === b && !off)))
+      scope.querySelectorAll('[data-k]').forEach((c) => c.classList.toggle('dim', !off && c.dataset.k !== b.dataset.filter))
+    })
+  })()
+</script>

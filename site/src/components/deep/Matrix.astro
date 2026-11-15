@@ -1,0 +1,53 @@
+---
+// Every tool as one mark, grouped by what it answered on the made-up test scan. A legend entry keeps one group;
+// a mark names its tool in the line underneath and opens the tool's page, where the run itself is printed.
+import deep from '../../generated/deep.json'
+const ORDER = ['pass', 'warn', 'fail', 'unknown', 'needs', 'cannot', 'slow'] as const
+type K = (typeof ORDER)[number]
+const WORD: Record<K, string> = { pass: 'Pass', warn: 'Check', fail: 'Fail', unknown: 'Cannot tell', needs: 'Needs an input from a person', cannot: 'Cannot answer from a phone scan', slow: 'Not run here: takes minutes' }
+// the status scale's own shapes (St.astro), plus three quiet ones for runs that gave no verdict
+const GLYPH: Record<K, string> = {
+  pass: '<circle cx="6" cy="6" r="5" fill="currentColor"/>',
+  warn: '<path d="M6 1 11.5 11H.5Z" fill="currentColor"/>',
+  fail: '<rect x="1" y="1" width="10" height="10" fill="currentColor"/>',
+  unknown: '<circle cx="6" cy="6" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2.4 2"/>',
+  needs: '<path d="M6 1.2 10.8 6 6 10.8 1.2 6Z" fill="none" stroke="currentColor" stroke-width="1.5"/>',
+  cannot: '<path d="M2 6h8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>',
+  slow: '<circle cx="6" cy="6" r="1.75" fill="currentColor"/>',
+}
+const counts = deep.outcomes as Record<string, number>
+const cells = ORDER.flatMap((k) => deep.matrix.filter((m) => m.outcome === k))
+---
+<div class="matrix" data-scope>
+  <div class="legend" role="group" aria-label="Keep one result">
+    {ORDER.filter((k) => counts[k]).map((k) => (
+      <button type="button" data-filter={k} aria-pressed="false" class={k}>
+        <svg viewBox="0 0 12 12" aria-hidden="true" set:html={GLYPH[k]} />{WORD[k]}<span class="num">{counts[k]}</span>
+      </button>
+    ))}
+  </div>
+  <div class="cells">
+    {cells.map((m) => (
+      <a href={`/docs/tools/${m.slug}/`} class={m.outcome} data-k={m.outcome} data-say={`${m.title}: ${WORD[m.outcome as K]}. ${m.summary}`} aria-label={`${m.title}: ${WORD[m.outcome as K]}`}>
+        <svg viewBox="0 0 12 12" aria-hidden="true" set:html={GLYPH[m.outcome as K]} />
+      </a>
+    ))}
+  </div>
+  <p class="readout" aria-live="polite">Point at a mark to name its tool. Select one to open its page, where the run is printed.</p>
+</div>
+
+<style>
+  .matrix { display: grid; gap: var(--s-4); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px; }
+  .legend button { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; font: inherit; font-size: 0.8125rem; color: var(--ink-2); background: var(--paper); border: 1px solid var(--rule-strong); border-radius: 999px; cursor: pointer; transition: background-color var(--dur-1) ease, border-color var(--dur-1) ease; }
+  .legend button[aria-pressed='true'] { border-color: var(--ink); background: var(--pane-2); color: var(--ink); }
+  .legend button:active { scale: 0.97; }
+  .legend .num { color: var(--ink); }
+  svg { width: 12px; height: 12px; flex: none; }
+  .pass svg { color: var(--pass); } .warn svg { color: var(--warn); } .fail svg { color: var(--fail); }
+  .unknown svg, .needs svg, .cannot svg, .slow svg { color: var(--ink-3); }
+  .cells { display: grid; grid-template-columns: repeat(auto-fill, 28px); gap: 4px; }
+  .cells a { display: grid; place-items: center; height: 28px; background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r-1); transition: opacity var(--dur-3) ease, border-color var(--dur-1) ease; }
+  .cells a[data-on] { border-color: var(--ink); }
+  .cells a:global(.dim) { opacity: 0.18; }
+</style>

@@ -1,0 +1,2015 @@
+{
+ "matrix": [
+  {
+   "id": "aging_in_place",
+   "slug": "aging-in-place",
+   "title": "Aging in place",
+   "summary": "Goes through the CDC home fall-prevention checklist for the parts the scan can answer, floor by floor: clear paths, steps, stairs, the night path from bed to bathroom, and grab bars.",
+   "code": "server/threshold/tools/aging_in_place",
+   "outcome": "fail",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Wall outline",
+    "Room names"
+   ]
+  },
+  {
+   "id": "amenity_census",
+   "slug": "amenity-census",
+   "title": "Amenity census",
+   "summary": "Finds and counts a community's amenities in its scans (gym equipment, laundry machines, pool, lounge, business centre, mail room, playground) and sets them beside what the listing claims.",
+   "code": "server/threshold/tools/amenity_census",
+   "outcome": "cannot",
+   "needs": [
+    "costar",
+    "matterport"
+   ],
+   "layers": [
+    "Property record",
+    "360\u00b0 photos"
+   ]
+  },
+  {
+   "id": "area_profile",
+   "slug": "area-profile",
+   "title": "Area profile",
+   "summary": "Who lives around a building: population, density, household income, age mix, households, the share renting, rent and home value for its census tract, next to the county.",
+   "code": "server/threshold/tools/area_profile",
+   "outcome": "cannot",
+   "needs": [
+    "public"
+   ],
+   "layers": [
+    "public.census_acs"
+   ]
+  },
+  {
+   "id": "bathroom_clearance",
+   "slug": "bathroom-clearance",
+   "title": "Bathroom clearance",
+   "summary": "Checks each bathroom for a wheelchair: door, turning space, floor space at the toilet and clear of the door, wall for grab bars, and whether the shower has a step.",
+   "code": "server/threshold/tools/bathroom_clearance",
+   "outcome": "fail",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Wall outline",
+    "Room names"
+   ]
+  },
+  {
+   "id": "camera_coverage",
+   "slug": "camera-coverage",
+   "title": "Camera coverage",
+   "summary": "Shows what indoor security cameras would see, which doors, windows and entry paths they cover, and the blind spots; proposes camera spots if you have none.",
+   "code": "server/threshold/tools/camera_coverage",
+   "outcome": "pass",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Wall outline",
+    "Doors and windows"
+   ]
+  },
+  {
+   "id": "city_census",
+   "slug": "city-census",
+   "title": "City census",
+   "summary": "Rolls up what has been measured across the city: share of homes a wheelchair can live in by zip code, listed-versus-measured area by property type, smoke alarm coverage by building.",
+   "code": "server/threshold/tools/city_census",
+   "outcome": "cannot",
+   "needs": [
+    "threshold"
+   ],
+   "layers": [
+    "Facts database"
+   ]
+  },
+  {
+   "id": "commute_fit",
+   "slug": "commute-fit",
+   "title": "Commute fit",
+   "summary": "Estimated drive time from where your people live to each candidate office: the median, who gets a long commute, and transit nearby.",
+   "code": "server/threshold/tools/commute_fit",
+   "outcome": "needs",
+   "needs": [],
+   "layers": []
+  },
+  {
+   "id": "connectivity",
+   "slug": "connectivity",
+   "title": "Connectivity",
+   "summary": "How well a place is connected: home broadband on offer (fiber, cable, how many providers), bus and rail stops within a walk, the nearest bikeway and the traffic on the nearest counted road. Offered speeds, not measured ones.",
+   "code": "server/threshold/tools/connectivity",
+   "outcome": "cannot",
+   "needs": [
+    "public"
+   ],
+   "layers": [
+    "public.broadband",
+    "public.transit"
+   ]
+  },
+  {
+   "id": "curb_to_door",
+   "slug": "curb-to-door",
+   "title": "Curb to door",
+   "summary": "Looks at the way in from outside: parking near the entrance, accessible stalls if the aerial photo shows them, how far it is to the door, and steps at the door.",
+   "code": "server/threshold/tools/curb_to_door",
+   "outcome": "unknown",
+   "needs": [
+    "matterport",
+    "vexcel"
+   ],
+   "layers": [
+    "Aerial photo",
+    "Scan position"
+   ]
+  },
+  {
+   "id": "daycare_capacity",
+   "slug": "daycare-capacity",
+   "title": "Daycare capacity",
+   "summary": "How many children this space could be licensed for: indoor room area, outdoor play area, toilets and sinks against the Texas or California rule, with the limiting factor named.",
+   "code": "server/threshold/tools/daycare_capacity",
+   "outcome": "cannot",
+   "needs": [
+    "matterport",
+    "vexcel"
+   ],
+   "layers": [
+    "Rooms",
+    "Room names",
+    "Aerial property facts"
+   ]
+  },
+  {
+   "id": "daylight",
+   "slug": "daylight",
+   "title": "Daylight",
+   "summary": "Windows, glass area, the way each room faces and its hours of direct sun on a chosen day.",
+   "code": "server/threshold/tools/daylight",
+   "outcome": "pass",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Doors and windows"
+   ]
+  },
+  {
+   "id": "derived_fields",
+   "slug": "derived-fields",
+   "title": "Derived fields",
+   "summary": "Proposes the record fields this property lacks, measured from the scan and the aerial photo.",
+   "code": "server/threshold/tools/derived_fields",
+   "outcome": "pass",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Rooms"
+   ]
+  },
+  {
+   "id": "door_widths",
+   "slug": "door-widths",
+   "title": "Door widths",
+   "summary": "Measures every doorway and flags the ones too narrow for you or what you are moving.",
+   "code": "server/threshold/tools/door_widths",
+   "outcome": "fail",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Doors and windows"
+   ]
+  },
+  {
+   "id": "driveway_fit",
+   "slug": "driveway-fit",
+   "title": "Driveway fit",
+   "summary": "Estimates the driveway's length and width from the aerial photo, how many cars park on it, and whether a trailer, RV or boat fits off the street.",
+   "code": "server/threshold/tools/driveway_fit",
+   "outcome": "cannot",
+   "needs": [
+    "vexcel"
+   ],
+   "layers": [
+    "Aerial photo",
+    "Aerial property facts"
+   ]
+  },
+  {
+   "id": "egress_routes",
+   "slug": "egress-routes",
+   "title": "Egress routes",
+   "summary": "The way out of every room: how far, how narrow, which rooms have one way out, and the hose stretch.",
+   "code": "server/threshold/tools/egress_routes",
+   "outcome": "pass",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Doors and windows"
+   ]
+  },
+  {
+   "id": "facility_audit",
+   "slug": "facility-audit",
+   "title": "Facility audit",
+   "summary": "Your building in one pass: doors, restrooms, ways out, life-safety equipment seen, occupant load and cleaning cost, ending in a prioritised fix list with rough costs.",
+   "code": "server/threshold/tools/facility_audit",
+   "outcome": "warn",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Doors and windows"
+   ]
+  },
+  {
+   "id": "facts_query",
+   "slug": "facts-query",
+   "title": "Ask the facts database",
+   "summary": "Answers questions across every scanned building that no fixed tool covers, with the SQL shown.",
+   "code": "server/threshold/tools/facts_query",
+   "outcome": "needs",
+   "needs": [
+    "threshold"
+   ],
+   "layers": [
+    "Facts database"
+   ]
+  },
+  {
+   "id": "feng_shui",
+   "slug": "feng-shui",
+   "title": "Feng shui reading",
+   "summary": "How a feng shui practitioner would read this home: the front door's direction, the Bagua grid on each floor, the command position for beds and desks, and the usual layout notes. A cultural tradition, not a measured effect.",
+   "code": "server/threshold/tools/feng_shui",
+   "outcome": "pass",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Wall outline",
+    "Rooms"
+   ]
+  },
+  {
+   "id": "field_audit",
+   "slug": "field-audit",
+   "title": "Field audit",
+   "summary": "Across many scans, which record fields disagree with what the scans measure, ranked, with evidence.",
+   "code": "server/threshold/tools/field_audit",
+   "outcome": "cannot",
+   "needs": [
+    "costar",
+    "matterport"
+   ],
+   "layers": [
+    "Property record",
+    "Rooms"
+   ]
+  },
+  {
+   "id": "field_check",
+   "slug": "field-check",
+   "title": "Field check",
+   "summary": "Lists what the scan could not settle and a person on site can, and records what they found: confirmed, contradicted or measured.",
+   "code": "server/threshold/tools/field_check",
+   "outcome": "unknown",
+   "needs": [
+    "phone"
+   ],
+   "layers": [
+    "phone.capture"
+   ]
+  },
+  {
+   "id": "fire_preplan",
+   "slug": "fire-preplan",
+   "title": "Fire pre-plan",
+   "summary": "Writes the pre-incident plan from the scans, the aerial photo and the property record, with a one-page printable sheet.",
+   "code": "server/threshold/tools/fire_preplan",
+   "outcome": "unknown",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Rooms"
+   ]
+  },
+  {
+   "id": "flood_rehearsal",
+   "slug": "flood-rehearsal",
+   "title": "Flood rehearsal",
+   "summary": "Shows what a flood does inside this house: how deep in each room, which doors and windows go under, and the order rooms flood, with the floor-height error carried through.",
+   "code": "server/threshold/tools/flood_rehearsal",
+   "outcome": "fail",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Rooms"
+   ]
+  },
+  {
+   "id": "floor_height",
+   "slug": "floor-height",
+   "title": "Floor height",
+   "summary": "Narrows the floor's height above the ground, the flood result's widest uncertainty, from steps counted and fixes taken at your own front door.",
+   "code": "server/threshold/tools/floor_height",
+   "outcome": "unknown",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Rooms"
+   ]
+  },
+  {
+   "id": "furniture_fit",
+   "slug": "furniture-fit",
+   "title": "Furniture fit",
+   "summary": "Checks whether a sofa, bed, piano or fridge can be carried from the entrance to a room: each door and turn with its margin, and where it would stick.",
+   "code": "server/threshold/tools/furniture_fit",
+   "outcome": "warn",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Wall outline",
+    "Doors and windows"
+   ]
+  },
+  {
+   "id": "garage_fit",
+   "slug": "garage-fit",
+   "title": "Garage fit",
+   "summary": "Checks whether your car, truck, van or trailer fits in a scanned garage: how many side by side, the room to open doors, headroom for a lift or roof box, and room for a bench or charger.",
+   "code": "server/threshold/tools/garage_fit",
+   "outcome": "unknown",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Wall outline",
+    "Rooms"
+   ]
+  },
+  {
+   "id": "hazard_profile",
+   "slug": "hazard-profile",
+   "title": "Hazard profile",
+   "summary": "Every hazard map at an address in one place: FEMA flood zone, hurricane evacuation zone, storm surge, Hurricane Harvey's high-water marks nearby, sea level rise, earthquake faults, liquefaction and landslide zones, fire hazard zones, urban heat, traffic noise, and weather alerts, earthquakes and wildfires now.",
+   "code": "server/threshold/tools/hazard_profile",
+   "outcome": "cannot",
+   "needs": [
+    "public"
+   ],
+   "layers": [
+    "public.hazards"
+   ]
+  },
+  {
+   "id": "home_search",
+   "slug": "home-search",
+   "title": "Home search for pets and kids",
+   "summary": "Finds scanned homes across Houston or Los Angeles that suit your pets or kids: apartments that allow your dog's weight or cats, houses with a fenced, flat yard and no pool, near playgrounds, parks or dog parks.",
+   "code": "server/threshold/tools/home_search",
+   "outcome": "needs",
+   "needs": [
+    "costar"
+   ],
+   "layers": [
+    "Property record"
+   ]
+  },
+  {
+   "id": "industrial_fit",
+   "slug": "industrial-fit",
+   "title": "Industrial fit",
+   "summary": "Warehouse check: clear height, dock and drive-in doors, truck court and trailer parking, sprinklers, highway, rail, port and power nearby, and flood zone.",
+   "code": "server/threshold/tools/industrial_fit",
+   "outcome": "fail",
+   "needs": [],
+   "layers": []
+  },
+  {
+   "id": "kids_fit",
+   "slug": "kids-fit",
+   "title": "Kids fit",
+   "summary": "Whether a home suits young children: stairs that need gates, the pool path with no barrier, windows a child could fall from, a back yard the kitchen looks onto, and the walk to playgrounds, parks and schools.",
+   "code": "server/threshold/tools/kids_fit",
+   "outcome": "pass",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Doors and windows"
+   ]
+  },
+  {
+   "id": "life_safety_census",
+   "slug": "life-safety-census",
+   "title": "Smoke alarm census",
+   "summary": "Checks every bedroom's ceiling photo for a smoke alarm and lists where none was seen, as leads to check.",
+   "code": "server/threshold/tools/life_safety_census",
+   "outcome": "unknown",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "360\u00b0 photos",
+    "Room names"
+   ]
+  },
+  {
+   "id": "listing_claims",
+   "slug": "listing-claims",
+   "title": "Listing claims",
+   "summary": "Checks what a listing says against the scan, and lists what it leaves out.",
+   "code": "server/threshold/tools/listing_claims",
+   "outcome": "cannot",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Rooms"
+   ]
+  },
+  {
+   "id": "loading_docks",
+   "slug": "loading-docks",
+   "title": "Loading docks",
+   "summary": "Counts dock doors and drive-in doors on each wall from the oblique aerial views and beside the CoStar record.",
+   "code": "server/threshold/tools/loading_docks",
+   "outcome": "cannot",
+   "needs": [
+    "vexcel"
+   ],
+   "layers": [
+    "Angled aerial photos"
+   ]
+  },
+  {
+   "id": "market_comps",
+   "slug": "market-comps",
+   "title": "Market comps",
+   "summary": "Comparable properties from CoStar: asking rent, sale price per ft\u00b2, class, year built and space for lease, and where this building sits against them.",
+   "code": "server/threshold/tools/market_comps",
+   "outcome": "cannot",
+   "needs": [
+    "costar"
+   ],
+   "layers": [
+    "Property record"
+   ]
+  },
+  {
+   "id": "measure_search",
+   "slug": "measure-search",
+   "title": "Measure search",
+   "summary": "Finds homes by what is measured inside them: door widths on the way to the bathroom, turning space, wall lengths, floors, steps. No listing site can search this.",
+   "code": "server/threshold/tools/measure_search",
+   "outcome": "unknown",
+   "needs": [
+    "threshold"
+   ],
+   "layers": [
+    "Measures table"
+   ]
+  },
+  {
+   "id": "nearby",
+   "slug": "nearby",
+   "title": "Nearby",
+   "summary": "Parks, playgrounds, schools, sports courts and fields, vets, shops and transit near a home, with the walk or ride to the nearest of each along the streets.",
+   "code": "server/threshold/tools/nearby",
+   "outcome": "cannot",
+   "needs": [
+    "osm"
+   ],
+   "layers": [
+    "osm.places"
+   ]
+  },
+  {
+   "id": "noise_level",
+   "slug": "noise-level",
+   "title": "Noise level",
+   "summary": "How loud each room is, from the phone's microphone: an uncalibrated A-weighted level per room, best read as which rooms are quieter.",
+   "code": "server/threshold/tools/noise_level",
+   "outcome": "needs",
+   "needs": [
+    "phone"
+   ],
+   "layers": [
+    "phone.microphone"
+   ]
+  },
+  {
+   "id": "office_fit",
+   "slug": "office-fit",
+   "title": "Office fit",
+   "summary": "Whether your team fits this suite as built: desks, private offices, meeting rooms and kitchen, with the listed size and the last tenant beside it.",
+   "code": "server/threshold/tools/office_fit",
+   "outcome": "fail",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Rooms"
+   ]
+  },
+  {
+   "id": "parking_count",
+   "slug": "parking-count",
+   "title": "Parking count",
+   "summary": "Counts parking stalls and parked cars from the aerial photo and compares them with the record.",
+   "code": "server/threshold/tools/parking_count",
+   "outcome": "cannot",
+   "needs": [
+    "vexcel"
+   ],
+   "layers": [
+    "Aerial photo",
+    "Aerial property facts"
+   ]
+  },
+  {
+   "id": "path_to_water",
+   "slug": "path-to-water",
+   "title": "Path to water",
+   "summary": "Traces every route a small child could take from each bedroom to the pool and names the missing barrier.",
+   "code": "server/threshold/tools/path_to_water",
+   "outcome": "cannot",
+   "needs": [
+    "matterport",
+    "vexcel"
+   ],
+   "layers": [
+    "Doors and windows",
+    "Room names",
+    "360\u00b0 photos",
+    "Aerial property facts",
+    "Aerial photo"
+   ]
+  },
+  {
+   "id": "permit_history",
+   "slug": "permit-history",
+   "title": "Permit history",
+   "summary": "What was permitted at and near an address, by type and year, and any code enforcement cases (Los Angeles); residents' recent service requests to the city nearby in Houston.",
+   "code": "server/threshold/tools/permit_history",
+   "outcome": "cannot",
+   "needs": [
+    "public"
+   ],
+   "layers": [
+    "public.permits"
+   ]
+  },
+  {
+   "id": "pet_fit",
+   "slug": "pet-fit",
+   "title": "Pet fit",
+   "summary": "Whether a home suits your dog, cat or small animal: stairs, floors, a crate and litter spot, a pet door, fall-risk windows, the yard's size, slope, shade and fence, the pool, busy roads, the pet policy and fees, and dog parks and vets nearby.",
+   "code": "server/threshold/tools/pet_fit",
+   "outcome": "pass",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Rooms"
+   ]
+  },
+  {
+   "id": "photo_measure",
+   "slug": "photo-measure",
+   "title": "Photo measure",
+   "summary": "Measures a width or a height from one photo that has a bank card, a sheet of paper or a door of known size in it.",
+   "code": "server/threshold/tools/photo_measure",
+   "outcome": "needs",
+   "needs": [
+    "phone"
+   ],
+   "layers": [
+    "phone.photo"
+   ]
+  },
+  {
+   "id": "property_coverage",
+   "slug": "property-coverage",
+   "title": "Property coverage",
+   "summary": "For whoever manages or researches a whole property: which of its floor plans and shared spaces have a scan, and which none covers.",
+   "code": "server/threshold/tools/property_coverage",
+   "outcome": "cannot",
+   "needs": [
+    "costar",
+    "matterport"
+   ],
+   "layers": [
+    "Property record",
+    "Scan index"
+   ]
+  },
+  {
+   "id": "quake_ready",
+   "slug": "quake-ready",
+   "title": "Earthquake readiness",
+   "summary": "A safe spot in each room away from windows, tall or heavy furniture near the beds, and where to find the gas shutoff on site.",
+   "code": "server/threshold/tools/quake_ready",
+   "outcome": "pass",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Wall outline"
+   ]
+  },
+  {
+   "id": "quiet_rooms",
+   "slug": "quiet-rooms",
+   "title": "Quiet rooms",
+   "summary": "Ranks the bedrooms and office from quietest to loudest against road, rail and aircraft noise, from the national noise map, the nearest roads and which way each room faces.",
+   "code": "server/threshold/tools/quiet_rooms",
+   "outcome": "unknown",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Wall outline",
+    "Scan position"
+   ]
+  },
+  {
+   "id": "record_vs_reality",
+   "slug": "record-vs-reality",
+   "title": "Record versus reality",
+   "summary": "Sets each fact in the CoStar or listing record beside what the scan and the aerial photo measure, with the evidence.",
+   "code": "server/threshold/tools/record_vs_reality",
+   "outcome": "cannot",
+   "needs": [
+    "costar",
+    "matterport"
+   ],
+   "layers": [
+    "Property record",
+    "Rooms"
+   ]
+  },
+  {
+   "id": "renovate",
+   "slug": "renovate",
+   "title": "What if: renovate",
+   "summary": "What it would take to make this home wheelchair-ready: the edits, what each one fixes and what it costs, with the renovated plan to compare side by side.",
+   "code": "server/threshold/tools/renovate",
+   "outcome": "warn",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Wall outline",
+    "Doors and windows"
+   ]
+  },
+  {
+   "id": "retail_site",
+   "slug": "retail-site",
+   "title": "Retail site",
+   "summary": "Parking counted from the air and its ratio, the road the site faces, anchors and neighbouring shops, and walk-in proxies.",
+   "code": "server/threshold/tools/retail_site",
+   "outcome": "unknown",
+   "needs": [
+    "osm"
+   ],
+   "layers": [
+    "osm"
+   ]
+  },
+  {
+   "id": "risk_sheet",
+   "slug": "risk-sheet",
+   "title": "Risk sheet",
+   "summary": "One printable page for an underwriter: roof, flood position, wildfire space, pool, trees and interior hazards, each with its evidence and confidence.",
+   "code": "server/threshold/tools/risk_sheet",
+   "outcome": "cannot",
+   "needs": [
+    "vexcel"
+   ],
+   "layers": [
+    "Aerial property facts",
+    "Ground heights"
+   ]
+  },
+  {
+   "id": "robot_fit",
+   "slug": "robot-fit",
+   "title": "Robot fit",
+   "summary": "Shows which rooms a robot of a given width, turning circle and step height can reach and turn in, across one home or many, and which single change to the robot gains the most.",
+   "code": "server/threshold/tools/robot_fit",
+   "outcome": "pass",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Wall outline"
+   ]
+  },
+  {
+   "id": "roof_facts",
+   "slug": "roof-facts",
+   "title": "Roof facts",
+   "summary": "Roof material, shape, condition, defects, solar, rooftop objects, trees over the roof and height, read from the aerial photo.",
+   "code": "server/threshold/tools/roof_facts",
+   "outcome": "cannot",
+   "needs": [
+    "vexcel"
+   ],
+   "layers": [
+    "Aerial property facts",
+    "Aerial photo"
+   ]
+  },
+  {
+   "id": "room_census",
+   "slug": "room-census",
+   "title": "Room census",
+   "summary": "Which rooms this space has, how big each kind is, and which rooms have no type.",
+   "code": "server/threshold/tools/room_census",
+   "outcome": "pass",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Rooms"
+   ]
+  },
+  {
+   "id": "room_labeller",
+   "slug": "room-labeller",
+   "title": "Room labeller",
+   "summary": "Names every room of a commercial space from its panoramas, shows what decided each call, and learns from your corrections.",
+   "code": "server/threshold/tools/room_labeller",
+   "outcome": "pass",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "360\u00b0 photos",
+    "Rooms"
+   ]
+  },
+  {
+   "id": "room_sizes",
+   "slug": "room-sizes",
+   "title": "Room sizes",
+   "summary": "Every room's floor area, width, depth and ceiling height, biggest first.",
+   "code": "server/threshold/tools/room_sizes",
+   "outcome": "pass",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Rooms"
+   ]
+  },
+  {
+   "id": "similar_rooms",
+   "slug": "similar-rooms",
+   "title": "Similar rooms",
+   "summary": "Finds rooms by what they look like ('a sunlit kitchen with an island'), with measured filters: over 12 m\u00b2, in Houston, room for a wheelchair to turn.",
+   "code": "server/threshold/tools/similar_rooms",
+   "outcome": "cannot",
+   "needs": [
+    "threshold"
+   ],
+   "layers": [
+    "Room descriptions"
+   ]
+  },
+  {
+   "id": "site_scorecard",
+   "slug": "site-scorecard",
+   "title": "Site scorecard",
+   "summary": "Ranks candidate buildings against your requirements and weights, with a score per criterion, the deal-breakers and the evidence for each cell.",
+   "code": "server/threshold/tools/site_scorecard",
+   "outcome": "cannot",
+   "needs": [
+    "costar"
+   ],
+   "layers": [
+    "Property record"
+   ]
+  },
+  {
+   "id": "size_up_quiz",
+   "slug": "size-up-quiz",
+   "title": "Size-up quiz",
+   "summary": "Training: read a house from outside (bedrooms, stairs, kitchen side, floors) and get graded against its measured interior.",
+   "code": "server/threshold/tools/size_up_quiz",
+   "outcome": "unknown",
+   "needs": [
+    "matterport",
+    "vexcel"
+   ],
+   "layers": [
+    "Rooms",
+    "Room names",
+    "Aerial photo"
+   ]
+  },
+  {
+   "id": "slope_check",
+   "slug": "slope-check",
+   "title": "Slope check",
+   "summary": "Uses the phone as a level: a ramp's slope and cross slope against the ADA limits, a threshold's bevel, or how far a door frame is out of plumb.",
+   "code": "server/threshold/tools/slope_check",
+   "outcome": "needs",
+   "needs": [
+    "phone"
+   ],
+   "layers": [
+    "phone.tilt"
+   ]
+  },
+  {
+   "id": "smoke_clock",
+   "slug": "smoke-clock",
+   "title": "Smoke clock",
+   "summary": "Minutes of survivable air in each bedroom with its door open and closed, from NIST's fire model run on the measured rooms.",
+   "code": "server/threshold/tools/smoke_clock",
+   "outcome": "slow",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Doors and windows",
+    "Room names"
+   ]
+  },
+  {
+   "id": "solar_roof",
+   "slug": "solar-roof",
+   "title": "Solar roof",
+   "summary": "Usable roof for solar after setbacks and shade, how many panels, kW, kWh a year and payback.",
+   "code": "server/threshold/tools/solar_roof",
+   "outcome": "cannot",
+   "needs": [
+    "vexcel"
+   ],
+   "layers": [
+    "Aerial property facts",
+    "Roof heights"
+   ]
+  },
+  {
+   "id": "stairs_count",
+   "slug": "stairs-count",
+   "title": "Stairs",
+   "summary": "Counts the floors, estimates the steps between the entrance and the bedrooms, and finds steps at doorways, floor by floor.",
+   "code": "server/threshold/tools/stairs_count",
+   "outcome": "pass",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Rooms"
+   ]
+  },
+  {
+   "id": "step_free_route",
+   "slug": "step-free-route",
+   "title": "Step-free route",
+   "summary": "Draws the route from the entrance to each room you need, with every door's width, the narrowest point and any step, and says whether you can get there.",
+   "code": "server/threshold/tools/step_free_route",
+   "outcome": "fail",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Doors and windows",
+    "Rooms"
+   ]
+  },
+  {
+   "id": "storage_space",
+   "slug": "storage-space",
+   "title": "Storage space",
+   "summary": "Totals closet and storage area and its share of the unit, and finds bedrooms without a closet room.",
+   "code": "server/threshold/tools/storage_space",
+   "outcome": "warn",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Rooms"
+   ]
+  },
+  {
+   "id": "storm_plan",
+   "slug": "storm-plan",
+   "title": "Storm plan",
+   "summary": "An ordered plan for the hours before the storm: what to carry up first, where it goes, plywood cut from your real window sizes, sandbags per door, which shutoffs to turn off, and where a generator can safely stand. It changes when the storm or the household changes.",
+   "code": "server/threshold/tools/storm_plan",
+   "outcome": "warn",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Doors and windows",
+    "360\u00b0 photos"
+   ]
+  },
+  {
+   "id": "stretcher_route",
+   "slug": "stretcher-route",
+   "title": "Stretcher route",
+   "summary": "Checks whether a flat ambulance stretcher can be carried from the entrance to each bedroom, and where it would have to be tilted.",
+   "code": "server/threshold/tools/stretcher_route",
+   "outcome": "warn",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Wall outline"
+   ]
+  },
+  {
+   "id": "sun_rooms",
+   "slug": "sun-rooms",
+   "title": "Sun by room",
+   "summary": "Hours of direct sun in each room on a day and at the solstices and equinoxes, with neighbours and trees in the way, and the best room for plants, a home office and a cool bedroom.",
+   "code": "server/threshold/tools/sun_rooms",
+   "outcome": "unknown",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Doors and windows",
+    "Scan position"
+   ]
+  },
+  {
+   "id": "takeoff_bid",
+   "slug": "takeoff-bid",
+   "title": "Takeoff bid",
+   "summary": "Quantities for a trade from the scan (floor by finish, paintable wall, glass, doors, fixtures), priced with your own rates: a cleaning bid, an apartment unit turn, or a fit-out estimate.",
+   "code": "server/threshold/tools/takeoff_bid",
+   "outcome": "pass",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "360\u00b0 photos"
+   ]
+  },
+  {
+   "id": "tour",
+   "slug": "tour",
+   "title": "Tour",
+   "summary": "Answers by showing: a camera tour from the way in to each piece of evidence the other tools found, with one spoken line at each stop. The last step of a fire pre-plan or a wheelchair check of a home.",
+   "code": "server/threshold/tools/tour",
+   "outcome": "fail",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Rooms"
+   ]
+  },
+  {
+   "id": "truck_access",
+   "slug": "truck-access",
+   "title": "Truck access",
+   "summary": "Whether a 53 ft trailer can reach and back to the docks: entrance, gate, court depth, turning room, overhead obstructions, arrival directions and a route on the aerial photo.",
+   "code": "server/threshold/tools/truck_access",
+   "outcome": "cannot",
+   "needs": [
+    "vexcel"
+   ],
+   "layers": [
+    "Aerial photo",
+    "Roof heights",
+    "Angled aerial photos"
+   ]
+  },
+  {
+   "id": "turning_space",
+   "slug": "turning-space",
+   "title": "Turning space",
+   "summary": "Finds the largest clear circle in each room and checks it against the turning circle you need.",
+   "code": "server/threshold/tools/turning_space",
+   "outcome": "fail",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Rooms",
+    "Wall outline"
+   ]
+  },
+  {
+   "id": "unit_compare",
+   "slug": "unit-compare",
+   "title": "Unit compare",
+   "summary": "Ranks several units or suites side by side on measured area, rooms, storage, windows and door widths, with rent per measured square foot.",
+   "code": "server/threshold/tools/unit_compare",
+   "outcome": "cannot",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Rooms"
+   ]
+  },
+  {
+   "id": "valuables_height",
+   "slug": "valuables-height",
+   "title": "What sits below the water",
+   "summary": "Finds the belongings, appliances, outlets and utilities in the rooms that flood, how high each sits off the floor, and what the water would cost, as a range.",
+   "code": "server/threshold/tools/valuables_height",
+   "outcome": "unknown",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "360\u00b0 photos",
+    "Rooms"
+   ]
+  },
+  {
+   "id": "walkthrough",
+   "slug": "walkthrough",
+   "title": "Walk-through",
+   "summary": "A quick safety census of a home with no scan, from a short video you record walking through it: rooms, smoke alarms, hazards and belongings.",
+   "code": "server/threshold/tools/walkthrough",
+   "outcome": "needs",
+   "needs": [
+    "phone"
+   ],
+   "layers": [
+    "phone.video"
+   ]
+  },
+  {
+   "id": "where_am_i",
+   "slug": "where-am-i",
+   "title": "Where am I",
+   "summary": "Finds the scanned building you are standing in from the phone's GPS, or says there is none here.",
+   "code": "server/threshold/tools/where_am_i",
+   "outcome": "needs",
+   "needs": [
+    "phone"
+   ],
+   "layers": [
+    "phone.gps"
+   ]
+  },
+  {
+   "id": "wifi_coverage",
+   "slug": "wifi-coverage",
+   "title": "Wi-Fi coverage",
+   "summary": "Estimates Wi-Fi strength in every room from a router spot, finds dead zones, the best router spot for the bedrooms and office, and where a mesh node helps most.",
+   "code": "server/threshold/tools/wifi_coverage",
+   "outcome": "pass",
+   "needs": [
+    "matterport"
+   ],
+   "layers": [
+    "Wall outline",
+    "Doors and windows"
+   ]
+  },
+  {
+   "id": "wildfire_space",
+   "slug": "wildfire-space",
+   "title": "Wildfire defensible space",
+   "summary": "Vegetation and tree canopy in California's 5, 30 and 100 ft zones round the house, what to clear first, roof material, slope, the nearest fire station and the CAL FIRE hazard zone.",
+   "code": "server/threshold/tools/wildfire_space",
+   "outcome": "cannot",
+   "needs": [
+    "vexcel"
+   ],
+   "layers": [
+    "Aerial photo",
+    "Roof heights",
+    "Aerial property facts"
+   ]
+  },
+  {
+   "id": "window_check",
+   "slug": "window-check",
+   "title": "Window check",
+   "summary": "Point the phone out of a window: its compass confirms or corrects which way the room faces and its hours of sun.",
+   "code": "server/threshold/tools/window_check",
+   "outcome": "needs",
+   "needs": [
+    "phone"
+   ],
+   "layers": [
+    "phone.compass"
+   ]
+  },
+  {
+   "id": "zoning_check",
+   "slug": "zoning-check",
+   "title": "Zoning check",
+   "summary": "What the zoning allows on a lot: the zone, its main uses and height or density limits in Los Angeles; in Houston, which has no zoning, the city's lot-size, building-line and historic rules.",
+   "code": "server/threshold/tools/zoning_check",
+   "outcome": "cannot",
+   "needs": [
+    "public"
+   ],
+   "layers": [
+    "public.zoning"
+   ]
+  }
+ ],
+ "by_need": {
+  "matterport": 47,
+  "costar": 7,
+  "public": 5,
+  "threshold": 4,
+  "vexcel": 12,
+  "phone": 7,
+  "osm": 2,
+  "inputs only": 2,
+  "two or more providers": 8
+ },
+ "outcomes": {
+  "fail": 9,
+  "cannot": 26,
+  "pass": 15,
+  "needs": 9,
+  "unknown": 12,
+  "warn": 6,
+  "slow": 1
+ },
+ "said": {
+  "changed": 53,
+  "skipped": 4,
+  "covered": 6,
+  "not_in_scan": 1
+ },
+ "said_total": 64,
+ "by_tool": [
+  {
+   "slug": "garage-fit",
+   "title": "Garage fit",
+   "n": 12
+  },
+  {
+   "slug": "step-free-route",
+   "title": "Step-free route",
+   "n": 9
+  },
+  {
+   "slug": "facility-audit",
+   "title": "Facility audit",
+   "n": 8
+  },
+  {
+   "slug": "bathroom-clearance",
+   "title": "Bathroom clearance",
+   "n": 4
+  },
+  {
+   "slug": "turning-space",
+   "title": "Turning space",
+   "n": 3
+  },
+  {
+   "slug": "office-fit",
+   "title": "Office fit",
+   "n": 2
+  },
+  {
+   "slug": "driveway-fit",
+   "title": "Driveway fit",
+   "n": 2
+  },
+  {
+   "slug": "wifi-coverage",
+   "title": "Wi-Fi coverage",
+   "n": 2
+  },
+  {
+   "slug": "wildfire-space",
+   "title": "Wildfire defensible space",
+   "n": 2
+  },
+  {
+   "slug": "curb-to-door",
+   "title": "Curb to door",
+   "n": 1
+  }
+ ],
+ "quotes": [
+  {
+   "said": "\"I don't ask them if it's wheelchair accessible. I ask them if they have any steps.\" (07:05) Steps are the hard limit: no wheelchair goes over steps \"unless you're young, athletic, and use a manual chair\" (03:44).",
+   "became": "`step_free_route`: the verdict now opens with \"Steps from the entrance:\" and one answer per destination, and each destination gets a steps check before any width check (`steps.<room>`: the highest sill step measured, against ADA 303's 1/2 in). A step at the entrance door is named as such. Commits 80becdd, 1259b9e",
+   "kind": "changed",
+   "tools": [
+    {
+     "slug": "step-free-route",
+     "title": "Step-free route"
+    }
+   ]
+  },
+  {
+   "said": "Asked by email and phone, \"is it wheelchair accessible? Yes. I get there, and there's a step, and I couldn't go in. I have a 400-pound chair.\" (05:22) \"There's no certification ... we have the ADA ... but there's no police for it.\" (11:57)",
+   "became": "`step_free_route`, `bathroom_clearance`: a \"Not in the scan\" line says the ADA has no certification or inspection, so \"accessible\" is the owner's word. 80becdd, 1690b38",
+   "kind": "changed",
+   "tools": [
+    {
+     "slug": "step-free-route",
+     "title": "Step-free route"
+    },
+    {
+     "slug": "bathroom-clearance",
+     "title": "Bathroom clearance"
+    }
+   ]
+  },
+  {
+   "said": "\"You go in four feet or seven feet or ten feet from the front door. There's a set of steps.\" At a bookstore: \"I could get in the bookstore, but I couldn't go to the books.\" (05:57)",
+   "became": "`step_free_route`: every doorway sill on the route is measured, and a step, stair or ramp the panorama reader sees in a room the route passes through now counts against that route (it turns a pass into \"measure on site\"), not only as a pin. 80becdd",
+   "kind": "changed",
+   "tools": [
+    {
+     "slug": "step-free-route",
+     "title": "Step-free route"
+    }
+   ]
+  },
+  {
+   "said": "Lobby steps in NYC apartment buildings: \"you could get to the desk, but you can't get to the elevators.\" (18:58)",
+   "became": "Not in the scan (an apartment unit scan starts at the unit door): `step_free_route` says so and points to `curb_to_door`. 80becdd",
+   "kind": "changed",
+   "tools": [
+    {
+     "slug": "step-free-route",
+     "title": "Step-free route"
+    },
+    {
+     "slug": "curb-to-door",
+     "title": "Curb to door"
+    }
+   ]
+  },
+  {
+   "said": "\"A lot of people have more than one chair ... I have a travel chair. I know it's more narrow than my everyday chair.\" Most people do not know their chair's width. (02:19)",
+   "became": "New preference `access.chairs` (each chair: name, door width it needs, turning circle). `step_free_route` routes each chair and lists which rooms each one reaches; `bathroom_clearance` checks each chair at the bathroom door and turning circle; `turning_space` checks each chair's circle. A chair with no size uses the person's default. The profile shows each chair. 80becdd, 87a0f05, 4d36cd6",
+   "kind": "changed",
+   "tools": [
+    {
+     "slug": "step-free-route",
+     "title": "Step-free route"
+    },
+    {
+     "slug": "bathroom-clearance",
+     "title": "Bathroom clearance"
+    },
+    {
+     "slug": "turning-space",
+     "title": "Turning space"
+    }
+   ]
+  },
+  {
+   "said": "\"If it opens in, you typically cannot get in because the door is blocking.\" (09:45)",
+   "became": "`bathroom_clearance`: a check per bathroom door on which way it opens: from the scan if it records it, else read from the panorama (a label, not a size), else \"not in the scan\" with low reliability. Opening in with no 30 x 48 in space clear of the swing fails. 1690b38",
+   "kind": "changed",
+   "tools": [
+    {
+     "slug": "bathroom-clearance",
+     "title": "Bathroom clearance"
+    }
+   ]
+  },
+  {
+   "said": "A big garbage can next to the toilet: \"an accessible stall, but it was made inaccessible.\" (10:08) Clear space in front of versus beside the toilet decides a front or side transfer. (10:30)",
+   "became": "`bathroom_clearance`: clear floor in front of the toilet (30 in strip, needs 48 in) and beside it (48 in deep, needs 30 in), measured from the wall behind the toilet, with objects a phone scan measured (bins, storage, vanities) taken out of the floor and named when they are in the way. The toilet's own position comes from the phone scan when it measured one. On wall-graph scans, which record no objects, a line says every clear space is the most there can be. 1690b38",
+   "kind": "changed",
+   "tools": [
+    {
+     "slug": "bathroom-clearance",
+     "title": "Bathroom clearance"
+    }
+   ]
+  },
+  {
+   "said": "Toilet height and grab bars are the other bathroom checks she makes. (10:30)",
+   "became": "Grab bar wall space was already checked. Toilet seat height and whether walls can hold bars are now a \"Not in the scan\" line. 1690b38",
+   "kind": "changed",
+   "tools": []
+  },
+  {
+   "said": "99 cent stores with one narrow aisle and boxes on the floor, \"nowhere to turn around.\" (22:28)",
+   "became": "`turning_space`: on scans with measured objects, the turning circle is fitted to the floor less the objects, and a new aisle check gives the widest body that can get from the doorway to the turning spot between them (against ADA 403.5.1's 36 in). Boxes or stock left out on the day are a \"Not in the scan\" line. 1baf92b",
+   "kind": "changed",
+   "tools": [
+    {
+     "slug": "turning-space",
+     "title": "Turning space"
+    }
+   ]
+  },
+  {
+   "said": "A bookstore's elevator was out, so she could not reach the graphic novels. (20:29) Disabled In Action sued a pharmacy chain over pharmacies on other floors; it took 17 years to resolve. (27:15)",
+   "became": "`step_free_route`: a room on another floor reads \"elevator only\" when the scan has a room labelled elevator or lift, otherwise \"stairs only, no elevator in the scan\"; a new check lists the rooms on the entrance floor reached with no step at any doorway, the ones that need a step, and the other floors. Whether the elevator is in service is a \"Not in the scan\" line. 80becdd",
+   "kind": "changed",
+   "tools": [
+    {
+     "slug": "step-free-route",
+     "title": "Step-free route"
+    }
+   ]
+  },
+  {
+   "said": "Temporary obstructions: cardboard bales that trapped her, cleaning supplies kept in elevators, accessible fitting rooms used for storage. (28:44)",
+   "became": "\"Not in the scan\" line in `step_free_route` and `turning_space`. 80becdd, 1baf92b",
+   "kind": "changed",
+   "tools": [
+    {
+     "slug": "step-free-route",
+     "title": "Step-free route"
+    },
+    {
+     "slug": "turning-space",
+     "title": "Turning space"
+    }
+   ]
+  },
+  {
+   "said": "The gap between a subway platform and the train \"works like a step.\" (07:53)",
+   "became": "Skipped: the scans are buildings, not transit platforms.",
+   "kind": "skipped",
+   "tools": []
+  },
+  {
+   "said": "\"Worldwide, I'm sure door width would be a huge issue.\" (21:50)",
+   "became": "No change: `door_widths` and `step_free_route` already measure every doorway.",
+   "kind": "covered",
+   "tools": [
+    {
+     "slug": "door-widths",
+     "title": "Door widths"
+    },
+    {
+     "slug": "step-free-route",
+     "title": "Step-free route"
+    }
+   ]
+  },
+  {
+   "said": "Needs differ by person and over time: after foot surgery she could not walk for three months. (18:20)",
+   "became": "No change: every size is an editable preference, so a person can change it.",
+   "kind": "covered",
+   "tools": []
+  }
+ ],
+ "skipped": [
+  {
+   "said": "The gap between a subway platform and the train \"works like a step.\" (07:53)",
+   "why": "Skipped: the scans are buildings, not transit platforms."
+  },
+  {
+   "said": "Prep and plating space.",
+   "why": "Skipped: it depends on the equipment layout, which no scan records."
+  },
+  {
+   "said": "\"Don't believe in the first five feet; focused on vegetation type.\" Pool pump, fire hoses, a generator.",
+   "why": "Skipped: plant species are not in the aerial data (the tool reads green and height only), and the equipment is the owner's, not the building's."
+  },
+  {
+   "said": "A landlord filming influencer content during service; \"Experience\".",
+   "why": "Skipped: not about the building."
+  }
+ ],
+ "funnel": {
+  "minutes": 31,
+  "people": 58,
+  "communities": 17,
+  "emails": 491,
+  "replies": 6,
+  "declines": 3,
+  "interviews": 1
+ },
+ "garage": {
+  "bands": [
+   {
+    "label": "Subdivision garages built after 1999, as one owner reported",
+    "ft": [
+     19.5,
+     20.0
+    ],
+    "m": [
+     5.94,
+     6.1
+    ]
+   },
+   {
+    "label": "Older homes, same owner",
+    "ft": [
+     25.0,
+     30.0
+    ],
+    "m": [
+     7.62,
+     9.14
+    ]
+   }
+  ],
+  "vehicles": [
+   {
+    "title": "Sport motorcycle",
+    "kind": "motorcycle",
+    "m": 2.08,
+    "ft": "6 ft 10 in",
+    "spare_m": [
+     3.86,
+     4.02
+    ]
+   },
+   {
+    "title": "Golf cart",
+    "kind": "cart",
+    "m": 2.4,
+    "ft": "7 ft 10 in",
+    "spare_m": [
+     3.54,
+     3.7
+    ]
+   },
+   {
+    "title": "Touring motorcycle (Harley Road Glide)",
+    "kind": "motorcycle",
+    "m": 2.6,
+    "ft": "8 ft 6 in",
+    "spare_m": [
+     3.34,
+     3.5
+    ]
+   },
+   {
+    "title": "Mini Cooper hardtop",
+    "kind": "car",
+    "m": 3.88,
+    "ft": "12 ft 9 in",
+    "spare_m": [
+     2.06,
+     2.22
+    ]
+   },
+   {
+    "title": "Mazda MX-5 Miata",
+    "kind": "car",
+    "m": 3.92,
+    "ft": "12 ft 10 in",
+    "spare_m": [
+     2.02,
+     2.18
+    ]
+   },
+   {
+    "title": "Utility trailer, 5 x 10 ft, with tongue",
+    "kind": "trailer",
+    "m": 4.3,
+    "ft": "14 ft 1 in",
+    "spare_m": [
+     1.64,
+     1.8
+    ]
+   },
+   {
+    "title": "Jet ski on its trailer",
+    "kind": "trailer",
+    "m": 4.3,
+    "ft": "14 ft 1 in",
+    "spare_m": [
+     1.64,
+     1.8
+    ]
+   },
+   {
+    "title": "Porsche 911",
+    "kind": "car",
+    "m": 4.52,
+    "ft": "14 ft 10 in",
+    "spare_m": [
+     1.42,
+     1.58
+    ]
+   },
+   {
+    "title": "Toyota RAV4",
+    "kind": "suv",
+    "m": 4.6,
+    "ft": "15 ft 1 in",
+    "spare_m": [
+     1.34,
+     1.5
+    ]
+   },
+   {
+    "title": "Teardrop camper trailer",
+    "kind": "trailer",
+    "m": 4.6,
+    "ft": "15 ft 1 in",
+    "spare_m": [
+     1.34,
+     1.5
+    ]
+   },
+   {
+    "title": "Toyota Corolla",
+    "kind": "car",
+    "m": 4.63,
+    "ft": "15 ft 2 in",
+    "spare_m": [
+     1.31,
+     1.47
+    ]
+   },
+   {
+    "title": "Chevrolet Corvette",
+    "kind": "car",
+    "m": 4.63,
+    "ft": "15 ft 2 in",
+    "spare_m": [
+     1.31,
+     1.47
+    ]
+   },
+   {
+    "title": "Honda Civic sedan",
+    "kind": "car",
+    "m": 4.67,
+    "ft": "15 ft 4 in",
+    "spare_m": [
+     1.27,
+     1.43
+    ]
+   },
+   {
+    "title": "Honda CR-V",
+    "kind": "suv",
+    "m": 4.7,
+    "ft": "15 ft 5 in",
+    "spare_m": [
+     1.24,
+     1.4
+    ]
+   },
+   {
+    "title": "BMW 3 Series",
+    "kind": "car",
+    "m": 4.71,
+    "ft": "15 ft 5 in",
+    "spare_m": [
+     1.23,
+     1.39
+    ]
+   },
+   {
+    "title": "Tesla Model 3",
+    "kind": "car",
+    "m": 4.72,
+    "ft": "15 ft 6 in",
+    "spare_m": [
+     1.22,
+     1.38
+    ]
+   },
+   {
+    "title": "Tesla Model Y",
+    "kind": "suv",
+    "m": 4.75,
+    "ft": "15 ft 7 in",
+    "spare_m": [
+     1.19,
+     1.35
+    ]
+   },
+   {
+    "title": "Ford Mustang coupe",
+    "kind": "car",
+    "m": 4.81,
+    "ft": "15 ft 9 in",
+    "spare_m": [
+     1.13,
+     1.29
+    ]
+   },
+   {
+    "title": "Toyota 4Runner",
+    "kind": "suv",
+    "m": 4.83,
+    "ft": "15 ft 10 in",
+    "spare_m": [
+     1.11,
+     1.27
+    ]
+   },
+   {
+    "title": "Subaru Outback",
+    "kind": "suv",
+    "m": 4.87,
+    "ft": "15 ft 12 in",
+    "spare_m": [
+     1.07,
+     1.23
+    ]
+   },
+   {
+    "title": "Jeep Wrangler Unlimited",
+    "kind": "suv",
+    "m": 4.88,
+    "ft": "16 ft 0 in",
+    "spare_m": [
+     1.06,
+     1.22
+    ]
+   },
+   {
+    "title": "Jeep Grand Cherokee",
+    "kind": "suv",
+    "m": 4.91,
+    "ft": "16 ft 1 in",
+    "spare_m": [
+     1.03,
+     1.19
+    ]
+   },
+   {
+    "title": "Toyota Camry",
+    "kind": "car",
+    "m": 4.92,
+    "ft": "16 ft 2 in",
+    "spare_m": [
+     1.02,
+     1.18
+    ]
+   },
+   {
+    "title": "Toyota Highlander",
+    "kind": "suv",
+    "m": 4.95,
+    "ft": "16 ft 3 in",
+    "spare_m": [
+     0.99,
+     1.15
+    ]
+   },
+   {
+    "title": "Honda Accord",
+    "kind": "car",
+    "m": 4.97,
+    "ft": "16 ft 4 in",
+    "spare_m": [
+     0.97,
+     1.13
+    ]
+   },
+   {
+    "title": "Kia Telluride",
+    "kind": "suv",
+    "m": 5.0,
+    "ft": "16 ft 5 in",
+    "spare_m": [
+     0.94,
+     1.1
+    ]
+   },
+   {
+    "title": "Land Rover Defender 110",
+    "kind": "suv",
+    "m": 5.02,
+    "ft": "16 ft 6 in",
+    "spare_m": [
+     0.92,
+     1.08
+    ]
+   },
+   {
+    "title": "Ford Explorer",
+    "kind": "suv",
+    "m": 5.05,
+    "ft": "16 ft 7 in",
+    "spare_m": [
+     0.89,
+     1.05
+    ]
+   },
+   {
+    "title": "Ford Maverick",
+    "kind": "pickup",
+    "m": 5.07,
+    "ft": "16 ft 8 in",
+    "spare_m": [
+     0.87,
+     1.03
+    ]
+   },
+   {
+    "title": "Rivian R1S",
+    "kind": "suv",
+    "m": 5.1,
+    "ft": "16 ft 9 in",
+    "spare_m": [
+     0.84,
+     1.0
+    ]
+   },
+   {
+    "title": "Toyota Sienna",
+    "kind": "van",
+    "m": 5.18,
+    "ft": "16 ft 12 in",
+    "spare_m": [
+     0.76,
+     0.92
+    ]
+   },
+   {
+    "title": "Chrysler Pacifica",
+    "kind": "van",
+    "m": 5.18,
+    "ft": "16 ft 12 in",
+    "spare_m": [
+     0.76,
+     0.92
+    ]
+   },
+   {
+    "title": "Side-entry wheelchair van (Sienna or Pacifica conversion)",
+    "kind": "van",
+    "m": 5.18,
+    "ft": "16 ft 12 in",
+    "spare_m": [
+     0.76,
+     0.92
+    ]
+   },
+   {
+    "title": "Honda Odyssey",
+    "kind": "van",
+    "m": 5.21,
+    "ft": "17 ft 1 in",
+    "spare_m": [
+     0.73,
+     0.89
+    ]
+   },
+   {
+    "title": "Honda Ridgeline",
+    "kind": "pickup",
+    "m": 5.33,
+    "ft": "17 ft 6 in",
+    "spare_m": [
+     0.61,
+     0.77
+    ]
+   },
+   {
+    "title": "Ford Expedition",
+    "kind": "suv",
+    "m": 5.33,
+    "ft": "17 ft 6 in",
+    "spare_m": [
+     0.61,
+     0.77
+    ]
+   },
+   {
+    "title": "Ford Ranger SuperCrew",
+    "kind": "pickup",
+    "m": 5.35,
+    "ft": "17 ft 7 in",
+    "spare_m": [
+     0.59,
+     0.75
+    ]
+   },
+   {
+    "title": "Chevrolet Tahoe",
+    "kind": "suv",
+    "m": 5.35,
+    "ft": "17 ft 7 in",
+    "spare_m": [
+     0.59,
+     0.75
+    ]
+   },
+   {
+    "title": "Cadillac Escalade",
+    "kind": "suv",
+    "m": 5.38,
+    "ft": "17 ft 8 in",
+    "spare_m": [
+     0.56,
+     0.72
+    ]
+   },
+   {
+    "title": "Toyota Tacoma Double Cab",
+    "kind": "pickup",
+    "m": 5.41,
+    "ft": "17 ft 9 in",
+    "spare_m": [
+     0.53,
+     0.69
+    ]
+   },
+   {
+    "title": "Rivian R1T",
+    "kind": "pickup",
+    "m": 5.51,
+    "ft": "18 ft 1 in",
+    "spare_m": [
+     0.43,
+     0.59
+    ]
+   },
+   {
+    "title": "Ford Transit 130 in low roof",
+    "kind": "van",
+    "m": 5.59,
+    "ft": "18 ft 4 in",
+    "spare_m": [
+     0.35,
+     0.51
+    ]
+   },
+   {
+    "title": "Tesla Cybertruck",
+    "kind": "pickup",
+    "m": 5.68,
+    "ft": "18 ft 8 in",
+    "spare_m": [
+     0.26,
+     0.42
+    ]
+   },
+   {
+    "title": "Chevrolet Suburban",
+    "kind": "suv",
+    "m": 5.73,
+    "ft": "18 ft 10 in",
+    "spare_m": [
+     0.21,
+     0.37
+    ]
+   },
+   {
+    "title": "Ford F-150 SuperCrew, 5.5 ft bed",
+    "kind": "pickup",
+    "m": 5.89,
+    "ft": "19 ft 4 in",
+    "spare_m": [
+     0.05,
+     0.21
+    ]
+   },
+   {
+    "title": "Chevrolet Silverado 1500 Crew Cab",
+    "kind": "pickup",
+    "m": 5.89,
+    "ft": "19 ft 4 in",
+    "spare_m": [
+     0.05,
+     0.21
+    ]
+   },
+   {
+    "title": "GMC Sierra 1500 Crew Cab",
+    "kind": "pickup",
+    "m": 5.89,
+    "ft": "19 ft 4 in",
+    "spare_m": [
+     0.05,
+     0.21
+    ]
+   },
+   {
+    "title": "Ford F-150 Lightning",
+    "kind": "pickup",
+    "m": 5.91,
+    "ft": "19 ft 5 in",
+    "spare_m": [
+     0.03,
+     0.19
+    ]
+   },
+   {
+    "title": "Ram 1500 Crew Cab, 5.7 ft bed",
+    "kind": "pickup",
+    "m": 5.92,
+    "ft": "19 ft 5 in",
+    "spare_m": [
+     0.02,
+     0.18
+    ]
+   },
+   {
+    "title": "Toyota Tundra CrewMax",
+    "kind": "pickup",
+    "m": 5.93,
+    "ft": "19 ft 5 in",
+    "spare_m": [
+     0.01,
+     0.17
+    ]
+   },
+   {
+    "title": "Mercedes Sprinter 144 in high roof",
+    "kind": "van",
+    "m": 5.93,
+    "ft": "19 ft 5 in",
+    "spare_m": [
+     0.01,
+     0.17
+    ]
+   },
+   {
+    "title": "Class B camper van (Sprinter 144 in 4x4)",
+    "kind": "rv",
+    "m": 5.94,
+    "ft": "19 ft 6 in",
+    "spare_m": [
+     0.0,
+     0.16
+    ]
+   },
+   {
+    "title": "Ford F-150 SuperCrew, 6.5 ft bed",
+    "kind": "pickup",
+    "m": 6.19,
+    "ft": "20 ft 4 in",
+    "spare_m": [
+     -0.25,
+     -0.09
+    ]
+   },
+   {
+    "title": "Ford F-250 Super Duty Crew Cab",
+    "kind": "pickup",
+    "m": 6.76,
+    "ft": "22 ft 2 in",
+    "spare_m": [
+     -0.82,
+     -0.66
+    ]
+   },
+   {
+    "title": "20 ft bowrider on its trailer",
+    "kind": "trailer",
+    "m": 7.0,
+    "ft": "22 ft 12 in",
+    "spare_m": [
+     -1.06,
+     -0.9
+    ]
+   },
+   {
+    "title": "Class C motorhome, 24 ft",
+    "kind": "rv",
+    "m": 7.4,
+    "ft": "24 ft 3 in",
+    "spare_m": [
+     -1.46,
+     -1.3
+    ]
+   },
+   {
+    "title": "25 ft travel trailer",
+    "kind": "trailer",
+    "m": 7.6,
+    "ft": "24 ft 11 in",
+    "spare_m": [
+     -1.66,
+     -1.5
+    ]
+   },
+   {
+    "title": "Class A motorhome, 35 ft",
+    "kind": "rv",
+    "m": 10.7,
+    "ft": "35 ft 1 in",
+    "spare_m": [
+     -4.76,
+     -4.6
+    ]
+   }
+  ]
+ }
+}

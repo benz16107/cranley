@@ -1,0 +1,97 @@
+---
+// The CoStar track. Sentences are docs/story.md's and docs/devpost/about.md's; every number is read from
+// src/generated/deep.json or site.json. Nothing here shows sponsor data: the runs and the door table are the
+// made-up test home's, the garage depths are an owner's own words.
+import Deep from './Deep.astro'
+import Sec from './Sec.astro'
+import Chart from './Chart.astro'
+import Flow from './Flow.astro'
+import Cards from './Cards.astro'
+import Bars from './Bars.astro'
+import Matrix from './Matrix.astro'
+import Garage from './Garage.astro'
+import DoorSchedule from '../DoorSchedule.astro'
+import Proof from '../Proof.astro'
+import deep from '../../generated/deep.json'
+import site from '../../generated/site.json'
+import type { Track } from '../../site/tracks'
+interface Props { track: Track; title: string }
+const { track, title } = Astro.props
+const c = site.counts
+const out = deep.outcomes as Record<string, number>
+const by = deep.by_need as Record<string, number>
+const WHO: Record<string, string> = { matterport: 'Matterport scan', vexcel: 'Vexcel aerial', costar: 'CoStar records', phone: 'A phone on site', public: 'Public data', threshold: 'Cranley\'s facts database', osm: 'OpenStreetMap' }
+const need = Object.keys(WHO).filter((k) => by[k]).map((k) => ({ label: WHO[k], n: by[k] })).sort((a, b) => b.n - a.n)
+const cross = deep.matrix.filter((m) => m.needs.includes('costar') || m.needs.length > 1)
+  .map((m) => ({ title: m.title, href: `/docs/tools/${m.slug}/`, what: m.summary, chips: m.layers, code: m.code }))
+const stats = [{ n: c.tools, label: 'tools, each a manifest and a handler' }, { n: by.matterport, label: 'require the Matterport scan' }, { n: by.vexcel, label: 'require the Vexcel aerial' }, { n: by.costar, label: 'require the CoStar record' }]
+const sections: [string, string][] = [['problem', 'Problem'], ['built', 'What we built'], ['data', 'The data'], ['proof', 'Proof'], ['limits', 'Limits'], ['writeup', 'Write-up'], ['docs', 'In the docs']]
+const flow = [
+  { label: 'Three layers', nodes: [
+    { title: 'Matterport scan', what: 'Walls and doorways', note: 'The inside, as geometry: the wall outline, the rooms, and every door and window. Each interior measurement is taken from it.' },
+    { title: 'Vexcel aerial', what: 'Elevation, ortho, property facts, the 3D city', note: 'The outside: ground heights, the aerial photo, facts about the property and the city in 3D around the building.' },
+    { title: 'CoStar records', what: 'The listing and the property record', note: 'What is claimed: the listed area, the amenities and the record. Tools check these against what the scan measures.' },
+  ] },
+  { label: 'Cranley', nodes: [
+    { title: 'Composer', what: `Picks tools for the need from ${c.tools}`, note: 'Reads the sentence a person types, picks the tools that answer it and asks only for the inputs that are missing.' },
+    { title: 'Investigator', what: 'Plans, then one subagent per building', note: 'A deepagents investigator. It writes a todo list the person watches, runs one subagent per building in parallel and asks before an expensive step.' },
+    { title: 'Tools', what: 'Measure on the geometry', note: 'Each tool is a manifest and a handler. It measures on the layers it requires and returns checks: what was measured, the threshold and the result.' },
+  ] },
+  { label: 'The answer', nodes: [
+    { title: 'A verdict with its checks', what: 'Pass, check, fail or cannot tell', note: 'Every number comes from a calculation. A scan that cannot answer gets an "unknown" verdict with the reason.' },
+    { title: 'Sources', what: 'Layer, method, high, medium or low', note: 'Each number carries its layer, its method and a high, medium or low label, such as "Matterport geometry, high".' },
+    { title: 'A workspace and a PDF', what: 'A document the person and the agent both edit', note: 'The workspace is a document the agent and the person edit with the same operations, with undo. The PDF report is one a person can hand to a landlord.' },
+  ] },
+]
+---
+<Deep track={track} title={title} sections={sections} stats={stats}>
+  <Sec id="problem" title="A listing answers inside one listing" sub="Every CoStar product today answers questions inside one listing. Cranley answers a person's question across a whole city, by measurement, with all three layers checking each other.">
+    <p class="txt">The word on a listing is a claim. Below is the made-up test home: the listing would say "accessible", and the scan gives every doorway its measured width.</p>
+    <DoorSchedule />
+  </Sec>
+
+  <Sec id="built" title="Three layers in, one measured answer out" sub="Point at a step, or tab to it, to read what it does.">
+    <Flow cols={flow} />
+  </Sec>
+
+  <Sec id="data" title="What each tool reads, and where its code is" sub="A tool's manifest lists the layers it requires. These counts come from the manifests, not from a slide.">
+    <Chart title={`Tools by whose data they require, of ${c.tools}`} sub={`${by['two or more providers']} tools require two providers at once, and ${by['inputs only']} need only what a person types. A tool that requires two is counted under both.`} source="Counted from the required layers in each tool's manifest when this site was built. Layers a tool reads only when present are not counted.">
+      <Bars rows={need} />
+    </Chart>
+    <p class="txt">The tools that require the CoStar record, or two providers together. Each links to its page in the docs and to its folder in the repository.</p>
+    <Cards items={cross} />
+  </Sec>
+
+  <Sec id="proof" title="What the layers add, and what owners told us" sub="Two checks we can show without sponsor data: the whole catalogue run on a phone scan, and a truck owner's own measurements.">
+    <Chart title={`All ${c.tools} tools, run on a phone scan with no sponsor data`} sub={`${out.cannot} cannot answer. A phone scan has walls, doors, windows, rooms and objects, but no location, no photos and no property record. Press a result to keep only those tools.`} source="Each tool was run when this site was built, on a hand-made RoomPlan export with the network switched off. A mark opens the tool's page, where that run is printed.">
+      <Matrix />
+    </Chart>
+    <Chart title="Pickup lengths against the garage depths an owner reported" sub={'A truck owner on r/f150 wrote "I measured. Listings never had the garage depth." Garage fit measures the scanned garage instead of trusting "two-car garage" in the listing.'} source="Lengths are the garage fit tool's own vehicle table. Depths are one owner's written answer, logged in docs/feedback.md. No scan is shown here.">
+      <Garage />
+    </Chart>
+    {track.proof?.map((id) => <Proof id={id} />)}
+  </Sec>
+
+  <Sec id="limits" title="What it does not do" sub="Stated plainly, because a wrong measurement is worse than none.">
+    <ul class="txt">
+      <li>Many scans have no wall graph. Every tool checks the plan's quality first and says plainly when it cannot answer.</li>
+      <li>A scan that cannot answer gets an "unknown" verdict with the reason. On the phone scan above, {out.unknown} of {c.tools} runs ended that way.</li>
+      <li>The compass direction of a scan had no documented convention. We fitted it against building footprints from the aerial data before any tool relied on it.</li>
+      <li>This site shows no CoStar, Matterport or Vexcel data. Every run and picture on this page is a made-up test scan, our own drawing or a person's own words.</li>
+    </ul>
+  </Sec>
+
+  {track.video && (
+    <Sec id="video" title="The track in a video">
+      <figure class="video"><iframe src={`https://www.youtube-nocookie.com/embed/${track.video}`} title={`${track.name}: Cranley`} loading="lazy" allow="encrypted-media; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></figure>
+    </Sec>
+  )}
+
+  <Sec id="writeup" title="The write-up for the judges" sub="The track's section of our story, as written: how each criterion is served, and the two-minute demo path.">
+    <div class="prose"><slot /></div>
+  </Sec>
+
+  <Sec id="docs" title="In the docs">
+    <ul class="docs-links">{track.docs.map(([label, href]) => <li><a href={href}>{label}</a></li>)}</ul>
+  </Sec>
+</Deep>

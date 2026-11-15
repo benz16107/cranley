@@ -1,8 +1,9 @@
 - **Start here:** https://cranley.app
-- **Try it live:** https://cranley.app/app (access code from Ben at the table)
+- **Try it live:** https://cranley.app/app
 - **Every track in detail:** https://cranley.app/tracks/
 - **Code:** https://github.com/benz16107/cranley
 - **Conversation with Jean Ryan (7 min):** https://youtu.be/EoHyoNs2idg
+- **Video (2 min):** https://youtu.be/cwn0x1TZYKQ
 
 ---
 
@@ -47,8 +48,6 @@ Jean Ryan, President of Disabled In Action of Metropolitan New York, who uses a 
 > "I measured. Listings never had the garage depth."
 
 A truck owner on r/f150
-
-![Truck and boat owners on garage depth, and what garage fit now checks](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/145/datas/gallery.jpg)
 
 The scans, the aerial photos and the records that answer these questions exist, but each sits in its own product, one listing at a time.
 
