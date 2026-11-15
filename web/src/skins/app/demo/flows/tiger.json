@@ -1,0 +1,14 @@
+{
+  "id": "tiger",
+  "track": "Tiger",
+  "title": "A renovation what-if on a database fork",
+  "about": "What would make this house wheelchair-ready, and how many homes in the city would that help?",
+  "vars": { "building": "<scan-id>" },
+  "steps": [
+    { "do": "open", "sid": "$building", "say": "A Los Angeles house. Today its doorways fail a wheelchair check.", "hold": 3000 },
+    { "do": "tool", "tool": "renovate", "inputs": { "goal": "wheelchair_ready", "city": true }, "timeout": 110000,
+      "say": "The what-if edits a copy of the plan, re-measures it, then forks the facts database to count the city.",
+      "else": { "do": "tool", "tool": "renovate", "inputs": { "goal": "wheelchair_ready" }, "say": "No database fork offline: the renovation on its own." } },
+    { "do": "wait", "ms": 6000, "say": "The fork is a zero-copy copy of the Tiger service, deleted when the scenario ends." }
+  ]
+}

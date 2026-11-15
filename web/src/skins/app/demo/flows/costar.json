@@ -1,0 +1,18 @@
+{
+  "id": "costar",
+  "track": "CoStar",
+  "title": "Check a listing against the scan, then tour it",
+  "about": "A CoStar researcher asks the agent to check a Houston listing against its scan.",
+  "vars": { "building": "<scan-id>", "brief": "I research properties for CoStar. Check what the listing claims about this house against the scan itself." },
+  "steps": [
+    { "do": "open", "sid": "$building", "say": "A Houston house with a Matterport scan, a drone capture and a CoStar record.", "hold": 2000 },
+    { "do": "agent", "open": true, "hold": 500 },
+    { "do": "ask", "text": "$brief", "say": "The agent picks its tools, then reads the listing, the CoStar record and the scan side by side.",
+      "else": { "do": "tool", "tool": "listing_claims", "say": "The agent is offline, so the claim check runs as a tool." } },
+    { "do": "focus", "finding": "worst", "say": "Where the record and the scan disagree, the camera goes to the room.", "hold": 4000 },
+    { "do": "agent", "open": false, "hold": 300 },
+    { "do": "click", "label": "Play", "say": "The tour walks through every finding on this scan.", "hold": 700 },
+    { "do": "click", "label": "Tour", "hold": 2000 },
+    { "do": "wait", "ms": 16000, "say": "Each stop is a finding, measured from the scan, with its source." }
+  ]
+}

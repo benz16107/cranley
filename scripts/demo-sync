@@ -1,0 +1,173 @@
+#!/usr/bin/env python3
+"""Copy what the demo needs to the laptop, so `scripts/demo-up` runs there with no network. Run it on linuxbox.
+
+    scripts/demo-sync                          code, web build, data and .env to benmac
+    scripts/demo-sync --trace /tmp/demo/trace.log   first rebuild the data list from a server's file trace
+    scripts/demo-sync --dest /tmp/laptop-data  the same data into a local folder (to test offline on linuxbox)
+    scripts/demo-sync --dry-run                say what would be copied and how big it is
+
+What goes:
+- code: the laptop's clone is moved to this checkout's commit (fetched over ssh from this machine, nothing pushed),
+  and its Python environment synced while there is network;
+- the web build (`web/dist`, built here) so the laptop needs no Node;
+- data: exactly the files listed in $THRESHOLD_DATA_DIR/demo/manifest.txt (every file under the data folder the
+  server opened while the six flows played, from `strace`), the recorded model answers (demo/llm/), and the whole
+  cache of each scan a flow names in its "vars" (panoramas, meshes, splats: off-script clicks on those buildings work
+  too; --lean leaves them out). rsync copies only what changed, so a second run is quick;
+- a .env with only the keys the server reads for these flows: the model key and the endpoint it sits behind,
+  Matterport and Vexcel for anything not cached, LangSmith for traces. No database URLs or console logins: the
+  laptop keeps workspaces in files and the facts database falls back.
+
+The data is sponsor data (CoStar's terms allow copies within the team during the event): delete the laptop's copy
+after judging, `rm -rf ~/Code/hackathons/hackprinceton26-data`.
+"""
+from __future__ import annotations
+
+import argparse
+import os
+import pathlib
+import re
+import shlex
+import subprocess
+import sys
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+DATA = pathlib.Path(os.environ.get("THRESHOLD_DATA_DIR", "~/Code/hackathons/hackprinceton26-data"))
+MANIFEST = DATA / "demo" / "manifest.txt"
+HOST = "benmac"
+REPO_L = "~/Code/hackathons/hackprinceton26"
+DATA_L = "~/Code/hackathons/hackprinceton26-data"
+KEYS = ("ANTHROPIC_API_KEY", "THRESHOLD_MODEL", "MATTERPORT_API_KEY", "MATTERPORT_API_TOKEN", "MATTERPORT_SDK_KEY",
+        "VEXCEL_API_KEY", "LANGSMITH_API_KEY", "LANGSMITH_PROJECT")
+# never copied, whatever a trace says: keys, other threads' scratch, screenshots, workspaces made while recording
+SKIP = re.compile(r"^(\.env|polish/|shots/|workspaces/|reports_out/|demo/run/)|\.(lock|tmp)$")
+OPEN = re.compile(r'(?:openat|stat|newfstatat|statx)\((?:AT_FDCWD|\d+), "([^"]+)".*\) = (\d+)')
+
+
+def sh(cmd: list[str] | str, **kw) -> subprocess.CompletedProcess:
+    return subprocess.run(cmd, shell=isinstance(cmd, str), check=True, text=True, **kw)
+
+
+def from_trace(trace: pathlib.Path) -> list[str]:
+    """Files under the data folder the traced server opened or found, relative to it."""
+    root = str(DATA) + "/"
+    seen: set[str] = set()
+    for line in trace.open(errors="replace"):
+        m = OPEN.search(line)
+        if m and m.group(1).startswith(root):
+            rel = m.group(1)[len(root):]
+            if rel and not SKIP.search(rel) and (DATA / rel).is_file():
+                seen.add(rel)
+    return sorted(seen)
+
+
+SID = re.compile(r"^(?:[A-Za-z0-9]{11}|u_[0-9a-f]{12})$")
+
+
+def flow_sids() -> set[str]:
+    """The scans the flows name in their vars: their whole caches go too, so the building can be explored off-script."""
+    import json
+    out: set[str] = set()
+    for f in (ROOT / "web" / "src" / "skins" / "app" / "demo" / "flows").glob("*.json"):
+        out |= {v for v in (json.loads(f.read_text()).get("vars") or {}).values() if isinstance(v, str) and SID.match(v)}
+    return out
+
+
+def listing(lean: bool = False) -> list[str]:
+    files = [l for l in MANIFEST.read_text().splitlines() if l and (DATA / l).is_file()] if MANIFEST.exists() else []
+    llm = [str(p.relative_to(DATA)) for p in (DATA / "demo" / "llm").glob("*.json")]
+    whole = [] if lean else [str(p.relative_to(DATA)) for sid in flow_sids()
+                             for d in DATA.glob(f"cache/*/{sid}*")  # splat/<sid>/ is training input; the trace has what is served
+                             for p in ([d] if d.is_file() else d.rglob("*")) if p.is_file() and not SKIP.search(str(p.relative_to(DATA)))]
+    return sorted(set(files) | set(llm) | set(whole))
+
+
+def size(files: list[str]) -> int:
+    return sum((DATA / f).stat().st_size for f in files)
+
+
+def human(n: float) -> str:
+    for u in ("B", "KB", "MB", "GB"):
+        if n < 1024 or u == "GB":
+            return f"{n:.1f} {u}"
+        n /= 1024
+    return ""
+
+
+def env_text() -> str:
+    pairs = dict(l.split("=", 1) for l in (DATA / ".env").read_text().splitlines() if "=" in l and not l.lstrip().startswith("#"))
+    out = [f"{k}={pairs[k]}" for k in KEYS if pairs.get(k)]
+    if pairs.get("ANTHROPIC_BASE_URL"):  # the pool proxy; demo-up points the server at the local recorder in front of it
+        out.append(f"DEMO_UPSTREAM={pairs['ANTHROPIC_BASE_URL']}")
+    out.append("THRESHOLD_STORE=files")
+    return "\n".join(out) + "\n"
+
+
+def main():
+    a = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    a.add_argument("--trace", type=pathlib.Path, help="rebuild the data list from this strace log first")
+    a.add_argument("--dest", help="copy the data into this local folder instead of the laptop (code and build are skipped)")
+    a.add_argument("--host", default=HOST)
+    a.add_argument("--dry-run", action="store_true")
+    a.add_argument("--no-code", action="store_true", help="leave the laptop's code and web build as they are")
+    a.add_argument("--lean", action="store_true", help="only the traced files, not the flow buildings' whole caches")
+    o = a.parse_args()
+
+    if o.trace:
+        new = from_trace(o.trace)
+        old = set(MANIFEST.read_text().splitlines()) if MANIFEST.exists() else set()
+        MANIFEST.parent.mkdir(parents=True, exist_ok=True)
+        MANIFEST.write_text("\n".join(sorted(old | set(new))) + "\n")  # traces add up: each run may touch more
+        print(f"manifest: {len(new)} files in this trace, {len(old | set(new))} in all")
+    files = listing(o.lean)
+    if not files:
+        sys.exit("demo-sync: the data list is empty; play the flows on a traced server and pass --trace")
+    print(f"data: {len(files)} files, {human(size(files))}")
+    if o.dry_run:
+        by: dict[str, int] = {}
+        for f in files:
+            k = "/".join(f.split("/")[:2])
+            by[k] = by.get(k, 0) + (DATA / f).stat().st_size
+        for k, n in sorted(by.items(), key=lambda x: -x[1])[:20]:
+            print(f"  {human(n):>10}  {k}")
+        return
+
+    lst = DATA / "demo" / "files.txt"
+    lst.write_text("\n".join(files) + "\n")
+    if o.dest:
+        pathlib.Path(o.dest).mkdir(parents=True, exist_ok=True)
+        sh(["rsync", "-a", "--files-from", str(lst), f"{DATA}/", f"{o.dest}/"])
+        (pathlib.Path(o.dest) / ".env").write_text(env_text())
+        os.chmod(pathlib.Path(o.dest) / ".env", 0o600)
+        print(f"copied to {o.dest}")
+        return
+
+    host = o.host
+    if subprocess.run(["ssh", "-o", "ConnectTimeout=6", "-o", "BatchMode=yes", host, "true"]).returncode:
+        sys.exit(f"demo-sync: {host} is not answering (asleep?). Run this again once it is awake.")
+    remote = lambda c: sh(["ssh", host, f"export PATH=$HOME/.local/bin:/opt/homebrew/bin:$PATH; {c}"])
+
+    if not o.no_code:
+        commit = sh(["git", "-C", str(ROOT), "rev-parse", "HEAD"], capture_output=True).stdout.strip()
+        if sh(["git", "-C", str(ROOT), "status", "--porcelain", "--untracked-files=no"], capture_output=True).stdout.strip():
+            print("note: this checkout has uncommitted changes; the laptop gets the last commit", commit[:8])
+        me = subprocess.run(["hostname", "-s"], capture_output=True, text=True).stdout.strip() or "linuxbox"
+        r = shlex.quote(REPO_L)
+        remote(f"test -z \"$(git -C {r} status --porcelain --untracked-files=no)\" || "
+               f"{{ echo 'demo-sync: the laptop clone has uncommitted changes; leaving its code alone' >&2; exit 3; }}")
+        remote(f"git -C {r} fetch -q ssh://{me}{ROOT} HEAD && test $(git -C {r} rev-parse FETCH_HEAD) = {commit}"
+               f" && git -C {r} -c advice.detachedHead=false checkout -q --detach {commit}"
+               f" && cd {r}/server && uv sync -q")
+        sh(["pnpm", "build"], cwd=ROOT / "web", stdout=subprocess.DEVNULL)
+        sh(["rsync", "-a", "--delete", f"{ROOT}/web/dist/", f"{host}:{REPO_L}/web/dist/"])
+        print(f"code: laptop at {commit[:8]}, web build copied")
+
+    remote(f"mkdir -p {shlex.quote(DATA_L)}/demo")
+    sh(["rsync", "-az", "--partial", "--files-from", str(lst), f"{DATA}/", f"{host}:{DATA_L}/"])  # resumable; the link may be a relay
+    sh(["ssh", host, f"umask 077; cat > {shlex.quote(DATA_L)}/.env"], input=env_text())
+    print(f"data: copied to {host}:{DATA_L} ({human(size(files))}); .env with {len(KEYS)} keys at most, no database logins")
+    print("after judging, delete it:", f"ssh {host} rm -rf {DATA_L}")
+
+
+if __name__ == "__main__":
+    main()

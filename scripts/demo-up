@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# Start Threshold's demo on this machine from localhost, with or without a network, and open the browser.
+#
+#   scripts/demo-up            start (or restart) and open http://127.0.0.1:8890/app
+#   scripts/demo-up --replay   the agent answers only from recordings: same every time, no network used
+#   scripts/demo-up --live     the agent always asks the real model (fails with no network)
+#   scripts/demo-up --no-open  start without opening a browser (DEMO_NO_OPEN=1 does the same)
+#   scripts/demo-up stop       stop it
+#   scripts/demo-up status     is it running, and is the model endpoint reachable
+#
+# What runs: scripts/demo-llm on 8899 (the model calls: live when the pool answers, recorded when not) and
+# scripts/demo-serve on 8890 (the API and the built web app). Workspaces are files; no database is needed.
+# Data comes from $THRESHOLD_DATA_DIR (default: the -data folder beside this checkout), filled by scripts/demo-sync.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+DATA="${THRESHOLD_DATA_DIR:-$(dirname "$ROOT")/hackprinceton26-data}"
+RUN="$DATA/demo/run"
+PORT="${DEMO_PORT:-8890}" LLM="${DEMO_LLM_PORT:-8899}"
+MODE=auto
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:$PATH"
+mkdir -p "$RUN"
+
+stop() {
+  for n in serve llm; do
+    local pid; pid="$(cat "$RUN/$n.pid" 2>/dev/null || true)"
+    if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+      kill "$pid" 2>/dev/null || true
+      for _ in 1 2 3 4 5 6; do kill -0 "$pid" 2>/dev/null || break; sleep 0.5; done
+      kill -9 "$pid" 2>/dev/null || true  # the server waits for a browser's open connections; do not wait for it
+    fi
+    rm -f "$RUN/$n.pid"
+  done
+}
+upstream() { sed -n 's/^DEMO_UPSTREAM=//p' "$DATA/.env" 2>/dev/null | head -1; }
+online() {  # can a TCP connection to the model endpoint open within 3 s?
+  local u; u="$(upstream)"; [[ -n "$u" ]] || return 1
+  python3 - "$u" <<'EOF'
+import socket, sys
+from urllib.parse import urlsplit
+u = urlsplit(sys.argv[1])
+try:
+    socket.create_connection((u.hostname, u.port or 443), timeout=3).close()
+except OSError:
+    sys.exit(1)
+EOF
+}
+
+case "${1:-}" in
+  stop) stop; echo "demo stopped"; exit 0 ;;
+  status)
+    for n in serve llm; do [[ -f "$RUN/$n.pid" ]] && kill -0 "$(cat "$RUN/$n.pid")" 2>/dev/null && echo "$n: running" || echo "$n: stopped"; done
+    online && echo "model endpoint: reachable (live agent)" || echo "model endpoint: unreachable (recorded answers)"
+    exit 0 ;;
+  --replay) MODE=replay ;;
+  --live) MODE=live ;;
+  --no-open) DEMO_NO_OPEN=1 ;;
+  "") ;;
+  *) sed -n '2,12p' "$0"; exit 2 ;;
+esac
+
+[[ -f "$DATA/.env" ]] || { echo "No $DATA/.env: run scripts/demo-sync on linuxbox first."; exit 1; }
+[[ -f "$ROOT/web/dist/index.html" ]] || { echo "No web build in $ROOT/web/dist: run scripts/demo-sync on linuxbox first."; exit 1; }
+PY="$ROOT/server/.venv/bin/python"
+[[ -x "$PY" ]] || { echo "No Python environment: cd server && uv sync (needs the network once)."; exit 1; }
+stop
+
+export THRESHOLD_DATA_DIR="$DATA" THRESHOLD_STORE=files
+export ANTHROPIC_BASE_URL="http://127.0.0.1:$LLM"
+export TIGER_DATABASE_URL=""   # no facts database on the laptop: the tools that read it fall back
+if online; then net="online: the agent asks the real model and saves its answers"; else
+  net="offline: the agent answers from the recordings"; export LANGSMITH_TRACING=false
+  [[ "$MODE" == live ]] && echo "warning: --live with no network: every agent turn will fail"
+fi
+
+nohup python3 "$ROOT/scripts/demo-llm" --port "$LLM" --mode "$MODE" >"$RUN/llm.log" 2>&1 </dev/null & echo $! >"$RUN/llm.pid"
+cd "$ROOT/server"
+nohup "$PY" "$ROOT/scripts/demo-serve" --port "$PORT" --dist "$ROOT/web/dist" >"$RUN/serve.log" 2>&1 </dev/null & echo $! >"$RUN/serve.pid"
+
+printf "starting"
+for _ in $(seq 1 90); do
+  if curl -fs -o /dev/null "http://127.0.0.1:$PORT/api/tools"; then break; fi
+  printf "."; sleep 1
+done
+echo
+curl -fs -o /dev/null "http://127.0.0.1:$PORT/api/tools" || { echo "The server did not start. Last lines of $RUN/serve.log:"; tail -20 "$RUN/serve.log"; exit 1; }
+saved=$(ls "$DATA/demo/llm" 2>/dev/null | wc -l | tr -d ' ')
+commit=$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo "?")
+echo "Threshold demo at http://127.0.0.1:$PORT/app  (code $commit, agent mode $MODE, $saved recorded model answers)"
+echo "$net"
+echo "Demo menu: top bar, Demo. Stop with: scripts/demo-up stop. Logs: $RUN/"
+url="http://127.0.0.1:$PORT/app"
+if [[ -n "${DEMO_NO_OPEN:-}" ]]; then :; elif command -v open >/dev/null && [[ "$(uname)" == Darwin ]]; then open "$url"; elif command -v xdg-open >/dev/null && [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]]; then xdg-open "$url" >/dev/null 2>&1 || true; fi
