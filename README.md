@@ -1,5 +1,8 @@
 # Cranley (code name `threshold`)
 
+**Ask anything about a building. Get a measured answer.** An agent that measures the real building, inside and out,
+before you commit.
+
 Listings say "accessible", "two-car garage", "fits a king bed". Nobody measures before you commit. Cranley is one
 place where an agent assembles the tools your need requires, from a city map down to a measured doorway, and checks
 real buildings inside and out. Every number comes from a calculation, never from a model's text.

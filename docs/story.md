@@ -27,13 +27,10 @@ Answer these in the thread; the defaults below go in if there is no answer by ab
    domain, so the MLH GoDaddy prize does not apply unless another domain is registered there. The site uses only safe
    visuals until CoStar confirms websites (`docs/site-plan.md`). Production deploys need Ben's yes.
 
-2. **Tagline.** Candidates (Devpost allows 200 characters):
-   - A. "Tell it what you need from a building. An agent builds the tools, measures the real thing inside and out, and shows its work."
-   - B. "Listings say 'accessible' and 'two-car garage'. Cranley measures it: an agent that checks real buildings, inside and out, before you commit."
-   - C. "One place where an agent assembles the tools your need requires, from the city map down to a measured doorway, and every number comes from a calculation."
-   - D. "Ask anything about a building. Get a measured answer." (the cranley.app headline since 10:19 pm)
-   Default: **B** on Devpost for now (problem first, names the product, says what it does). D matches the site; switching
-   Devpost to it is one update if Ben prefers the two to agree.
+2. **Tagline: decided (Ben, 2026-11-14 ~10:25 pm), option D extended:** "Ask anything about a building. Get a measured answer. An agent that measures the real building, inside and out, before you commit." (130 characters; Devpost allows
+   200). It matches the cranley.app headline. Earlier candidates, for the record: A "Tell it what you need from a
+   building...", B "Listings say 'accessible' and 'two-car garage'. Cranley measures it...", C "One place where an agent
+   assembles the tools your need requires..."
 
 3. **Main HackPrinceton track.** The form allows exactly one of Healthcare, Sustainability, Business/Enterprise,
    Entertainment/Media, Education, Science & Discovery. Default: **Business/Enterprise** (the product is a working

@@ -8,7 +8,7 @@ unticked prize is not judged.
 | Field (id) | Required | Draft answer |
 |---|---|---|
 | Name | yes | Cranley |
-| Tagline (200) | yes | Listings say "accessible" and "two-car garage". Cranley measures it: an agent that checks real buildings, inside and out, before you commit. |
+| Tagline (200) | yes | Ask anything about a building. Get a measured answer. An agent that measures the real building, inside and out, before you commit. |
 | Description | yes | `docs/devpost/description.md` |
 | Built with (max 25) | yes | see below |
 | Public Git Repository (29740) | yes | https://github.com/benz16107/cranley |
