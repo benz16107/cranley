@@ -38,7 +38,7 @@ Jean Ryan is President of Disabled In Action of Metropolitan New York and uses a
 
 > "If it opens in, you typically cannot get in because the door is blocking them." (09:45, on bathroom stall doors)
 
-What we changed that night: the wheelchair route now leads with whether there are any steps between the entrance and the room, including steps inside and before the elevators; a person keeps more than one chair and each is checked; bathroom clearance says which way the door opens and counts a bin beside the toilet as blocking; turning space counts objects on the floor and checks the aisle; other floors say when the only way is an elevator.
+What we changed that night (written the same evening, merging before judging): the wheelchair route leads with whether there are any steps between the entrance and the room, including steps inside and before the elevators; a person keeps more than one chair and each is checked; bathroom clearance says which way the door opens and counts a bin beside the toilet as blocking; turning space counts objects on the floor and checks the aisle; other floors say when the only way is an elevator.
 
 ## What it does
 
