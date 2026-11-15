@@ -48,3 +48,26 @@ def test_hot_water_run_from_the_heater_to_the_farthest_sink(monkeypatch):
     r = run(restaurant("far"))
     assert {c.id: c.status for c in r.checks}["hot_water"] == "fail"
     assert any(f.id.endswith(":hot_water") for f in r.findings)
+
+
+def test_backroom_share_and_pallet_spots():
+    # store associates: one backroom for all freight, and overstock pallets lined down the sales floor
+    from threshold.tools.facility_audit import pallet_positions
+    from shapely.geometry import box
+    assert pallet_positions(box(0, 0, 10.16, 4.27), 1.83) == 20          # two rows of ten, one shared aisle
+    assert pallet_positions(box(0, 0, 10.16, 1.0), 1.83) == 0            # narrower than a pallet
+    p = restaurant("store")
+    for r in p["rooms"]:
+        r["label"] = {"L": "retail floor", "K": "storage"}.get(r["id"], r["label"])
+    m = {x.id: x.value for x in run(p).metrics}
+    assert m["backroom_share"] == 50                                       # 4 x 3 m pantry, 4 x 6 m living room
+    assert m["pallet_positions"] == 2                                      # one row of two and its aisle
+    assert any(c.id == "cannot.overstock" for c in run(p).checks)
+
+
+def test_pallet_rows_each_have_an_aisle():
+    from shapely.geometry import box
+    from threshold.tools.facility_audit import pallet_positions
+    assert pallet_positions(box(0, 0, 3.0, 2.9), 1.83) == 0              # a row fits either way, its aisle does not
+    assert pallet_positions(box(0, 0, 10.16, 3.1), 1.83) == 15           # rows turned the other way: 5 rows of 3
+    assert pallet_positions(box(0, 0, 10.16, 6.8), 1.83) == 40           # pair, aisle, pair: 4 rows of 10
