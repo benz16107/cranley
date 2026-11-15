@@ -26,7 +26,7 @@ Tell Cranley your wheelchair is 70 cm wide on the first home you look at. On the
 ## Challenges we ran into
 
 - The scans' mesh download was unavailable, so the first dollhouse was drawn from the wall graph. Later we found the scanned mesh through the model API and baked it with the panoramas.
-- About half the scans have no wall graph. Every tool checks the plan's quality first and says plainly when it cannot answer; for some scans we recovered walls from the schematic drawing.
+- Many scans have no wall graph. Every tool checks the plan's quality first and says plainly when it cannot answer; for some scans we recovered walls from the schematic drawing.
 - The compass direction of a scan had no documented convention. We fitted it against building footprints from the aerial data before any tool relied on it.
 - Some scans put their origin on an upper floor, which sank every 3D overlay by a storey until we fixed one height for the whole scene.
 - A DiskANN index grown row by row had recall@10 of 0.0, so a TimescaleDB job now rebuilds it hourly.
