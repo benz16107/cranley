@@ -61,7 +61,7 @@ Sources this tool gave on the test home:
 | Measured from the scan | `matterport` | `geometry` | medium | Opening width in the wall graph; a hinged door's leaf takes a few centimetres off it |
 | Seen in a model | `model` | `vision` | low | Nothing found in one panorama: an alarm on a wall, behind a fan or outside the photo is missed |
 
-The tool sets the label for each value. A model never does.
+The tool sets the label for each value. A model never does. The tools give a scan's wall graph the layer `matterport` whichever device made the scan, so a phone scan's geometry carries that label too.
 
 ## Limits
 

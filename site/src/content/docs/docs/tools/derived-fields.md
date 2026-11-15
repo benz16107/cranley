@@ -58,7 +58,7 @@ Sources this tool gave on the test home:
 | Looked up in the scan | `matterport` | `lookup` | medium | Matterport room labels (by furniture) |
 | Looked up in the scan | `matterport` | `lookup` | high |  |
 
-The tool sets the label for each value. A model never does.
+The tool sets the label for each value. A model never does. The tools give a scan's wall graph the layer `matterport` whichever device made the scan, so a phone scan's geometry carries that label too.
 
 ## Limits
 

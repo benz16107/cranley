@@ -60,7 +60,7 @@ Sources this tool gave on the test home:
 | Measured from a model | `model` | `geometry` | low | Floor height from a typical Houston slab (assumed); range 0.10 to 0.50 m |
 | Looked up in a model | `model` | `lookup` | high | Your number |
 
-The tool sets the label for each value. A model never does.
+The tool sets the label for each value. A model never does. The tools give a scan's wall graph the layer `matterport` whichever device made the scan, so a phone scan's geometry carries that label too.
 
 ## Limits
 

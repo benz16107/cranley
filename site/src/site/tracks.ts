@@ -1,8 +1,8 @@
 // The sponsor tracks. The body of each page is generated from docs/story.md into src/content/tracks/<slug>.md;
-// this file adds what the page links to. Photon has no section in the story yet, so its words are here.
+// this file adds what the page links to.
 import type { SlotId } from './slots'
 
-export type Track = { slug: string; name: string; prize: string; summary: string; docs: [string, string][]; slots: SlotId[]; body?: string[] }
+export type Track = { slug: string; name: string; prize: string; summary: string; docs: [string, string][]; slots: SlotId[] }
 
 export const TRACKS: Track[] = [
   {
@@ -30,15 +30,10 @@ export const TRACKS: Track[] = [
     slots: ['agent-lanes', 'langsmith-trace'],
   },
   {
-    slug: 'photon', name: 'Photon', prize: 'Photon 2.0 messaging',
-    summary: 'Ask Cranley by text message. In progress: not merged when this page was built.',
-    docs: [['The agent', '/docs/concepts/agent/'], ['Sponsor integrations', '/docs/sponsor-integrations/#photon'], ['Phone and iPhone app', '/docs/phone/']],
+    slug: 'photon', name: 'Photon', prize: 'Build a Messaging Agent using Photon 2.0',
+    summary: 'The same agent and the same measuring tools answer in iMessage and on a phone call. Merged; a live round trip was not yet confirmed when this page was built.',
+    docs: [['Sponsor integrations', '/docs/sponsor-integrations/#photon'], ['The agent', '/docs/concepts/agent/'], ['Phone and iPhone app', '/docs/phone/'], ['Findings and reliability', '/docs/concepts/findings-and-reliability/']],
     slots: [],
-    body: [
-      'A messaging agent over Photon is being built during the event, on its own branch. It was not merged when this page was built, so nothing on this page is a claim that it works.',
-      'The plan: ask by text and get the same tool results back, with rendered images and links that open the workspace. Photos, a location or a voice note can start a check. A group chat can vote on homes. A field visit can run by message, and the PDF report arrives in the chat.',
-      'It runs on the same tool registry and the same workspace document as the web app, the phone companion and the MCP server, so a number in a message comes from the same calculation as the number on the screen.',
-    ],
   },
   {
     slug: 'tiger-data', name: 'MLH: Tiger Data', prize: 'Best Use of Tiger Data',

@@ -312,7 +312,8 @@ def tool_md(tool, ex: dict, people: list[dict], approve: dict) -> str:
         out += f"Sources this tool gave on the {ex['where']}:\n\n" + table(
             ["Where it came from", "Layer", "Method", "Reliability", "Note"],
             [[source_words(s), f"`{s['layer']}`", f"`{s['method']}`", s["confidence"], esc(s.get("note") or "")] for s in src])
-        out += "\nThe tool sets the label for each value. A model never does.\n"
+        out += ("\nThe tool sets the label for each value. A model never does. The tools give a scan's wall graph the layer `matterport` "
+                "whichever device made the scan, so a phone scan's geometry carries that label too.\n")
     else:
         out += "Every metric and finding carries its layer, its method and a high, medium or low label, set by the tool for each value. See [findings and reliability](/docs/concepts/findings-and-reliability/).\n"
     out += "\n## Limits\n\n"
@@ -370,7 +371,7 @@ def schema_md(name: str, model, defs: dict) -> str:
             it = p.get("items", {})
             kinds = ["list of " + (it.get("$ref", "").split("/")[-1] or it.get("type") or " or ".join(x.get("$ref", "").split("/")[-1] for x in it.get("anyOf", it.get("oneOf", []))))]
         if p.get("enum"):
-            kinds = [" \\| ".join(f"`{e}`" for e in p["enum"])]
+            kinds = [" or ".join(f"`{e}`" for e in p["enum"])]
         rows.append([f"`{k}`", esc(" or ".join(str(x) for x in kinds if x)), esc(p.get("description", ""))])
     return f"### {name}\n\n{esc((model.__doc__ or '').strip())}\n\n" + table(["Field", "Type", "Notes"], rows) + "\n"
 
@@ -473,7 +474,7 @@ def tracks_md() -> dict[str, str]:
             continue
         head, body = sec.split("\n", 1)
         for pattern, to in ((r"\s*\(question \d\)", ""), (r"\s*See question \d\.", ""), (r"\s*Track pick: question \d\.", ""),
-                            (r";[^.;]*\$THRESHOLD_DATA_DIR[^.]*\.", ".")):
+                            (r";[^.;]*\$THRESHOLD_DATA_DIR[^.]*\.", "."), (r"\s*\(asked of Ben\)", "")):
             body = re.sub(pattern, to, body)
         assert not re.search(r"question \d|THRESHOLD_DATA_DIR", body), head
         slug = next((s for key, s in (("CoStar", "costar"), ("Amazon", "amazon"), ("Peri", "peri"), ("LangChain", "langchain"), ("Photon", "photon"),
@@ -512,9 +513,13 @@ def sponsor_md() -> str:
         rows = re.search(r"(\| Feature \|.*?)(?:\n\n|\Z)", sec, re.S).group(1)
         out += f"## {title}\n\n{lead}\n\n{rows.strip()}\n\n### Left out, and why\n\n" + table(["Feature", "Why not"], [[a, b] for a, b in SKIPPED[slug]])
         out += f"\nThe track page: [{title.split(':')[0]}](/tracks/{slug}/).\n\n"
-    out += ("## Photon\n\nA messaging agent over Photon is being built on its own branch: ask Cranley by text message and get the same tool results back. "
-            "It was not merged when these docs were built, so nothing here is a claim that it works. It uses the same tool registry and the same workspace document "
-            "as every other way in. The track page: [Photon](/tracks/photon/).\n")
+    sec = next(s for s in re.split(r"\n(?=### )", story) if s.startswith("### ") and "Photon" in s.split("\n", 1)[0])
+    rows = re.search(r"(\| What a person does \|.*?)(?:\n\n|\Z)", sec, re.S).group(1)
+    rules = re.search(r"Rules it keeps:.*?(?:\n\n|\Z)", sec, re.S).group(0).strip()
+    state = re.sub(r"\s*\(asked of Ben\)", "", re.search(r"\*\*State[^\n]*\n(?:[^\n]+\n)*", sec).group(0).strip())
+    out += ("## Photon\n\nOn Photon 2.0 the same agent and the same measuring tools answer in iMessage and on a phone call. "
+            f"It runs on the same tool registry and the same workspace document as every other way in.\n\n{rows.strip()}\n\n{rules}\n\n{state}\n\n"
+            "The track page: [Photon](/tracks/photon/).\n")
     return page("Sponsor integrations", "What each LangChain, MongoDB Atlas, Tiger Data and Photon feature is used for.", out)
 
 

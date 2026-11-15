@@ -29,7 +29,7 @@ Every tool returns the same typed result. A renderer ignores what it does not kn
 
 | Field | Type | Notes |
 |---|---|---|
-| `status` | `pass` \\| `warn` \\| `fail` \\| `unknown` |  |
+| `status` | `pass` or `warn` or `fail` or `unknown` |  |
 | `text` | string |  |
 
 ### Metric
@@ -55,10 +55,10 @@ Every tool returns the same typed result. A renderer ignores what it does not kn
 | `measured` | number or null |  |
 | `threshold` | number or null |  |
 | `unit` | string |  |
-| `status` | `pass` \\| `warn` \\| `fail` \\| `unknown` |  |
+| `status` | `pass` or `warn` or `fail` or `unknown` |  |
 | `standard` | string or null |  |
 | `findings` | list of string |  |
-| `kind` | `limit` \\| `claim` | claim: `threshold` is what a record or a listing says, not a limit to meet |
+| `kind` | `limit` or `claim` | claim: `threshold` is what a record or a listing says, not a limit to meet |
 
 ### Finding
 
@@ -68,7 +68,7 @@ Every tool returns the same typed result. A renderer ignores what it does not kn
 |---|---|---|
 | `id` | string |  |
 | `title` | string |  |
-| `status` | `pass` \\| `warn` \\| `fail` \\| `unknown` |  |
+| `status` | `pass` or `warn` or `fail` or `unknown` |  |
 | `detail` | string |  |
 | `anchor` | PointAnchor or RoomAnchor or OpeningAnchor or WallAnchor or PanoAnchor or GeoAnchor or null |  |
 | `source` | Source |  |
@@ -80,9 +80,9 @@ Every tool returns the same typed result. A renderer ignores what it does not kn
 
 | Field | Type | Notes |
 |---|---|---|
-| `layer` | `matterport` \\| `vexcel` \\| `costar` \\| `drone` \\| `model` \\| `phone` |  |
-| `method` | `geometry` \\| `vision` \\| `lookup` \\| `simulation` \\| `sensor` \\| `manual` |  |
-| `confidence` | `high` \\| `medium` \\| `low` |  |
+| `layer` | `matterport` or `vexcel` or `costar` or `drone` or `model` or `phone` |  |
+| `method` | `geometry` or `vision` or `lookup` or `simulation` or `sensor` or `manual` |  |
+| `confidence` | `high` or `medium` or `low` |  |
 | `note` | string or null |  |
 
 ### Media
@@ -91,7 +91,7 @@ Every tool returns the same typed result. A renderer ignores what it does not kn
 
 | Field | Type | Notes |
 |---|---|---|
-| `kind` | `pano` \\| `ortho` \\| `drone` \\| `phone` |  |
+| `kind` | `pano` or `ortho` or `drone` or `phone` |  |
 | `ref` | string |  |
 | `box` | array or null |  |
 
@@ -130,7 +130,7 @@ One overlay draws in every view that can show it: the 3D building, the plan, a p
 |---|---|---|
 | `kind` | string |  |
 | `values` | object | room id -> value |
-| `ramp` | `sequential` \\| `status` |  |
+| `ramp` | `sequential` or `status` |  |
 | `legend` | Legend |  |
 
 ### RuleOverlay
@@ -141,7 +141,7 @@ One overlay draws in every view that can show it: the 3D building, the plan, a p
 |---|---|---|
 | `kind` | string |  |
 | `select` | SelectRooms or SelectRoomLabels or SelectOpenings or SelectWalls |  |
-| `style` | `solid` \\| `dim` \\| `hide` \\| `highlight` \\| `pass` \\| `warn` \\| `fail` |  |
+| `style` | `solid` or `dim` or `hide` or `highlight` or `pass` or `warn` or `fail` |  |
 
 ### PinsOverlay
 
@@ -185,7 +185,7 @@ One overlay draws in every view that can show it: the 3D building, the plan, a p
 | `size` | list of |  |
 | `yaw_deg` | number |  |
 | `label` | string |  |
-| `status` | `pass` \\| `warn` \\| `fail` \\| `unknown` |  |
+| `status` | `pass` or `warn` or `fail` or `unknown` |  |
 | `model` | string or null | Model class the scene draws stretched to exactly this box, such as vehicle/pickup or furniture/sofa; none draws the box alone |
 
 ## The manifest
@@ -210,7 +210,7 @@ One per tool. It feeds the agent, the web tool dock, the MCP server and the CLI.
 | `overlays` | list of string |  |
 | `annotations` | Annotations |  |
 | `examples` | list of string |  |
-| `status` | `ready` \\| `planned` |  |
+| `status` | `ready` or `planned` |  |
 | `table` | list of TableColumn | Columns of the run's own RankedTable: each row is a key k with metrics `k/&lt;column.metric>`; the first cell's label names the row |
 
 ### Requirement
@@ -220,7 +220,7 @@ One per tool. It feeds the agent, the web tool dock, the MCP server and the CLI.
 | Field | Type | Notes |
 |---|---|---|
 | `layer` | string | e.g. matterport.rooms, matterport.openings, vexcel.ortho, costar.property |
-| `need` | `required` \\| `optional` |  |
+| `need` | `required` or `optional` |  |
 | `fallback` | string or null |  |
 
 ### Annotations
@@ -230,7 +230,7 @@ One per tool. It feeds the agent, the web tool dock, the MCP server and the CLI.
 | Field | Type | Notes |
 |---|---|---|
 | `read_only` | boolean |  |
-| `cost` | `fast` \\| `slow` |  |
+| `cost` | `fast` or `slow` |  |
 
 ### Place
 

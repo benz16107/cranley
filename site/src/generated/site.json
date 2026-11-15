@@ -3,7 +3,7 @@
   "tools": 78,
   "personas": 50,
   "layers": 66,
-  "operations": 93,
+  "operations": 97,
   "examples": {
    "fail": 9,
    "cannot": 26,
@@ -1680,6 +1680,7 @@
   "langchain",
   "mongodb",
   "peri",
+  "photon",
   "tiger-data"
  ],
  "home": {

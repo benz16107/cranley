@@ -95,4 +95,25 @@ The track page: [MongoDB Atlas](/tracks/mongodb/).
 
 ## Photon
 
-A messaging agent over Photon is being built on its own branch: ask Cranley by text message and get the same tool results back. It was not merged when these docs were built, so nothing here is a claim that it works. It uses the same tool registry and the same workspace document as every other way in. The track page: [Photon](/tracks/photon/).
+On Photon 2.0 the same agent and the same measuring tools answer in iMessage and on a phone call. It runs on the same tool registry and the same workspace document as every other way in.
+
+| What a person does | Why it is a real use of Photon 2.0 |
+|---|---|
+| Asks in plain words, gets the floor plan picture marked with findings, the verdict, the measurements and a workspace link | Shared iMessage line, native replies, attachment upload, typing indicator |
+| Replies to an earlier answer ("what about a 76 cm chair?") | The reply thread is the investigation (`parentMessageId` in and out) |
+| Says "yes", "no" or "always" to a slow step | Approvals by native reply |
+| Sends a photo of a doorway with a bank card, a ceiling photo, a short video, a voice note, a location | Inbound attachments, video, audio and vCard locations each run a tool |
+| Types "visit" | Unsettled checks arrive one at a time; each reply settles one and the desktop workspace updates live |
+| Types "report" | The PDF arrives in the chat, ready to forward |
+| Turns "voice on" | Answers also arrive as native iMessage voice messages |
+| Does nothing | The chat background becomes the building's plan; a National Weather Service alert at that building arrives once with their own flood result |
+| Calls the number | An ElevenLabs agent over SIP runs the same checks by voice; the plan and link follow in iMessage after the call (Best Voice Agent) |
+
+Rules it keeps: every sent line is built from the tool result, never from model text; a typed size needs a unit; only
+rendered pictures leave the server; the main API stays private behind one signature-checked relay; each event is
+handled once, in order per chat.
+
+**State (7:50 pm):** merged with 14 tests; the live line is up with sends limited to an allowlist; a first real round
+trip had not been confirmed; the phone agent needs a voice number.
+
+The track page: [Photon](/tracks/photon/).

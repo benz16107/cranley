@@ -55,7 +55,7 @@ Sources this tool gave on the test cafe:
 |---|---|---|---|---|
 | Measured from the scan | `matterport` | `geometry` | medium | Shortest walkable route over the wall graph in empty rooms; furniture is not counted |
 
-The tool sets the label for each value. A model never does.
+The tool sets the label for each value. A model never does. The tools give a scan's wall graph the layer `matterport` whichever device made the scan, so a phone scan's geometry carries that label too.
 
 ## Limits
 

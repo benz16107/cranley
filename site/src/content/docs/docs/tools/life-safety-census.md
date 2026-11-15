@@ -57,7 +57,7 @@ Sources this tool gave on the test cafe:
 | Seen in a model | `model` | `vision` | medium | Vision model on the room's central panorama, all six faces (face 0 is the ceiling) |
 | Seen in a model | `model` | `vision` | low | Nothing found in one panorama: an alarm on a wall, behind a fan or outside the photo is missed |
 
-The tool sets the label for each value. A model never does.
+The tool sets the label for each value. A model never does. The tools give a scan's wall graph the layer `matterport` whichever device made the scan, so a phone scan's geometry carries that label too.
 
 ## Limits
 

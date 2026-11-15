@@ -56,7 +56,7 @@ Sources this tool gave on the test cafe:
 |---|---|---|---|---|
 | Measured from the scan | `matterport` | `geometry` | medium | 2D sight lines through the scan's walls; doors assumed open, furniture not modelled |
 
-The tool sets the label for each value. A model never does.
+The tool sets the label for each value. A model never does. The tools give a scan's wall graph the layer `matterport` whichever device made the scan, so a phone scan's geometry carries that label too.
 
 ## Limits
 

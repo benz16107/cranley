@@ -17,5 +17,7 @@ without learning a tool. And it works on their own home, not only on a dataset.
 **Adaptive intelligence** (a named focus area): the agent's memory per building and per person, "what I learned about
 you" with undo per item, past investigations searchable by words and meaning.
 
+**Scripted flow:** `web/src/skins/app/demo/flows/amazon.json`, "A phone scan becomes a PDF report".
+
 **Demo path.** Phone: scan a room with the iPhone app (demo cafe in the simulator), name the business, pick
 Accessibility, get the PDF in seconds. Desktop: the same workspace updates live. Then the wheelchair search above.

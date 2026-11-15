@@ -1,10 +1,10 @@
 ---
 title: "HTTP API"
-description: "The 93 operations of the FastAPI server, by router."
+description: "The 97 operations of the FastAPI server, by router."
 sidebar: {"label": "Overview", "order": 0}
 ---
 
-The server (`server/threshold/api/app.py`) includes one router per file. These pages are generated from its OpenAPI schema: 93 operations in 18 groups. With the server running, the same schema is at `/openapi.json` and an interactive copy at `/docs`.
+The server (`server/threshold/api/app.py`) includes one router per file. These pages are generated from its OpenAPI schema: 97 operations in 19 groups. With the server running, the same schema is at `/openapi.json` and an interactive copy at `/docs`.
 
 The API has no login and serves the data in your data folder, so keep it on your own machine or network. Signed scan links never reach the browser: the server fetches, caches and serves.
 
@@ -20,6 +20,7 @@ The API has no login and serves the data in your data folder, so keep it on your
 | [Interior splats](/docs/reference/api/interior-splat/) | `api/interior_splat.py` | 2 |
 | [Map layers](/docs/reference/api/layers/) | `api/layers.py` | 6 |
 | [Live sync](/docs/reference/api/live/) | `api/live.py` | 6 |
+| [photon](/docs/reference/api/photon/) | `api/photon.py` | 4 |
 | [Reports](/docs/reference/api/report/) | `api/report.py` | 5 |
 | [Search](/docs/reference/api/search/) | `api/search.py` | 2 |
 | [Phone sensors](/docs/reference/api/sensors/) | `api/sensors.py` | 1 |

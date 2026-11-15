@@ -66,7 +66,7 @@ Sources this tool gave on the test home:
 | Seen in a model | `model` | `vision` | low | Cost-class minimums of carried items that are under water even at the low end |
 | Measured from the scan | `matterport` | `geometry` | high | Window and door sizes from the wall graph |
 
-The tool sets the label for each value. A model never does.
+The tool sets the label for each value. A model never does. The tools give a scan's wall graph the layer `matterport` whichever device made the scan, so a phone scan's geometry carries that label too.
 
 ## Limits
 
