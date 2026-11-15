@@ -1,0 +1,26 @@
+---
+// A sponsor's own logo beside its track (src/site/logos.ts says where each file came from). Never recoloured: where
+// the file would not show on the page's background, it sits on a small chip of the background it was made for.
+import { LOGOS } from '../site/logos'
+interface Props { slug: string; height?: number }
+const { slug, height = 28 } = Astro.props
+const l = LOGOS[slug]
+const width = l ? Math.round((l.w / l.h) * height) : 0
+---
+{l && (
+  <span class:list={['slogo', l.dark ? 'own' : l.on]}>
+    {l.dark
+      ? <picture><source srcset={`/media/logos/${l.dark}`} media="(prefers-color-scheme: dark)" /><img src={`/media/logos/${l.file}`} alt={`${l.name} logo`} width={width} height={height} /></picture>
+      : <img src={`/media/logos/${l.file}`} alt={`${l.name} logo`} width={width} height={height} />}
+  </span>
+)}
+
+<style>
+  .slogo { display: inline-flex; align-items: center; padding: 4px 0; border-radius: var(--r-1); line-height: 0; vertical-align: middle; }
+  .slogo img { display: block; height: auto; max-width: 100%; }
+  .slogo.dark { padding: 5px 9px; background: #161d26; }
+  @media (prefers-color-scheme: dark) {
+    .slogo.light { padding: 5px 9px; background: #f3f1eb; }
+    .slogo.dark { padding: 4px 0; background: transparent; }
+  }
+</style>
