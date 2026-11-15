@@ -433,8 +433,7 @@ wheelchair user, the family before a storm, the fire crew.
 
 ## Pitch notes (not published on the site)
 
-- Live demo for judges: https://cranley.app/app (fallback https://linuxbox.<tailnet>:10000/app), open with no access code since ~3:30 am (the code is still in the data .env if Ben turns it back on)
-  (never write the code in any file or message).
+- Live demo for judges: https://cranley.app/app (fallback https://linuxbox.<tailnet>:10000/app), open with no access code since ~3:30 am (the code is still in the data .env if Ben turns it back on; never write the code in any file or message).
 
 - Amazon adaptation: lead with questions asked 1, 0, 0 (held in all three evaluation runs). Do not claim faster first
   results or fewer tool runs. Say "replay of one user", not "study". `demo_maya` is seeded on the 8787 store (`/app/?as=demo_maya`); reseed after a store reset (Amazon section).
