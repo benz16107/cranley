@@ -62,6 +62,8 @@ def resolve(m: Manifest, doc: Workspace, given: dict | None = None) -> tuple[dic
         key = schema.get("x-pref")
         if name in given and given[name] is not None:
             inputs[name] = given[name]
+            if key and key in doc.prefs and doc.prefs[key].value == given[name]:
+                used[name] = key  # the caller repeated the person's own value: it is theirs, and says where it came from
         elif key and key in doc.prefs:
             inputs[name], used[name] = doc.prefs[key].value, key
         elif key and key in doc.brief.facts:

@@ -144,15 +144,16 @@ def known(doc: Workspace) -> list[str]:
 
 
 def _unasked(doc: Workspace) -> list[tuple[str, str]]:
-    """(key, question) the composer would have asked for the enabled tools had the profile not answered it."""
+    """(key, question) the enabled tools need that the person answered in an earlier investigation, so it was not
+    asked again here. A persona's default is not their answer: without the profile they would have to say it again."""
     from .composer import questions
-    mine = carried(doc)
+    mine = {k: p for k, p in carried(doc).items() if p.origin.how == "answer"}
     if not mine:
         return []
     tools = [t.id for t in doc.tools if t.enabled]
     bare = doc.model_copy(update={"prefs": {k: p for k, p in doc.prefs.items() if k not in mine}})
     asked = {q.key for q in doc.questions}
-    return [(q.key, q.text) for q in questions(bare, tools) if q.key in mine and q.key not in asked]
+    return [(q.key, q.text) for q in questions(bare, tools, frozenset(mine)) if q.key in mine and q.key not in asked]
 
 
 def _hidden(doc: Workspace) -> dict[str, list[str]]:

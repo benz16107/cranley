@@ -156,3 +156,25 @@ def test_a_returning_person_is_named_to_the_composer_and_a_new_one_is_not(tmp_pa
     composed(b, m)
     assert "What you already know about this person" in m.seen[0] and "Doorway width you need: 0.7 m (you told me on" in m.seen[0]
     assert "you told me on" in prefs.as_text(b.doc)
+
+
+def test_a_value_the_agent_repeats_is_still_the_persons(tmp_path):
+    """The agent may pass the person's own number back as a tool input. It is marked as theirs, and a different
+    number (a what-if) is not."""
+    a = new(tmp_path)
+    a.submit({"op": "pref.set", "key": "access.door_width_m", "value": 0.7}, by="user")
+    inv = Investigation(a)
+    same, other = inv.run("door_widths", {"scan": "t1", "min_width_m": 0.7}), inv.run("door_widths", {"scan": "t1", "min_width_m": 0.9})
+    runs = {r.id: r for r in a.doc.runs}
+    assert runs[same["run"]].inputs_from == {"min_width_m": "access.door_width_m"} and runs[other["run"]].inputs_from == {}
+
+
+def test_an_answer_counts_as_reused_even_where_a_persona_has_a_default(tmp_path):
+    a = new(tmp_path)
+    (q,) = composed(a, Stating("wheelchair_user", ["door_widths"]), "I use a wheelchair, my chair is 70 cm wide")
+    a.submit({"op": "question.answer", "id": q.id, "value": 0.7}, by="user")
+    b = new(tmp_path, "t2")
+    assert composed(b, Fake("wheelchair_user", ["door_widths"])) == []
+    Investigation(b).run("door_widths", {"scan": "t2"})
+    m = profile.measure(b.doc, b.log)
+    assert (m["questions_asked"], m["questions_not_asked"], m["inputs_from_profile"]) == (0, 1, 1)
