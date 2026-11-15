@@ -45,7 +45,11 @@ WALK_AROUND = (("deck", "nothing that burns stored under a wood deck, and metal 
                ("propane", "no propane tank on or next to the deck"),
                ("firewood", "firewood stacked at least 30 ft from the house"),
                ("windows", "double-paned windows, closed when a fire is near"),
-               ("debris", "no pine needles, clippings or leaves against the walls or on the roof"))
+               ("debris", "no pine needles, clippings or leaves against the walls or on the roof"),
+               ("zone0_rules", "which Zone 0 (0 to 5 ft) rules apply to this home today; check CAL FIRE and the "
+                               "city, since this tool's limits are screening values"),
+               ("insurer_score", "the wildfire score an insurer's own model gives this home, which decides cover and "
+                                 "price and is not published"))
 VEG = Source(layer="vexcel", method="vision", confidence="medium",
              note="Green in the orthophoto (excess-green index); dry grass and bare dirt both read as not green")
 CANOPY = Source(layer="vexcel", method="geometry", confidence="medium",

@@ -89,7 +89,8 @@ def test_branches_over_the_roof_and_the_walk_around_lines(house, monkeypatch):
     r = run_tool("wildfire_space", {"lat": LAT, "lon": LON})
     st = {c.id: c for c in r.checks}
     assert st["over_roof"].status == "pass" and st["over_roof"].measured == 0
-    assert {f"cannot.walk.{k}" for k in ("deck", "vents", "gutters", "propane", "firewood")} <= set(st)
+    assert {f"cannot.walk.{k}" for k in ("deck", "vents", "gutters", "propane", "firewood", "zone0_rules",
+                                        "insurer_score")} <= set(st)
     over = TREES | ((E > 1) & (E < 5) & (np.abs(NN) < 4))              # a crown over the east half of the roof
     monkeypatch.setattr(sys.modules[__name__], "TREES", over)
     r = run_tool("wildfire_space", {"lat": LAT, "lon": LON})

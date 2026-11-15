@@ -25,7 +25,7 @@ def test_cart_route_to_storage_gives_its_bends():
     m = {m.id: m for m in r.metrics}
     assert m["cart_sharpest_bend"].value == 51                   # the route cuts the hall's right angle in two
     assert m["storage_area"].value == round(12 * 10.7639)       # the 4 x 3 m pantry
-    for k in ("power", "filtration", "cold_storage", "noise", "hot_water"):
+    for k in ("power", "filtration", "hood", "cold_storage", "noise", "hot_water"):
         assert {c.id: c.status for c in r.checks}[f"cannot.{k}"] == "unknown"
 
 

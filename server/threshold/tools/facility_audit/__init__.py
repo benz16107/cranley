@@ -324,6 +324,8 @@ def run(ctx, i: Inputs) -> ToolResult:
                              + (" or sink" if found else "") + " was located on the panoramas"))
     checks += [cannot("power", "three-phase power and panel capacity for kitchen equipment"),
                cannot("filtration", "water filtration for an ice machine or steamer"),
+               cannot("hood", "which way the kitchen hood fan moves air (one installed backwards blows smoke into the "
+                              "dining room) and its make-up air"),
                cannot("cold_storage", "walk-in cooler and freezer capacity, unless the rooms are labelled storage"),
                cannot("noise", "noise between the service area and neighbours: the scan measures rooms, not "
                                "soundproofing")]
