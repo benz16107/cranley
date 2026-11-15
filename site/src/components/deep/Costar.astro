@@ -110,12 +110,6 @@ const flow = [
     </ul>
   </Sec>
 
-  {track.video && (
-    <Sec id="video" title="The track in a video">
-      <figure class="video"><iframe src={`https://www.youtube-nocookie.com/embed/${track.video}`} title={`${track.name}: Cranley`} loading="lazy" allow="encrypted-media; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></figure>
-    </Sec>
-  )}
-
   <Sec id="writeup" title="The write-up for the judges" sub="The track's section of our story, as written: how each criterion is served, and the two-minute demo path.">
     <div class="prose"><slot /></div>
   </Sec>
