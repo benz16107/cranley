@@ -1,0 +1,312 @@
+#!/usr/bin/env python3
+"""The gated public door for HackPrinceton judges (Tailscale Funnel :10000 -> 127.0.0.1:8790). Run by
+threshold-public.service, set up by `scripts/public-demo up`; temporary, turned off after the event.
+
+CoStar allows Devpost, the video and in-person demos, not a public website, so nothing here answers before the
+access code: the gate page sets an HttpOnly cookie, everything else is 401 without it. With the cookie: /app and /m
+are the built web app ($THRESHOLD_DATA_DIR/public-demo/web, made by `public-demo rebuild`), /api is the lead's
+server on 127.0.0.1:8787 (Range and streaming passed through), agent runs are limited per visitor, and MCP, the
+Photon webhooks, raw SQL and uploads are refused. Standard library only, except segno (in the server's venv) to
+redraw the phone QR with this door's address.
+"""
+from __future__ import annotations
+
+import collections
+import gzip
+import hashlib
+import hmac
+import html
+import http.client
+import io
+import json
+import mimetypes
+import os
+import pathlib
+import re
+import secrets
+import threading
+import time
+import urllib.parse
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+DATA = pathlib.Path(os.environ.get("THRESHOLD_DATA_DIR", "~/Code/hackathons/hackprinceton26-data"))
+WEB = DATA / "public-demo" / "web"
+PORT = int(os.environ.get("PUBLIC_DEMO_PORT", "8790"))
+PUBLIC = os.environ.get("PUBLIC_DEMO_ORIGIN", "https://linuxbox.<tailnet>:10000")
+UPSTREAM = ("127.0.0.1", 8787)
+NOTICE = ("Demo for HackPrinceton, Nov 14-15 2026. The building data is used under the event's terms "
+          "and is deleted after the event.")
+COOKIE = "cranley_demo"
+COOKIE_AGE = 3 * 86400
+RUNS_PER_HOUR = 20  # per visitor (cookie)
+ALL_RUNS_PER_HOUR = 300  # every visitor together, in case the code spreads
+TRIES_PER_10_MIN = 10  # wrong codes per client address
+
+# Refused for everyone, code or not. The web app calls none of these.
+REFUSED = re.compile(r"^/(mcp|api/photon|api/facts/sql|api/scans/user$)|/(admin|drop|reset|purge|debug)(/|$)", re.I)
+RUN = re.compile(r"^/api/(agent/turn|tools/[^/]+/run|phone/[^/]+/(brief|run/[^/]+)|aerial/detect)$")
+PAIR = re.compile(r"^/api/workspace/[^/]+/pair$")
+APP = re.compile(r"^/[A-Za-z][\w-]*([/?]|$)")  # an app place: /app/..., /m?t=..., another look
+HOP = {"connection", "keep-alive", "proxy-connection", "transfer-encoding", "te", "trailer", "upgrade", "host", "cookie"}
+
+
+def read_code() -> str:
+    for line in (DATA / ".env").read_text().splitlines():
+        k, _, v = line.partition("=")
+        if k.strip() == "DEMO_CODE" and v.strip():
+            return v.strip().strip("'\"")
+    raise SystemExit("DEMO_CODE is not set in $THRESHOLD_DATA_DIR/.env (run scripts/public-demo up)")
+
+
+CODE = read_code()
+KEY = hashlib.sha256(b"cranley-public-demo\0" + CODE.encode()).digest()  # a new code signs everyone out
+
+
+def sign(text: str) -> str:
+    return hmac.new(KEY, text.encode(), hashlib.sha256).hexdigest()[:32]
+
+
+def norm(code: str) -> str:
+    return re.sub(r"[\s_-]+", "-", code.strip().lower())
+
+
+def visitor(cookie_header: str | None) -> str | None:
+    """The visitor id from a valid cookie, else None."""
+    for part in (cookie_header or "").split(";"):
+        k, _, v = part.strip().partition("=")
+        if k == COOKIE and "." in v:
+            vid, sig = v.split(".", 1)
+            if hmac.compare_digest(sig, sign("visitor:" + vid)):
+                return vid
+    return None
+
+
+class Window:
+    """Timestamps per key within the last `span` seconds."""
+
+    def __init__(self, span: float) -> None:
+        self.span, self.hits, self.lock = span, collections.defaultdict(collections.deque), threading.Lock()
+
+    def take(self, key: str, limit: int) -> float:
+        """Record a hit if under `limit`; return 0, or the seconds until one is free."""
+        now = time.time()
+        with self.lock:
+            q = self.hits[key]
+            while q and q[0] <= now - self.span:
+                q.popleft()
+            if len(q) >= limit:
+                return q[0] + self.span - now
+            q.append(now)
+            return 0.0
+
+
+runs, tries = Window(3600), Window(600)
+
+BANNER_CSS = ("#cranley-demo-notice{position:fixed;left:0;right:0;bottom:0;z-index:2147483647;pointer-events:none;"
+              "font:500 11px/1.3 system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:.01em;padding:4px 12px;"
+              "text-align:center;color:#f4f1ea;background:rgba(28,27,25,.86)}")
+BANNER = f'<div id="cranley-demo-notice" role="note">{html.escape(NOTICE)}</div><style>{BANNER_CSS}</style>'
+
+
+def gate_page(next_path: str = "/app", wrong: str = "") -> bytes:
+    msg = f'<p class="err" role="alert">{html.escape(wrong)}</p>' if wrong else ""
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>Cranley live demo</title><style>
+:root{{--bg:#f4f1ea;--ink:#1c1b19;--mute:#5d5a53;--line:#c9c3b6;--field:#fffdf8;--accent:#1f4f46;--err:#9b2c1f}}
+@media (prefers-color-scheme:dark){{:root{{--bg:#151513;--ink:#ece8df;--mute:#a39f95;--line:#3d3b36;--field:#1e1d1a;--accent:#7fbfae;--err:#f08c7a}}}}
+*{{box-sizing:border-box}}body{{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);
+font:16px/1.5 system-ui,-apple-system,'Segoe UI',sans-serif}}
+.notice{{font-size:12px;color:var(--mute);border-bottom:1px solid var(--line);padding:6px 16px;text-align:center}}
+main{{max-width:400px;margin:18vh auto 0;padding:0 16px}}h1{{font-size:20px;font-weight:600;margin:0 0 4px}}
+p{{margin:0 0 20px;color:var(--mute)}}label{{display:block;font-size:13px;font-weight:600;margin-bottom:6px}}
+.row{{display:flex;gap:8px}}input{{flex:1;min-width:0;font:inherit;padding:10px 12px;border:1px solid var(--line);
+border-radius:6px;background:var(--field);color:var(--ink)}}input:focus{{outline:2px solid var(--accent);outline-offset:1px}}
+button{{font:inherit;font-weight:600;padding:10px 16px;border:0;border-radius:6px;background:var(--accent);color:var(--bg);cursor:pointer}}
+.err{{color:var(--err);margin:12px 0 0}}</style></head><body>
+<div class="notice">{html.escape(NOTICE)}</div>
+<main><h1>Cranley live demo</h1><p>Cranley live demo for HackPrinceton judges. Enter the code.</p>
+<form method="post" action="/enter"><label for="code">Access code</label><div class="row">
+<input id="code" name="code" autocomplete="off" autocapitalize="none" spellcheck="false" required autofocus>
+<input type="hidden" name="next" value="{html.escape(next_path)}"><button>Open</button></div>{msg}</form></main>
+</body></html>""".encode()
+
+
+def safe_next(path: str) -> str:
+    return path if APP.match(path) and not path.startswith("//") else "/app"
+
+
+class Door(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+    server_version = "cranley-demo"
+
+    def log_message(self, fmt: str, *args) -> None:  # path only: a query can hold a pairing token
+        pass
+
+    def log_request(self, code="-", size="-") -> None:
+        print(f"{self.command} {urllib.parse.urlsplit(self.path).path} {code}", flush=True)
+
+    # -- small senders
+
+    def body(self, cap: int) -> bytes:
+        """The request body, once. A refused request's body is read too, or it would be parsed as the next request."""
+        if getattr(self, "_body", None) is None:
+            n = int(self.headers.get("Content-Length") or 0)
+            if n > cap:
+                self.close_connection = True
+                self._body = b""
+            else:
+                self._body = self.rfile.read(n) if n else b""
+        return self._body
+
+    def send(self, status: int, body: bytes, ctype: str = "text/html; charset=utf-8", headers: dict | None = None) -> None:
+        self.body(1 << 20)
+        self.send_response(status)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("X-Robots-Tag", "noindex, nofollow")
+        for k, v in (headers or {}).items():
+            self.send_header(k, v)
+        self.end_headers()
+        if self.command != "HEAD":
+            self.wfile.write(body)
+
+    def problem(self, status: int, detail: str, headers: dict | None = None) -> None:
+        self.send(status, json.dumps({"detail": detail}).encode(), "application/json", headers)
+
+    def cookie_for(self, vid: str) -> str:
+        return f"{COOKIE}={vid}.{sign('visitor:' + vid)}; Path=/; Max-Age={COOKIE_AGE}; HttpOnly; Secure; SameSite=Lax"
+
+    def client(self) -> str:
+        # the last address is the one Funnel added; earlier ones are whatever the client sent
+        return (self.headers.get("X-Forwarded-For") or self.client_address[0]).split(",")[-1].strip()
+
+    # -- dispatch
+
+    def do_GET(self) -> None: self.route()
+    def do_HEAD(self) -> None: self.route()
+    def do_POST(self) -> None: self.route()
+    def do_PUT(self) -> None: self.route()
+    def do_PATCH(self) -> None: self.route()
+    def do_DELETE(self) -> None: self.route()
+
+    def route(self) -> None:
+        self._body = None
+        url = urllib.parse.urlsplit(self.path)
+        path = url.path
+        if REFUSED.search(path):
+            return self.problem(403, "Not available through the public demo.")
+        if path == "/enter" and self.command == "POST":
+            return self.enter()
+        vid = visitor(self.headers.get("Cookie"))
+        if vid is None and path == "/m" and self.command == "GET":  # a phone QR from a signed-in desktop
+            q = urllib.parse.parse_qs(url.query)
+            t, p = (q.get("t") or [""])[0], (q.get("pass") or [""])[0]
+            if t and p and hmac.compare_digest(p, sign("pair:" + t)):
+                return self.send(303, b"", headers={"Location": "/m?" + urllib.parse.urlencode({"t": t}),
+                                                     "Set-Cookie": self.cookie_for(secrets.token_hex(8))})
+        if vid is None:
+            if self.command in ("GET", "HEAD") and not path.startswith("/api/"):
+                return self.send(401, gate_page(safe_next(path + (f"?{url.query}" if url.query else ""))),
+                                 headers={"Cache-Control": "no-store"})
+            return self.problem(401, "Enter the demo code first.")
+        if path == "/":
+            return self.send(303, b"", headers={"Location": "/app"})
+        if path.startswith("/api/"):
+            return self.proxy(vid, path)
+        if self.command not in ("GET", "HEAD"):
+            return self.problem(405, "Method not allowed.")
+        return self.static(path)
+
+    def enter(self) -> None:
+        form = urllib.parse.parse_qs(self.body(4096).decode(errors="replace"))
+        nxt = safe_next((form.get("next") or ["/app"])[0])
+        wait = tries.take(self.client(), TRIES_PER_10_MIN)
+        if wait:
+            return self.send(429, gate_page(nxt, f"Too many tries. Wait {int(wait // 60) + 1} minutes."))
+        if not hmac.compare_digest(norm((form.get("code") or [""])[0]).encode(), norm(CODE).encode()):
+            return self.send(401, gate_page(nxt, "That code is not right."), headers={"Cache-Control": "no-store"})
+        self.send(303, b"", headers={"Location": nxt, "Set-Cookie": self.cookie_for(secrets.token_hex(8))})
+
+    def static(self, path: str) -> None:
+        root = WEB.resolve()
+        f = (root / urllib.parse.unquote(path).lstrip("/")).resolve()
+        if root not in f.parents:
+            return self.problem(404, "Not found.")
+        if not f.is_file():
+            if "." in path.rsplit("/", 1)[-1]:  # a missing file, not a place in the app
+                return self.problem(404, "Not found.")
+            page = (root / "index.html").read_bytes().replace(b"</body>", BANNER.encode() + b"</body>", 1)
+            return self.send(200, page, headers={"Cache-Control": "no-store"})
+        ctype = mimetypes.guess_type(f.name)[0] or "application/octet-stream"
+        cache = "private, max-age=31536000, immutable" if path.startswith("/assets/") else "private, max-age=600"
+        self.send(200, f.read_bytes(), ctype, {"Cache-Control": cache})
+
+    def proxy(self, vid: str, path: str) -> None:
+        if self.headers.get("Transfer-Encoding"):
+            return self.problem(411, "Send a Content-Length.")
+        if int(self.headers.get("Content-Length") or 0) > 64 << 20:
+            return self.problem(413, "Too large for the public demo.")
+        if self.command == "POST" and RUN.match(path):
+            wait = runs.take(vid, RUNS_PER_HOUR) or runs.take("*", ALL_RUNS_PER_HOUR)
+            if wait:
+                return self.problem(429, f"The public demo allows {RUNS_PER_HOUR} agent runs an hour. "
+                                         f"Try again in {int(wait // 60) + 1} minutes.", {"Retry-After": str(int(wait) + 1)})
+        body = self.body(64 << 20) or None
+        headers = {k: v for k, v in self.headers.items() if k.lower() not in HOP}
+        headers["X-Forwarded-For"] = self.client()
+        headers["X-Forwarded-Proto"] = "https"
+        up = http.client.HTTPConnection(*UPSTREAM, timeout=900)
+        try:
+            up.request(self.command, self.path, body=body, headers=headers)
+            r = up.getresponse()
+        except OSError:
+            up.close()
+            return self.problem(502, "The Cranley server is not answering.")
+        try:
+            if self.command == "POST" and PAIR.match(path) and r.status == 200:
+                raw = r.read()
+                if r.getheader("Content-Encoding") == "gzip":
+                    raw = gzip.decompress(raw)
+                return self.send(200, pair_here(raw), "application/json")
+            self.send_response(r.status)
+            length = r.getheader("Content-Length")
+            for k, v in r.getheaders():
+                if k.lower() not in HOP and k.lower() not in ("server", "date"):
+                    self.send_header(k, v)
+            if length is None:  # a stream (SSE) or chunked: end it by closing the connection
+                self.send_header("Connection", "close")
+                self.close_connection = True
+            self.end_headers()
+            if self.command == "HEAD":
+                return
+            while chunk := r.read1(65536):
+                self.wfile.write(chunk)
+                self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError):
+            self.close_connection = True
+        finally:
+            up.close()
+
+
+def pair_here(raw: bytes) -> bytes:
+    """The server's phone link points at the tailnet; point it at this door, with a pass that lets the phone in."""
+    import segno
+
+    p = json.loads(raw)
+    t = p["token"]
+    path = "/m?" + urllib.parse.urlencode({"t": t, "pass": sign("pair:" + t)})
+    svg = io.BytesIO()
+    segno.make(PUBLIC + path, error="m").save(svg, kind="svg", border=2, xmldecl=False, svgns=True, nl=False, omitsize=True)
+    return json.dumps({**p, "path": path, "url": PUBLIC + path, "secure": True, "qr": svg.getvalue().decode()}).encode()
+
+
+if __name__ == "__main__":
+    assert visitor(f"{COOKIE}=ab.{sign('visitor:ab')}") == "ab" and visitor(f"{COOKIE}=ab.0") is None
+    assert REFUSED.search("/mcp") and REFUSED.search("/api/facts/sql") and not REFUSED.search("/api/scans")
+    assert RUN.match("/api/agent/turn") and safe_next("//evil.com") == "/app" and safe_next("/m?t=x") == "/m?t=x"
+    assert safe_next("/app/scan/x") == "/app/scan/x" and safe_next("https://evil.com") == "/app" and safe_next("/\\evil") == "/app"
+    if not (WEB / "index.html").is_file():
+        raise SystemExit(f"no build at {WEB} (run scripts/public-demo rebuild)")
+    print(f"cranley public demo on 127.0.0.1:{PORT}, serving {WEB}", flush=True)
+    ThreadingHTTPServer(("127.0.0.1", PORT), Door).serve_forever()
