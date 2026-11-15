@@ -24,6 +24,9 @@
    them): here they sit at the lower left, over the small plan */
 .ex-scene .th-scene .th-floors { top: auto; bottom: 202px; left: 12px; }
 
+/* the furnished and empty tags stand under the toolbar, not behind it */
+.ex-scene .th-scene .th-wipe-tag { top: 52px; }
+
 /* On the map: one row of tools in a corner, a readout under it, the legend and the sun strip along the bottom. */
 .maptools { position: absolute; left: 10px; top: 10px; z-index: 2; display: flex; gap: 6px; align-items: center; max-width: calc(100% - 64px); flex-wrap: wrap; }
 .maptools .btn, .maptools .seg { box-shadow: 0 1px 3px light-dark(rgb(24 33 43 / 0.12), rgb(0 0 0 / 0.4)); }
@@ -35,7 +38,10 @@
 .mapread.opening, .mapread.working { top: auto; left: 50%; bottom: 14px; translate: -50% 0; z-index: 5; }
 .mapfoot { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; pointer-events: none; }
 .mapfoot > * { pointer-events: auto; }
-.mapfoot .maplegend { position: static; max-width: 100%; }
+/* many layers on: the legend keeps to a few lines and scrolls, so it never covers the map or its controls */
+.mapfoot .maplegend { position: static; max-width: 100%; max-height: 92px; overflow-y: auto; scrollbar-width: thin; }
+.maplegend > span { max-width: 100%; }
+.maplegend > span > .muted { overflow: hidden; text-overflow: ellipsis; }
 .maplegend .muted { margin-left: 2px; }
 .maplegend .stops, .maplegend .stops > span { display: inline-flex; align-items: center; gap: 4px; }
 .maplegend .stops { gap: 8px; margin-left: 4px; }

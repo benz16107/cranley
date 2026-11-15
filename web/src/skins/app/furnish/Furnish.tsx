@@ -39,7 +39,7 @@ export function FurnishMenu({ sid, off }: { sid: string; off?: string }) {
     useStore.setState({ selected: id })
   }
   return (
-    <MenuBtn align="end" trigger={<button type="button" className="btn quiet" disabled={!!off} title={off ?? 'Try a piece of furniture in a room'}><Icon name="plus" size={13} /><span className="lbl">Furniture</span>{count > 0 && <span className="count">{count}</span>}<Icon name="down" size={11} /></button>}>
+    <MenuBtn align="end" trigger={<button type="button" className="btn quiet" disabled={!!off} aria-label="Furniture" title={off ?? 'Try a piece of furniture in a room'}><Icon name="plus" size={13} /><span className="lbl">Furniture</span>{count > 0 && <span className="count">{count}</span>}<Icon name="down" size={11} /></button>}>
       {CATALOGUE.map((g) => (
         <div key={g.group} role="group" aria-label={g.group}>
           <div className="mh">{g.group}</div>

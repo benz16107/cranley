@@ -43,6 +43,13 @@ function Transport({ spec, sink, set, seek, close }: { spec: ShowSpec; sink: Rea
   const [got, setShow] = useState<ShowState | null>(null)
   useEffect(() => { sink.current = setShow; return () => { sink.current = null } }, [sink])
   const show = got?.kind === spec.kind ? got : null, ready = show?.status === 'ready'
+  // nothing to play here (the scene's own note says why), or not loaded yet: say so, with no dead controls
+  if (!ready) return (
+    <>
+      {show?.status === 'missing' ? <span className="muted small">Not available here</span> : <RunState state="running">Loading</RunState>}
+      <IconBtn icon="close" label="Close" className="btn icon quiet sm" onClick={close} />
+    </>
+  )
   return (
     <>
       <button type="button" className="btn sm" style={{ minWidth: 62 }} disabled={!ready} onClick={() => set({ playing: !spec.playing })}>{spec.playing ? 'Pause' : <><Icon name="play" size={12} />Play</>}</button>
@@ -373,7 +380,11 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
   }, [doc.findings, runs, sid])
   const working = runs.filter((r) => r.status === 'running' && !panels.some((p) => p.run === r.id))
   // a run that failed leaves no result: it stays listed here until the same tool runs again on this scan
-  const failed = runs.filter((r, i) => r.status === 'failed' && !runs.slice(i + 1).some((l) => l.tool === r.tool))
+  const stopped = runs.filter((r, i) => r.status === 'failed' && !runs.slice(i + 1).some((l) => l.tool === r.tool))
+  // a tool that stopped to ask something has not failed: it waits for the answer, which the agent panel takes
+  const asked = doc.questions.find((q) => q.answer == null)
+  const waits = (r: Doc['runs'][number]) => !!asked && /^needs /.test(r.summary ?? '')
+  const failed = stopped.filter((r) => !waits(r)), waiting = stopped.filter(waits)
   const catalogue = useTools()
 
   // A result that arrives while the person is on this scan is shown; so is the result of a focused finding.
@@ -508,19 +519,25 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
                       <Menu.RadioItem value="aerial" closeOnClick={false} disabled={!placed}><span className="mi-check"><Menu.RadioItemIndicator><Icon name="check" size={12} /></Menu.RadioItemIndicator></span>On its site<small>{placed ? 'from the aerial survey' : 'this scan has no position'}</small></Menu.RadioItem>
                     </Menu.RadioGroup>
                     <hr />
-                    <Menu.CheckboxItem checked={v.view.style === 'xray'} onCheckedChange={(yes) => v.setView((x) => ({ ...x, style: yes ? 'xray' : 'solid' }))}>
-                      <span className="mi-check"><Menu.CheckboxItemIndicator><Icon name="check" size={12} /></Menu.CheckboxItemIndicator></span>{doll ? 'Walls as glass (x-ray)' : 'Measured model inside the capture'}
+                    {/* glass walls are the measured model's: the photoreal surfaces have no walls to see through */}
+                    <Menu.CheckboxItem checked={v.view.style === 'xray' && !(doll && surface !== 'model')} disabled={doll && surface !== 'model'} onCheckedChange={(yes) => v.setView((x) => ({ ...x, style: yes ? 'xray' : 'solid' }))}>
+                      <span className="mi-check"><Menu.CheckboxItemIndicator><Icon name="check" size={12} /></Menu.CheckboxItemIndicator></span>{doll ? 'Walls as glass' : 'Measured model inside the capture'}{doll && surface !== 'model' && <small>Measured only</small>}
                     </Menu.CheckboxItem>
+                    {doll && <Menu.CheckboxItem checked={!!v.view.measures} onCheckedChange={(yes) => v.setView((x) => ({ ...x, measures: yes }))}>
+                      <span className="mi-check"><Menu.CheckboxItemIndicator><Icon name="check" size={12} /></Menu.CheckboxItemIndicator></span>Door and window widths
+                    </Menu.CheckboxItem>}
                     {doll && <Menu.Item onClick={() => v.setView((x) => ({ ...x, tour: (x.tour ?? 0) + 1 }))}><span className="mi-check" />Fly in from above</Menu.Item>}
                   </MenuBtn>
                 </>
               )
             })()}
+            {v.plan && v.mode === 'plan' && <button type="button" className="btn quiet" aria-pressed={!!v.view.measures} aria-label="Door and window widths" onClick={() => v.setView((x) => ({ ...x, measures: !x.measures }))} title="Show the width of every door and window"><Icon name="ruler" size={14} /><span className="lbl">Widths</span></button>}
+            {v.plan?.has.defurnished && v.mode === 'pano' && <button type="button" className="btn quiet" aria-pressed={v.view.wipe != null} aria-label="Furnished and empty" onClick={() => v.setView((x) => ({ ...x, wipe: x.wipe == null ? 0.5 : null }))} title="The same room with its furniture and empty. Drag the divider."><Icon name="split" size={14} /><span className="lbl">Furnished and empty</span></button>}
             <span className="grow" />
-            {wi.after && <button type="button" className="btn quiet" aria-pressed={showCompare} onClick={() => setCompare(!showCompare)} title="The plan as it is beside the plan after the what-if edits"><Icon name="split" size={14} /><span className="lbl">Now and after</span></button>}
+            {wi.after && <button type="button" className="btn quiet" aria-pressed={showCompare} aria-label="Now and after" onClick={() => setCompare(!showCompare)} title="The plan as it is beside the plan after the what-if edits"><Icon name="split" size={14} /><span className="lbl">Now and after</span></button>}
             {/* Play something on the building: a flood, a fire, a tour. Each says what it is before it starts. */}
             {v.plan && (
-              <MenuBtn align="end" trigger={<button type="button" className="btn quiet" aria-pressed={!!spec}><Icon name="play" size={13} /><span className="lbl">Play</span><Icon name="down" size={11} /></button>}>
+              <MenuBtn align="end" trigger={<button type="button" className="btn quiet" aria-pressed={!!spec} aria-label="Play" title="Play a flood, a fire or a tour on the building"><Icon name="play" size={13} /><span className="lbl">Play</span><Icon name="down" size={11} /></button>}>
                 <div className="mh">Play on the building</div>
                 {SHOWS.map((x) => <Menu.Item key={x.id} className="mi two" onClick={() => play(x.id)}><Icon name={x.icon} /><span className="grow"><b>{x.label}{spec?.kind === x.id && ' (playing, stop)'}</b><span className="s">{x.title}</span></span></Menu.Item>)}
               </MenuBtn>
@@ -583,6 +600,12 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
           </Tabs.Panel>
           <Tabs.Panel value="results" className="insp-body scroll">
             {working.map((r) => <div key={r.id} className="b-loading working"><RunState state="running">{r.label.split(' · ')[0]}</RunState>{r.summary && <p className="muted small">{r.summary}</p>}<span className="sk" style={{ width: '64%' }} /></div>)}
+            {waiting.map((r) => (
+              <div key={r.id} className="b-loading" role="status">
+                <span className="row"><b className="grow">{catalogue.find((x) => x.id === r.tool)?.title ?? r.label.split(' · ')[0]} needs one answer</b><button type="button" className="btn sm solid" onClick={() => useUi.getState().setRun(true)}>Answer</button></span>
+                <p className="muted small">{asked!.text}</p>
+              </div>
+            ))}
             {failed.map((r) => {
               const t = catalogue.find((x) => x.id === r.tool)
               return (
@@ -592,7 +615,7 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
                 </div>
               )
             })}
-            {panels.length === 0 && working.length === 0 && failed.length === 0 && citywide.length === 0 && (
+            {panels.length === 0 && working.length === 0 && stopped.length === 0 && citywide.length === 0 && (
               <Empty icon="play" title="No results on this scan" action={<RunToolMenu sid={sid} trigger={<button type="button" className="btn solid">Run a tool<Icon name="down" size={11} /></button>} />}>
                 Pick a tool to measure this scan. Its result, checks and evidence appear here, and it draws on the building.
               </Empty>

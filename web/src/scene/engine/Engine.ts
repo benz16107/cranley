@@ -357,7 +357,8 @@ export class Engine {
       rig.flyTo(this.planPose(), 1000)
     } else if (mode === 'pano') {
       Object.assign(L, { minPol: 0.35, maxPol: 2.8, minDist: 0.02, maxDist: 0.02, minFov: PANO_FOV_MIN, maxFov: PANO_FOV_MAX })
-      const start = this.view.pano ?? this.nearestPano(rig.pose.target.x, rig.pose.target.y)?.id
+      // "Inside" means a room: a house's scan positions include the garden and the drive, and the nearest may be one of those
+      const t = rig.pose.target, start = this.view.pano ?? (this.nearestPano(t.x, t.y, undefined, true) ?? this.nearestPano(t.x, t.y))?.id
       if (start) this.goPano(start, true)
     } else {
       Object.assign(L, { minPol: 0.25, maxPol: 1.5, minDist: 8, maxDist: 160, minFov: DOLL_FOV, maxFov: DOLL_FOV })
@@ -368,10 +369,13 @@ export class Engine {
     this.syncDots()
   }
 
-  private nearestPano(x: number, y: number, roomId?: string): Pano | null {
+  /** Rooms with an outline. A house's garden and drive are "rooms" too, with none. */
+  private get outlined() { return (this.rooms ??= new Set(this.model.plan.rooms.filter((r) => r.polygon.length > 2).map((r) => r.id))) }
+  private rooms: Set<string> | null = null
+  private nearestPano(x: number, y: number, roomId?: string, indoors = false): Pano | null {
     let best: Pano | null = null, bd = Infinity
     for (const p of this.model.plan.panos) {
-      if (roomId && p.room !== roomId) continue
+      if ((roomId && p.room !== roomId) || (indoors && !this.outlined.has(p.room ?? ''))) continue
       const d = Math.hypot(p.position[0] - x, p.position[1] - y)
       if (d < bd) { bd = d; best = p }
     }

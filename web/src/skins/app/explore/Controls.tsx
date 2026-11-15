@@ -14,7 +14,7 @@ export const ZONE: Record<CityId, string> = { hou: 'America/Chicago', la: 'Ameri
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 const swatch = (l: MapLayer) => <i className="swatch" data-shape={l.shape} style={{ ['--hue' as string]: `var(${hueOf(l)})` }} />
 /** What a layer's copy is dated: the source's own date when it gives one, else the day we fetched it. */
-const dated = (l: MapLayer) => (l.data_date ? l.data_date : l.fetched ? `fetched ${l.fetched}` : '')
+const dated = (l: MapLayer) => { const d = l.data_date ? l.data_date : l.fetched ? `fetched ${l.fetched}` : ''; return d && (l.attribution || l.source).endsWith(d) ? '' : d } // a source that names its year is not dated twice
 
 /** The layer list and the base view, one row in the map's corner. The list is the catalogue's: one row per group,
     closed until asked for, so a layer added on the server appears here under its group with nothing changed. */
