@@ -11,6 +11,7 @@ import Bars from './Bars.astro'
 import Matrix from './Matrix.astro'
 import Garage from './Garage.astro'
 import Asked from './Asked.astro'
+import ToolsCallout from './ToolsCallout.astro'
 import DoorSchedule from '../DoorSchedule.astro'
 import Proof from '../Proof.astro'
 import deep from '../../generated/deep.json'
@@ -87,6 +88,7 @@ const flow = [
     </Chart>
     <p class="txt">The tools that require the CoStar record, or two providers together. Each links to its page in the docs and to its folder in the repository.</p>
     <Cards items={cross} />
+    <ToolsCallout param="data=costar" what="tools that read the CoStar record" />
   </Sec>
 
   <Sec id="proof" title="What the layers add, and what owners told us" sub="Two checks we can show without sponsor data: the whole catalogue run on a phone scan, and a truck owner's own measurements.">

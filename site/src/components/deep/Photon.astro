@@ -10,6 +10,7 @@ import Bars from "./Bars.astro"
 import Split from "./Split.astro"
 import Lanes from "./Lanes.astro"
 import Asked from "./Asked.astro"
+import ToolsCallout from "./ToolsCallout.astro"
 import Products from "./Products.astro"
 import deep from "../../generated/deep.json"
 import site from "../../generated/site.json"
@@ -80,6 +81,7 @@ const msgs = [
 
   <Sec id="features" title="Every Photon product we used, and how" sub="iMessage on Photon 2.0, and voice through an ElevenLabs agent over SIP. Each entry is one thing a person does and the part of Photon that carries it. See the limits below for what is not yet confirmed.">
     <Products features={sp.features} />
+    <ToolsCallout />
   </Sec>
 
   <Sec id="rules" title="Rules it keeps" sub="A message is a result, so it follows the same rules as the screen.">

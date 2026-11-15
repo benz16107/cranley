@@ -9,6 +9,7 @@ import Bars from "./Bars.astro"
 import Split from "./Split.astro"
 import Lanes from "./Lanes.astro"
 import Asked from "./Asked.astro"
+import ToolsCallout from "./ToolsCallout.astro"
 import Products from "./Products.astro"
 import deep from "../../generated/deep.json"
 import site from "../../generated/site.json"
@@ -71,6 +72,7 @@ const flow = [
 
   <Sec id="features" title="Every Tiger Data product we used, and how" sub="TimescaleDB and its toolkit, pgvector with pgvectorscale, pgai, PostGIS and Tiger Cloud itself. Each feature is below with what it enables, a measured figure where we have one, and the file or migration it runs in.">
     <Products features={sp.features} />
+    <ToolsCallout param="data=facts" what="tools that read the facts database" />
   </Sec>
 
   <Sec id="proof" title="What it saved, and a what-if to try" sub="Two things we can show without the event's data: the compression figure, and the what-if tool on our made-up test home.">
