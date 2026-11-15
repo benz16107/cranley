@@ -10,7 +10,7 @@ export const TRACKS: Track[] = [
     slug: 'costar', name: 'CoStar', prize: 'Inside and Out: AI for the Built World',
     summary: 'All three layers in one frame (Matterport interiors, Vexcel aerial and 3D city, CoStar records), and an agent that plans, fans out per building and checks claims across layers.',
     docs: [['Record versus reality', '/docs/tools/record-vs-reality/'], ['Flood rehearsal', '/docs/tools/flood-rehearsal/'], ['Garage fit', '/docs/tools/garage-fit/'], ['Search by measurement', '/docs/tools/measure-search/'], ['Site scorecard', '/docs/tools/site-scorecard/'], ['Data sources and licences', '/docs/data-sources/'], ['The agent', '/docs/concepts/agent/']],
-    slots: ['hero-loop', 'photoreal-building', 'record-vs-reality', 'flood-street'], proof: ['costar-garage-depth'],
+    slots: ['hero-loop', 'photoreal-building', 'record-vs-reality', 'flood-street'], proof: ['costar-garage-depth'], video: 'Ox18G-hfvfc',
   },
   {
     slug: 'amazon', name: 'Amazon', prize: 'Best Practical AI Innovation',
@@ -22,7 +22,7 @@ export const TRACKS: Track[] = [
     slug: 'peri', name: 'Peri', prize: 'Forward Deployed Challenge',
     summary: 'Built forward-deployed: we asked people and businesses what goes wrong with their buildings, by phone, in online communities and by email, then changed the tools to match.',
     docs: [['What people told us, in full (on GitHub)', 'https://github.com/benz16107/cranley/blob/main/docs/feedback.md'], ['Phone and iPhone app', '/docs/phone/'], ['Fire pre-plan', '/docs/tools/fire-preplan/'], ['Egress routes', '/docs/tools/egress-routes/'], ['Facility audit', '/docs/tools/facility-audit/'], ['Door widths', '/docs/tools/door-widths/']],
-    slots: ['field-visit', 'pdf-report', 'fire-preplan'], interview: true, proof: ['quote-to-change', 'reddit-wall-2-workplaces', 'email-replies', 'outreach-at-a-glance'],
+    slots: ['field-visit', 'pdf-report', 'fire-preplan'], interview: true, video: 'jCn22k2HKzs', proof: ['quote-to-change', 'reddit-wall-2-workplaces', 'email-replies', 'outreach-at-a-glance'],
   },
   {
     slug: 'langchain', name: 'LangChain', prize: 'Best use of deepagents',
