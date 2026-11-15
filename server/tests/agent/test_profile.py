@@ -84,7 +84,7 @@ def test_not_relevant_hides_the_kind_now_and_next_time(tmp_path):
 
     b = new(tmp_path, "t2")
     out = Investigation(b).run("door_widths", {"scan": "t2", "min_width_m": 0.9})
-    assert out["findings"] == [] and out["kept_back_as_not_relevant_to_them"] == len(seen)
+    assert out["findings"] == [] and out["hidden_because_rejected"] == len(seen)
     (note,) = [n for n in profile.because(b.doc)["notes"] if n["kind"] == "kept_back"]
     assert note["count"] == len(seen) and note["text"].startswith(f"Kept back {len(seen)} “Doorway” checks")
     assert profile.measure(b.doc, b.log)["checks_kept_back"] == len(seen)
@@ -219,3 +219,18 @@ def test_the_first_investigation_stays_in_the_measured_rows(tmp_path):
         new(tmp_path).submit({"op": "brief.set", "text": f"later {i}"}, by="user")
     rows = profile.person(FileStore(tmp_path), "maya")["sessions"]
     assert len(rows) == profile.MAX_SESSIONS and rows[0]["workspace"] == first.doc.id
+
+
+def test_who_you_are_keeps_the_brief_that_first_said_so(tmp_path):
+    """`turn` records the persona once. A later brief that keeps it does not become its source; one that changes it does.
+    Each turn stops at the door-width question, so no agent runs."""
+    from threshold.agent.investigator import turn
+    a = new(tmp_path)
+    assert turn(a, "Moving a wide chair in", composer=Fake("furniture_mover", ["door_widths"]))["status"] == "questions"
+    assert a.doc.prefs["who.persona"].value == "furniture_mover" and a.doc.prefs["who.persona"].origin.workspace == a.doc.id
+    b = new(tmp_path, "t2")
+    assert turn(b, "And this one?", composer=Fake("furniture_mover", ["door_widths"]))["status"] == "questions"
+    assert b.doc.prefs["who.persona"].origin.workspace == a.doc.id  # the first brief said who they are
+    c = new(tmp_path)
+    assert turn(c, "I am a wheelchair user now", composer=Fake("wheelchair_user", ["door_widths", "kids_fit"]))["status"] == "questions"
+    assert c.doc.prefs["who.persona"].value == "wheelchair_user" and c.doc.prefs["who.persona"].origin.workspace == c.doc.id

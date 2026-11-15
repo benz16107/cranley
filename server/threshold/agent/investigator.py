@@ -287,10 +287,11 @@ class Investigation:
                 "findings": [{"id": f.id, "status": f.status, "title": f.title} for f in
                              sorted(shown, key=lambda f: RANK[f.status])[:8]],
                 "more_findings": max(0, len(shown) - 8), "hidden_because_rejected": len(result.findings) - len(shown),
-                "kept_back_as_not_relevant_to_them": sum(1 for f in result.findings if prefs.kind(tool_id, f.title)[0] in off),
                 # the person's own answers and edits apart from the persona's defaults, so the model never calls
                 # an answer the person just gave a "saved setting"
-                "inputs_the_person_gave": [k for k, v in used.items() if v in self.s.doc.prefs or v in self.s.doc.brief.facts],
+                # (an input the caller passed is not listed, though `used` now marks it when it equals the person's own)
+                "inputs_the_person_gave": [k for k, v in used.items() if k not in given
+                                           and (v in self.s.doc.prefs or v in self.s.doc.brief.facts)],
                 "inputs_from_persona_defaults": [k for k, v in used.items()
                                                  if v not in self.s.doc.prefs and v not in self.s.doc.brief.facts]}
 
@@ -882,8 +883,10 @@ def turn(session: Session, text: str | None = None, sids: list[str] | None = Non
                 session.submit(op)
             except Rejected:
                 pass
-        who = session.doc.brief
-        if who.persona:  # who they are goes to the profile, so the next investigation starts from it
+        who, was = session.doc.brief, session.doc.prefs.get("who.persona")
+        # who they are goes to the profile, so the next investigation starts from it. A returning person keeps the
+        # brief that first said so: this one may not have mentioned it at all
+        if who.persona and (was is None or was.value != who.persona):
             session.submit(PrefSet(by="system", key="who.persona", value=who.persona, origin=prefs.origin(session.doc, "answer"),
                                    reason=f"From your brief: {who.summary}" if who.summary else "From your brief"))
         text = None

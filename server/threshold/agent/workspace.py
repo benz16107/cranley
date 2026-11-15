@@ -797,6 +797,8 @@ class Session:
                                  origin=p.get("origin"), reason=p.get("reason") or "From an earlier session"))
         s.save(len(s.log))  # each submit above saved its entry; this writes the workspace itself
         # the profile lists its investigations, so the person's page can measure how each one went (agent/profile.py)
+        # shortcut: one marker per workspace, kept for good and read on every create; move them to their own
+        # collection when a profile passes a few thousand investigations
         s.store.merge_profile(profile, {SESSION + s.base.id: (s.base.created, {"key": SESSION + s.base.id,
                                                                                "value": {"created": s.base.created}})})
         return s
