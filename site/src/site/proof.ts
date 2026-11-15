@@ -16,7 +16,7 @@ export const PROOF = {
   'quote-to-change': { w: 2000, h: 1592,
     alt: 'Six things people told us, each beside the tool it changed and the commit: two quotes from the interview with Jean Ryan and four Reddit replies',
     caption: 'Six things we were told, each with the tool it changed and the commit. Names and usernames are blurred, except Jean Ryan, who agreed to be named.' },
-  'reddit-wall-2-workplaces': { w: 2000, h: 2247,
+  'reddit-wall-2-workplaces': { w: 2000, h: 1937,
     alt: 'Our questions in five Reddit communities for people who run stores, kitchens, restaurants, teams and emergency plans, with answers from each',
     caption: `What we asked in five Reddit communities for people who run workplaces, and answers from each. ${BLURRED}` },
   'email-replies': { w: 2000, h: 3230,
