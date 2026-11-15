@@ -77,7 +77,7 @@ listing at a time. Nobody joins them, and nobody asks your question across a who
 Cranley was built forward-deployed. Before and while building it, we asked people and businesses what goes wrong with
 the inside and outside of their buildings (homes, garages, stores, kitchens, warehouses, offices), then changed the
 tools to match (or found they already did): one recorded 31-minute phone interview with Jean Ryan, President of Disabled In Action of Metropolitan New York,
-written answers from 40 people in 15 online communities, and 340 emails
+written answers from 54 people in 17 online communities, and 439 emails
 to organisations and businesses (Peri section).
 
 ## What Cranley is
@@ -252,13 +252,14 @@ what they said.
 | Who | How | What they said |
 |---|---|---|
 | Jean Ryan, President of Disabled In Action of Metropolitan New York (an all-volunteer disability rights group in New York City), a powered-wheelchair user | A recorded 31-minute phone interview on Saturday night, after she replied to our email | She no longer asks whether a place is "wheelchair accessible", because she has been told yes and arrived to find a step. She asks whether there are any steps, including steps a few feet inside an accessible entrance and in lobbies before the elevators. A bathroom stall door that opens inward blocks the chair, and a bin beside the toilet can make an accessible stall unusable. Many people own more than one chair and do not know the widths. |
-| Truck, boat, RV and Cybertruck owners (r/f150, r/boating, r/cybertruck, r/TruckCampers, r/RVLiving, r/Garages) | Written answers to a question posted in each community | Garage depth decides it more than width. One owner wrote that most subdivision garages built after 1999 near him are 19.5 to 20 ft deep against 25 to 30 ft in older homes; another chose a smaller car because the garage could not take the truck; boat owners measure the trailer tongue and the door opening, not the ceiling. Several trucks "fit" with no room to walk around them. |
+| Truck, boat, RV and Cybertruck owners (r/f150, r/boating, r/cybertruck, r/TruckCampers, r/RVLiving, r/Garages) | Written answers to a question posted in each community | Garage depth decides it more than width. One owner wrote that most subdivision garages built after 1999 near him are 19.5 to 20 ft deep against 25 to 30 ft in older homes; another chose a smaller car because the garage could not take the truck; boat owners measure the trailer tongue and the door opening, not the ceiling. Several trucks "fit" with no room to walk around them. An RV owner: long rear overhangs drag where a driveway meets the road, and street and satellite views flatten the slope. |
+| An occupational therapist who does home assessments (r/OccupationalTherapy) | Written answer | What an OT measures: doorway widths, corridor pinch points, threshold height, seat, bed and toilet heights, bath width, space beside the bed. |
 | Home networking and home automation (r/HomeNetworking, r/homeautomation) | Written answers | Signal dies at ductwork, glass walls and a detached garage; a doorbell camera mounted too low sees only shoes. |
 | Los Angeles residents and wildfire (r/AskLosAngeles, r/wildfire) | Written answers | Insurers order trees trimmed off roofs; a defensible-space checklist of vents, gutters, decks and what sits within 20 ft. |
-| Workplaces: a chef who takes over kitchens (r/Chefit), restaurant operators (r/restaurant), a Walmart receiving associate (r/walmart), managers (r/AskManagers), emergency management (r/EmergencyManagement) | Written answers | Check cart and hand-truck access, cooler space and 3-phase power before taking a kitchen; hot water that never reaches the far sinks; a dock that unloads around a 90 degree corner; an office under a bathroom; a library emergency review that found gaps a routine inspection missed. |
-| 340 organisations and businesses in New Jersey, New York, Texas and elsewhere | Email | Three people replied: the interview above and two declines; the rest were automatic replies or silence. |
+| Workplaces: a chef who takes over kitchens (r/Chefit), restaurant operators (r/restaurant), Walmart and Target store associates (r/walmart, r/Target), managers (r/AskManagers), emergency management (r/EmergencyManagement) | Written answers | Check cart and hand-truck access, cooler space and 3-phase power before taking a kitchen; hot water that never reaches the far sinks; a dock that unloads around a 90 degree corner; an office under a bathroom; backrooms that differ store by store; a library emergency review that found gaps a routine inspection missed. |
+| 439 organisations and businesses in New Jersey, New York, Texas and elsewhere | Email | Three people replied: the interview above and two declines; the rest were automatic replies or silence. |
 
-**2. Build.** What changed because of it, on main the same night (`ws/feedback`, merged at `480147f`, `f69fd81` and `41e90a9`).
+**2. Build.** What changed because of it, on main the same night (`ws/feedback`, merged at `480147f`, `f69fd81`, `41e90a9` and `029ef3b`).
 Every quote, the change it caused (tool and commit) or why it was skipped is in `docs/feedback.md`.
 
 1. Steps first: step-free route now opens with a steps check per destination, counts steps seen in the panoramas against
@@ -290,6 +291,14 @@ Every quote, the change it caused (tool and commit) or why it was skipped is in 
     distance against the cord (when the scan has outlets), storage left after parking (floor, front-wall shelf depth,
     ceiling racks), two different vehicles side by side, and which vehicles in its table fit alone, best first; a
     side-entry turn is a "not in the scan" line.
+12. Later answers, same night: aging in place follows an occupational therapist's home assessment as far as the scan
+    measures it (doorway clear widths, pinch points on the routes to the bathroom and bedroom, threshold heights, bath
+    width and floor beside the bed on phone scans), the rest to confirm on site; driveway fit checks the change of
+    grade where the driveway meets the road against a vehicle's overhang and ground clearance (the RV owner); facility
+    audit gives the backroom as a share of the sales floor and the pallet spots it holds (the store associates), and
+    the hood fan and make-up air as lines to confirm (a steakhouse operator); wildfire space adds tree canopy over the
+    roof and the inspector's walk-around items; fire pre-plan adds wayfinding if emergency lighting fails, the flood
+    plan, and plastic sheeting for collections (the library emergency review).
 
 **3. Evidence.** Jean Ryan agreed before the call to be filmed and to have anything from it shared. In her words
 (times in the recording):
@@ -429,8 +438,8 @@ wheelchair user, the family before a storm, the fire crew.
 - Amazon adaptation: lead with questions asked 1, 0, 0 (held in all three evaluation runs). Do not claim faster first
   results or fewer tool runs. Say "replay of one user", not "study". `demo_maya` is seeded on the 8787 store (`/app/?as=demo_maya`); reseed after a store reset (Amazon section).
 - Forward-deployed thread: open with one line ("we asked first, then built"), then the numbers as written: one
-  phone interview, written answers from 40 people in 15 communities, 340 emails with three human replies. Say "interviews
-  and written answers", never "40 interviews". Do not say Ben is a member of those communities. "A recorded 31-minute interview" is fine. She consented before the call to be filmed and shared; name her as Jean Ryan, President of Disabled In Action of
+  phone interview, written answers from 54 people in 17 communities, 439 emails with three human replies. Say "interviews
+  and written answers", never "54 interviews". Do not say Ben is a member of those communities. "A recorded 31-minute interview" is fine. She consented before the call to be filmed and shared; name her as Jean Ryan, President of Disabled In Action of
   Metropolitan New York.
 - CoStar: the scripted flow is listing vs record vs scan, then the tour; the wheelchair search is the spoken
   alternative. Pick one.
@@ -452,7 +461,7 @@ wheelchair user, the family before a storm, the fire crew.
 
 ## Built (synced to `main`)
 
-Checked against `git log main` at `41e90a9` (2026-11-14, 10:35 pm ET). Update at each merge.
+Checked against `git log main` at `8525bb8` (2026-11-14, 11:06 pm ET). Update at each merge.
 
 **Merged**
 - [x] Data layer: Matterport, Vexcel and CoStar sources, normalized plan format with quality flags (`ws/data`)
