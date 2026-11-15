@@ -2,6 +2,7 @@ Start here: https://cranley.app (product and docs)
 Try it live: https://linuxbox.<tailnet>:10000/app (access code from Ben at the table)
 Every track in detail: https://cranley.app/tracks/
 Code: https://github.com/benz16107/cranley
+Interview with Jean Ryan (4 min): https://youtu.be/q5reRgHfS8Y
 
 ## Measure the building before you commit
 
@@ -15,15 +16,15 @@ Listings say "accessible", "two-car garage", "fits a king bed", and nobody measu
 
 Every track has its own page with what we built, the features used, the proof and the limits.
 
-| Track | What we built | Strongest proof | Page |
-|---|---|---|---|
-| CoStar | "I measured. Listings never had the garage depth" (a truck owner on r/f150). All three layers in one frame; an agent that checks many buildings at once and tests claims across layers | 78 tools run through the real API on 15 places: 266 answers, 62 honest "cannot answer here", 0 judged wrong | [page](https://cranley.app/tracks/costar/) |
-| Amazon | Ask in plain words; it learns you once and adapts every later investigation, counted on screen | Questions asked over three homes for a returning wheelchair user: 1, 0, 0 | [page](https://cranley.app/tracks/amazon/) |
-| Peri | A recorded interview with Jean Ryan, President of Disabled In Action of Metropolitan New York, changed the tools the same night | 12 groups of changes, each with its commit in [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md) | [page](https://cranley.app/tracks/peri/) |
-| LangChain | A deepagents investigator: parallel subagents, approvals, skills, memory, a rubric grader, LangSmith | Two houses checked at once, both paused before the smoke model and resumed from a MongoDB checkpoint | [page](https://cranley.app/tracks/langchain/) |
-| Photon | The same agent over iMessage and a phone call: plan pictures, reply threads, photos and voice notes, the PDF in the chat | Every reply built from the tool result, never model text; 14 tests | [page](https://cranley.app/tracks/photon/) |
-| MongoDB Atlas | Workspaces and op log, change-stream live sync, `$rankFusion` search, time series, vector memory | A door width typed on the phone reaches the desktop in about a second | [page](https://cranley.app/tracks/mongodb/) |
-| Tiger Data | The building facts database: hypertables, compression, continuous aggregates, DiskANN, pgai, forks | A zero-copy fork ready in 31 s for a city-wide what-if; 234 MB compressed to 58 MB | [page](https://cranley.app/tracks/tiger-data/) |
+| Track | What we built | Strongest proof | Page | Video |
+|---|---|---|---|---|
+| CoStar | "I measured. Listings never had the garage depth" (a truck owner on r/f150). All three layers in one frame; an agent that checks many buildings at once and tests claims across layers | 78 tools run through the real API on 15 places: 266 answers, 62 honest "cannot answer here", 0 judged wrong | [page](https://cranley.app/tracks/costar/) |  |
+| Amazon | Ask in plain words; it learns you once and adapts every later investigation, counted on screen | Questions asked over three homes for a returning wheelchair user: 1, 0, 0 | [page](https://cranley.app/tracks/amazon/) |  |
+| Peri | A recorded interview with Jean Ryan, President of Disabled In Action of Metropolitan New York, changed the tools the same night | 12 groups of changes, each with its commit in [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md) | [page](https://cranley.app/tracks/peri/) | [interview](https://youtu.be/q5reRgHfS8Y), [teaser](https://youtu.be/KLdkvYwNQaA) |
+| LangChain | A deepagents investigator: parallel subagents, approvals, skills, memory, a rubric grader, LangSmith | Two houses checked at once, both paused before the smoke model and resumed from a MongoDB checkpoint | [page](https://cranley.app/tracks/langchain/) |  |
+| Photon | The same agent over iMessage and a phone call: plan pictures, reply threads, photos and voice notes, the PDF in the chat | Every reply built from the tool result, never model text; 14 tests | [page](https://cranley.app/tracks/photon/) |  |
+| MongoDB Atlas | Workspaces and op log, change-stream live sync, `$rankFusion` search, time series, vector memory | A door width typed on the phone reaches the desktop in about a second | [page](https://cranley.app/tracks/mongodb/) |  |
+| Tiger Data | The building facts database: hypertables, compression, continuous aggregates, DiskANN, pgai, forks | A zero-copy fork ready in 31 s for a city-wide what-if; 234 MB compressed to 58 MB | [page](https://cranley.app/tracks/tiger-data/) |  |
 
 ## The problem
 
@@ -40,7 +41,7 @@ Jean Ryan, who uses a 400-pound powered wheelchair, no longer asks whether a pla
 
 ## Built forward-deployed
 
-Before and while building we asked people what goes wrong with their buildings: a recorded 31-minute interview with Jean Ryan, written answers from 58 people in 17 online communities (truck, boat and RV owners, occupational therapists, a chef, store associates, restaurant operators, managers), and 491 emails, which brought six human replies (the interview, a Los Angeles theatre's managing director, a museum director who asked to talk on Sunday, and three declines). Their answers changed the tools the same night: steps first, several chairs per person, bathroom door swing, garage depth and trailer checks, a store's backroom and a kitchen's rack route. Every quote and its change: [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md).
+Before and while building we asked people what goes wrong with their buildings: a recorded 31-minute interview with Jean Ryan ([4-minute highlights](https://youtu.be/q5reRgHfS8Y)), written answers from 58 people in 17 online communities (truck, boat and RV owners, occupational therapists, a chef, store associates, restaurant operators, managers), and 491 emails, which brought six human replies (the interview, a Los Angeles theatre's managing director, a museum director who asked to talk on Sunday, and three declines). Their answers changed the tools the same night: steps first, several chairs per person, bathroom door swing, garage depth and trailer checks, a store's backroom and a kitchen's rack route. Every quote and its change: [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md).
 
 ## Proof
 
