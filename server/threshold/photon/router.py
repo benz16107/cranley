@@ -25,7 +25,7 @@ from .state import State
 log = logging.getLogger("threshold.photon")
 VISIT_KINDS = ("width", "step", "alarm")          # what a person can settle by text or photo
 ALARM_WORDS = re.compile(r"\b(alarm|smoke|detector|ceiling)\b", re.IGNORECASE)
-COMMAND = re.compile(r"^\s*(help|hi|hello|hey|start|/start|new|start over|reset|visit|on site|report|pdf|voice on|voice off|stop visit)\s*[.!?]*\s*$", re.IGNORECASE)
+COMMAND = re.compile(r"^\s*(help|hi|hello|hey|start|/start|new|start over|reset|visit|on site|report|pdf|voice on|voice off|stop visit|alerts on|alerts off)\s*[.!?]*\s*$", re.IGNORECASE)
 REFUSED = ("SHARED_LINE_INBOUND_REQUIRED", "SPACE_NOT_SENDABLE")
 _state: State | None = None
 
@@ -206,6 +206,10 @@ def command(cmd: str, chat: Chat, st: State, t: dict, ws: str | None) -> None:
         report(chat, st, ws)
     elif cmd in ("visit", "on site"):
         visit_start(chat, st, ws)
+    elif cmd in ("alerts on", "alerts off"):
+        st.update(chat.space, alerts=cmd == "alerts on")
+        chat.say("I'll text you weather alerts for the building we last talked about." if cmd == "alerts on"
+                 else "No more alerts.")
     elif cmd == "stop visit":
         st.update(chat.space, visit=None)
         chat.say("Visit stopped. The checks you settled are saved in the workspace.")

@@ -59,6 +59,13 @@ def tool(name: str, body: dict = Body(default={}), x_cranley_internal: str | Non
     return voice.tool(name, body)
 
 
+@router.post("/alerts/check")
+def alerts_check(x_cranley_internal: str | None = Header(None)) -> dict:
+    _check(x_cranley_internal)
+    from ..photon import alerts
+    return {"sent": alerts.check(photon.state())}
+
+
 @router.get("/status")
 def status() -> dict:
     return {"enabled": client.enabled(), "chats": len(photon.state().data["threads"])}

@@ -171,3 +171,18 @@ def test_a_failure_tells_the_person(tmp_path, monkeypatch):
     monkeypatch.setattr(router, "route", lambda *a: (_ for _ in ()).throw(RuntimeError("boom")))
     router.handle(event("anything", "pho_msg_in4"), st, api)
     assert "Something broke" in api.sent[-1][1]
+
+
+def test_alerts_once_per_alert_with_the_source(tmp_path, monkeypatch):
+    from threshold.photon import alerts
+    st, api = State(tmp_path / "s.json"), FakeAPI()
+    st.update("pho_spc_1", agent="pho_usr_agent", platform="imessage", background_sid="sid1")
+    monkeypatch.setattr(alerts, "where", lambda sid: (29.6, -95.1))
+    monkeypatch.setattr("threshold.photon.words.place_name", lambda sid: "a house in Houston")
+    nws = [{"id": "urn:a1", "event": "Flood Warning", "severity": "Severe", "ends": "2026-11-15T06:00:00-06:00",
+            "headline": "Flood Warning issued for Harris County"}]
+    assert alerts.check(st, api, fetch=lambda lat, lon: nws) == 1
+    assert alerts.check(st, api, fetch=lambda lat, lon: nws) == 0   # never twice
+    assert "Flood Warning (severe severity)" in api.sent[0][1] and "National Weather Service" in api.sent[0][1]
+    st.update("pho_spc_1", alerts=False)
+    assert alerts.check(st, api, fetch=lambda lat, lon: [{**nws[0], "id": "urn:a2"}]) == 0
