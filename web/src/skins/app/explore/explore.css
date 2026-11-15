@@ -17,6 +17,11 @@
 /* the building's two toolbars float in the picture's corner as the map's own controls do */
 .ex-scene .worktools { position: relative; z-index: 3; max-width: 100%; padding: 3px; gap: 4px; border: 1px solid var(--rule); border-radius: var(--r-2); background: var(--pane); box-shadow: 0 1px 3px light-dark(rgb(24 33 43 / 0.12), rgb(0 0 0 / 0.4)); }
 .ex-scene .worktools > .grow { display: none; }
+/* the first row stays one row: the long label (how the building looks) gives way first, then the row scrolls */
+.ex-scene .work > .worktools:first-child { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.ex-scene .worktools > * { flex: none; }
+.ex-scene .worktools > .btn.look { flex: 0 1 auto; min-width: 48px; }
+.ex-scene .worktools > .btn.look .lbl { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* the play row carries a transport (a slider and a clock) once something plays: room for it on one line */
 .ex-scene .work > .worktools:nth-child(2):has(.slider) { width: min(100%, 600px); }
 @container (max-width: 780px) { .ex-scene .work > .worktools:first-child > .seg:first-child button span { display: none; } .ex-scene .work > .worktools:first-child > .seg:first-child button { padding: 0 8px; } }

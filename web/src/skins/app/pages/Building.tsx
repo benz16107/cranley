@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { Slider } from '@base-ui/react/slider'
 import { Tabs } from '@base-ui/react/tabs'
 import {
-  Scene, SceneBoundary, fetchRecord, focusFinding, panoFace, runTool, useBuildingView, useBuildings, useWorkspace,
+  Scene, SceneBoundary, currentRoute, fetchRecord, focusFinding, panoFace, runTool, runToolHere, useBuildingView, useBuildings, useWorkspace,
   type Doc, type SceneCamera, type SceneMode, type SceneProps, type SceneState, type SceneView, type ScanPlan, type Status,
 } from '../../../core/index.ts'
 import { PanelView } from '../blocks/blocks.tsx'
@@ -345,7 +345,8 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
     if (s.scan.colour !== 'ready' || chose.current === sid || !plan) return
     // on its site only where the placing can be trusted: fitted to the aerial footprint, or tied to its own drone capture
     const sited = (plan as { geo?: { lat?: number | null } | null }).geo?.lat != null && (!!plan.quality?.georef || plan.has.splat)
-    v.setView((x) => ({ ...x, surface: 'scan', env: sited ? 'aerial' : x.env }))
+    // a link to a finding opens on the finding: taking the surroundings in would pull the camera back off it
+    v.setView((x) => ({ ...x, surface: 'scan', env: sited && !currentRoute().q.has('f') ? 'aerial' : x.env }))
   }
   // What if: the renovated plan beside this one. A new what-if result opens the comparison; the person can close it.
   const wi = useWhatIf(sid)
@@ -385,6 +386,9 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
   const asked = doc.questions.find((q) => q.answer == null)
   const waits = (r: Doc['runs'][number]) => !!asked && /^needs /.test(r.summary ?? '')
   const failed = stopped.filter((r) => !waits(r)), waiting = stopped.filter(waits)
+  // the answer is in: run what was waiting for it, so the person is not left to press "Try again"
+  const waitingFor = waiting.map((r) => r.tool).join(','), waited = useRef('')
+  useEffect(() => { if (!asked && waited.current) waited.current.split(',').forEach((id) => runToolHere(id, sid)); waited.current = waitingFor }, [asked?.id, waitingFor]) // eslint-disable-line react-hooks/exhaustive-deps
   const catalogue = useTools()
 
   // A result that arrives while the person is on this scan is shown; so is the result of a focused finding.
@@ -503,7 +507,7 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
               const lookSaid = [doll ? (surface === 'model' ? 'Measured' : surface === 'scan' ? 'Photoreal' : 'Splat') : 'Drone capture', v.view.env === 'aerial' ? 'on its site' : null].filter(Boolean).join(', ')
               return (
                 <>
-                  <MenuBtn trigger={<button type="button" className="btn quiet" aria-label={`How the building looks: ${lookSaid}`}><Icon name={surface === 'model' ? 'ruler' : 'camera'} size={14} /><span className="lbl">{lookSaid}</span><Icon name="down" size={11} /></button>}>
+                  <MenuBtn trigger={<button type="button" className="btn quiet look" aria-label={`How the building looks: ${lookSaid}`}><Icon name={surface === 'model' ? 'ruler' : 'camera'} size={14} /><span className="lbl">{lookSaid}</span><Icon name="down" size={11} /></button>}>
                     {doll && <>
                       <div className="mh">Drawn from</div>
                       <Menu.RadioGroup value={surface} onValueChange={(x) => { chose.current = sid; v.setView((w) => ({ ...w, surface: x as typeof surface })) }}>
@@ -544,7 +548,7 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
             )}
             {v.plan && <FurnishMenu sid={sid} off={v.mode === 'dollhouse' ? undefined : 'Furniture is placed in the 3D view'} />}
             {drawn.length > 0 && (
-              <MenuBtn align="end" trigger={<button type="button" className="btn quiet" aria-label={`Overlays: ${on.length} of ${drawn.length} tools drawn on the building`}><Icon name={on.length ? 'eye' : 'eyeoff'} size={14} /><span className="lbl">Overlays</span><span className="count">{on.length} of {drawn.length}</span></button>}>
+              <MenuBtn align="end" trigger={<button type="button" className="btn quiet" aria-label={`Overlays: ${on.length} of ${drawn.length} tools drawn on the building`}><Icon name={on.length ? 'eye' : 'eyeoff'} size={14} /><span className="lbl">Overlays</span>{drawn.length > 1 && <span className="count">{on.length} of {drawn.length}</span>}</button>}>
                 <div className="mh">Draw on the building</div>
                 {drawn.map((t) => (
                   <Menu.CheckboxItem key={t} checked={on.includes(t)} closeOnClick={false} onCheckedChange={(yes) => setPick(yes ? [...on, t] : on.filter((x) => x !== t))}>
