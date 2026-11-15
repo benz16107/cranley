@@ -43,6 +43,7 @@ NOTICE = ("Demo for HackPrinceton, Nov 14-15 2026. The building data is used und
 COOKIE = "cranley_demo"
 COOKIE_AGE = 3 * 86400
 RUNS_PER_HOUR = 20  # per visitor (cookie)
+OPEN = os.environ.get("PUBLIC_DEMO_OPEN") == "1"  # shortcut: no access code while set; unset it to bring the code back
 ALL_RUNS_PER_HOUR = 300  # every visitor together, in case the code spreads
 TRIES_PER_10_MIN = 10  # wrong codes per client address
 
@@ -226,6 +227,8 @@ class Door(BaseHTTPRequestHandler):
             if t and p and hmac.compare_digest(p, sign("pair:" + t)):
                 return self.send(303, b"", headers={"Location": "/m?" + urllib.parse.urlencode({"t": t}),
                                                      "Set-Cookie": self.cookie_for(secrets.token_hex(8))})
+        if vid is None and OPEN:  # open demo: no code; the global hourly cap still applies
+            vid = "open-" + secrets.token_hex(4)
         if vid is None:
             if self.command in ("GET", "HEAD") and not path.startswith("/api/"):
                 return self.send(401, gate_page(safe_next(path + (f"?{url.query}" if url.query else ""))),
