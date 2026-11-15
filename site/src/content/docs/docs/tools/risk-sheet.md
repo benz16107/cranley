@@ -48,7 +48,7 @@ A [tool result](/docs/reference/result-format/): a verdict (pass, warn, fail or 
 
 ## How it works
 
-Risk sheet: one page for an insurance underwriter on one property. Roof, flood position (ground at the building against the ground around it), wildfire defensible space where it matters, pool, trees over the roof and, where a scan exists, interior hazards from the panoramas, each with evidence and confidence. Also written as a printable HTML page under $THRESHOLD_DATA_DIR/media/sheets/ and served at /api/site/sheet/&lt;name>.html (api/site_media.py).
+Risk sheet: one page for an insurance underwriter on one property. Roof, flood position (ground at the building against the ground around it), wildfire defensible space where it matters, pool, trees over the roof and, where a scan exists, interior hazards from the panoramas, each with evidence and confidence. Also written as a printable HTML page under the data folder and served at /api/site/sheet/&lt;name>.html (api/site_media.py).
 
 ## Reliability
 

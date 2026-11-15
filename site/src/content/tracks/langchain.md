@@ -2,7 +2,8 @@
 title: "LangChain: Best use of deepagents"
 ---
 
-Not on the Devpost prize list. Every feature below does a job in the product.md`.
+Not on the Devpost prize list. Every feature below does a job in the product; what was left out, and
+why, is on the sponsor integrations page of the docs.
 
 | Feature | Why it is a real use |
 |---|---|

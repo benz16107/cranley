@@ -304,6 +304,7 @@ def tool_md(tool, ex: dict, people: list[dict], approve: dict) -> str:
     out += f"- Speed: {m.annotations.cost}. " + ("Read-only.\n" if m.annotations.read_only else "**Writes** (a plan edit or a saved label), so over MCP it needs `--write`.\n")
     doc = re.sub(r"^Reference tool: ", "", (sys.modules[tool.handler.__module__].__doc__ or "").strip().split("\n\n")[0])
     doc = re.sub(r"[^.]*\b(?:thousand|\d{3,}) scans[^.]*\.\s*", "", doc)  # no dataset counts on the public site
+    doc = re.sub(r"`?\$THRESHOLD_DATA_DIR/[\w./<>-]*`?", "the data folder", doc)
     if doc:
         out += "\n## How it works\n\n" + esc(doc[0].upper() + doc[1:]) + "\n"
     out += "\n## Reliability\n\n"
@@ -464,21 +465,40 @@ def mcp_md(tools: dict) -> str:
     return page("MCP server and CLI", "Use every Cranley tool from Claude Code, Claude Desktop, Cursor, a LangChain agent or a terminal.", note + text.strip())
 
 
-def tracks_md() -> dict[str, str]:
-    """Each `### ` section under `## Tracks` in docs/story.md, with the notes to Ben taken out."""
-    story = (REPO / "docs/story.md").read_text()
-    block = story.split("\n## Tracks\n", 1)[1].split("\n---\n", 1)[0]
-    out = {}
+TEAM_ONLY = ("Team note", "**Team note", "How to say the numbers", "**Scripted flow")  # paragraphs for the team, never for a page
+
+
+def merged(branch: str) -> bool:
+    """Is this branch already part of the checkout? Then a "not merged yet" aside about it is out of date."""
+    import subprocess
+    return subprocess.run(["git", "-C", str(REPO), "merge-base", "--is-ancestor", branch, "HEAD"], capture_output=True).returncode == 0
+
+
+def story_tracks() -> list[str]:
+    """The `### ` sections under `## Tracks` in docs/story.md, as far as the next `## ` heading or rule, public text only."""
+    block = re.split(r"\n(?:---\n|## )", (REPO / "docs/story.md").read_text().split("\n## Tracks\n", 1)[1], maxsplit=1)[0]
+    out = []
     for sec in re.split(r"\n(?=### )", block):
         if not sec.startswith("### "):
             continue
         head, body = sec.split("\n", 1)
         for pattern, to in ((r"\s*\(question \d\)", ""), (r"\s*See question \d\.", ""), (r"\s*Track pick: question \d\.", ""),
-                            (r";[^.;]*\$THRESHOLD_DATA_DIR[^.]*\.", "."), (r"\s*\(asked of Ben\)", "")):
+                            (r";[^.;]*\$THRESHOLD_DATA_DIR[^.]*\.", "."), (r"\s*\(asked of Ben\)", ""),
+                            (r",? and `\?as=[^`]*` opens any profile whose id you know", ""),
+                            (r"counts from `reports/[^`]+`,\s*", "")):  # a report in the data folder, which no reader has
             body = re.sub(pattern, to, body)
-        # notes to the speaker and the demo runbook are for the team, not for the page
-        body = "\n\n".join(par for par in body.split("\n\n") if not par.lstrip().startswith(("How to say the numbers", "**Scripted flow")))
-        assert not re.search(r"question \d|THRESHOLD_DATA_DIR|lead's server|\?as=", body), head
+        body = re.sub(r"[;,] on `(ws/[\w-]+)`,\s+not\s+merged\s+yet", lambda m: "" if merged(m.group(1)) else m.group(0), body)
+        body = "\n\n".join(par for par in body.split("\n\n") if not par.lstrip().startswith(TEAM_ONLY))
+        out.append(head + "\n" + body)
+    return out
+
+
+def tracks_md() -> dict[str, str]:
+    """One page per sponsor track, from docs/story.md."""
+    out = {}
+    for sec in story_tracks():
+        head, body = sec.split("\n", 1)
+        assert not re.search(r"question \d|THRESHOLD_DATA_DIR|lead's server|\?as=|not merged yet|`reports/", body), head
         slug = next((s for key, s in (("CoStar", "costar"), ("Amazon", "amazon"), ("Peri", "peri"), ("LangChain", "langchain"), ("Photon", "photon"),
                                       ("Tiger", "tiger-data"), ("MongoDB", "mongodb"), ("HackPrinceton", "hackprinceton")) if key in head), None)
         if slug and slug != "hackprinceton":  # the main-track note is a choice still open, not a page
@@ -504,7 +524,7 @@ SKIPPED = {
 
 def sponsor_md() -> str:
     """The feature tables of the three sponsor sections in docs/story.md, with what was left out and why."""
-    story = (REPO / "docs/story.md").read_text().split("\n## Tracks\n", 1)[1].split("\n---\n", 1)[0]
+    story = "\n".join(story_tracks())
     out = ("Each sponsor feature below does a job in the product. The rule for this list: a feature is used only where it does one. "
            "The tables are generated from the tracks in `docs/story.md`.\n\n")
     for key, slug, title, lead in (
@@ -518,7 +538,7 @@ def sponsor_md() -> str:
     sec = next(s for s in re.split(r"\n(?=### )", story) if s.startswith("### ") and "Photon" in s.split("\n", 1)[0])
     rows = re.search(r"(\| What a person does \|.*?)(?:\n\n|\Z)", sec, re.S).group(1)
     rules = re.search(r"Rules it keeps:.*?(?:\n\n|\Z)", sec, re.S).group(0).strip()
-    state = re.sub(r"\s*\(asked of Ben\)", "", re.search(r"\*\*State[^\n]*\n(?:[^\n]+\n)*", sec).group(0).strip())
+    state = re.search(r"\*\*State[^\n]*(?:\n[^\n]+)*", sec).group(0).strip()
     out += ("## Photon\n\nOn Photon 2.0 the same agent and the same measuring tools answer in iMessage and on a phone call. "
             f"It runs on the same tool registry and the same workspace document as every other way in.\n\n{rows.strip()}\n\n{rules}\n\n{state}\n\n"
             "The track page: [Photon](/tracks/photon/).\n")
