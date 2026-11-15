@@ -13,6 +13,11 @@ from threshold.photon import router, words
 from threshold.photon.state import State
 from threshold.photon.webhook import verify
 
+@pytest.fixture(autouse=True)
+def _no_allowlist(monkeypatch):
+    monkeypatch.setenv("PHOTON_ALLOW", "")  # the data folder's .env may limit answers to one tester
+
+
 SECRET = "whsec_" + base64.b64encode(b"k" * 32).decode()
 
 
@@ -133,6 +138,13 @@ def test_a_reply_goes_back_to_that_answers_workspace(tmp_path, monkeypatch):
     assert seen["ws"] == "ws_old"
     assert st.thread("pho_spc_1")["workspace"] == "ws_old"
     assert api.sent[-1][0] == "text" and "couldn't run a check" in api.sent[-1][1]
+
+
+def test_allowlist_keeps_strangers_unanswered(tmp_path, monkeypatch):
+    st, api = State(tmp_path / "s.json"), FakeAPI()
+    monkeypatch.setenv("PHOTON_ALLOW", "+15559999999")
+    router.handle(event("hi", "pho_msg_in5"), st, api)
+    assert api.sent == []
 
 
 def test_a_failure_tells_the_person(tmp_path, monkeypatch):
