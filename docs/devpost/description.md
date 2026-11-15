@@ -35,12 +35,12 @@ Each track's page has the full detail, proof and limits.
 ## The problem
 
 > "I don't ask them if it's a wheelchair accessible. I ask them if they have any steps."
->
-> Jean Ryan, President of Disabled In Action of Metropolitan New York, who uses a 400-pound powered wheelchair
+
+Jean Ryan, President of Disabled In Action of Metropolitan New York, who uses a 400-pound powered wheelchair
 
 > "I measured. Listings never had the garage depth."
->
-> A truck owner on r/f150
+
+A truck owner on r/f150
 
 The scans, the aerial photos and the records that answer these questions exist, but each sits in its own product, one listing at a time.
 
