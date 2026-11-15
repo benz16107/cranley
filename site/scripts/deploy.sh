@@ -1,58 +1,45 @@
 #!/usr/bin/env bash
-# Build the site here and deploy it as a Vercel PREVIEW from the machine that is logged in to Vercel.
+# Build the site here and deploy it from the machine that is logged in to Vercel (benmac).
 #
-#   site/scripts/deploy.sh                 preview, slot notes on, search engines kept out
-#   VERCEL_HOST=benmac site/scripts/deploy.sh
+#   site/scripts/deploy.sh           a PREVIEW behind a Vercel login, with the slot notes on and search engines kept out
+#   site/scripts/deploy.sh --prod    PRODUCTION: https://cranley.app. Needs Ben's yes each time.
 #
-# Why a preview: on this Vercel team a new project's first deployment becomes production, and the production domain
-# is public while preview URLs sit behind a Vercel login. So the first run puts a one-line placeholder in the
-# production slot, and the site itself only ever goes up with --target=preview. Going public is a separate step
-# that waits for a yes (see the end of this file).
+# The site went public on 2026-11-14 (Ben, 8 pm). Project `cranley`; cranley.app and www.cranley.app are attached,
+# with DNS at GoDaddy (A @ 216.150.1.1 and 216.150.16.1, CNAME www f6551f9cad87df1d.vercel-dns-016.com, set with
+# `gddy dns` on macserver). The first production deployment was a one-line placeholder, because on this team a new
+# project's first deployment becomes production; it is the rollback target:
+#   on benmac:  vercel rollback cranley-iz8vdil4i-benz16107-1762s-projects.vercel.app --scope benz16107-1762s-projects
 set -euo pipefail
 cd "$(dirname "$0")/.."
 host=${VERCEL_HOST:-benmac}; project=cranley; scope=benz16107-1762s-projects
 remote=.cache/cranley-site
 v="export PATH=/opt/homebrew/bin:/usr/local/bin:\$PATH; vercel"
+prod=; [ "${1:-}" = "--prod" ] && prod=1
 
-pnpm build
+if [ -n "$prod" ]; then
+  PUBLIC_SLOT_LABELS=off PUBLIC_INDEX=1 pnpm build
+  # the public site shows no empty picture frame and no slot note
+  ! grep -rlE 'data-state="empty"|class="media hatch' dist || { echo "an empty picture frame is in the public build"; exit 1; }
+else
+  pnpm build
+fi
 pnpm check
 cp vercel.json dist/vercel.json
 printf '.env*\n' > dist/.vercelignore   # `vercel link` writes .env.local into the folder it deploys
 
-ssh -o ConnectTimeout=10 "$host" "mkdir -p $remote/dist $remote/placeholder" || { echo "cannot reach $host; nothing was deployed"; exit 2; }
+ssh -o ConnectTimeout=10 "$host" "mkdir -p $remote/dist" || { echo "cannot reach $host; nothing was deployed"; exit 2; }
 ssh "$host" "$v whoami" >/dev/null || { echo "$host is not logged in to Vercel; nothing was deployed"; exit 2; }
-
-# First run only: the project, and a placeholder that takes the production slot.
-if ! ssh "$host" "$v project ls --scope $scope 2>&1" | grep -qw "$project"; then
-  ssh "$host" "cd $remote/placeholder && printf '<!doctype html><meta charset=utf-8><meta name=robots content=noindex><title>Cranley</title><p>Cranley. Coming soon.' > index.html \
-    && printf '{\"git\":{\"deploymentEnabled\":false}}' > vercel.json \
-    && $v project add $project --scope $scope && $v link --yes --project $project --scope $scope && $v deploy --yes --prod --scope $scope"
-fi
-
 rsync -a --delete --exclude .vercel dist/ "$host:$remote/dist/"
-url=$(ssh "$host" "cd $remote/dist && $v link --yes --project $project --scope $scope >/dev/null 2>&1 && $v deploy --yes --target=preview --scope $scope" | tail -1)
-echo "preview: $url"
+ssh "$host" "cd $remote/dist && $v link --yes --project $project --scope $scope" >/dev/null 2>&1
 
-# Logged out, the preview must send us to a login and no project domain may serve the site.
-code=$(curl -s -o /dev/null -w '%{http_code}' "$url/")
-echo "preview logged out: HTTP $code (want 302 or 401)"
-for d in $(ssh "$host" "$v api /v9/projects/$project/domains --scope $scope" | grep -o '"name": *"[^"]*"' | cut -d'"' -f4); do
-  hit=$(curl -sL "https://$d/" | grep -c 'The listing says' || true)
-  echo "domain $d: $([ "$hit" = 0 ] && echo 'does not serve the site' || echo 'SERVES THE SITE')"
-  [ "$hit" = 0 ] || exit 1
-done
-[ "$code" = 302 ] || [ "$code" = 401 ] || { echo "the preview answered without a login"; exit 1; }
-
-# Going public, only after Ben's yes. Run by hand; nothing above does it.
-#   1. here:        PUBLIC_SLOT_LABELS=off PUBLIC_INDEX=1 pnpm build && pnpm check && cp vercel.json dist/ && printf '.env*\n' > dist/.vercelignore
-#                   rsync -a --delete --exclude .vercel dist/ $host:$remote/dist/
-#   2. on $host:    cd ~/$remote/dist && vercel deploy --yes --prod --scope $scope        (replaces the placeholder on cranley.vercel.app)
-#                   vercel domains add cranley.app $project --scope $scope && vercel domains add www.cranley.app $project --scope $scope
-#                   vercel domains inspect cranley.app --scope $scope                     (prints the A and CNAME values to use below)
-#   3. on macserver (the records today: A @ "Parked", CNAME www -> cranley.app; delete then add, because `dns set` fails on a CNAME):
-#                   gddy dns delete cranley.app --type A --name @ --timeout 40s
-#                   gddy dns add cranley.app --type A --name @ --data <A value from Vercel> --timeout 40s
-#                   gddy dns delete cranley.app --type CNAME --name www --timeout 40s
-#                   gddy dns add cranley.app --type CNAME --name www --data <CNAME value from Vercel> --timeout 40s
-#   4. check:       curl -sI https://cranley.app/ | head -1; curl -sI https://www.cranley.app/ | grep -i location
-#   Undo:           on $host, vercel rollback <the placeholder deployment's URL> --scope $scope  (under a minute; DNS can stay)
+if [ -n "$prod" ]; then
+  ssh "$host" "cd $remote/dist && $v deploy --yes --prod --scope $scope" | tail -3
+  sleep 5
+  [ "$(curl -s https://cranley.app/ | grep -c 'The listing says')" = 1 ] || { echo "https://cranley.app does not serve the home page"; exit 1; }
+  echo "live: https://cranley.app  ($(curl -s -o /dev/null -w 'HTTP %{http_code}' https://cranley.app/docs/); www answers $(curl -s -o /dev/null -w '%{http_code}' https://www.cranley.app/))"
+else
+  url=$(ssh "$host" "cd $remote/dist && $v deploy --yes --target=preview --scope $scope" | grep -o 'https://[a-z0-9-]*\.vercel\.app' | head -1)
+  code=$(curl -s -o /dev/null -w '%{http_code}' "$url/")
+  echo "preview: $url  (logged out: HTTP $code, want 302 or 401)"
+  [ "$code" = 302 ] || [ "$code" = 401 ] || { echo "the preview answered without a login"; exit 1; }
+fi

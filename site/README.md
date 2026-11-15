@@ -41,6 +41,17 @@ Every picture and clip is a slot (`src/site/slots.ts`). To fill one, add a file 
 Build flags: `PUBLIC_SLOT_LABELS=off` hides the notes that name each slot (and any slot with nothing in it),
 `PUBLIC_INDEX=1` lets search engines in.
 
+## Deploying
+
+The site is live at https://cranley.app (Vercel project `cranley`, deployed from benmac, where the Vercel login is).
+
+```sh
+scripts/deploy.sh           # a preview behind a Vercel login, slot notes on
+scripts/deploy.sh --prod    # production. Needs Ben's yes. Builds with PUBLIC_SLOT_LABELS=off PUBLIC_INDEX=1
+```
+
+The rollback target and the DNS records are in the header of `scripts/deploy.sh`.
+
 ## Rules
 
 - No sponsor data, scan ids or private-home addresses in this folder. `pnpm check` looks for the obvious ones.
