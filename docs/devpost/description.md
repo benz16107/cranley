@@ -29,13 +29,13 @@ Each track page has the details.
 | Amazon | [page](https://cranley.app/tracks/amazon/) | Asked for AI that reasons, plans, acts and adapts; we built that, plus a profile that learns you once with the adaptation counted on screen, a phone companion, iMessage and an iPhone LiDAR app | Questions asked over three homes for a returning wheelchair user: 1, 0, 0 | |
 | Peri | [page](https://cranley.app/tracks/peri/) | Asked to solve one consulted business's problem; we interviewed Jean Ryan, President of Disabled In Action of Metropolitan New York, asked 58 more people online, emailed 491 organisations, and shipped 12 groups of changes that night | 12 groups of changes, each with its commit in [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md) | [Conversation (7 min)](https://youtu.be/EoHyoNs2idg)<br>[Teaser (32 s)](https://youtu.be/M5G2j62ZYGQ) |
 | LangChain | [page](https://cranley.app/tracks/langchain/) | Asked for a deepagent; we built a deepagents investigator with planning, parallel subagents, approvals that resume from a MongoDB checkpoint, skills, long-term memory, a rubric grader, MCP tools and LangSmith experiments | Two houses checked at once, both paused before the smoke model and resumed from a MongoDB checkpoint | |
-| Photon | [page](https://cranley.app/tracks/photon/) | Asked for a messaging agent on Photon 2.0; we built an iMessage agent (plan pictures, reply threads as investigations, photos, video, voice and location in, the PDF in the chat) and a phone voice agent. The voice agent waits on a phone number, and the first live round trip is unconfirmed | Every reply built from the tool result, never model text; 14 tests | |
+| Photon | [page](https://cranley.app/tracks/photon/) | Asked for a messaging agent on Photon 2.0; we built the equivalent of texting or calling your real estate agent (or contractor, inspector, property manager, accessibility advisor): ask about a place in iMessage or on a call and get measurements back, with plan pictures, reply threads as investigations, photos, video, voice and location in, and the PDF in the chat. A full live round trip is unconfirmed | Every reply built from the tool result, never model text; 14 tests | |
 | MongoDB Atlas | [page](https://cranley.app/tracks/mongodb/) | Asked to build with Atlas; we use 12 Atlas features: op log with transactions, change streams, Atlas Search, Vector Search with automated embedding, `$rankFusion`, time series, TTL, 2dsphere, schema validation, LangGraph checkpointer and store, MCP | A door width typed on the phone reaches the desktop in about a second | |
 | Tiger Data | [page](https://cranley.app/tracks/tiger-data/) | Asked to show Tiger powering the app; we built the facts database on hypertables, compression, continuous aggregates and hyperfunctions, plus PostGIS, DiskANN, BM25, the pgai vectorizer, jobs, retention, read-only agent SQL and forks | A zero-copy fork ready in 31 s for a city-wide what-if; 234 MB compressed to 58 MB | |
 
-![Amazon: two occupational therapists' home-assessment lists and the aging-in-place checks they became](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/256/datas/gallery.jpg)
-
-![Photon: Cranley's actual replies to a garage question, shown in a messages frame](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/153/datas/gallery.jpg)
+| Amazon: what two occupational therapists check, and the checks it became | Photon: Cranley's actual replies, shown in a messages frame |
+|---|---|
+| ![Two occupational therapists' home-assessment lists and the aging-in-place checks they became](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/256/datas/gallery.jpg) | ![Cranley's actual replies to a garage question, shown in a messages frame](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/153/datas/gallery.jpg) |
 
 ---
 
@@ -48,6 +48,8 @@ Jean Ryan, President of Disabled In Action of Metropolitan New York, who uses a 
 > "I measured. Listings never had the garage depth."
 
 A truck owner on r/f150
+
+![Truck and boat owners on garage depth, and what garage fit now checks](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/817/datas/gallery.jpg)
 
 The scans, the aerial photos and the records that answer these questions exist, but each sits in its own product, one listing at a time.
 
@@ -72,9 +74,9 @@ Before and while building we asked people what goes wrong with their buildings: 
 
 Their answers changed the tools the same night. Every quote and its change: [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md).
 
-![Outreach at a glance: a recorded interview, 58 people in 17 communities, 491 emails, six human replies](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/100/datas/gallery.jpg)
-
-![What people told us and what we changed that night, each with its tool and commit](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/113/datas/gallery.jpg)
+| Who we asked | What it changed |
+|---|---|
+| ![Outreach at a glance: a recorded interview, 58 people in 17 communities, 491 emails, six human replies](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/100/datas/gallery.jpg) | ![What people told us and what we changed that night, each with its tool and commit](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/113/datas/gallery.jpg) |
 
 ---
 

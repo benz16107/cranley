@@ -398,9 +398,11 @@ read-only shared workspace; search past work for a phrase that is not in it word
 
 Prizes: winner, runner-up, and Best Voice Agent. Built on `ws/photon` (merged at `a8c7348`); details in `docs/PHOTON.md`.
 
-**Angle.** The people who need a building checked are rarely at a desk: they are walking through a viewing, driving to
-one, or standing in a doorway with a tape measure. On Photon, the same agent and the same measuring tools answer in
-iMessage and on a phone call.
+**Angle.** Cranley on Photon works like texting or calling your real estate agent. You have a question about a place,
+so you text or call, and it answers with measurements. The same number can act as your contractor, inspector, property
+manager or accessibility advisor. The people who need a building checked are rarely at a desk: they are walking through
+a viewing, driving to one, or standing in a doorway with a tape measure. The same agent and the same measuring tools
+answer in iMessage and on a phone call.
 
 | What a person does | Why it is a real use of Photon 2.0 |
 |---|---|
@@ -418,8 +420,8 @@ Rules it keeps: every sent line is built from the tool result, never from model 
 rendered pictures leave the server; the main API stays private behind one signature-checked relay; each event is
 handled once, in order per chat.
 
-**State (7:50 pm):** merged with 14 tests; the live line is up with sends limited to an allowlist; a first real round
-trip had not been confirmed; the phone agent needs a voice number.
+**State (4:20 am):** merged with 14 tests; the live line is up with sends limited to an allowlist; the voice line is
+wired (`edbfc67`) and Ben made the first real call at about 4 am. A full live round trip is not confirmed yet.
 
 **Demo path.** Text the line "will an F-150 fit in this garage?" with a building link, get the marked plan back, reply
 "what about two?", then "report" for the PDF. For Best Voice: call, ask the same, hang up, show the iMessage that follows.
@@ -461,7 +463,7 @@ wheelchair user, the family before a storm, the fire crew.
 
 ## Built (synced to `main`)
 
-Checked against `git log main` at `8525bb8` (2026-11-14, 11:06 pm ET). Update at each merge.
+Checked against `git log main` at `9acfb37` (2026-11-15, 3:49 am ET). Update at each merge.
 
 **Merged**
 - [x] Data layer: Matterport, Vexcel and CoStar sources, normalized plan format with quality flags (`ws/data`)
@@ -500,10 +502,13 @@ Checked against `git log main` at `8525bb8` (2026-11-14, 11:06 pm ET). Update at
 - [x] Audit passes on the shell, scene and phone: failed 360 photos say so with a retry, layers a city lacks are hidden, phone layout fixes, ids read as names (`audit/*`, partial merges)
 - [x] Home rebuilt as one entry: a sentence about any building or one picked, starting points by who you are, recent work (`ws/home2`)
 - [x] Website and docs at cranley.app, generated from the code and this file (`ws/site`)
+- [x] The live app at cranley.app/app and the phone page at /m through the same domain, open to everyone with a global cap; track pages lead with their proof and what each sponsor asked for beside what we built; an /about page (`ws/site`)
+- [x] Faster first load: demo buildings warmed, Home loaded lazily, gzip and cache headers (`ws/perf`, partial)
+- [x] iPhone app icon (the Cranley mark) and a TestFlight build
 - [x] MCP server (stdio and `/mcp`), `threshold` CLI, deep agent over MCP, `docs/MCP.md` (`ws/mcp`)
 
 **Not merged yet:** none.
 
 **Not merged on purpose:** the Overflight look (`ws/design2`).
 
-**Blocked:** iPhone app on a real phone (Apple Program License Agreement); Peri evidence (no business consulted; one emailed business declined).
+**Blocked:** iPhone app on a real phone (Apple Program License Agreement).
