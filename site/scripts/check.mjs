@@ -19,7 +19,7 @@ const FORBID = [[/(?<![\w.-])\/(?:home|Users)\/\w/, 'a home path'], [/\bts\.net\
   [/lead(?:'|’|&#39;|&#x27;)s server/i, 'a note to the team'], [/\?as=/, 'the profile switch'], [/not merged yet/i, 'a stale branch note'], [/hackprinceton26-data/, 'the data folder'], [/Team note/, 'a team note'], [/\breports\/[\w-]+\.md\b/, 'a report in the data folder']]
 // the live demo's own address is on a tailnet name by design; everything else on a page still may not be
 const DEMO = readFileSync('src/site/links.ts', 'utf8').match(/demo: '([^']+)'/)?.[1]
-// the one thing loaded from another company: the interview on the Peri page, which the privacy page names
+// the one thing loaded from another company: YouTube's player on the track pages (the interview, the deep-dive videos), which the privacy page names
 const EMBED = /^https:\/\/www\.youtube-nocookie\.com\/embed\/[\w-]+$/
 const TEST_SCANS = new Set(['u_testhome0001', 'u_testcafe0001'])
 
@@ -27,7 +27,7 @@ for (const [file, s] of html) {
   for (const [, attr, url] of s.matchAll(/\s(href|src)="([^"]+)"/g)) {
     if (/^(https?:)?\/\//.test(url)) {
       // a link out is fine; a script, style, image or font from another host is not
-      if (attr === 'src' && EMBED.test(url) && file.includes('tracks/peri/')) continue
+      if (attr === 'src' && EMBED.test(url) && file.includes('tracks/')) continue
       if (attr === 'src' || new RegExp(`<link[^>]+href="${url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*rel="(stylesheet|preload)`).test(s)) bad.push(`${file}: loads ${url} from another host`)
       continue
     }

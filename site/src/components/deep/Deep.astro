@@ -5,7 +5,9 @@ import Base from '../../layouts/Base.astro'
 import type { Track } from '../../site/tracks'
 import '../../styles/deep.css'
 interface Props { track: Track; title: string; sections: [string, string][]; stats?: { n: number; label: string }[] }
-const { track, title, sections, stats } = Astro.props
+const { track, title, sections: own, stats } = Astro.props
+// a track's deep-dive video leads its page, once its YouTube id is in src/site/tracks.ts
+const sections: [string, string][] = track.video ? [['video', 'Deep-dive video'], ...own] : own
 ---
 <Base title={`${track.name}: Cranley`} description={track.summary} nav="tracks">
   <div class="deep wrap">
@@ -18,7 +20,18 @@ const { track, title, sections, stats } = Astro.props
     <nav class="deep-nav" aria-label="On this page">
       <ul>{sections.map(([id, label], i) => <li><a href={`#${id}`} aria-current={i === 0 ? 'true' : undefined}>{label}</a></li>)}</ul>
     </nav>
-    <div class="deep-body"><slot /></div>
+    <div class="deep-body">
+      {track.video && (
+        <section class="dsec" id="video">
+          <h2>The deep dive, on video</h2>
+          <figure class="video">
+            <iframe src={`https://www.youtube-nocookie.com/embed/${track.video}`} title={`${track.name}: the Cranley deep-dive video`} loading="lazy" allow="encrypted-media; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+            <figcaption>A walk through this track, start to finish. <a href={`https://youtu.be/${track.video}`}>Watch it on YouTube</a></figcaption>
+          </figure>
+        </section>
+      )}
+      <slot />
+    </div>
   </div>
 </Base>
 
