@@ -585,6 +585,13 @@ def media(shots: pathlib.Path) -> None:
         subprocess.run(["cwebp", "-quiet", "-q", "84", "-resize", "660", "0", str(shots / src), "-o", str(SITE / "public/media" / f"{name}.webp")], check=True)
 
 
+def about_md() -> str:
+    """The sections moved off the Devpost page (docs/devpost/about.md), word for word, from its first `## ` on:
+    the lines above that are a note to the team."""
+    text = (REPO / "docs/devpost/about.md").read_text()
+    return text[text.index("\n## ") + 1:]
+
+
 def asked() -> str:
     """The story's forward-deployed opening, with its own counts, for the home page."""
     m = re.search(r"^Cranley was built forward-deployed\..*?(?=\n\n)", (REPO / "docs/story.md").read_text(), re.S | re.M)
@@ -619,6 +626,7 @@ def main() -> None:
     write(DOCS / "reference/layers.md", layers_md())
     write(DOCS / "reference/result-format.md", result_md())
     write(DOCS / "mcp.md", mcp_md(tools))
+    write(SITE / "src/generated/about.md", about_md())
     write(DOCS / "sponsor-integrations.md", sponsor_md())
     api, n_ops = api_md()
     for mod, text in api.items():
