@@ -80,7 +80,7 @@ More detail: [How it works](https://cranley.app/how/) · [The agent](https://cra
 
 Before and while building we asked people what goes wrong with their buildings: a recorded 31-minute interview with Jean Ryan ([the conversation, 7 min](https://youtu.be/xFw0Rpz9pbk)), written answers from 74 people in 19 online communities, and 491 emails, which brought seven human replies.
 
-![Outreach at a glance: the interview, the Reddit answers, the emails and the replies, counted from the outreach logs](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/915/741/datas/gallery.jpg)
+![Outreach at a glance: the interview, the Reddit answers, the emails and the replies, counted from the outreach logs](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/918/412/datas/gallery.jpg)
 
 Their answers changed the tools the same night. One Los Angeles homeowner in a Very High Fire Hazard Severity Zone told us their insurer's wildfire score comes from drone photos and an AI that checks only whether plants are present, on city permit records that are wrong for their house: the gap between the record and the real building that Cranley measures. Every quote and its change: [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md).
 
