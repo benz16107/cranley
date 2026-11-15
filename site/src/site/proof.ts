@@ -5,10 +5,10 @@
 // our r/f150 post that gave a measured garage's size is a flat box at source. In the picture of the email replies, the two people who have
 // not agreed to be named are covered by flat boxes: names, addresses, signatures, the museum's event and the theatre's footer.
 export const INTERVIEW = {
-  url: 'https://youtu.be/EoHyoNs2idg', // the conversation cut (15 Nov, 3:25 am): each question, then her answer
-  embed: 'https://www.youtube-nocookie.com/embed/EoHyoNs2idg',
+  url: 'https://youtu.be/xFw0Rpz9pbk', // the conversation cut with the email exchange that led to the call as its opening (15 Nov, 4:40 am)
+  embed: 'https://www.youtube-nocookie.com/embed/xFw0Rpz9pbk',
   title: 'Interview with Jean Ryan, President of Disabled In Action of Metropolitan New York',
-  caption: 'The recorded call with Jean Ryan, President of Disabled In Action of Metropolitan New York, cut to the conversation: each question, then her answer. She agreed to be filmed and named.',
+  caption: 'The recorded call with Jean Ryan, President of Disabled In Action of Metropolitan New York, cut to the conversation: the emails that led to it, then each question and her answer. She agreed to be filmed and named.',
 }
 
 const BLURRED = 'Usernames are blurred.'
