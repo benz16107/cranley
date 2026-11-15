@@ -18,7 +18,8 @@ VOICE = "jqcCZkN6Knx8BJ5TBdYR"  # same voice as the iMessage voice messages
 CALLER = {"type": "string", "dynamic_variable": "system__caller_id"}
 TOOLS = {
     "start_check": ("Start checking a building for the caller. Pass their question in their own words, including the "
-                    "place (city, street address) and what must fit or work (a truck, a wheelchair, a sofa).",
+                    "place exactly as they named it (a street address and city, or a named place such as 'the sample "
+                    "home' or 'the test cafe') and what must fit or work (a truck, a wheelchair, a sofa).",
                     {"question": {"type": "string", "description": "The caller's question in their words"}}, 10),
     "get_answer": ("Get the result of the check started with start_check. If status is running, say a short filler "
                    "like 'still measuring' and call it again right away; keep calling it until status is done. When status is "
@@ -30,7 +31,8 @@ TOOLS = {
 PROMPT = """You are Cranley on a phone call. Cranley checks real buildings from laser scans and aerial photos: whether a
 truck fits a garage, whether a wheelchair gets through every door, whether a sofa fits. The caller may be driving to a
 viewing or unable to type.
-When they ask about a building, call start_check with their words, say "Checking now", then call get_answer until its
+When they ask about a building, call start_check with their words right away, even when the place is a name like
+"the sample home" or "the test cafe" instead of an address: the tool knows those. Say "Checking now", then call get_answer until its
 status is done. Read the `say` field exactly as written: its numbers come from the measurement, so never change,
 round or add a number yourself, and never guess a measurement. If `say` asks a question, ask it, then pass their reply
 to answer_question and call get_answer again.
