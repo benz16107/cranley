@@ -129,7 +129,7 @@ rejects any number it states.
 | iPhone LiDAR app | RoomPlan scan of your own space, LiDAR tape measure, barometer floor height, compass window facing, scan-to-report | merged; builds and runs in the simulator; not on a phone yet (Apple licence agreement) |
 | Offline demo copy | The laptop replays the six demo flows with recorded model answers when the venue network fails | merged |
 | iMessage and phone (Photon 2.0) | Ask by text or call; plan pictures, reply threads, photos and voice notes in, PDF in the chat | merged; live round trip not yet confirmed |
-| Website and docs | https://cranley.app: home, a page per track (generated from this file's Tracks section), privacy and terms, docs generated from the tool manifests and the OpenAPI schema | merged and live |
+| Website and docs | https://cranley.app: home, a page per track (generated from this file's Tracks section), privacy and terms, docs generated from the tool manifests and the OpenAPI schema, a live demo button (access code given in person) with FAQ and privacy text for the demo | merged and live |
 | PDF reports | Site report for any workspace: plan with numbered fixes, evidence, occupant load, smoke-alarm census, what was not checked | merged |
 | MCP server and CLI | Every tool for Claude Code, Claude Desktop, Cursor or a LangChain agent; resources and prompts; `threshold` on the command line | merged |
 | Shared databases | MongoDB Atlas for people's work, Tiger Cloud for building facts | merged |
@@ -444,7 +444,7 @@ wheelchair user, the family before a storm, the fire crew.
 
 ## Built (synced to `main`)
 
-Checked against `git log main` at `164a061` (2026-11-14, 9:40 pm ET). Update at each merge.
+Checked against `git log main` at `ceba198` (2026-11-14, 9:42 pm ET). Update at each merge.
 
 **Merged**
 - [x] Data layer: Matterport, Vexcel and CoStar sources, normalized plan format with quality flags (`ws/data`)
