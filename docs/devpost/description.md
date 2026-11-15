@@ -13,7 +13,7 @@ Ask anything about a building and get a measured answer, with its source.
 
 ### In 30 seconds
 
-Listings say "accessible", "two-car garage", "fits a king bed", and nobody measures before you sign. Cranley is an agent that picks the right tools for your need, from 78 that measure real buildings inside and out: Matterport interior scans, Vexcel aerial imagery and the 3D city, CoStar records, or your own iPhone scan. Every number comes from a calculation, never from a model's text, and says where it came from.
+Listings say "accessible", "two-car garage", "fits a king bed", and nobody measures before you sign. Cranley is an agent that picks the right tools for your need, from [78 that measure real buildings](https://cranley.app/tools/) inside and out: Matterport interior scans, Vexcel aerial imagery and the 3D city, CoStar records, or your own iPhone scan. Every number comes from a calculation, never from a model's text, and says where it came from.
 
 ![A Los Angeles home cut open in its photoreal block, every room measured](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/910/100/datas/gallery.jpg)
 
@@ -27,7 +27,7 @@ Each track page lists what the sponsor asked for beside what we built, and every
 
 | Track | Page | What we built | Strongest proof | Video |
 |---|---|---|---|---|
-| CoStar | [page](https://cranley.app/tracks/costar/) | Asked for an agent using at least two of the three layers; we built one using all three in one frame, plus 78 tools, parallel subagents, a photoreal 3D city, iPhone scans and PDF reports | 50 tools run through the real API on 15 places: 266 answers, 62 honest "cannot answer here", 0 judged wrong | |
+| CoStar | [page](https://cranley.app/tracks/costar/) | Asked for an agent using at least two of the three layers; we built one using all three in one frame, plus [78 tools](https://cranley.app/tools/), parallel subagents, a photoreal 3D city, iPhone scans and PDF reports | 50 tools run through the real API on 15 places: 266 answers, 62 honest "cannot answer here", 0 judged wrong | |
 | Amazon | [page](https://cranley.app/tracks/amazon/) | Asked for AI that reasons, plans, acts and adapts; we built that, plus a profile that learns you once with the adaptation counted on screen, a phone companion, iMessage and an iPhone LiDAR app | Questions asked over three homes for a returning wheelchair user: 1, 0, 0 | |
 | Peri | [page](https://cranley.app/tracks/peri/) | Asked to solve one consulted business's problem; we interviewed Jean Ryan, President of Disabled In Action of Metropolitan New York, asked 58 more people online, emailed 491 organisations, and shipped 12 groups of changes that night | 12 groups of changes, each with its commit in [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md) | [Conversation (7 min)](https://youtu.be/EoHyoNs2idg)<br>[Teaser (32 s)](https://youtu.be/M5G2j62ZYGQ) |
 | LangChain | [page](https://cranley.app/tracks/langchain/) | Asked for a deepagent; we built a deepagents investigator with planning, parallel subagents, approvals that resume from a MongoDB checkpoint, skills, long-term memory, a rubric grader, MCP tools and LangSmith experiments | Two houses checked at once, both paused before the smoke model and resumed from a MongoDB checkpoint | |
@@ -64,7 +64,7 @@ More detail: [About Cranley](https://cranley.app/about/) · [Why nobody measures
 ## How it works
 
 1. **Say what you need:** "I use a wheelchair, 81 cm wide. Can I reach the bathroom?"
-2. **It picks the tools** from 78 and asks only what is missing.
+2. **It picks the tools** from [78](https://cranley.app/tools/) and asks only what is missing.
 3. **It checks many buildings at once,** one subagent each; slow steps wait for your yes.
 4. **It shows the evidence:** the route through the photoreal building, the step in red, each number's source.
 5. **Change it and keep it:** "widen this door" re-runs the checks; a PDF lists fixes and what was not checked.
