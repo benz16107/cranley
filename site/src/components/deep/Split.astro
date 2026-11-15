@@ -1,0 +1,29 @@
+---
+// One bar divided by what became of each item, with every part named and counted in the key.
+interface Props { parts: { label: string; n: number; tone: 'main' | 'soft' | 'mute' | 'hatch' }[]; unit: string }
+const { parts, unit } = Astro.props
+const total = parts.reduce((a, p) => a + p.n, 0)
+---
+<div class="split" data-scope>
+  <div class="bar" role="img" aria-label={parts.map((p) => `${p.label}: ${p.n}`).join(', ')}>
+    {parts.map((p) => <span class={p.tone} style={`flex: ${p.n} 0 0`} data-say={`${p.label}: ${p.n} of ${total} ${unit}.`}></span>)}
+  </div>
+  <ul class="key">{parts.map((p) => <li><i class={p.tone}></i>{p.label}<span class="num">{p.n}</span></li>)}</ul>
+  <p class="readout" aria-live="polite">{total} {unit} in all. Point at a part of the bar to read it.</p>
+</div>
+
+<style>
+  .split { display: grid; gap: var(--s-4); }
+  .bar { display: flex; gap: 2px; height: 20px; }
+  .bar span { min-width: 5px; border-radius: 2px; }
+  .bar span:first-child { border-start-start-radius: 4px; border-end-start-radius: 4px; }
+  .bar span:last-child { border-start-end-radius: 4px; border-end-end-radius: 4px; }
+  .main { background: var(--accent); }
+  .soft { background: var(--ramp-3); }
+  .mute { background: var(--ink-3); }
+  .hatch { background: repeating-linear-gradient(135deg, var(--ink-3) 0 2px, transparent 2px 5px); outline: 1px solid var(--ink-3); outline-offset: -1px; }
+  .key { display: flex; flex-wrap: wrap; gap: 6px var(--s-5); font-size: 0.8125rem; color: var(--ink-2); }
+  .key li { display: flex; align-items: center; gap: 8px; }
+  .key i { width: 12px; height: 12px; border-radius: 2px; flex: none; }
+  .key .num { color: var(--ink); }
+</style>

@@ -1,0 +1,10 @@
+---
+// The frame every chart sits in: what is counted, a line of reading help, the marks, then where the count comes from.
+interface Props { title: string; sub?: string; source?: string }
+const { title, sub, source } = Astro.props
+---
+<figure class="chart">
+  <figcaption><span class="ct">{title}</span>{sub && <span class="cs">{sub}</span>}</figcaption>
+  <slot />
+  {source && <p class="src">{source}</p>}
+</figure>

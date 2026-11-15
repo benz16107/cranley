@@ -6,6 +6,8 @@ import Base from '../../layouts/Base.astro'
 import Slot from '../../components/Slot.astro'
 import Proof from '../../components/Proof.astro'
 import { INTERVIEW } from '../../site/proof'
+import Costar from '../../components/deep/Costar.astro'
+import Peri from '../../components/deep/Peri.astro'
 import { TRACKS } from '../../site/tracks'
 import { LABELS, filesOf } from '../../site/slots'
 
@@ -15,8 +17,12 @@ export function getStaticPaths() {
 const { track } = Astro.props
 const entry = await getEntry('tracks', track.slug)
 const Content = entry ? (await render(entry)).Content : null
+// the tracks redesigned as deep dives; the rest keep the page below until theirs is built
+const Deep = ({ costar: Costar, peri: Peri } as Record<string, typeof Costar>)[track.slug]
+const title = entry?.data.title ?? `${track.name}: ${track.prize}`
 const shots = track.slots.filter((id) => LABELS || filesOf(id).length > 0)
 ---
+{Deep ? <Deep track={track} title={title}>{Content && <Content />}</Deep> : (
 <Base title={`${track.name}: Cranley`} description={track.summary} nav="tracks">
   <article class="page">
     <div class="wrap">
@@ -49,6 +55,7 @@ const shots = track.slots.filter((id) => LABELS || filesOf(id).length > 0)
     </div>
   </article>
 </Base>
+)}
 
 <style>
   .video { display: grid; gap: var(--s-2); }
