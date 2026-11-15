@@ -34,7 +34,7 @@ type ShowState = NonNullable<Parameters<NonNullable<SceneProps['onShow']>>[0]>
 type ShowSpec = NonNullable<SceneView['show']>
 type ShowKind = ShowSpec['kind']
 const SHOWS: { id: ShowKind; label: string; icon: IconName; title: string }[] = [
-  { id: 'flood', label: 'Flood', icon: 'drop', title: 'Hurricane Harvey\'s water at this house, hour by hour' },
+  { id: 'flood', label: 'Flood', icon: 'drop', title: 'A recorded flood at this house, hour by hour' },
   { id: 'fire', label: 'Fire', icon: 'fire', title: 'A fire in these rooms and its smoke, minute by minute' },
   { id: 'tour', label: 'Tour', icon: 'walk', title: 'A camera tour of what was found here, read aloud' },
 ]
@@ -159,7 +159,7 @@ function Summary({ plan, sid, panels, findings, onResults }: { plan: ScanPlan; s
             <li><StatusGlyph status={plan.has.splat ? 'pass' : 'unknown'} /><span className="grow">Drone capture</span><span className="muted">{plan.has.splat ? 'yes' : 'no'}</span></li>
             <li><StatusGlyph status={plan.has.defurnished ? 'pass' : 'unknown'} /><span className="grow">Empty-room photos</span><span className="muted">{plan.has.defurnished ? 'yes' : 'no'}</span></li>
           </ul>
-          {q?.notes?.map((n) => <p key={n} className="muted small">{n}</p>)}
+          {q?.notes?.map((n) => <p key={n} className="muted small">{n.charAt(0).toUpperCase() + n.slice(1)}</p>)}
         </section>
       )}
       <section className="ins-sec">
@@ -500,7 +500,7 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
   const work = (
         <section className="work" aria-label="Building view">
           <div className="worktools">
-            <Seg label="View" value={v.mode} onChange={v.setMode} options={MODES.map((m) => ({ id: m.id, label: m.label, icon: m.icon, disabled: !v.modes.includes(m.id), title: v.plan && !v.modes.includes(m.id) ? m.none : undefined }))} />
+            <Seg label="View" value={v.mode} onChange={v.setMode} options={MODES.map((m, k) => ({ id: m.id, label: m.label, icon: m.icon, disabled: !v.modes.includes(m.id), title: v.plan && !v.modes.includes(m.id) ? m.none : `${m.label} ( ${k + 1} )` }))} />
             {/* What the building is drawn from and what stands round it, behind one button. These edit the scene's view; the scene's own copy of the controls is switched off below. */}
             {v.plan && (v.mode === 'dollhouse' || v.mode === 'splat') && (() => {
               const placed = (v.plan as { geo?: { lat?: number | null } | null }).geo?.lat != null, doll = v.mode === 'dollhouse'
@@ -545,7 +545,7 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
             {v.plan && (
               <MenuBtn align="end" trigger={<button type="button" className="btn quiet" aria-pressed={!!spec} aria-label="Play" title="Play a flood, a fire or a tour on the building"><Icon name="play" size={13} /><span className="lbl">Play</span><Icon name="down" size={11} /></button>}>
                 <div className="mh">Play on the building</div>
-                {SHOWS.map((x) => <Menu.Item key={x.id} className="mi two" onClick={() => play(x.id)}><Icon name={x.icon} /><span className="grow"><b>{x.label}{spec?.kind === x.id && ' (playing, stop)'}</b><span className="s">{x.title}</span></span></Menu.Item>)}
+                {SHOWS.map((x) => <Menu.Item key={x.id} className="mi two" onClick={() => play(x.id)}><Icon name={x.icon} /><span className="grow"><b>{x.label}{spec?.kind === x.id && ' (playing, stop)'}</b><span className="s">{x.id === 'flood' && b?.metro === 'hou' ? 'Hurricane Harvey\'s water at this house, hour by hour' : x.title}</span></span></Menu.Item>)}
               </MenuBtn>
             )}
             {v.plan && v.mode === 'dollhouse' && <FurnishMenu sid={sid} />}
@@ -623,7 +623,7 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
             })}
             {panels.length === 0 && working.length === 0 && stopped.length === 0 && citywide.length === 0 && (
               <Empty icon="play" title="No results on this scan" action={<RunToolMenu sid={sid} trigger={<button type="button" className="btn solid">Run a tool<Icon name="down" size={11} /></button>} />}>
-                Pick a tool to measure this scan. Its result, checks and evidence appear here, and it draws on the building.
+                Pick a tool to measure this scan.
               </Empty>
             )}
             {[...panels].reverse().map((p) => <PanelView key={p.id} panel={p} open={p.id === inView?.id} onOpen={(o) => { setChosen(o ? p.id : null); setPick(null) }} />)}

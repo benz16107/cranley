@@ -18,7 +18,7 @@ const dated = (l: MapLayer) => { const d = l.data_date ? l.data_date : l.fetched
 
 /** The layer list and the base view, one row in the map's corner. The list is the catalogue's: one row per group,
     closed until asked for, so a layer added on the server appears here under its group with nothing changed. */
-export function MapTools({ base, onBase, layers, on, toggle, reset, city }: { base: BaseView; onBase: (b: BaseView) => void; layers: MapLayer[]; on: string[]; toggle: (id: string) => void; reset: () => void; city: CityId }) {
+export function MapTools({ base, onBase, layers, on, toggle, reset }: { base: BaseView; onBase: (b: BaseView) => void; layers: MapLayer[]; on: string[]; toggle: (id: string) => void; reset: () => void }) {
   const zoom = useWorld((s) => s.zoom)
   const groups = [...new Set(layers.map((l) => l.group))]
   const shown = layers.filter((l) => on.includes(l.id) && l.available)
@@ -27,17 +27,19 @@ export function MapTools({ base, onBase, layers, on, toggle, reset, city }: { ba
       <MenuBtn trigger={<button type="button" className="btn" aria-label={`Layers: ${shown.length} shown`}><Icon name="stack" size={14} />Layers<span className="count">{shown.length}</span></button>}>
         {!layers.length && <div className="mh">The layer list did not load. Is the data server running?</div>}
         {groups.map((g) => {
-          const list = layers.filter((l) => l.group === g), n = list.filter((l) => shown.includes(l)).length
+          // a layer this city has no copy of is left out: a row that can only say "not here" is not a choice
+          const list = layers.filter((l) => l.group === g && l.available), n = list.filter((l) => shown.includes(l)).length
+          if (!list.length) return null
           return (
             <Menu.SubmenuRoot key={g}>
               <Menu.SubmenuTrigger>{g}<small>{n ? `${n} of ${list.length} on` : list.length}</small><Icon name="right" size={11} /></Menu.SubmenuTrigger>
               <Menu.Portal><Menu.Positioner sideOffset={2} alignOffset={-4} style={{ zIndex: 61 }}><Menu.Popup className="menu">
                 {list.map((l) => (
-                  <Menu.CheckboxItem key={l.id} checked={shown.includes(l)} disabled={!l.available} closeOnClick={false} onCheckedChange={() => toggle(l.id)}
+                  <Menu.CheckboxItem key={l.id} checked={shown.includes(l)} closeOnClick={false} onCheckedChange={() => toggle(l.id)}
                     title={`${l.attribution || l.source}${dated(l) ? `, ${dated(l)}` : ''}. ${l.note}`}>
                     <span className="mi-check"><Menu.CheckboxItemIndicator><Icon name="check" size={12} /></Menu.CheckboxItemIndicator></span>
                     {swatch(l)}{l.title}
-                    <small>{!l.available ? `not in ${CITIES[city].name}` : on.includes(l.id) && (zoom < l.minzoom || zoom > l.maxzoom) ? (zoom < l.minzoom ? 'zoom in to see' : 'zoom out to see') : ''}</small>
+                    <small>{on.includes(l.id) && (zoom < l.minzoom || zoom > l.maxzoom) ? (zoom < l.minzoom ? 'zoom in to see' : 'zoom out to see') : ''}</small>
                   </Menu.CheckboxItem>
                 ))}
               </Menu.Popup></Menu.Positioner></Menu.Portal>

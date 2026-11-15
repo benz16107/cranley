@@ -87,7 +87,7 @@ export function FurnishCard({ sid }: { sid: string }) {
         ...(['front', 'back', 'left', 'right'] as const).map((k) => ({ label: `${k[0].toUpperCase()}${k.slice(1)} to wall`, value: <span className="num">{side(c.sides[k])}</span>, unit: c.sides[k] == null ? undefined : 'm' })),
         ...(c.turning ? [{ label: 'Clear circle', value: <span className="num">{num(c.turning.after)}</span>, unit: 'm' }] : []),
       ]} />
-      <footer><SourceChip source={SOURCE} /><span className="muted">Worked out as you drag. Sizes are common ones, not yours.</span></footer>
+      <footer><SourceChip source={SOURCE} /><span className="muted">Sizes are common ones, not yours.</span></footer>
     </aside>
   )
 }
