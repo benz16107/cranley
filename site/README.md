@@ -40,7 +40,8 @@ Every picture and clip is a slot (`src/site/slots.ts`). To fill one, add a file 
   used only when the site is built with `CRANLEY_REAL_VISUALS=1`, after CoStar has confirmed the website.
 
 Every captured screenshot on the site is in dark mode (Ben's rule, 2026-11-15): the proof pictures, phone screens and
-any app screen. Drawings and charts follow the site's own theme and are exempt. A light screenshot does not go in.
+any app screen. The share card `public/og.png` follows it: it is the home page's hero shot in dark at 1200 x 630, with
+the header links, the buttons and the drawing's legend hidden. Drawings and charts follow the site's own theme and are exempt. A light screenshot does not go in.
 
 The pictures of what people sent us (`src/site/proof.ts`, shown by `Proof.astro`) are not slots. They are copied in by
 hand after a read for names, usernames, addresses and scan data; the header of `proof.ts` says which of them carry
