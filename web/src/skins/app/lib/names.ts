@@ -1,6 +1,6 @@
 import type { Building } from '../../../core/index.ts'
 
-/* The agent writes a scan or a property by its id ("the bedroom in <scan-id>", "property <property-id>"). A person reads
+/* The agent writes a scan or a property by its id ("the bedroom in TestScan001", "property <property-id>"). A person reads
    names. Pure, so it runs under `node --test`. */
 export function nameIds(all: Pick<Building, 'id' | 'address' | 'scans'>[]) {
   const ids = new Map<string, { name: string; address: string }>()
