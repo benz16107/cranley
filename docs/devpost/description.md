@@ -20,7 +20,7 @@ Listings say "accessible", "two-car garage", "fits a king bed", and nobody measu
 
 ## Sponsor tracks
 
-Each track's page lists every sponsor product we used.
+Each track page has the details.
 
 | Track | Page | What we built | Strongest proof | Video |
 |---|---|---|---|---|
@@ -28,7 +28,7 @@ Each track's page lists every sponsor product we used.
 | Amazon | [page](https://cranley.app/tracks/amazon/) | Asked for AI that reasons, plans, acts and adapts; we built that, plus a profile that learns you once with the adaptation counted on screen, a phone companion, iMessage and an iPhone LiDAR app | Questions asked over three homes for a returning wheelchair user: 1, 0, 0 | |
 | Peri | [page](https://cranley.app/tracks/peri/) | Asked to solve one consulted business's problem; we interviewed Jean Ryan, President of Disabled In Action of Metropolitan New York, asked 58 more people online, emailed 491 organisations, and shipped 12 groups of changes that night | 12 groups of changes, each with its commit in [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md) | [Interview (4 min)](https://youtu.be/q5reRgHfS8Y)<br>[Teaser (44 s)](https://youtu.be/KLdkvYwNQaA) |
 | LangChain | [page](https://cranley.app/tracks/langchain/) | Asked for a deepagent; we built a deepagents investigator with planning, parallel subagents, approvals that resume from a MongoDB checkpoint, skills, long-term memory, a rubric grader, MCP tools and LangSmith experiments | Two houses checked at once, both paused before the smoke model and resumed from a MongoDB checkpoint | |
-| Photon | [page](https://cranley.app/tracks/photon/) | Asked for a messaging agent on Photon 2.0; we built it on iMessage plus a phone voice agent: plan pictures, reply threads as investigations, photos, video, voice and location in, the PDF in the chat | Every reply built from the tool result, never model text; 14 tests | |
+| Photon | [page](https://cranley.app/tracks/photon/) | Asked for a messaging agent on Photon 2.0; we built an iMessage agent (plan pictures, reply threads as investigations, photos, video, voice and location in, the PDF in the chat) and a phone voice agent. The voice agent waits on a phone number, and the first live round trip is unconfirmed | Every reply built from the tool result, never model text; 14 tests | |
 | MongoDB Atlas | [page](https://cranley.app/tracks/mongodb/) | Asked to build with Atlas; we use 12 Atlas features: op log with transactions, change streams, Atlas Search, Vector Search with automated embedding, `$rankFusion`, time series, TTL, 2dsphere, schema validation, LangGraph checkpointer and store, MCP | A door width typed on the phone reaches the desktop in about a second | |
 | Tiger Data | [page](https://cranley.app/tracks/tiger-data/) | Asked to show Tiger powering the app; we built the facts database on hypertables, compression, continuous aggregates and hyperfunctions, plus PostGIS, DiskANN, BM25, the pgai vectorizer, jobs, retention, read-only agent SQL and forks | A zero-copy fork ready in 31 s for a city-wide what-if; 234 MB compressed to 58 MB | |
 
