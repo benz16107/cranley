@@ -46,6 +46,6 @@ export const TRACKS: Track[] = [
     slug: 'mongodb', name: 'MLH: MongoDB Atlas', prize: 'Best Use of MongoDB Atlas',
     summary: 'Workspaces and their operation log, change-stream live sync with the phone, hybrid search, time series, vector memory and a guarded MCP server.',
     docs: [['Sponsor integrations', '/docs/sponsor-integrations/#mongodb-atlas'], ['The workspace', '/docs/concepts/workspace/'], ['Phone and iPhone app', '/docs/phone/'], ['Past work API', '/docs/reference/api/history/'], ['Live sync API', '/docs/reference/api/live/']],
-    slots: ['live-sync', 'share-link'],
+    slots: ['live-sync', 'share-link'], video: 'Fdknkj5M3iE',
   },
 ]
