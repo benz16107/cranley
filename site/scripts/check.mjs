@@ -16,9 +16,7 @@ const fileOf = (path) => {
 const bad = []
 const FORBID = [[/(?<![\w.-])\/(?:home|Users)\/\w/, 'a home path'], [/\bts\.net\b|tailb\d+/, 'a tailnet name'], [/\b(?:linuxbox|macserver|benmac)\b/, 'a machine name'], [/—/, 'an em dash'],
   // notes to the team that must never reach a page (docs/story.md is also the team's working file)
-  [/lead(?:'|’|&#39;|&#x27;)s server/i, 'a note to the team'], [/\?as=/, 'the profile switch'], [/not merged yet/i, 'a stale branch note'], [/hackprinceton26-data/, 'the data folder'], [/Team note/, 'a team note'], [/\breports\/[\w-]+\.md\b/, 'a report in the data folder'],
-  // until the person interviewed agrees to be named: nothing that narrows down who she is
-  [/powered-wheelchair/i, 'a detail of the interviewee'], [/New York City disability rights/i, 'a detail of the interviewee'], [/president of a/i, 'a detail of the interviewee']]
+  [/lead(?:'|’|&#39;|&#x27;)s server/i, 'a note to the team'], [/\?as=/, 'the profile switch'], [/not merged yet/i, 'a stale branch note'], [/hackprinceton26-data/, 'the data folder'], [/Team note/, 'a team note'], [/\breports\/[\w-]+\.md\b/, 'a report in the data folder']]
 const TEST_SCANS = new Set(['u_testhome0001', 'u_testcafe0001'])
 
 for (const [file, s] of html) {

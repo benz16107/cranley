@@ -14,8 +14,8 @@ without learning a tool. And it works on their own home, not only on a dataset.
 | Technical | About 600 server tests and 90 web tests; every tool run on a 15-place demo set with a matrix of results (see Proof); FastAPI, deepagents, two cloud databases, our own 3D renderer and splat training. |
 | User experience | The App look: one thing first on every screen, the rest folded; plain-word reliability chips; every panel resizable; guided first run; both themes; phone companion with live sync. |
 
-**Adaptive intelligence** (a named focus area): the disability rights leader we interviewed told us many people own
-more than one chair and do not know their widths, so a person should have to say it once. Cranley keeps a profile of the
+**Adaptive intelligence** (a named focus area): Jean Ryan of Disabled In Action told us "a lot of people have more
+than one chair" and often do not know their widths, so a person should have to say it once. Cranley keeps a profile of the
 person across investigations. It holds who they are, what they answered, the settings they changed, the tools they
 removed and the kinds of check they marked useful or not relevant, each with where it came from and a way to change or
 forget it. A new investigation starts from it: the composer asks only what it does not know, tool inputs taken from it

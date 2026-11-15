@@ -1683,7 +1683,7 @@
   "photon",
   "tiger-data"
  ],
- "asked": "Cranley was built forward-deployed. Before and while building it, we asked people and businesses what goes wrong with the inside and outside of their buildings (homes, garages, stores, kitchens, warehouses, offices), then changed the tools to match (or found they already did): one 31-minute phone interview, written answers from 40 people in 15 online communities, and 340 emails to organisations and businesses.",
+ "asked": "Cranley was built forward-deployed. Before and while building it, we asked people and businesses what goes wrong with the inside and outside of their buildings (homes, garages, stores, kitchens, warehouses, offices), then changed the tools to match (or found they already did): one recorded 31-minute phone interview with Jean Ryan, President of Disabled In Action of Metropolitan New York, written answers from 40 people in 15 online communities, and 340 emails to organisations and businesses.",
  "home": {
   "sid": "u_testhome0001",
   "name": "Test home (made up)",
@@ -2193,7 +2193,7 @@
     "title": "Step-free route",
     "verdict": {
      "status": "fail",
-     "text": "No step-free route wide enough to: bathroom, bedroom. The entrance is a doorway with a room on one side only; the scan cannot tell outside from unscanned."
+     "text": "Steps from the entrance: bathroom, none found at 3 doorways; bedroom, none found at 3 doorways; kitchen, none found at 2 doorways. Too narrow for you: bathroom, bedroom. The entrance is a doorway with a room on one side only; the scan cannot tell outside from unscanned."
     },
     "metrics": [
      {
@@ -2259,6 +2259,38 @@
     ],
     "checks": [
      {
+      "id": "steps.r4",
+      "rule": "Any steps or level changes between the entrance and bathroom: none found at 3 doorways",
+      "measured": 0.0,
+      "threshold": 0.013,
+      "unit": "m",
+      "status": "pass"
+     },
+     {
+      "id": "steps.r1",
+      "rule": "Any steps or level changes between the entrance and bedroom: none found at 3 doorways",
+      "measured": 0.0,
+      "threshold": 0.013,
+      "unit": "m",
+      "status": "pass"
+     },
+     {
+      "id": "steps.r2",
+      "rule": "Any steps or level changes between the entrance and bedroom: none found at 2 doorways",
+      "measured": 0.0,
+      "threshold": 0.013,
+      "unit": "m",
+      "status": "pass"
+     },
+     {
+      "id": "steps.r3",
+      "rule": "Any steps or level changes between the entrance and kitchen: none found at 2 doorways",
+      "measured": 0.0,
+      "threshold": 0.013,
+      "unit": "m",
+      "status": "pass"
+     },
+     {
       "id": "route.r4",
       "rule": "Step-free route, entrance to Bathroom: 7.7 m from the entrance through 3 doorways; narrowest 0.66 m.",
       "measured": 0.66,
@@ -2289,6 +2321,38 @@
       "threshold": 0.813,
       "unit": "m",
       "status": "pass"
+     },
+     {
+      "id": "stepfree.rooms",
+      "rule": "Rooms on the entrance floor reached with no step at any doorway: bathroom, bedroom, hallway, kitchen, living room",
+      "measured": 6.0,
+      "threshold": null,
+      "unit": "rooms",
+      "status": "pass"
+     },
+     {
+      "id": "cannot.outside",
+      "rule": "Not in the scan: steps outside the entrance or in a building lobby before the elevators, unless that part was scanned; check the way in with Curb to door",
+      "measured": null,
+      "threshold": null,
+      "unit": "",
+      "status": "unknown"
+     },
+     {
+      "id": "cannot.obstructions",
+      "rule": "Not in the scan: boxes, carts, bales or cleaning supplies left in a hallway, aisle or elevator on the day",
+      "measured": null,
+      "threshold": null,
+      "unit": "",
+      "status": "unknown"
+     },
+     {
+      "id": "cannot.ada",
+      "rule": "Not in the scan: whether the building is 'accessible' as claimed: the ADA has no certification or inspection, so the claim is the owner's word",
+      "measured": null,
+      "threshold": null,
+      "unit": "",
+      "status": "unknown"
      }
     ],
     "source": {
@@ -2403,13 +2467,13 @@
     "title": "Turning space",
     "verdict": {
      "status": "fail",
-     "text": "1 of 6 rooms cannot hold the turning circle in the empty room."
+     "text": "3 of 6 rooms cannot hold the turning circle with the scanned objects on the floor."
     },
     "metrics": [
      {
       "id": "rooms_ok",
       "label": "Rooms that hold the circle",
-      "value": 5.0,
+      "value": 3.0,
       "unit": "",
       "source": {
        "layer": "matterport",
@@ -2421,7 +2485,7 @@
      {
       "id": "bathroom",
       "label": "Best bathroom circle",
-      "value": 1.68,
+      "value": 0.97,
       "unit": "m",
       "source": {
        "layer": "matterport",
@@ -2433,7 +2497,7 @@
      {
       "id": "kitchen",
       "label": "Kitchen circle",
-      "value": 2.88,
+      "value": 2.42,
       "unit": "m",
       "source": {
        "layer": "matterport",
@@ -2445,7 +2509,7 @@
      {
       "id": "largest",
       "label": "Largest circle",
-      "value": 4.9,
+      "value": 3.14,
       "unit": "m",
       "source": {
        "layer": "matterport",
@@ -2457,7 +2521,7 @@
      {
       "id": "circle.r0",
       "label": "Living Room",
-      "value": 4.9,
+      "value": 3.14,
       "unit": "m",
       "source": {
        "layer": "matterport",
@@ -2469,6 +2533,22 @@
     ],
     "checks": [
      {
+      "id": "turn.r4",
+      "rule": "Turning circle, Bathroom, objects on the floor counted (1.68 m empty)",
+      "measured": 0.967,
+      "threshold": 1.525,
+      "unit": "m",
+      "status": "fail"
+     },
+     {
+      "id": "aisle.r4",
+      "rule": "Aisle from the doorway to the turning spot, Bathroom, objects on the floor: bathtub, sink, toilet",
+      "measured": 0.966,
+      "threshold": 0.915,
+      "unit": "m",
+      "status": "pass"
+     },
+     {
       "id": "turn.r5",
       "rule": "Turning circle, Hallway",
       "measured": 1.072,
@@ -2477,44 +2557,76 @@
       "status": "fail"
      },
      {
-      "id": "turn.r4",
-      "rule": "Turning circle, Bathroom",
-      "measured": 1.678,
-      "threshold": 1.525,
-      "unit": "m",
-      "status": "pass"
-     },
-     {
-      "id": "turn.r3",
-      "rule": "Turning circle, Kitchen",
-      "measured": 2.883,
-      "threshold": 1.525,
-      "unit": "m",
-      "status": "pass"
-     },
-     {
       "id": "turn.r2",
-      "rule": "Turning circle, Bedroom",
-      "measured": 3.86,
+      "rule": "Turning circle, Bedroom, objects on the floor counted (3.86 m empty)",
+      "measured": 1.33,
       "threshold": 1.525,
+      "unit": "m",
+      "status": "fail"
+     },
+     {
+      "id": "aisle.r2",
+      "rule": "Aisle from the doorway to the turning spot, Bedroom, objects on the floor: bed, storage",
+      "measured": 1.33,
+      "threshold": 0.915,
       "unit": "m",
       "status": "pass"
      },
      {
       "id": "turn.r1",
-      "rule": "Turning circle, Bedroom",
-      "measured": 3.872,
+      "rule": "Turning circle, Bedroom, objects on the floor counted (3.87 m empty)",
+      "measured": 1.608,
       "threshold": 1.525,
       "unit": "m",
       "status": "pass"
      },
      {
-      "id": "turn.r0",
-      "rule": "Turning circle, Living Room",
-      "measured": 4.901,
+      "id": "aisle.r1",
+      "rule": "Aisle from the doorway to the turning spot, Bedroom, objects on the floor: bed",
+      "measured": 1.453,
+      "threshold": 0.915,
+      "unit": "m",
+      "status": "pass"
+     },
+     {
+      "id": "turn.r3",
+      "rule": "Turning circle, Kitchen, objects on the floor counted (2.88 m empty)",
+      "measured": 2.418,
       "threshold": 1.525,
       "unit": "m",
       "status": "pass"
+     },
+     {
+      "id": "aisle.r3",
+      "rule": "Aisle from the doorway to the turning spot, Kitchen, objects on the floor: refrigerator, sink, stove",
+      "measured": 2.418,
+      "threshold": 0.915,
+      "unit": "m",
+      "status": "pass"
+     },
+     {
+      "id": "turn.r0",
+      "rule": "Turning circle, Living Room, objects on the floor counted (4.90 m empty)",
+      "measured": 3.138,
+      "threshold": 1.525,
+      "unit": "m",
+      "status": "pass"
+     },
+     {
+      "id": "aisle.r0",
+      "rule": "Aisle from the doorway to the turning spot, Living Room, objects on the floor: chair, sofa, table, television",
+      "measured": 3.0,
+      "threshold": 0.915,
+      "unit": "m",
+      "status": "pass"
+     },
+     {
+      "id": "cannot.obstructions",
+      "rule": "Not in the scan: boxes, carts or stock left in an aisle on the day",
+      "measured": null,
+      "threshold": null,
+      "unit": "",
+      "status": "unknown"
      }
     ],
     "source": {
@@ -2528,7 +2640,7 @@
     "title": "Bathroom clearance",
     "verdict": {
      "status": "fail",
-     "text": "Every bathroom fails at least one check: door clear width."
+     "text": "Every bathroom fails at least one check: 30 x 48 in clear floor space outside the door swing; 60 x 56 in clearance around the toilet; FHA clear floor space at the toilet; clear floor beside the toilet (side transfer), 48 in deep; clear floor."
     },
     "metrics": [
      {
@@ -2591,15 +2703,79 @@
       "measured": null,
       "threshold": null,
       "unit": "",
-      "status": "pass"
+      "status": "fail"
      },
      {
-      "id": "r4.wc_any",
-      "rule": "Bathroom: room could hold a 60 x 56 in toilet clearance somewhere",
+      "id": "r4.swing.o2",
+      "rule": "Bathroom: which way the door opens: not in the scan",
       "measured": null,
       "threshold": null,
       "unit": "",
+      "status": "unknown"
+     },
+     {
+      "id": "r4.wc_front",
+      "rule": "Bathroom: clear floor in front of the toilet (front transfer), 30 in wide",
+      "measured": 0.0,
+      "threshold": 1.219,
+      "unit": "m",
+      "status": "fail"
+     },
+     {
+      "id": "r4.wc_side",
+      "rule": "Bathroom: clear floor beside the toilet (side transfer), 48 in deep",
+      "measured": 0.42,
+      "threshold": 0.762,
+      "unit": "m",
+      "status": "fail"
+     },
+     {
+      "id": "r4.wc_ada",
+      "rule": "Bathroom: 60 x 56 in clearance around the toilet",
+      "measured": null,
+      "threshold": null,
+      "unit": "",
+      "status": "fail"
+     },
+     {
+      "id": "r4.wc_fha",
+      "rule": "Bathroom: FHA clear floor space at the toilet",
+      "measured": null,
+      "threshold": null,
+      "unit": "",
+      "status": "fail"
+     },
+     {
+      "id": "r4.bar_side",
+      "rule": "Bathroom: free wall beside the toilet for a side grab bar",
+      "measured": 1.67,
+      "threshold": 1.372,
+      "unit": "m",
       "status": "pass"
+     },
+     {
+      "id": "r4.bar_rear",
+      "rule": "Bathroom: free wall behind the toilet for a rear grab bar",
+      "measured": 0.83,
+      "threshold": 0.914,
+      "unit": "m",
+      "status": "fail"
+     },
+     {
+      "id": "cannot.toilet_height",
+      "rule": "Not in the scan: toilet seat height and whether the walls can hold grab bars",
+      "measured": null,
+      "threshold": null,
+      "unit": "",
+      "status": "unknown"
+     },
+     {
+      "id": "cannot.ada",
+      "rule": "Not in the scan: whether the bathroom is 'accessible' as claimed: the ADA has no certification or inspection",
+      "measured": null,
+      "threshold": null,
+      "unit": "",
+      "status": "unknown"
      }
     ],
     "source": {
