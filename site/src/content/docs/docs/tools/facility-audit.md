@@ -25,6 +25,7 @@ For the agent, the tool is described as: For a business auditing its current bui
 | `door_width_m` | number (m) |  | `0.813` | Clear width a door needs (32 in, ADA 404.2.3). Saved preference `access.door_width_m`. Range: more than 0.3, at most 2.0. |
 | `read_panoramas` | boolean |  | `true` | Let the vision model read the panoramas (restroom fixtures, life-safety objects); cached after the first run. |
 | `cleaning` | boolean |  | `true` | Price a cleaning contract from the takeoff. |
+| `pallet_aisle_m` | number (m) |  | `1.83` | Aisle a pallet jack needs between pallet rows (6 ft by default). Saved preference `facility.pallet_aisle_m`. Range: more than 0.8, at most 5. |
 | `cart_m` | array (m) |  | `[0.51, 0.66, 1.78]` | Cart or rolling rack stock moves on: width, length, height (default a full-size sheet-pan rack, 20 x 26 x 70 in). Saved preference `facility.cart_m`. |
 
 An input that nothing fills (the selected building, a saved preference, a persona's preset) becomes a question to the person. The agent asks only for those.
@@ -101,7 +102,7 @@ Inputs used: `door_width_m = 0.813` (preset of the persona "Facility manager").
 | Cart route, entrance to kitchen or break room: 2 doors and 0 bends, straight | <span class="num">0.25</span> | <span class="num">0 m</span> | <span class="st pass">pass</span> |
 | Not in the scan: how far the sinks are from the water heater: no water heater was located on the panoramas | not measured |  | <span class="st unknown">unknown</span> |
 
-4 more checks are in the full result.
+5 more checks are in the full result.
 
 Findings: 4 warn, 4 fail, 1 unknown.
 

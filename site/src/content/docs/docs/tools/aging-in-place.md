@@ -68,13 +68,13 @@ The tool sets the label for each value. A model never does. The tools give a sca
 
 This section was written by running the tool when the docs were built, on a hand-made RoomPlan export (no real place was scanned), with no sponsor keys and the network switched off.
 
-<p class="verdict"><span class="st fail">Fail</span> 9 places to fix or check, at least one clear hazard.</p>
+<p class="verdict"><span class="st fail">Fail</span> 9 places to fix or check, at least one clear hazard. Home assessment: 5 of a therapist's measures come from the scan, 1 need attention; the rest are to confirm on site.</p>
 
 | Value | Result | Where it came from | Reliability |
 |---|---|---|---|
 | Places to fix or check | <span class="num">9</span> | Measured from the scan | medium |
 | Floors | <span class="num">1</span> | Measured from the scan | medium |
-| Checklist items the scan answers | <span class="num">5</span> | Measured from the scan | medium |
+| Checklist items the scan answers | <span class="num">10</span> | Measured from the scan | medium |
 
 | Check | Measured | Against | Status |
 |---|---|---|---|
@@ -83,18 +83,18 @@ This section was written by running the tool when the docs were built, on a hand
 | No raised threshold or single step at a doorway (over 1/2 in, 13 mm). Steps found here are trip hazards to fix first. | <span class="num">0</span> | <span class="num">0.013 m</span> | <span class="st warn">warn</span> |
 | A bedroom and a bathroom are on the floor with the entrance, so stairs are not needed day to day. | <span class="num">1</span> | <span class="num">1 rooms</span> | <span class="st warn">warn</span> |
 | If the home has stairs, check handrails on both sides for the full length and a light switch at the top and bottom. The scan cannot see either. | <span class="num">1</span> | <span class="num">1 floors</span> | <span class="st pass">pass</span> |
-| Floors: 'Do you have throw rugs on the floor?' Not answerable: belongings change after the scan. | not measured |  | <span class="st unknown">unknown</span> |
-| Floors: 'Do you have to walk over or around wires or cords?' Not answerable: belongings change after the scan. | not measured |  | <span class="st unknown">unknown</span> |
-| Stairs: 'Is there a light and light switch at the top and bottom of the stairs?' Not answerable: switches are not in the scan; look on site. | not measured |  | <span class="st unknown">unknown</span> |
+| Doorway clear widths: narrowest of 6 measured, 4 under 32 in | <span class="num">0.66</span> | <span class="num">0.815 m</span> | <span class="st fail">fail</span> |
+| Pinch points between walls on the routes to the bathroom and bedroom: 1, the narrowest 1.19 m | <span class="num">1.191</span> | <span class="num">0.914 m</span> | <span class="st pass">pass</span> |
+| Threshold heights: the highest of 6 doorway sills is 0 cm off the floor, 0 over the 5 cm the scan can resolve | <span class="num">0</span> | <span class="num">0.013 m</span> | <span class="st pass">pass</span> |
 
-4 more checks are in the full result.
+15 more checks are in the full result.
 
 Findings: 2 fail, 7 warn.
 
 What it reported while it ran:
 
 1. Evaluated the Aging in place rule pack: 5 checks
-1. 9 places to fix or check, at least one clear hazard.
+1. 9 places to fix or check, at least one clear hazard. Home assessment: 5 of a therapist's measures come from the scan, 1 need attention; the rest are to confirm on site.
 
 ## Run it
 

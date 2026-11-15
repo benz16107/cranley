@@ -26,6 +26,8 @@ For the agent, the tool is described as: Indoor security camera coverage through
 | `max_cameras` | integer |  | `4` | How many cameras the proposal may use. Saved preference `security.max_cameras`. Range: at least 1, at most 12. |
 | `fov_deg` | number (deg) |  | `110.0` | Saved preference `security.camera_fov_deg`. Range: more than 10, at most 360. |
 | `range_m` | number (m) |  | `9.0` | Saved preference `security.camera_range_m`. Range: more than 1, at most 30. |
+| `doorbell_height_m` | number (m) |  |  | Height of a doorbell camera beside each exterior door; checks a visitor's face is in view and the porch ceiling. Saved preference `security.doorbell_height_m`. |
+| `doorbell_vfov_deg` | number (deg) |  | `90.0` | The doorbell camera's vertical field of view. Saved preference `security.doorbell_vfov_deg`. Range: more than 20, at most 180. |
 
 An input that nothing fills (the selected building, a saved preference, a persona's preset) becomes a question to the person. The agent asks only for those.
 
