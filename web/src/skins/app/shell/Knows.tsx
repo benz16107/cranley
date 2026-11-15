@@ -100,7 +100,7 @@ export function Knows() {
               <Dialog.Close render={<button className="btn icon quiet" aria-label="Close" />}><Icon name="close" /></Dialog.Close>
             </header>
             <div className="body knows">
-              <p className="kn-lede">What you have told Cranley, kept between investigations so a new one does not ask again. Each line says where it came from. Change or forget any of it.</p>
+              <p className="kn-lede">What Cranley keeps between investigations, so a new one does not ask again. Change or forget any line.</p>
               {!p && loading && <div className="kn-sec"><span className="sk" style={{ width: '62%' }} /><span className="sk" style={{ width: '44%' }} /><span className="sk" style={{ width: '52%' }} /></div>}
               {/* once there are two investigations to compare, how they went leads: it is what the rest is for */}
               {p && p.adapted.length > 0 && <section className="kn-sec"><h3>How Cranley has adapted to you</h3><Adapted /></section>}

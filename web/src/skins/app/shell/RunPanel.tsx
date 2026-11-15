@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Dialog } from '@base-ui/react/dialog'
 import { Switch } from '@base-ui/react/switch'
 import { Tabs } from '@base-ui/react/tabs'
-import { answerPref, compose, focusFinding, investigate, useCatalog, useWorkspace, userOp, type Pref, type Question, type Run } from '../../../core/index.ts'
+import { answerPref, compose, focusFinding, investigate, useBuildings, useCatalog, useWorkspace, userOp, type Pref, type Question, type Run } from '../../../core/index.ts'
 import { PanelView } from '../blocks/blocks.tsx'
 import { Empty, Icon, IconBtn, RunState, StatusGlyph, ToolKey } from '../design/ui.tsx'
 import { Sheet } from '../design/split.tsx'
@@ -11,11 +11,11 @@ import { askHere } from '../lib/pending.ts'
 import { goScan } from '../lib/place.ts'
 import { newInvestigation } from './Sidebar.tsx'
 import { useUi } from './store.ts'
-import { ApprovalCard, ApproveAll, isApproval, Lanes } from './AgentLive.tsx'
+import { ApprovalCard, ApproveAll, isApproval, Lanes, useStopped } from './AgentLive.tsx'
 import { Because, KnowsButton, Marks, useFirst } from './Knows.tsx'
 
 // a mark on a check or a kind of check has no value to print: its sentence says it
-const prefText = (p: Pick<Pref, 'value' | 'unit'>) => (typeof p.value === 'boolean' ? (p.value ? 'yes' : 'no') : typeof p.value === 'object' ? '' : `${p.value}${p.unit ? ' ' + p.unit : ''}`)
+const prefText = (p: Pick<Pref, 'value' | 'unit'>) => (typeof p.value === 'boolean' ? (p.value ? 'yes' : 'no') : typeof p.value === 'object' ? '' : `${typeof p.value === 'string' ? p.value.replace(/_/g, ' ') : p.value}${p.unit ? ' ' + p.unit : ''}`)
 
 /* ---------- a question a tool needs answered: choice, number or text, with the value on offer ---------- */
 export function QuestionForm({ q }: { q: Question }) {
@@ -73,7 +73,7 @@ function Brief() {
   const [text, setText] = useState('')
   const open = doc.questions.filter((q) => q.answer == null)
   if (!doc.brief && !open.length && !doc.plan.length && !doc.runs.length) {
-    return <Empty icon="runs" title="No investigation open" action={<button className="btn solid" onClick={newInvestigation}>New investigation</button>}>Describe a need on Home and the agent picks the tools, asks what it must, and shows its work here.</Empty>
+    return <Empty icon="runs" title="No investigation open" action={<button className="btn solid" onClick={newInvestigation}>New investigation</button>}>Describe a need on Home. The agent’s plan and results show here.</Empty>
   }
   if (!doc.brief && !open.length) return null // tools run by hand, no brief: the runs below are the whole story
   return (
@@ -98,7 +98,7 @@ function Brief() {
       )}
       {open.length > 0 && !editing && (
         <div className="asks">
-          <header><h3>{open.every(isApproval) ? (open.length === 1 ? 'The agent is waiting for your approval' : `The agent is waiting for ${open.length} approvals`) : open.length === 1 ? 'One question' : `${open.length} questions`} before the work can go on</h3></header>
+          <header><h3>{open.every(isApproval) ? (open.length === 1 ? 'Waiting for your approval' : `Waiting for ${open.length} approvals`) : open.length === 1 ? 'One question to answer' : `${open.length} questions to answer`}</h3></header>
           {/* several approvals at once are usually the same step on several buildings: one press answers them all */}
           {open.length > 1 && open.every(isApproval) && <ApproveAll open={open} />}
           {open.map((q) => (isApproval(q) ? <ApprovalCard key={q.id} q={q} /> : <QuestionForm key={q.id} q={q} />))}
@@ -116,6 +116,7 @@ function Brief() {
 
 function Plan() {
   const plan = useWorkspace((s) => s.doc.plan), runs = useWorkspace((s) => s.doc.runs)
+  const stopped = useStopped()
   const [all, setAll] = useState<Record<string, boolean>>({})
   const byHand = runs.filter((r) => !r.step), earlier = runs.filter((r) => r.step && !plan.some((s) => s.id === r.step))
   if (!plan.length && !runs.length) return <p className="rp-none">No plan yet. It appears when the investigation starts.</p>
@@ -128,7 +129,7 @@ function Plan() {
           const mine = runs.filter((r) => r.step === s.id), shown = all[s.id] || s.status === 'active' ? mine : mine.slice(-2)
           return (
             <li key={s.id} className="step" data-status={s.status} aria-current={s.status === 'active' ? 'step' : undefined}>
-              <div className="sh"><span className="n">{i + 1}</span><span className="grow">{s.label}</span><RunState state={s.status}>{''}</RunState></div>
+              <div className="sh"><span className="n">{i + 1}</span><span className="grow">{s.label}</span>{stopped && s.status === 'active' ? <span className="rs">Stopped here</span> : <RunState state={s.status}>{''}</RunState>}</div>
               {mine.length > 0 && (
                 <ul className="runs">
                   {mine.length > shown.length && <li><button className="more" onClick={() => setAll({ ...all, [s.id]: true })}>{mine.length - shown.length} earlier runs</button></li>}
@@ -152,32 +153,67 @@ function Plan() {
   )
 }
 
+/** What the agent concluded, first: its closing note, then the way to the ranking and to the building it kept. */
+function Result() {
+  const doc = useWorkspace((s) => s.doc)
+  const summary = doc.panels.findLast((p) => p.role === 'summary'), ranking = doc.panels.find((p) => p.id === 'agent:ranked') ?? doc.panels.find((p) => p.role === 'ranking')
+  const kept = doc.shortlist[0]
+  if (!summary && !ranking) return null
+  return (
+    <section className="rp-sec result arrive">
+      <header><h3>{summary?.title ?? 'Result'}</h3></header>
+      {summary?.blocks.map((b, i) => b.type === 'Note' && <p key={i} className="said">{b.text}</p>)}
+      <div className="row wrap">
+        {kept && <button className="btn solid sm" onClick={() => goScan(kept.sid)} title={kept.note}>Open {kept.name}</button>}
+        {ranking && <button className="btn sm" onClick={() => useUi.setState({ panel: ranking.id })}>See the ranking</button>}
+      </div>
+    </section>
+  )
+}
+
 function Findings() {
   const doc = useWorkspace((s) => s.doc)
+  const all = useBuildings((s) => s.all)
   const order = { fail: 0, warn: 1, unknown: 2, pass: 3 } as const
   const first = useFirst() // kinds the person marked useful lead, within each status
-  const items = [...doc.findings].sort((a, b) => order[a.status] - order[b.status] || +first.has(b.id) - +first.has(a.id))
-  if (!items.length) return <p className="rp-none">Nothing checked yet. Each check links to its place in the building.</p>
+  // one group per building, the kept ones first; within a building the worst checks lead
+  const groups = useMemo(() => {
+    const sidOf = (f: (typeof doc.findings)[number]) => (f.anchor && 'sid' in f.anchor ? f.anchor.sid : '')
+    const items = [...doc.findings].sort((a, b) => order[a.status] - order[b.status] || +first.has(b.id) - +first.has(a.id)).slice(0, 120)
+    const by = new Map<string, typeof items>()
+    for (const sid of doc.shortlist.map((s) => s.sid)) by.set(sid, [])
+    for (const f of items) by.set(sidOf(f), [...(by.get(sidOf(f)) ?? []), f])
+    const name = (sid: string) => { for (const b of all) { const s = b.scans.find((x) => x.sid === sid); if (s) return s.name } return sid ? 'A building' : 'On the map' }
+    return [...by].filter(([, list]) => list.length > 0).map(([sid, list]) => ({ sid, name: name(sid), list }))
+  }, [doc.findings, doc.shortlist, first, all]) // eslint-disable-line react-hooks/exhaustive-deps
+  if (!doc.findings.length) return <p className="rp-none">Nothing checked yet. Each check links to its place in the building.</p>
   return (
-    <ul className="flist">
-      {items.slice(0, 80).map((f) => (
-        <li key={f.id} data-first={first.has(f.id) || undefined} title={first.has(f.id) ? `Listed first: ${first.get(f.id)}` : undefined}>
-          <button type="button" disabled={!f.anchor} aria-current={doc.camera?.finding === f.id || undefined} onClick={() => focusFinding(f)} title={f.anchor ? 'Show this in the building' : 'This check has no place to show'}>
-            <StatusGlyph status={f.status} />
-            <span className="grow"><span className="t">{f.title}</span>{f.detail && <span className="s">{f.detail}</span>}</span>
-            {f.anchor && <Icon name="target" size={13} />}
-          </button>
-          <Marks id={f.id} title={f.title} />
-        </li>
+    <>
+      {groups.map((g) => (
+        <section key={g.sid} className="fgroup" aria-label={g.name}>
+          {groups.length > 1 && <h4><span className="trunc">{g.name}</span><span className="count">{g.list.length}</span></h4>}
+          <ul className="flist">
+            {g.list.map((f) => (
+              <li key={f.id} data-first={first.has(f.id) || undefined} title={first.has(f.id) ? `Listed first: ${first.get(f.id)}` : undefined}>
+                <button type="button" disabled={!f.anchor} aria-current={doc.camera?.finding === f.id || undefined} onClick={() => focusFinding(f)} title={f.anchor ? 'Show this in the building' : 'This check has no place to show'}>
+                  <StatusGlyph status={f.status} />
+                  <span className="grow"><span className="t">{f.title}</span>{f.detail && <span className="s">{f.detail}</span>}</span>
+                  {f.anchor && <Icon name="target" size={13} />}
+                </button>
+                <Marks id={f.id} title={f.title} />
+              </li>
+            ))}
+          </ul>
+        </section>
       ))}
-      {items.length > 80 && <li className="rp-none">Showing 80 of {items.length}. The investigation page lists all of them.</li>}
-    </ul>
+      {doc.findings.length > 120 && <p className="rp-none">Showing the 120 worst of {doc.findings.length}. The investigation page lists all of them.</p>}
+    </>
   )
 }
 
 export function Learned() {
   const prefs = useWorkspace((s) => s.doc.prefs)
-  if (!prefs.length) return <p className="rp-none">Nothing learned yet. An answer or a changed setting is kept here, with where it came from, and can be undone.</p>
+  if (!prefs.length) return <p className="rp-none">Nothing learned yet. Answers and changed settings are kept here and can be undone.</p>
   return (
     <ul className="learned">
       {prefs.map((p) => (
@@ -197,20 +233,26 @@ export function RunPanel({ onClose }: { onClose: () => void }) {
   const canUndo = useWorkspace((s) => s.undoStack.length > 0), undo = useWorkspace((s) => s.undo)
   const [text, setText] = useState('')
   const [tab, setTab] = useState('plan')
+  // what was just asked, shown until the agent is seen to start on it: the plan or the runs change
+  const sign = `${doc.plan.map((s) => s.label + s.status).join('|')}#${doc.runs.length}`
+  const [sent, setSent] = useState<{ text: string; sign: string } | null>(null)
   const shared = useCatalog((s) => !!s.shared)
-  const active = doc.plan.find((s) => s.status === 'active'), running = doc.runs.filter((r) => r.status === 'running')
+  const stopped = useStopped()
+  const at = doc.plan.findIndex((s) => s.status === 'active'), running = doc.runs.filter((r) => r.status === 'running')
+  const working = !stopped && (at >= 0 || running.length > 0)
   const open = doc.questions.filter((q) => q.answer == null).length
-  const send = () => { if (text.trim()) { void askHere(text.trim()); setText('') } }
+  const send = () => { if (text.trim()) { void askHere(text.trim()); setSent({ text: text.trim(), sign }); setText('') } }
   return (
     <aside className="run" aria-label="Agent">
       <header className="rp-head">
         <h2>Agent</h2>
-        <span className="grow trunc">{active || running.length ? <RunState state="running">{active?.label ?? running[0].label}</RunState> : open ? <span className="rs" data-state="ask">{open} to answer</span> : doc.plan.length ? <RunState state="done">Finished</RunState> : <span className="muted">Idle</span>}</span>
+        <span className="grow trunc" title={at >= 0 ? doc.plan[at].label : undefined}>{working ? <RunState state="running">{at >= 0 ? `Step ${at + 1} of ${doc.plan.length}` : running[0].label}</RunState> : open ? <span className="rs" data-state="ask">{open} to answer</span> : stopped ? <span className="rs">Stopped at step {at + 1}</span> : doc.plan.length ? <RunState state="done">Finished</RunState> : <span className="muted">Idle</span>}</span>
         <KnowsButton />
         <IconBtn icon="close" label="Close the agent panel" kbd="]" onClick={onClose} />
       </header>
       <div className="rp-body scroll">
         <Brief />
+        {!working && <Result />}
         <Because />
         {(doc.plan.length > 0 || doc.runs.length > 0 || doc.findings.length > 0 || doc.prefs.length > 0) && (
           <Tabs.Root value={tab} onValueChange={(v) => setTab(String(v))}>
@@ -225,8 +267,9 @@ export function RunPanel({ onClose }: { onClose: () => void }) {
           </Tabs.Root>
         )}
       </div>
-      {shared ? <footer className="rp-foot"><p className="muted small">This is a read-only link. The plan, the runs and every finding can be opened; nothing can be asked or changed from here.</p></footer> : (
+      {shared ? <footer className="rp-foot"><p className="muted small">Read-only link. Everything can be opened; nothing can be changed.</p></footer> : (
       <footer className="rp-foot">
+        {sent?.sign === sign && <p className="rp-sent"><RunState state="running">Sent</RunState><span className="trunc">{sent.text}</span></p>}
         <form className="composer" onSubmit={(e) => { e.preventDefault(); send() }}>
           <textarea className="field" rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder="Ask the agent for a change or a check" aria-label="Ask the agent"
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }} />
@@ -257,7 +300,7 @@ export function PanelDrawer() {
           {panel && (
             <Sheet>
               <header>
-                <ToolKey id={panel.tool} title={tool?.title ?? panel.title} />
+                {panel.tool && <ToolKey id={panel.tool} title={tool?.title ?? panel.title} />}
                 <Dialog.Title render={<h2 className="trunc" />}><b>{panel.title}</b>{panel.scope && <span className="muted"> · {panel.scope}</span>}</Dialog.Title>
                 {panel.sid && <button className="btn sm" onClick={() => { useUi.setState({ panel: null }); goScan(panel.sid!) }}>Open the building<Icon name="go" size={12} /></button>}
                 <Dialog.Close render={<button className="btn icon quiet" aria-label="Close" />}><Icon name="close" /></Dialog.Close>

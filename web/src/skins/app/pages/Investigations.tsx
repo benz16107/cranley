@@ -10,6 +10,7 @@ import { forgetSeen, leaveShared, openSeen, statusOf, useSeen, type Seen } from 
 import { goInvestigation, goScan } from '../lib/place.ts'
 import { family } from '../lib/tools.ts'
 import { Learned, QuestionForm, openRun } from '../shell/RunPanel.tsx'
+import { useStopped } from '../shell/AgentLive.tsx'
 import { newInvestigation } from '../shell/Sidebar.tsx'
 import { useUi } from '../shell/store.ts'
 import { STATUS } from './Home.tsx'
@@ -43,7 +44,7 @@ export function Investigations() {
       </div>
       <DataTable label="Investigations" noun="investigation" cols={cols} rows={rows} rowKey={(s) => s.id} sortBy={{ col: 'last', dir: -1 }} onRow={(s) => (s.id === current ? goInvestigation(s.id) : openSeen(s.id))}
         empty={all.length ? <Empty icon="filter" title="No investigation matches" /> : <Empty icon="runs" title="No investigations yet" action={<button className="btn solid" onClick={newInvestigation}>New investigation</button>}>An investigation is one brief, the tools picked for it, and every run and finding that followed.</Empty>}
-        foot={<span className="grow" style={{ textAlign: 'right' }}>Listed from this browser. Work started elsewhere is not shown until the server lists past work.</span>} />
+        foot={<span className="grow" style={{ textAlign: 'right' }}>Listed from this browser only.</span>} />
     </div>
   )
 }
@@ -106,7 +107,7 @@ function ToolsTab({ doc }: { doc: Doc }) {
   ]
   return (
     <>
-      <div className="bar thin"><span className="grow muted small">The tools this investigation may use. The agent chose from the brief; you can add or remove any.</span><button className="btn sm" onClick={() => useUi.setState({ menu: 'tools' })}><Icon name="plus" size={12} />Add a tool</button></div>
+      <div className="bar thin"><span className="grow muted small">Chosen by the agent from the brief. Add or remove any.</span><button className="btn sm" onClick={() => useUi.setState({ menu: 'tools' })}><Icon name="plus" size={12} />Add a tool</button></div>
       <DataTable label="Tools in this investigation" noun="tool" cols={cols} rows={doc.tools} rowKey={(t) => t.id} empty={<Empty icon="tool" title="No tools yet" action={<button className="btn" onClick={() => useUi.setState({ menu: 'tools' })}>Add a tool</button>} />} />
     </>
   )
@@ -114,7 +115,8 @@ function ToolsTab({ doc }: { doc: Doc }) {
 
 function OverviewTab({ doc }: { doc: Doc }) {
   const open = doc.questions.filter((q) => q.answer == null)
-  const notes = doc.panels.filter((p) => p.role && p.role !== 'tool')
+  const lead = (p: Doc['panels'][number]) => (p.role === 'summary' ? 0 : p.id === 'agent:ranked' ? 1 : p.role === 'note' ? 2 : 3)
+  const notes = doc.panels.filter((p) => p.role && p.role !== 'tool').sort((a, b) => lead(a) - lead(b))
   return (
     <div className="page"><div className="inner inv-over">
       {(!!doc.brief?.limits?.length || doc.questions.length > 0) && <section className="card">
@@ -128,7 +130,7 @@ function OverviewTab({ doc }: { doc: Doc }) {
       {notes.length > 0 ? (
         <section className="card">
           <header><h3 className="grow">What the agent concluded</h3></header>
-          {notes.map((p) => <PanelView key={p.id} panel={p} />)}
+          {notes.map((p) => <PanelView key={p.id} panel={p} folded={lead(p) === 3} />)}
         </section>
       ) : doc.plan.length > 0 && <p className="muted">The agent’s ranking and summary appear here when it finishes.</p>}
       {doc.plan.length > 0 && (
@@ -162,6 +164,7 @@ export function Investigation({ id }: { id: string }) {
   const shared = useCatalog((s) => s.shared)
   const [tab, setTab] = useState('overview')
   const runOpen = useUi((s) => s.run)
+  const stopped = useStopped() // the turn ended part-way through its plan: not "working"
   if (shared && shared.state !== 'ready') {
     return (
       <div className="page"><div className="inner">
@@ -193,7 +196,7 @@ export function Investigation({ id }: { id: string }) {
       <div className="inv-stats">
         <Stats items={[
           // the run count is on the Activity tab and the time each took is in its rows: the strip keeps what a person asks first
-          { label: 'Status', value: <RunState state={STATUS[status].state}>{STATUS[status].label}</RunState> },
+          { label: 'Status', value: stopped ? <span className="rs">Stopped part-way</span> : <RunState state={STATUS[status].state}>{STATUS[status].label}</RunState> },
           { label: 'Steps done', value: doc.plan.length ? `${doc.plan.filter((s) => s.status === 'done').length} of ${doc.plan.length}` : '–' },
           { label: 'Checks made', value: <>{int(doc.findings.length)}{failed > 0 && <span className="st" data-status="fail" title="Tool runs that failed; see Activity">{failed} failed</span>}</> },
           { label: 'Kept', value: int(doc.shortlist.length) },

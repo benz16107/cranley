@@ -1,7 +1,8 @@
-import { startOver, useBuildings, useCatalog, useWorkspace } from '../../../core/index.ts'
+import { startOver, useCatalog, useWorkspace } from '../../../core/index.ts'
 import { Icon, IconBtn, Mark, Menu, MenuBtn, Tip, type IconName } from '../design/ui.tsx'
 import { go, goInvestigation, goScan, usePlace, type Page } from '../lib/place.ts'
 import { openSeen, started, statusOf, useSeen } from '../lib/pending.ts'
+import { STATUS } from '../pages/Home.tsx'
 import { useTheme, type Theme } from './theme.ts'
 import { useUi } from './store.ts'
 
@@ -26,7 +27,6 @@ export function Sidebar({ onPick }: { onPick?: () => void }) {
   const seen = useSeen((s) => s.all)
   const live = useCatalog((s) => s.live)
   const shared = useCatalog((s) => !!s.shared) // a read-only link pairs no phone: there is nothing it may send to
-  const count = useBuildings((s) => s.all.length)
   const { theme, setTheme } = useTheme()
   const running = doc.runs.filter((r) => r.status === 'running').length
   const recent = Object.values(seen).filter((s) => s.id !== doc.id).sort((a, b) => b.last - a.last).slice(0, 5)
@@ -43,7 +43,7 @@ export function Sidebar({ onPick }: { onPick?: () => void }) {
           <Icon name="updown" size={13} />
         </button>}>
         <div className="mh">Current investigation</div>
-        <Menu.Item onClick={pick(() => goInvestigation(doc.id))} disabled={!started(doc)}><Icon name="runs" /><span className="trunc" style={{ maxWidth: 240 }}>{title}</span><small>{started(doc) ? statusOf(doc) : ''}</small></Menu.Item>
+        <Menu.Item onClick={pick(() => goInvestigation(doc.id))} disabled={!started(doc)}><Icon name="runs" /><span className="trunc" style={{ maxWidth: 240 }}>{title}</span><small>{started(doc) ? STATUS[statusOf(doc)].label : ''}</small></Menu.Item>
         {recent.length > 0 && <><hr /><div className="mh">Recent in this browser</div></>}
         {recent.map((s) => <Menu.Item key={s.id} onClick={() => openSeen(s.id)}><Icon name="clock" /><span className="trunc" style={{ maxWidth: 240 }}>{s.brief || 'Untitled investigation'}</span></Menu.Item>)}
         <hr />
@@ -74,13 +74,7 @@ export function Sidebar({ onPick }: { onPick?: () => void }) {
       )}
 
       <div className="foot">
-        {!rail && (
-          <p className="conn" data-live={live === true || undefined}>
-            <i aria-hidden="true" />
-            <span>{live == null ? 'Connecting to the agent server' : live ? 'Agent server connected' : 'No agent server: scripted playback'}</span>
-          </p>
-        )}
-        {!rail && count > 0 && <p className="conn muted"><span>{new Intl.NumberFormat('en').format(count)} scanned addresses</span></p>}
+        {!rail && live !== true && <p className="conn"><i aria-hidden="true" /><span>{live == null ? 'Connecting to the agent server' : 'No agent server: scripted playback'}</span></p>}
         <ul className="nav">
           {/* pairing a phone is part of the work, not a developer's tab: the code opens from here */}
           {!shared && <li>{(() => { const b = <button type="button" onClick={() => window.dispatchEvent(new Event('threshold:phone'))} aria-label={rail ? 'Continue on a phone' : undefined}><Icon name="camera" size={16} /><span className="grow">Continue on a phone</span></button>; return rail ? <Tip label="Continue on a phone">{b}</Tip> : b })()}</li>}

@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
-import { userOp, useCatalog, useWorkspace, type Question } from '../../../core/index.ts'
+import { useEffect, useMemo, useState } from 'react'
+import { create } from 'zustand'
+import { userOp, useBuildings, useCatalog, useWorkspace, type Question } from '../../../core/index.ts'
 import { serverDoc, turn } from '../../../core/server.ts'
 import { Icon, RunState, ToolKey } from '../design/ui.tsx'
 
@@ -48,18 +49,25 @@ export function ApprovalCard({ q }: { q: Question }) {
 type Lane = { id: string; agent: string; task: string; status: 'running' | 'waiting' | 'done' | 'failed'; tool: string | null; tools: string[]; started: number; finished: number | null }
 type Live = { turn: string | null; status: 'idle' | 'running' | 'waiting' | 'done' | 'stopped'; lanes: Lane[] }
 
-/** What the server's agents are doing now, from `/api/agent/{id}/live`. */
-function useLive(): Live | null {
+/** What the server's agents are doing now, from `/api/agent/{id}/live`: one stream for the whole shell. */
+const useLive = create<{ snap: Live | null }>(() => ({ snap: null }))
+export function LiveLink() {
   const live = useCatalog((s) => s.live)
   const id = useWorkspace((s) => s.doc.brief?.text) ? (serverDoc()?.id as string | undefined) : undefined
-  const [snap, setSnap] = useState<Live | null>(null)
   useEffect(() => {
+    useLive.setState({ snap: null })
     if (!live || !id) return
     const es = new EventSource(`/api/agent/${encodeURIComponent(id)}/live`)
-    es.addEventListener('lanes', (e) => { try { setSnap(JSON.parse((e as MessageEvent).data)) } catch { /* the next snapshot replaces it */ } })
+    es.addEventListener('lanes', (e) => { try { useLive.setState({ snap: JSON.parse((e as MessageEvent).data) }) } catch { /* the next snapshot replaces it */ } })
     return () => es.close()
   }, [live, id])
-  return snap
+  return null
+}
+/** The turn has ended with a plan step still marked active and nothing running: the agent stopped part-way. Without
+    this the panel, the top bar and the plan say "working" for ever. Unknown (no stream yet) counts as not stopped. */
+export function useStopped() {
+  const over = useLive((s) => !!s.snap && s.snap.status !== 'running' && s.snap.status !== 'waiting')
+  return useWorkspace((s) => over && s.doc.plan.some((p) => p.status === 'active') && !s.doc.runs.some((r) => r.status === 'running'))
 }
 
 const AGENT = { building: 'Building', property: 'Property', investigator: 'Lead agent' } as Record<string, string>
@@ -68,36 +76,46 @@ const STEP = { consider: 'Adding buildings', find_scans: 'Searching scans', find
   property_scans: 'Listing scans', run_on_property: 'Running across the property', coverage: 'Checking coverage', task: 'Starting a subagent' } as Record<string, string>
 const STATE = { running: 'running', waiting: 'pending', done: 'done', failed: 'failed' } as const
 
-/** The lead agent and each subagent it started, side by side while they work in parallel. */
+/** The lead agent and each subagent it started, side by side while they work in parallel. Once the turn is over they
+    fold to one line: the plan below is what is left to read. */
 export function Lanes() {
-  const snap = useLive()
+  const snap = useLive((s) => s.snap)
   const tools = useWorkspace((s) => s.doc.tools)
+  const all = useBuildings((s) => s.all)
+  // a lane's task is the lead agent's own instruction, which starts with a scan id: show that scan's name instead
+  const names = useMemo(() => new Map(all.flatMap((b) => b.scans.map((x) => [x.sid, [x.name, b.address.split(',')[0]].filter((v, i, a) => v && a.indexOf(v) === i).join(' · ')] as const))), [all])
+  const about = (task: string) => { for (const w of task.match(/[A-Za-z0-9_]{8,}/g) ?? []) { const n = names.get(w); if (n) return n } return task }
   const title = (t: string) => tools.find((x) => x.id === t)?.title ?? STEP[t] ?? t.replace(/_/g, ' ')
   if (!snap || !snap.lanes.length || snap.status === 'idle') return null
   const busy = snap.lanes.filter((l) => l.status === 'running' && l.id !== 'main').length
+  const over = snap.status !== 'running' && snap.status !== 'waiting'
+  const rows = (
+    <ol>
+      {snap.lanes.map((l) => (
+        <li key={l.id} className="lane arrive" data-status={l.status}>
+          <div className="lh">
+            <span className="who">{l.id === 'main' ? AGENT.investigator : AGENT[l.agent] ?? l.agent}</span>
+            <span className="grow trunc" title={l.task}>{l.id === 'main' ? 'Plans, searches and ranks' : about(l.task)}</span>
+            <RunState state={STATE[l.status]}>{l.status === 'waiting' ? 'Waiting' : undefined}</RunState>
+          </div>
+          <div className="lt">
+            {l.tool ? <><ToolKey id={l.tool} title={title(l.tool)} /><span className="trunc">{STEP[l.tool] ?? `Running ${title(l.tool)}`}</span></>
+              : l.status === 'running' ? <span className="trunc muted">Deciding the next step</span>
+              : l.tools.length ? <><Icon name="check" size={12} /><span className="trunc muted">{l.tools.map(title).join(', ')}</span></>
+              : <span className="muted">No tools yet</span>}
+          </div>
+        </li>
+      ))}
+    </ol>
+  )
+  if (over) return <details className="lanes"><summary><Icon name="right" size={11} />{snap.lanes.length === 1 ? 'One agent' : `${snap.lanes.length} agents`} worked on this turn</summary>{rows}</details>
   return (
     <section className="lanes" aria-label="Agents at work" aria-live="polite">
       <header>
-        <h3>{snap.status === 'running' ? (busy > 1 ? `${busy} agents working at once` : 'Agents working') : snap.status === 'waiting' ? 'Paused for your approval' : 'Agents this turn'}</h3>
+        <h3>{snap.status === 'waiting' ? 'Paused for your approval' : busy > 1 ? `${busy} agents working at once` : 'Agents working'}</h3>
         <span className="count">{snap.lanes.length}</span>
       </header>
-      <ol>
-        {snap.lanes.map((l) => (
-          <li key={l.id} className="lane arrive" data-status={l.status}>
-            <div className="lh">
-              <span className="who">{l.id === 'main' ? AGENT.investigator : AGENT[l.agent] ?? l.agent}</span>
-              <span className="grow trunc" title={l.task}>{l.id === 'main' ? 'Plans, searches and ranks' : l.task}</span>
-              <RunState state={STATE[l.status]}>{l.status === 'waiting' ? 'Waiting' : undefined}</RunState>
-            </div>
-            <div className="lt">
-              {l.tool ? <><ToolKey id={l.tool} title={title(l.tool)} /><span className="trunc">{STEP[l.tool] ?? `Running ${title(l.tool)}`}</span></>
-                : l.status === 'running' ? <span className="trunc muted">Deciding the next step{l.tools.length ? ` after ${l.tools.map(title).join(', ')}` : ''}</span>
-                : l.tools.length ? <><Icon name="check" size={12} /><span className="trunc muted">{l.tools.map(title).join(', ')}</span></>
-                : <span className="muted">No tools yet</span>}
-            </div>
-          </li>
-        ))}
-      </ol>
+      {rows}
     </section>
   )
 }
