@@ -73,13 +73,29 @@ def flow_sids() -> set[str]:
     return out
 
 
+def people() -> list[str]:
+    """A person a flow opens the app as (`vars.person`, e.g. the returning user): their profile and the investigations
+    it lists, which the "Cranley knows" page measures. Workspaces are otherwise never copied."""
+    import json
+    out: list[str] = []
+    for f in (ROOT / "web" / "src" / "skins" / "app" / "demo" / "flows").glob("*.json"):
+        who = (json.loads(f.read_text()).get("vars") or {}).get("person")
+        prof = DATA / "workspaces" / "profiles" / f"{who}.json"
+        if not who or not prof.is_file():
+            continue
+        out.append(str(prof.relative_to(DATA)))
+        out += [f"workspaces/{k[len('session.'):]}.json" for k in json.loads(prof.read_text()) if k.startswith("session.")
+                if (DATA / "workspaces" / f"{k[len('session.'):]}.json").is_file()]
+    return out
+
+
 def listing(lean: bool = False) -> list[str]:
     files = [l for l in MANIFEST.read_text().splitlines() if l and (DATA / l).is_file()] if MANIFEST.exists() else []
     llm = [str(p.relative_to(DATA)) for p in (DATA / "demo" / "llm").glob("*.json")]
     whole = [] if lean else [str(p.relative_to(DATA)) for sid in flow_sids()
                              for d in DATA.glob(f"cache/*/{sid}*")  # splat/<sid>/ is training input; the trace has what is served
                              for p in ([d] if d.is_file() else d.rglob("*")) if p.is_file() and not SKIP.search(str(p.relative_to(DATA)))]
-    return sorted(set(files) | set(llm) | set(whole))
+    return sorted(set(files) | set(llm) | set(whole) | set(people()))
 
 
 def size(files: list[str]) -> int:
