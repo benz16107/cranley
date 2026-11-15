@@ -120,6 +120,7 @@ rejects any number it states.
 | Phone companion (`/m`) | Pairs by QR with a desktop workspace; GPS, camera, mic, barometer, tilt and typed measurements feed tools live | merged |
 | iPhone LiDAR app | RoomPlan scan of your own space, LiDAR tape measure, barometer floor height, compass window facing, scan-to-report | merged; builds and runs in the simulator; not on a phone yet (Apple licence agreement) |
 | Offline demo copy | The laptop replays the six demo flows with recorded model answers when the venue network fails | merged |
+| iMessage and phone (Photon 2.0) | Ask by text or call; plan pictures, reply threads, photos and voice notes in, PDF in the chat | merged; live round trip not yet confirmed |
 | PDF reports | Site report for any workspace: plan with numbered fixes, evidence, occupant load, smoke-alarm census, what was not checked | merged |
 | MCP server and CLI | Every tool for Claude Code, Claude Desktop, Cursor or a LangChain agent; resources and prompts; `threshold` on the command line | merged |
 | Shared databases | MongoDB Atlas for people's work, Tiger Cloud for building facts | merged |
@@ -288,6 +289,36 @@ Atlas holds the people side: workspaces, their operation logs, live sync, memory
 **Demo path.** Pair the phone by QR, type a door width on the phone, watch it land on the desktop; Copy link opens a
 read-only shared workspace; search past work for a phrase that is not in it word for word.
 
+### Photon: Build a Messaging Agent using Photon 2.0
+
+Prizes: winner, runner-up, and Best Voice Agent. Built on `ws/photon` (merged at `a8c7348`); details in `docs/PHOTON.md`.
+
+**Angle.** The people who need a building checked are rarely at a desk: they are walking through a viewing, driving to
+one, or standing in a doorway with a tape measure. On Photon, the same agent and the same measuring tools answer in
+iMessage and on a phone call.
+
+| What a person does | Why it is a real use of Photon 2.0 |
+|---|---|
+| Asks in plain words, gets the floor plan picture marked with findings, the verdict, the measurements and a workspace link | Shared iMessage line, native replies, attachment upload, typing indicator |
+| Replies to an earlier answer ("what about a 76 cm chair?") | The reply thread is the investigation (`parentMessageId` in and out) |
+| Says "yes", "no" or "always" to a slow step | Approvals by native reply |
+| Sends a photo of a doorway with a bank card, a ceiling photo, a short video, a voice note, a location | Inbound attachments, video, audio and vCard locations each run a tool |
+| Types "visit" | Unsettled checks arrive one at a time; each reply settles one and the desktop workspace updates live |
+| Types "report" | The PDF arrives in the chat, ready to forward |
+| Turns "voice on" | Answers also arrive as native iMessage voice messages |
+| Does nothing | The chat background becomes the building's plan; a National Weather Service alert at that building arrives once with their own flood result |
+| Calls the number | An ElevenLabs agent over SIP runs the same checks by voice; the plan and link follow in iMessage after the call (Best Voice Agent) |
+
+Rules it keeps: every sent line is built from the tool result, never from model text; a typed size needs a unit; only
+rendered pictures leave the server; the main API stays private behind one signature-checked relay; each event is
+handled once, in order per chat.
+
+**State (7:50 pm):** merged with 14 tests; the live line is up with sends limited to an allowlist; a first real round
+trip had not been confirmed; the phone agent needs a voice number (asked of Ben).
+
+**Demo path.** Text the line "will an F-150 fit in this garage?" with a building link, get the marked plan back, reply
+"what about two?", then "report" for the PDF. For Best Voice: call, ask the same, hang up, show the iMessage that follows.
+
 ### HackPrinceton main track (one of six)
 
 General judges score creativity, utility, charity and avidity. Charity is where the product is strongest: the
@@ -309,7 +340,7 @@ wheelchair user, the family before a storm, the fire crew. Track pick: question 
 
 ## Built (synced to `main`)
 
-Checked against `git log main` at `d7cdf4a` (2026-11-14, 7:36 pm ET). Update at each merge.
+Checked against `git log main` at `a8c7348` (2026-11-14, 7:40 pm ET). Update at each merge.
 
 **Merged**
 - [x] Data layer: Matterport, Vexcel and CoStar sources, normalized plan format with quality flags (`ws/data`)
@@ -342,6 +373,7 @@ Checked against `git log main` at `d7cdf4a` (2026-11-14, 7:36 pm ET). Update at 
 - [x] Real 3D models for vehicles and furniture, scaled to each tool's exact dimensions, drag to place with live clearance (`ws/models`)
 - [x] App look motion polish: shorter exits, switch and copy feedback, staggered tool list (`ws/motion`)
 - [x] Six scripted demo flows, one per track, with spoken lines and recorded model answers; an offline laptop copy (`scripts/demo-sync`, `scripts/demo-up`) that replays without the network (`ws/demo`)
+- [x] Cranley over iMessage and voice on Photon 2.0: plan pictures, reply threads as investigations, approvals, photo/video/voice/location in, field visits, PDF in chat, weather alerts, ElevenLabs phone agent (`ws/photon`)
 - [x] MCP server (stdio and `/mcp`), `threshold` CLI, deep agent over MCP, `docs/MCP.md` (`ws/mcp`)
 
 **Not merged yet:** none of the planned build branches (all merged by 7:36 pm).
