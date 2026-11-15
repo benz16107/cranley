@@ -132,3 +132,41 @@ def bath_fixtures(plan: dict, room: dict) -> dict:
     except Exception as e:
         return {"error": _err(e)}
     return {**a, "pano": pano["id"], "media": [{"kind": "pano", "ref": f"{plan['sid']}/{pano['id']}/{faces[a['image'] - 1]}"}]}
+
+
+SWING_SEEN = ["swings into the room the camera is in", "swings away from the camera's room", "sliding or pocket door",
+              "no door leaf", "cannot tell"]
+
+
+def door_swing(plan: dict, op: dict, room_id: str) -> dict:
+    """Which way a door opens, relative to `room_id`: {swing: "in"|"out"|"sliding"|"none"|"cannot tell", seen,
+    confidence, media} or {error}. A label read from the panorama, never a size."""
+    v = _view(plan, op)
+    if v is None:
+        return {"error": "no panorama looks at this doorway from 1 to 6 m away"}
+    pano, face, pts = v
+    try:
+        img = Image.open(io.BytesIO(jpeg(mp.pano_face(plan["sid"], pano["id"], face, "2k"), FACE_PX))).convert("RGB")
+    except Exception as e:
+        return {"error": _err(e)}
+    us, vs = [u for u, _ in pts], [v for _, v in pts]
+    box = [max(0, min(us) - 25), max(0, min(vs) - 25), min(FACE_PX, max(us) + 25), min(FACE_PX, max(vs) + 25)]
+    ImageDraw.Draw(img).rectangle(box, outline=(255, 0, 0), width=5)
+    buf = io.BytesIO()
+    img.save(buf, "JPEG", quality=88)
+    schema = {"type": "object", "additionalProperties": False, "required": ["seen", "confidence", "reason"],
+              "properties": {"seen": {"type": "string", "enum": SWING_SEEN}, "confidence": CONFIDENCE,
+                             "reason": {"type": "string", "description": "One short sentence naming what you saw."}}}
+    prompt = ("This is one face of a 360-degree panorama inside a building, 1000 by 1000 pixels. The red rectangle "
+              "marks a doorway. Which way does the door in it open? Look for the door leaf and its hinges: a leaf "
+              "standing open on the camera's side swings into the camera's room. Do not estimate any size.")
+    try:
+        a = ask([buf.getvalue()], prompt, schema, key=f"access_swing/{plan['sid']}/{op['id']}")
+    except Exception as e:
+        return {"error": _err(e)}
+    here = pano.get("room") == room_id
+    swing = {SWING_SEEN[0]: "in" if here else "out", SWING_SEEN[1]: "out" if here else "in",
+             SWING_SEEN[2]: "sliding", SWING_SEEN[3]: "none"}.get(a["seen"], "cannot tell")
+    return {**a, "swing": swing, "pano": pano["id"],
+            "media": [{"kind": "pano", "ref": f"{plan['sid']}/{pano['id']}/{face}",
+                       "box": [round(x / FACE_PX, 4) for x in box]}]}
