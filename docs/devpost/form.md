@@ -36,8 +36,8 @@ unticked prize is not judged.
 
 ## Built with (25)
 
-python, fastapi, langchain, deepagents, langgraph, langsmith, anthropic, mongodb-atlas, timescaledb, tiger-data, postgresql,
-postgis, pgvector, react, typescript, vite, three.js, maplibre, deck.gl, swift, swiftui, arkit, roomplan, ollama, matterport
+python, fastapi, langchain, deepagents, langgraph, langsmith, anthropic, mongodb-atlas, timescaledb, tiger-data, photon,
+postgis, pgvector, react, typescript, elevenlabs, three.js, maplibre, deck.gl, swift, swiftui, arkit, roomplan, ollama, matterport
 
 ## Technology feedback (29743)
 
