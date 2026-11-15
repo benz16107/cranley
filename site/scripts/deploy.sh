@@ -19,11 +19,11 @@ v="export PATH=/opt/homebrew/bin:/usr/local/bin:\$PATH; vercel"
 prod=; [ "${1:-}" = "--prod" ] && prod=1
 
 if [ -n "$prod" ]; then
-  PUBLIC_SLOT_LABELS=off PUBLIC_INDEX=1 pnpm build
+  PUBLIC_DEEP=1 PUBLIC_SLOT_LABELS=off PUBLIC_INDEX=1 pnpm build   # PUBLIC_DEEP: the redesigned track pages, live since 2026-11-15 (Ben, 3:55 am)
   # the public site shows no empty picture frame and no slot note
   ! grep -rlE 'data-state="empty"|class="media hatch' dist || { echo "an empty picture frame is in the public build"; exit 1; }
 else
-  PUBLIC_DEEP=1 pnpm build   # the redesigned track pages, in previews only until Ben's OK; then set it for --prod too
+  PUBLIC_DEEP=1 pnpm build
 fi
 pnpm check
 cp vercel.json dist/vercel.json
