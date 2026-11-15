@@ -1,0 +1,31 @@
+---
+// A message thread, drawn by us: what a person sends and what comes back. Selecting a message says which part of
+// Photon carries it. No real conversation, address or building is shown.
+interface Msg { from: 'person' | 'cranley'; text: string; kind?: string; note: string }
+interface Props { msgs: Msg[] }
+const { msgs } = Astro.props
+---
+<div class="thread" data-scope>
+  <ol>
+    {msgs.map((m, i) => (
+      <li class={m.from}>
+        <button type="button" data-say={m.note} data-on={i === 0 ? '' : undefined}>{m.kind && <span class="kind">{m.kind}</span>}{m.text}</button>
+      </li>
+    ))}
+  </ol>
+  <p class="readout" aria-live="polite">{msgs[0].note}</p>
+</div>
+
+<style>
+  .thread { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: var(--s-5); align-items: start; }
+  ol { display: grid; gap: 8px; padding: var(--s-4); background: var(--pane); border: 1px solid var(--rule); border-radius: var(--r-sheet); }
+  li { display: flex; }
+  li.person { justify-content: flex-end; }
+  button { max-width: 85%; padding: 8px 12px; font: inherit; font-size: 0.875rem; line-height: 1.4; text-align: start; color: var(--ink); background: var(--pane-2); border: 1px solid transparent; border-radius: 14px; cursor: pointer; transition: border-color var(--dur-1) ease; }
+  .person button { background: var(--accent); color: var(--on-accent); }
+  button[data-on] { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+  button:active { scale: 0.98; }
+  .kind { display: block; margin-bottom: 2px; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; opacity: 0.75; }
+  .readout { position: sticky; top: 96px; }
+  @media (max-width: 760px) { .thread { grid-template-columns: minmax(0, 1fr); } .readout { position: static; } }
+</style>

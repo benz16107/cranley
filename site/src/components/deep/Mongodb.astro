@@ -1,0 +1,82 @@
+---
+// The MongoDB Atlas track. Sentences are docs/story.md's; counts are read from src/generated/deep.json.
+import Deep from "./Deep.astro"
+import Sec from "./Sec.astro"
+import Chart from "./Chart.astro"
+import Flow from "./Flow.astro"
+import Cards from "./Cards.astro"
+import Bars from "./Bars.astro"
+import Split from "./Split.astro"
+import Lanes from "./Lanes.astro"
+import deep from "../../generated/deep.json"
+import site from "../../generated/site.json"
+import type { Track } from "../../site/tracks"
+interface Props { track: Track; title: string }
+const { track, title } = Astro.props
+const c = site.counts
+const md = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/`([^`]+)`/g, "<code>$1</code>")
+const sp = deep.sponsors.mongodb
+const stats = [{ n: sp.features.length, label: "Atlas features in use" }, { n: sp.left_out.length, label: "left out, each with the reason" }, { n: c.personas, label: "personas whose past needs can be recalled" }]
+const features = sp.features.map((f) => ({ title: f.feature, what: f.why, code: f.code }))
+const hybrid = sp.features.find((f) => f.feature.startsWith("Hybrid search"))!.why.match(/"([^"]+)" finds "([^"]+)"/)!
+const sections: [string, string][] = [["problem", "Problem"], ["built", "Live sync, in order"], ["features", "Features used"], ["proof", "Proof"], ["limits", "Left out"], ["writeup", "Write-up"], ["docs", "In the docs"]]
+const segs = [
+  { row: 0, from: 0, to: 1, tone: "soft" as const, label: "Types a door width", note: "On site, a person types a door width on the phone." },
+  { row: 1, from: 1, to: 2, label: "Appends operation n", note: "The server appends one operation to the workspace's log. Its number is the next in the sequence." },
+  { row: 2, from: 2, to: 3, label: "Checks and stores", note: "The log is append-only: $jsonSchema validation refuses a malformed entry, and the unique (workspace, seq) index is an optimistic lock, so two writers cannot both append operation n. A transaction lands the operation and what it taught the agent together." },
+  { row: 2, from: 3, to: 4, label: "Change stream", note: "A change stream carries the new operation to every server process that is watching." },
+  { row: 1, from: 4, to: 5, label: "Pushes it on", note: "The server passes the operation to every browser and phone that has the workspace open." },
+  { row: 3, from: 5, to: 6, tone: "soft" as const, label: "Door width appears", note: "A door width typed on the phone reaches the desktop in about a second." },
+]
+---
+<Deep track={track} title={title} sections={sections} stats={stats}>
+  <Sec id="problem" title="The people side: who changed what, in what order" sub="Atlas holds the people side: workspaces, their operation logs, live sync, memory and search over past work.">
+    <p class="txt">A workspace is a document that a person and the agent edit with the same operations. Every edit is one entry in an append-only log, and that log is what the phone, the desktop and the agent share.</p>
+  </Sec>
+
+  <Sec id="built" title="A door width, from the phone to the desktop" sub="The blocks show the order of events, not their timing. Point at one to read it.">
+    <Lanes rows={["Phone", "Server", "Atlas", "Desktop"]} cols={6} segs={segs} />
+  </Sec>
+
+  <Sec id="features" title="Each feature, and the job it does" sub="Each links to the file that uses it.">
+    <Cards items={features} />
+  </Sec>
+
+  <Sec id="proof" title="Search that finds what you meant" sub="Hybrid search with $rankFusion blends words and meaning, so a search does not need the exact words.">
+    <figure class="match">
+      <div><span class="k">A person searches for</span><p>"{hybrid[1]}"</p></div>
+      <svg viewBox="0 0 40 12" aria-hidden="true"><path d="M1 6h36m-5-4 5 4-5 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+      <div><span class="k">It finds the past result</span><p>"{hybrid[2]}"</p></div>
+    </figure>
+    <Chart title="Features we considered" source="Counted from the feature table in our story and the list of what was left out.">
+      <Split unit="features considered" parts={[{ label: "In use, each doing a job", n: sp.features.length, tone: "main" }, { label: "Left out, with the reason", n: sp.left_out.length, tone: "mute" }]} />
+    </Chart>
+  </Sec>
+
+  <Sec id="limits" title="What we left out, and why" sub="A feature is used only where it does a job.">
+    <ul class="pairs">{sp.left_out.map((f) => <li><span set:html={md(f.feature)} /><span set:html={md(f.why)} /></li>)}</ul>
+  </Sec>
+
+  {track.video && (
+    <Sec id="video" title="The track in a video">
+      <figure class="video"><iframe src={`https://www.youtube-nocookie.com/embed/${track.video}`} title={`${track.name}: Cranley`} loading="lazy" allow="encrypted-media; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></figure>
+    </Sec>
+  )}
+
+  <Sec id="writeup" title="The write-up for the judges" sub="The track's section of our story, as written.">
+    <div class="prose"><slot /></div>
+  </Sec>
+
+  <Sec id="docs" title="In the docs">
+    <ul class="docs-links">{track.docs.map(([label, href]) => <li><a href={href}>{label}</a></li>)}</ul>
+  </Sec>
+</Deep>
+
+<style>
+  .match { display: grid; grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr); gap: var(--s-4); align-items: center; }
+  .match div { display: grid; gap: 6px; padding: var(--s-4); background: var(--pane); border: 1px solid var(--rule); border-radius: var(--r-2); }
+  .match .k { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3); }
+  .match p { font-size: 1.0625rem; line-height: 1.4; }
+  .match svg { width: 40px; color: var(--ink-3); }
+  @media (max-width: 620px) { .match { grid-template-columns: minmax(0, 1fr); } .match svg { justify-self: center; rotate: 90deg; height: 16px; } }
+</style>

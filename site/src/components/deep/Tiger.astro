@@ -1,0 +1,82 @@
+---
+// The Tiger Data track. Sentences are docs/story.md's; every number is read from src/generated/deep.json.
+import Deep from "./Deep.astro"
+import Sec from "./Sec.astro"
+import Chart from "./Chart.astro"
+import Flow from "./Flow.astro"
+import Cards from "./Cards.astro"
+import Bars from "./Bars.astro"
+import Split from "./Split.astro"
+import Lanes from "./Lanes.astro"
+import deep from "../../generated/deep.json"
+import site from "../../generated/site.json"
+import type { Track } from "../../site/tracks"
+interface Props { track: Track; title: string }
+const { track, title } = Astro.props
+const c = site.counts
+const md = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/`([^`]+)`/g, "<code>$1</code>")
+import WhatIf from "./WhatIf.astro"
+const sp = deep.sponsors["tiger-data"]
+const t = deep.numbers.tiger
+const stats = [{ n: t.mb[0], label: "MB before columnstore compression" }, { n: t.mb[1], label: "MB after it, on the cloud service" }, { n: t.fork_s, label: "seconds, about, until a database fork is ready" }, { n: sp.features.length, label: "Tiger features in use" }]
+const features = sp.features.map((f) => ({ title: f.feature, what: f.why, code: f.code }))
+const sections: [string, string][] = [["problem", "Problem"], ["built", "What we built"], ["features", "Features used"], ["proof", "Proof"], ["limits", "Left out"], ["writeup", "Write-up"], ["docs", "In the docs"]]
+const flow = [
+  { label: "In", nodes: [
+    { title: "Tool results", what: "Facts, with their source and time", note: "Each tool result writes facts: what was measured, on which layer, and when. Facts are measured again as tools improve." },
+    { title: "Flood simulations", what: "A series per building", note: "Each flood rehearsal is stored as a series, in its own hypertable." },
+    { title: "The operation log", what: "An analytics copy", note: "The analytics copy of the operation log deletes itself after the event through a retention policy, as CoStar's terms require." },
+  ] },
+  { label: "Tiger Cloud", nodes: [
+    { title: "Hypertables", what: "Compressed columnstore", note: `Hypertables for facts, flood simulations and the op log. Columnstore compression took ${t.mb[0]} MB to ${t.mb[1]} MB on the cloud service.` },
+    { title: "Rollups", what: "Continuous aggregates", note: "Real-time continuous aggregates, plus a hierarchical one built on them. percentile_agg gives medians that roll up across days and areas." },
+    { title: "Room search", what: "DiskANN, BM25 and PostGIS", note: "pgvectorscale StreamingDiskANN with label filters, blended with BM25 words, and PostGIS distance filters. A pgai vectorizer embeds room descriptions inside the database when they change." },
+  ] },
+  { label: "Out", nodes: [
+    { title: "Insights", what: "Rollups that include the last second", note: "The Insights page reads daily rollups that include a fact measured a second ago, and a neighbourhood rollup built on them." },
+    { title: "Search by measurement", what: "One query, a ranked table", note: "Similar-room search filtered by room type inside the index, blended with words." },
+    { title: "What-if on a fork", what: "A zero-copy copy of the database", note: `A city-wide what-if runs on a zero-copy fork, ready in about ${t.fork_s} s on the free plan and deleted after.` },
+  ] },
+]
+---
+<Deep track={track} title={title} sections={sections} stats={stats}>
+  <Sec id="problem" title="Measurements change, so keep their history" sub="Tiger Cloud is the building facts database: what was measured, when, and how it changed.">
+    <p class="txt">Facts are measured again as tools improve; the history is time series by nature.</p>
+  </Sec>
+
+  <Sec id="built" title="Facts in, rollups, search and what-ifs out" sub="Point at a step, or tab to it, to read what it does.">
+    <Flow cols={flow} />
+  </Sec>
+
+  <Sec id="features" title="Each feature, and the job it does" sub="Each links to the file or migration that uses it.">
+    <Cards items={features} />
+  </Sec>
+
+  <Sec id="proof" title="What it saved, and a what-if to try" sub="Two things we can show without the event's data: the compression figure, and the what-if tool on our made-up test home.">
+    <Chart title="Columnstore compression on the cloud service, in MB" source="The two sizes in our story's Tiger section.">
+      <Bars rows={[{ label: "Before", n: t.mb[0] }, { label: "After", n: t.mb[1] }]} />
+    </Chart>
+    <Chart title="A renovation what-if, before and after" sub="Switch between the two states. In the product the same tool re-runs a whole city on a database fork." source="The renovate tool's own run when this site was built, on a hand-made plan with no real place in it. The city-wide run uses the event's data and is not shown.">
+      <WhatIf />
+    </Chart>
+    <p class="txt">A DiskANN index grown row by row had recall@10 of {t.recall.toFixed(1)}, so a TimescaleDB job now rebuilds the room-search graphs hourly. <a href="/docs/tools/renovate/">The renovate tool</a></p>
+  </Sec>
+
+  <Sec id="limits" title="What we left out, and why" sub="A feature is used only where it does a job.">
+    <ul class="pairs">{sp.left_out.map((f) => <li><span set:html={md(f.feature)} /><span set:html={md(f.why)} /></li>)}</ul>
+  </Sec>
+
+  {track.video && (
+    <Sec id="video" title="The track in a video">
+      <figure class="video"><iframe src={`https://www.youtube-nocookie.com/embed/${track.video}`} title={`${track.name}: Cranley`} loading="lazy" allow="encrypted-media; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></figure>
+    </Sec>
+  )}
+
+  <Sec id="writeup" title="The write-up for the judges" sub="The track's section of our story, as written.">
+    <div class="prose"><slot /></div>
+  </Sec>
+
+  <Sec id="docs" title="In the docs">
+    <ul class="docs-links">{track.docs.map(([label, href]) => <li><a href={href}>{label}</a></li>)}</ul>
+  </Sec>
+</Deep>
