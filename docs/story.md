@@ -8,7 +8,9 @@ Name check (web search, 2026-11-14): no software, app or proptech product called
 companies carry the name (Cranley Gardens Property, Cranley Place Management, Cranley Property Company in Guernsey),
 most named after Cranley Gardens and Cranley Place, streets in South Kensington, London. Domains not checked.
 
-Public-text rule: this file goes into a public repo. It holds no sponsor data, no scan ids, no addresses, no
+Public-text rule: this file goes into a public repo, and every `###` section under `## Tracks` becomes a page on
+cranley.app (`site/scripts/generate.py`), so write those sections for the public; notes for Ben go in Questions or
+Pitch notes. It holds no sponsor data, no scan ids, no addresses, no
 screenshots of sponsor imagery and no per-building counts. Devpost and the video may show the real product with
 sponsor content on screen (CoStar organizer in #costar-group, 2026-11-14 5:42 pm: "Yes absolutely"); raw data files
 never. The external website stays on the conservative plan until CoStar answers for it (`docs/site-plan.md`). Numbers about our own system (tests, timings, tool
@@ -21,9 +23,9 @@ counts) are fine. Dataset-derived numbers for the spoken pitch live outside the 
 
 Answer these in the thread; the defaults below go in if there is no answer by about 6 am.
 
-1. **Domain.** MLH has a GoDaddy Registry prize (needs a GoDaddy Registry TLD such as `.co`, `.us` or `.club`, not
-   `.com`). Options: buy one for the external site (for example `cranley.co`, availability not checked), or skip.
-   Default: skip; the site waits for CoStar's answer about websites anyway (see `docs/site-plan.md`).
+1. **Domain: done.** The site is live at https://cranley.app (Vercel, `site/`). `.app` is not a GoDaddy Registry
+   domain, so the MLH GoDaddy prize does not apply unless another domain is registered there. The site uses only safe
+   visuals until CoStar confirms websites (`docs/site-plan.md`). Production deploys need Ben's yes.
 
 2. **Tagline.** Candidates (Devpost allows 200 characters):
    - A. "Tell it what you need from a building. An agent builds the tools, measures the real thing inside and out, and shows its work."
@@ -121,6 +123,7 @@ rejects any number it states.
 | iPhone LiDAR app | RoomPlan scan of your own space, LiDAR tape measure, barometer floor height, compass window facing, scan-to-report | merged; builds and runs in the simulator; not on a phone yet (Apple licence agreement) |
 | Offline demo copy | The laptop replays the six demo flows with recorded model answers when the venue network fails | merged |
 | iMessage and phone (Photon 2.0) | Ask by text or call; plan pictures, reply threads, photos and voice notes in, PDF in the chat | merged; live round trip not yet confirmed |
+| Website and docs | https://cranley.app: home, a page per track (generated from this file's Tracks section), privacy and terms, docs generated from the tool manifests and the OpenAPI schema | merged and live |
 | PDF reports | Site report for any workspace: plan with numbered fixes, evidence, occupant load, smoke-alarm census, what was not checked | merged |
 | MCP server and CLI | Every tool for Claude Code, Claude Desktop, Cursor or a LangChain agent; resources and prompts; `threshold` on the command line | merged |
 | Shared databases | MongoDB Atlas for people's work, Tiger Cloud for building facts | merged |
@@ -207,21 +210,21 @@ wheelchair user the questions asked went 1, 0, 0, and the checks kept back 0, 3,
 | User-friendly design | No profile form: it fills from answers and clicks the person makes anyway; Home says in one line how much is known | Home, under the brief field |
 | Creative innovation | The proof is in the product: "How Cranley has adapted to you" counts what each investigation asked, reused and kept back, from the person's own logs | "Cranley knows", first section |
 
-How to say the numbers (from `reports/adaptation-eval.md`, run 2026-11-14 19:47; every number counted from op logs by
-`threshold.agent.profile.measure`): lead with questions asked 1, 0, 0, which held in all three evaluation runs.
-"Checks that matter" uses a rule fixed before the run (a check matters unless it is a kind the person waved off or from
-a tool they removed), so it shows a taste expressed once is honoured on new buildings, not that Cranley guesses
-relevance. Do not claim faster first results (model latency dominated: 24.0, 19.9, 19.1 s in one run, flat in others)
-or fewer tool runs (they drift with the model; only the removed tool, Tour, never comes back). One persona, three
-buildings: a replay, not a user study. Limits: the profile holds only facts some tool input uses (about 80 keys, no
-budget or risk tolerance); it does not read facts out of free text; there is no sign-in (the profile id lives in the
-browser, and `?as=<id>` opens any profile whose id you know).
+What the replay shows and does not (counts from `reports/adaptation-eval.md`, run 2026-11-14 19:47, each counted
+from op logs by `threshold.agent.profile.measure`): questions asked went 1, 0, 0 in all three evaluation runs. "Checks
+that matter" uses a rule fixed before the run (a check matters unless it is a kind the person waved off or comes from a
+tool they removed), so it shows that a taste expressed once is honoured on new buildings, not that Cranley guesses
+relevance nobody told it. Time to the first result and the number of tool runs did not change in a way the replay can
+support: both follow the model's latency and choices; only the removed tool never comes back. It is one persona on three
+buildings, a replay rather than a user study. Limits: the profile holds only facts some tool input uses (about 80 keys;
+no budget or risk tolerance), it does not read facts out of free text, and there is no sign-in (the profile id lives in
+the browser, and `?as=<id>` opens any profile whose id you know).
 
 **Scripted flow:** `web/src/skins/app/demo/flows/amazon.json`, "A phone scan becomes a PDF report". Second flow (on
 `ws/adaptive`): `amazon-adaptive.json`, "A returning wheelchair user opens a new home", about 110 s (played twice:
 111.2 s and 108.6 s, of which the agent's turn is 77 to 79 s). It needs a returning person in the demo server's store:
 `cd server && uv run python -m threshold.agent.adapt_eval --seed demo_maya --waves-off Bathing` with the server's
-environment (`THRESHOLD_STORE=mongo` on the lead's server), about 90 s; a judge can be Maya at `/app/?as=demo_maya`.
+environment (the same `THRESHOLD_STORE`), about 90 s; a judge can be Maya at `/app/?as=demo_maya`.
 
 **Demo path.** Phone: scan a room with the iPhone app (demo cafe in the simulator), name the business, pick
 Accessibility, get the PDF in seconds. Desktop: the same workspace updates live. Then the wheelchair search above.
@@ -246,8 +249,8 @@ their space (or the demo cafe if they declined a scan), then the report.
 
 ### LangChain: Best use of deepagents
 
-Not on the Devpost prize list (question 4). Every feature below does a job in the product; the full table with what
-was skipped and why is `$THRESHOLD_DATA_DIR/reports/sponsor-features.md`.
+Not on the Devpost prize list (question 4). Every feature below does a job in the product; what was left out, and
+why, is on the sponsor integrations page of the docs.
 
 | Feature | Why it is a real use |
 |---|---|
@@ -352,6 +355,13 @@ wheelchair user, the family before a storm, the fire crew. Track pick: question 
 
 ---
 
+## Pitch notes (not published on the site)
+
+- Amazon adaptation: lead with questions asked 1, 0, 0 (held in all three evaluation runs). Do not claim faster first
+  results or fewer tool runs. Say "replay of one user", not "study". Seed `demo_maya` before the demo (Amazon section).
+- CoStar: the scripted flow is listing vs record vs scan, then the tour; the wheelchair search is the spoken
+  alternative. Pick one.
+
 ## Proof (numbers about our own system)
 
 - Tool matrix: every tool run through the real API on a 15-place demo set (houses, apartments, offices, a warehouse,
@@ -369,7 +379,7 @@ wheelchair user, the family before a storm, the fire crew. Track pick: question 
 
 ## Built (synced to `main`)
 
-Checked against `git log main` at `a8c7348` (2026-11-14, 7:40 pm ET). Update at each merge.
+Checked against `git log main` at `ff17232` (2026-11-14, 8:04 pm ET). Update at each merge.
 
 **Merged**
 - [x] Data layer: Matterport, Vexcel and CoStar sources, normalized plan format with quality flags (`ws/data`)
@@ -403,6 +413,7 @@ Checked against `git log main` at `a8c7348` (2026-11-14, 7:40 pm ET). Update at 
 - [x] App look motion polish: shorter exits, switch and copy feedback, staggered tool list (`ws/motion`)
 - [x] Six scripted demo flows, one per track, with spoken lines and recorded model answers; an offline laptop copy (`scripts/demo-sync`, `scripts/demo-up`) that replays without the network (`ws/demo`)
 - [x] Cranley over iMessage and voice on Photon 2.0: plan pictures, reply threads as investigations, approvals, photo/video/voice/location in, field visits, PDF in chat, weather alerts, ElevenLabs phone agent (`ws/photon`)
+- [x] Website and docs at cranley.app, generated from the code and this file (`ws/site`)
 - [x] MCP server (stdio and `/mcp`), `threshold` CLI, deep agent over MCP, `docs/MCP.md` (`ws/mcp`)
 
 **Not merged yet:** person profile across investigations and the measured adaptation, plus the `amazon-adaptive` flow (`ws/adaptive`).
