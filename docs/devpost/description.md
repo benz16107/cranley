@@ -17,7 +17,7 @@ Every track has its own page with what we built, the features used, the proof an
 
 | Track | What we built | Strongest proof | Page |
 |---|---|---|---|
-| CoStar | All three layers in one frame; an agent that checks many buildings at once and tests claims across layers | 78 tools run through the real API on 15 places: 266 answers, 62 honest "cannot answer here", 0 judged wrong | [page](https://cranley.app/tracks/costar/) |
+| CoStar | "I measured. Listings never had the garage depth" (a truck owner on r/f150). All three layers in one frame; an agent that checks many buildings at once and tests claims across layers | 78 tools run through the real API on 15 places: 266 answers, 62 honest "cannot answer here", 0 judged wrong | [page](https://cranley.app/tracks/costar/) |
 | Amazon | Ask in plain words; it learns you once and adapts every later investigation, counted on screen | Questions asked over three homes for a returning wheelchair user: 1, 0, 0 | [page](https://cranley.app/tracks/amazon/) |
 | Peri | A recorded interview with Jean Ryan, President of Disabled In Action of Metropolitan New York, changed the tools the same night | 12 groups of changes, each with its commit in [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md) | [page](https://cranley.app/tracks/peri/) |
 | LangChain | A deepagents investigator: parallel subagents, approvals, skills, memory, a rubric grader, LangSmith | Two houses checked at once, both paused before the smoke model and resumed from a MongoDB checkpoint | [page](https://cranley.app/tracks/langchain/) |
@@ -27,7 +27,7 @@ Every track has its own page with what we built, the features used, the proof an
 
 ## The problem
 
-Jean Ryan, who uses a 400-pound powered wheelchair, no longer asks whether a place is accessible: "I don't ask them if it's a wheelchair accessible. I ask them if they have any steps." A listing's "two-car garage" says nothing about depth, and truck owners told us depth is what decides it. The scans, the aerial photos and the records to answer these questions exist, but each sits in its own product, one listing at a time.
+Jean Ryan, who uses a 400-pound powered wheelchair, no longer asks whether a place is accessible: "I don't ask them if it's a wheelchair accessible. I ask them if they have any steps." A truck owner on r/f150 told us: "I measured. Listings never had the garage depth." The scans, the aerial photos and the records that answer these questions exist, but each sits in its own product, one listing at a time.
 
 ## How it works
 
@@ -40,7 +40,7 @@ Jean Ryan, who uses a 400-pound powered wheelchair, no longer asks whether a pla
 
 ## Built forward-deployed
 
-Before and while building we asked people what goes wrong with their buildings: a recorded 31-minute interview with Jean Ryan, written answers from 54 people in 17 online communities (truck, boat and RV owners, an occupational therapist, a chef, store associates, restaurant operators, managers), and 439 emails, which brought three human replies. Their answers changed the tools the same night: steps first, several chairs per person, bathroom door swing, garage depth and trailer checks, a store's backroom and a kitchen's rack route. Every quote and its change: [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md).
+Before and while building we asked people what goes wrong with their buildings: a recorded 31-minute interview with Jean Ryan, written answers from 58 people in 17 online communities (truck, boat and RV owners, an occupational therapist, a chef, store associates, restaurant operators, managers), and 491 emails, which brought five human replies (the interview, a museum director who asked to talk on Sunday, and three declines). Their answers changed the tools the same night: steps first, several chairs per person, bathroom door swing, garage depth and trailer checks, a store's backroom and a kitchen's rack route. Every quote and its change: [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md).
 
 ## Proof
 
