@@ -14,11 +14,11 @@ export const ZONE: Record<CityId, string> = { hou: 'America/Chicago', la: 'Ameri
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 const swatch = (l: MapLayer) => <i className="swatch" data-shape={l.shape} style={{ ['--hue' as string]: `var(${hueOf(l)})` }} />
 /** What a layer's copy is dated: the source's own date when it gives one, else the day we fetched it. */
-const dated = (l: MapLayer) => (l.data_date ? l.data_date : l.fetched ? `fetched ${l.fetched}` : '')
+const dated = (l: MapLayer) => { const d = l.data_date ? l.data_date : l.fetched ? `fetched ${l.fetched}` : ''; return d && (l.attribution || l.source).endsWith(d) ? '' : d } // a source that names its year is not dated twice
 
 /** The layer list and the base view, one row in the map's corner. The list is the catalogue's: one row per group,
     closed until asked for, so a layer added on the server appears here under its group with nothing changed. */
-export function MapTools({ base, onBase, layers, on, toggle, reset, city }: { base: BaseView; onBase: (b: BaseView) => void; layers: MapLayer[]; on: string[]; toggle: (id: string) => void; reset: () => void; city: CityId }) {
+export function MapTools({ base, onBase, layers, on, toggle, reset }: { base: BaseView; onBase: (b: BaseView) => void; layers: MapLayer[]; on: string[]; toggle: (id: string) => void; reset: () => void }) {
   const zoom = useWorld((s) => s.zoom)
   const groups = [...new Set(layers.map((l) => l.group))]
   const shown = layers.filter((l) => on.includes(l.id) && l.available)
@@ -27,17 +27,19 @@ export function MapTools({ base, onBase, layers, on, toggle, reset, city }: { ba
       <MenuBtn trigger={<button type="button" className="btn" aria-label={`Layers: ${shown.length} shown`}><Icon name="stack" size={14} />Layers<span className="count">{shown.length}</span></button>}>
         {!layers.length && <div className="mh">The layer list did not load. Is the data server running?</div>}
         {groups.map((g) => {
-          const list = layers.filter((l) => l.group === g), n = list.filter((l) => shown.includes(l)).length
+          // a layer this city has no copy of is left out: a row that can only say "not here" is not a choice
+          const list = layers.filter((l) => l.group === g && l.available), n = list.filter((l) => shown.includes(l)).length
+          if (!list.length) return null
           return (
             <Menu.SubmenuRoot key={g}>
               <Menu.SubmenuTrigger>{g}<small>{n ? `${n} of ${list.length} on` : list.length}</small><Icon name="right" size={11} /></Menu.SubmenuTrigger>
               <Menu.Portal><Menu.Positioner sideOffset={2} alignOffset={-4} style={{ zIndex: 61 }}><Menu.Popup className="menu">
                 {list.map((l) => (
-                  <Menu.CheckboxItem key={l.id} checked={shown.includes(l)} disabled={!l.available} closeOnClick={false} onCheckedChange={() => toggle(l.id)}
+                  <Menu.CheckboxItem key={l.id} checked={shown.includes(l)} closeOnClick={false} onCheckedChange={() => toggle(l.id)}
                     title={`${l.attribution || l.source}${dated(l) ? `, ${dated(l)}` : ''}. ${l.note}`}>
                     <span className="mi-check"><Menu.CheckboxItemIndicator><Icon name="check" size={12} /></Menu.CheckboxItemIndicator></span>
                     {swatch(l)}{l.title}
-                    <small>{!l.available ? `not in ${CITIES[city].name}` : on.includes(l.id) && (zoom < l.minzoom || zoom > l.maxzoom) ? (zoom < l.minzoom ? 'zoom in to see' : 'zoom out to see') : ''}</small>
+                    <small>{on.includes(l.id) && (zoom < l.minzoom || zoom > l.maxzoom) ? (zoom < l.minzoom ? 'zoom in to see' : 'zoom out to see') : ''}</small>
                   </Menu.CheckboxItem>
                 ))}
               </Menu.Popup></Menu.Positioner></Menu.Portal>
@@ -125,7 +127,7 @@ const clock = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${S
 
 /** The day and hour the shadows are cast for, and where the sun then stands over the middle of the map. */
 export function SunBar({ city, value, onChange, source }: { city: CityId; value: SunAt; onChange: (v: SunAt) => void; source?: MapLayer }) {
-  const map = useWorld((s) => s.map), mesh = useWorld((s) => s.mesh), ready = useWorld((s) => s.city3d.status === 'ready'), close = useWorld((s) => s.zoom >= CLOSE_Z - 0.2)
+  const map = useWorld((s) => s.map), mesh = useWorld((s) => s.mesh), status = useWorld((s) => s.city3d.status), ready = status === 'ready', close = useWorld((s) => s.zoom >= CLOSE_Z - 0.2)
   useWorld((s) => Math.round(s.tick / 30)) // the readout follows the map, a few times a second at most
   const c = map?.getCenter() ?? { lat: CITIES[city].center[1], lng: CITIES[city].center[0] }
   const t = sunInstant(value, city), pos = sunPosition(t, c.lat, c.lng), day = sunDay(t, c.lat, c.lng)
@@ -148,7 +150,7 @@ export function SunBar({ city, value, onChange, source }: { city: CityId; value:
       <span className="small">{pos.altitude > 0 ? <>sun <span className="num">{pos.altitude.toFixed(0)}°</span> up, to the <span className="num">{pos.azimuth.toFixed(0)}°</span></> : 'the sun is down'}</span>
       <span className="small muted">up <span className="num">{hm(day.rise)}</span> to <span className="num">{hm(day.set)}</span>, <span className="num">{day.hours.toFixed(1)}</span> h</span>
       {close && ready ? <button type="button" className="btn sm quiet" onClick={measure} title="Cast a ray to the sun every ten minutes of this day from the 3D city under the middle of the view">Sun hours here</button>
-        : <span className="small muted">{close ? 'shadows appear when the 3D city has loaded' : 'zoom in for shadows on the 3D city'}</span>}
+        : <span className="small muted">{!close ? 'Zoom in for shadows' : status === 'none' ? 'No 3D city here to cast shadows' : 'Loading the 3D city'}</span>}
       {hours?.key === key && <span className="small" role="status">{hours.text}</span>}
     </div>
   )

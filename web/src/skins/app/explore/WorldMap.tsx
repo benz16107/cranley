@@ -131,6 +131,7 @@ export function WorldMap(props: Props) {
   const el = useRef<HTMLDivElement>(null)
   const overlay = useRef<MapLibreOverlay | null>(null)
   const grid = useRef(new Map<string, LayerCollection>())
+  const picked = useRef<string | null>(null) // the building last chosen on the map itself
   const live = useRef({ ...props, geo, fonts: false })
   live.current = { ...live.current, ...props, geo }
   const onKey = on.join(',')
@@ -158,7 +159,7 @@ export function WorldMap(props: Props) {
           getFillColor: ink, stroked: true, getLineColor: paper, lineWidthUnits: 'pixels', getLineWidth: z > CLOSE_Z ? 1.6 : 1,
           opacity: 1 - far * 0.42, pickable: true,
           onHover: ({ object }) => { if ((object ?? null) !== useWorld.getState().hover) { useWorld.setState({ hover: object ?? null }); draw() } },
-          onClick: ({ object }) => live.current.onSelect(object ?? null),
+          onClick: ({ object }) => { picked.current = object?.id ?? null; live.current.onSelect(object ?? null) },
         }),
         shown.includes('scans') && fonts && z >= 12.6 && new TextLayer<Building>({
           id: 'counts', data: data.filter((b) => b.count > 1), getPosition: (b) => [b.lon, b.lat], getText: (b) => String(b.count), ...top,
@@ -219,13 +220,22 @@ export function WorldMap(props: Props) {
     const ensure = () => { try { if (mesh && map.isStyleLoaded() && !map.getLayer(mesh.id)) map.addLayer(mesh, SLOT.solid) } catch { /* the style is still changing: the next event tries again */ } }
     let raf = 0, tipRaf = 0
     const onMove = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { useWorld.setState((s) => ({ tick: s.tick + 1, zoom: map.getZoom(), pitch: map.getPitch(), bearing: map.getBearing() })); draw() }) }
+    // MapLibre's wheel zoom ends with no originalEvent, so "the person did this" is also: they touched the map a moment ago
+    let input = 0, lastZ = map.getZoom()
+    const touched = () => { input = performance.now() }
+    for (const t of ['wheel', 'pointerdown', 'dblclick', 'keydown']) el.current!.addEventListener(t, touched, { passive: true, capture: true })
     const settle = (e?: { originalEvent?: unknown }) => {
       const z = map.getZoom(), c = map.getCenter(), now = live.current
+      const closer = z > lastZ + 0.01; lastZ = z // zooming out past a building (on the way back from one) must not open it again
       mesh?.setShown(z >= MESH_Z - 0.2)
-      if (!now.held && z >= MESH_Z) void mesh?.want({ lat: c.lat, lon: c.lng })
+      if (!now.held && z >= MESH_Z && mesh) {
+        // the server can take a while to list a place's 3D tiles the first time: say it is loading from the moment it is asked for
+        if (mesh.status === 'idle') useWorld.setState({ city3d: { status: 'loading', progress: 0, capture: '' } })
+        void mesh.want({ lat: c.lat, lon: c.lng })
+      }
       mesh?.shadowsAt(c.lng, c.lat)
       loadGrid()
-      if (!e?.originalEvent || now.held || z < ENTER_Z) return
+      if (!(e?.originalEvent || performance.now() - input < 1200) || !closer || now.held || z < ENTER_Z) return
       // the person zoomed right in: a scanned building at the middle of the view is the one they mean
       const near = now.buildings.map((b) => [metres(c, b), b] as const).sort((p, q) => p[0] - q[0])[0]
       if (near && near[0] < Math.max(35, 9000 / 2 ** (z - 12))) now.onNear?.(near[1])
@@ -254,7 +264,8 @@ export function WorldMap(props: Props) {
       const m = mesh = new Mesh()
       m.onChange = () => useWorld.setState({ city3d: { status: m.status, progress: m.progress, capture: (m.patch?.capture?.[0] ?? '').slice(0, 7).replace('/', '-') } })
       host.__mesh = m; useWorld.setState({ mesh: m })
-      ensure(); if (map.loaded()) settle()
+      // the map may still be loading its tiles when the 3D city's code arrives: ask for the mesh once it is at rest
+      ensure(); if (map.loaded()) settle(); else void map.once('idle', () => settle())
     })
     document.fonts.load('600 10px "Martian Mono Variable"').then(() => { live.current.fonts = true; draw() })
     const ro = new ResizeObserver(() => map.resize())
@@ -294,6 +305,16 @@ export function WorldMap(props: Props) {
     if (reduced()) map.jumpTo({ center, zoom, pitch: 0, bearing: 0 })
     else map.flyTo({ center, zoom, pitch: 0, bearing: 0, duration: 2400, curve: 1.25, essential: true })
   }, [city, map])
+
+  // A building chosen away from the map (the search, a link, a breadcrumb): go to it, close enough to see the house.
+  // One chosen on the map is in view already.
+  const selId = selected?.id
+  useEffect(() => {
+    if (!map || !selected || live.current.held || picked.current === selId) return
+    if (map.getZoom() >= 14 && map.getBounds().contains([selected.lon, selected.lat])) return
+    const to = { center: [selected.lon, selected.lat] as [number, number], zoom: Math.max(map.getZoom(), 17) }
+    if (reduced()) map.jumpTo(to); else map.flyTo({ ...to, duration: 1600, essential: true })
+  }, [selId, map]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // A point the camera was told to look at: go there, close enough to read the marks.
   const lookKey = look?.join(',')

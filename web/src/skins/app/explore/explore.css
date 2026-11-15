@@ -17,12 +17,23 @@
 /* the building's two toolbars float in the picture's corner as the map's own controls do */
 .ex-scene .worktools { position: relative; z-index: 3; max-width: 100%; padding: 3px; gap: 4px; border: 1px solid var(--rule); border-radius: var(--r-2); background: var(--pane); box-shadow: 0 1px 3px light-dark(rgb(24 33 43 / 0.12), rgb(0 0 0 / 0.4)); }
 .ex-scene .worktools > .grow { display: none; }
+/* the first row stays one row: the long label (how the building looks) gives way first, then the row scrolls */
+.ex-scene .work > .worktools:first-child { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.ex-scene .worktools > * { flex: none; }
+.ex-scene .worktools > .btn.look { flex: 0 1 auto; min-width: 48px; }
+.ex-scene .worktools > .btn.look .lbl { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* narrower: the counts go first (each button's name still says them), then the labels */
+@container (max-width: 760px) { .ex-scene .work > .worktools:first-child .count { display: none; } }
+@container (max-width: 650px) { .ex-scene .worktools > .btn.quiet:not(.look) > .lbl { display: none; } }
 /* the play row carries a transport (a slider and a clock) once something plays: room for it on one line */
 .ex-scene .work > .worktools:nth-child(2):has(.slider) { width: min(100%, 600px); }
 @container (max-width: 780px) { .ex-scene .work > .worktools:first-child > .seg:first-child button span { display: none; } .ex-scene .work > .worktools:first-child > .seg:first-child button { padding: 0 8px; } }
 /* the scene's own floor buttons stand in the corner the two toolbars take (and a toolbar that wraps would hide under
    them): here they sit at the lower left, over the small plan */
 .ex-scene .th-scene .th-floors { top: auto; bottom: 202px; left: 12px; }
+
+/* the furnished and empty tags stand under the toolbar, not behind it */
+.ex-scene .th-scene .th-wipe-tag { top: 52px; }
 
 /* On the map: one row of tools in a corner, a readout under it, the legend and the sun strip along the bottom. */
 .maptools { position: absolute; left: 10px; top: 10px; z-index: 2; display: flex; gap: 6px; align-items: center; max-width: calc(100% - 64px); flex-wrap: wrap; }
@@ -35,7 +46,10 @@
 .mapread.opening, .mapread.working { top: auto; left: 50%; bottom: 14px; translate: -50% 0; z-index: 5; }
 .mapfoot { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; pointer-events: none; }
 .mapfoot > * { pointer-events: auto; }
-.mapfoot .maplegend { position: static; max-width: 100%; }
+/* many layers on: the legend keeps to a few lines and scrolls, so it never covers the map or its controls */
+.mapfoot .maplegend { position: static; max-width: 100%; max-height: 92px; overflow-y: auto; scrollbar-width: thin; }
+.maplegend > span { max-width: 100%; }
+.maplegend > span > .muted { overflow: hidden; text-overflow: ellipsis; }
 .maplegend .muted { margin-left: 2px; }
 .maplegend .stops, .maplegend .stops > span { display: inline-flex; align-items: center; gap: 4px; }
 .maplegend .stops { gap: 8px; margin-left: 4px; }
