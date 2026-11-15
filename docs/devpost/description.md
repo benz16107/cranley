@@ -2,7 +2,7 @@
 - **Try it live:** https://cranley.app/app
 - **Every track in detail:** https://cranley.app/tracks/
 - **Code:** https://github.com/benz16107/cranley
-- **Conversation with Jean Ryan (7 min):** https://youtu.be/EoHyoNs2idg
+- **Conversation with Jean Ryan (7 min):** https://youtu.be/xFw0Rpz9pbk
 - **Video (2 min):** https://youtu.be/cwn0x1TZYKQ
 
 ---
@@ -29,7 +29,7 @@ Each track page lists what the sponsor asked for beside what we built, and every
 |---|---|---|---|---|
 | CoStar | [page](https://cranley.app/tracks/costar/) | Asked for an agent using at least two of the three layers; we built one using all three in one frame, plus [78 tools](https://cranley.app/tools/), parallel subagents, a photoreal 3D city, iPhone scans and PDF reports | 50 tools run through the real API on 15 places: 266 answers, 62 honest "cannot answer here", 0 judged wrong | |
 | Amazon | [page](https://cranley.app/tracks/amazon/) | Asked for AI that reasons, plans, acts and adapts; we built that, plus a profile that learns you once with the adaptation counted on screen, a phone companion, iMessage and an iPhone LiDAR app | Questions asked over three homes for a returning wheelchair user: 1, 0, 0 | |
-| Peri | [page](https://cranley.app/tracks/peri/) | Asked to solve one consulted business's problem; we interviewed Jean Ryan, President of Disabled In Action of Metropolitan New York, asked 58 more people online, emailed 491 organisations, and shipped 12 groups of changes that night | 12 groups of changes, each with its commit in [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md) | [Conversation (7 min)](https://youtu.be/EoHyoNs2idg)<br>[Teaser (32 s)](https://youtu.be/M5G2j62ZYGQ) |
+| Peri | [page](https://cranley.app/tracks/peri/) | Asked to solve one consulted business's problem; we interviewed Jean Ryan, President of Disabled In Action of Metropolitan New York, asked 58 more people online, emailed 491 organisations, and shipped 12 groups of changes that night | 12 groups of changes, each with its commit in [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md) | [Conversation (7 min)](https://youtu.be/xFw0Rpz9pbk)<br>[Teaser (32 s)](https://youtu.be/M5G2j62ZYGQ) |
 | LangChain | [page](https://cranley.app/tracks/langchain/) | Asked for a deepagent; we built a deepagents investigator with planning, parallel subagents, approvals that resume from a MongoDB checkpoint, skills, long-term memory, a rubric grader, MCP tools and LangSmith experiments | Two houses checked at once, both paused before the smoke model and resumed from a MongoDB checkpoint | |
 | Photon | [page](https://cranley.app/tracks/photon/) | Asked for a messaging agent on Photon 2.0; we built the equivalent of texting or calling your real estate agent (or contractor, inspector, property manager, accessibility advisor): ask about a place in iMessage or on a call and get measurements back, with plan pictures, reply threads as investigations, photos, video, voice and location in, and the PDF in the chat | A real phone call: the voice agent ran the garage check and read the measured answer at 1:51, then the plan picture and the answer arrived in the caller's iMessage; every reply built from the tool result, never model text; 14 tests | [The real call, with transcript](https://cranley.app/tracks/photon/#call) |
 | MongoDB Atlas | [page](https://cranley.app/tracks/mongodb/) | Asked to build with Atlas; we use 12 Atlas features: op log with transactions, change streams, Atlas Search, Vector Search with automated embedding, `$rankFusion`, time series, TTL, 2dsphere, schema validation, LangGraph checkpointer and store, MCP | A door width typed on the phone reaches the desktop in about a second | |
@@ -78,7 +78,7 @@ More detail: [How it works](https://cranley.app/how/) · [The agent](https://cra
 
 ## Built forward-deployed
 
-Before and while building we asked people what goes wrong with their buildings: a recorded 31-minute interview with Jean Ryan ([the conversation, 7 min](https://youtu.be/EoHyoNs2idg)), written answers from 58 people in 17 online communities, and 491 emails, which brought six human replies.
+Before and while building we asked people what goes wrong with their buildings: a recorded 31-minute interview with Jean Ryan ([the conversation, 7 min](https://youtu.be/xFw0Rpz9pbk)), written answers from 58 people in 17 online communities, and 491 emails, which brought six human replies.
 
 ![Outreach at a glance: a recorded interview, 58 people in 17 communities, 491 emails, six human replies](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/910/138/datas/gallery.jpg)
 
