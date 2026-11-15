@@ -18,7 +18,7 @@ Listings say "accessible", "two-car garage", "fits a king bed", and nobody measu
 
 ## Sponsor tracks
 
-Every track has its own page with what we built, the features used, the proof and the limits.
+Each track's page has the full detail, proof and limits.
 
 | Track | Page | What we built | Strongest proof | Video |
 |---|---|---|---|---|
@@ -69,8 +69,8 @@ Their answers changed the tools the same night: steps first, several chairs per 
 
 | Number | What it measures |
 |---|---|
-| **266** | Answers when every tool built by Saturday morning (50) ran through the real API on 15 places; 62 honest "cannot answer here", 0 judged wrong (29 before the review pass) |
-| **810 + 118** | Server tests and web tests today |
+| **266** | Answers when every tool built by Saturday morning (50) ran through the real API on 15 places; 62 honest "cannot answer here", 0 judged wrong |
+| **810 + 118** | Server tests and web tests |
 | **3.7 min** | A wheelchair brief: 6 tools composed, 25 tool runs on 5 buildings |
 | **1, 0, 0** | Questions asked over three homes for one returning wheelchair user; checks kept back 0, 3, 9 (counted from the op logs; a replay, not a user study) |
 | **16 to 23 min** | Training one interior Gaussian splat on an AMD mini PC's integrated GPU, no NVIDIA (four buildings) |
