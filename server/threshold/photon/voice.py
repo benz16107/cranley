@@ -50,7 +50,8 @@ def _turn(caller: str, text: str | None) -> dict:
     from ..mcp import core
     from .router import open_questions, session
     rec = _call(caller)
-    s = session(rec.get("workspace"))
+    # a new question gets a fresh workspace (a composed one starts no new tools); an answer continues the open one
+    s = session(None if text else rec.get("workspace"))
     rec["workspace"] = s.base.id
     words.scope_named(s, text)
     out = core.ask(text or "", workspace_id=s.base.id)
