@@ -21,7 +21,7 @@ Listings say "accessible", "two-car garage", "fits a king bed", and nobody measu
 
 ## Sponsor tracks
 
-Each track page has the details.
+Each track page lists what the sponsor asked for beside what we built, and every product of theirs we used.
 
 | Track | Page | What we built | Strongest proof | Video |
 |---|---|---|---|---|
