@@ -1,0 +1,15 @@
+---
+// Horizontal bars from zero, longest first, each with its value written beside it.
+interface Props { rows: { label: string; n: number; href?: string }[] }
+const { rows } = Astro.props
+const max = Math.max(...rows.map((r) => r.n))
+---
+<ol class="bars" data-play>
+  {rows.map((r, i) => (
+    <li style={`--v: ${r.n / max}; --i: ${i}`}>
+      <span class="lab">{r.href ? <a href={r.href}>{r.label}</a> : r.label}</span>
+      <span class="track"><i></i></span>
+      <span class="num">{r.n}</span>
+    </li>
+  ))}
+</ol>

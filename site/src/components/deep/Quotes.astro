@@ -1,0 +1,35 @@
+---
+// What one person said, point by point, and what each point became. One opens at a time (docs/feedback.md, her table).
+import deep from '../../generated/deep.json'
+const KIND: Record<string, string> = { changed: 'Changed a tool', covered: 'Already covered', skipped: 'Skipped', not_in_scan: 'Noted as not in the scan' }
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+const md = (s: string) => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>')
+const short = (s: string) => s.match(/"([^"]+)"/)?.[1] ?? s.split(/[.:(]/)[0]
+---
+<div class="quotes">
+  {deep.quotes.map((q, i) => (
+    <details name="said" open={i === 0}>
+      <summary><span class="q">{short(q.said)}</span><span class={`tag ${q.kind}`}>{KIND[q.kind]}</span></summary>
+      <div class="a">
+        <p><b>She said.</b> {q.said}</p>
+        <p><b>What it became.</b> <Fragment set:html={md(q.became)} /></p>
+        {q.tools.length > 0 && <p class="tools">{q.tools.map((t) => <a href={`/docs/tools/${t.slug}/`}>{t.title}</a>)}</p>}
+      </div>
+    </details>
+  ))}
+</div>
+
+<style>
+  .quotes { display: grid; border-top: 1px solid var(--rule-strong); }
+  details { border-bottom: 1px solid var(--rule); }
+  summary { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-4); padding: 12px 0; cursor: pointer; list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  .q { font-size: 0.9375rem; line-height: 1.4; }
+  .q::before { content: '+'; display: inline-block; width: 1.2em; color: var(--ink-3); font-family: var(--font-mono); }
+  details[open] .q::before { content: '−'; }
+  details[open] .q { font-weight: 600; }
+  .a { display: grid; gap: var(--s-3); padding: 0 0 var(--s-4) 1.2em; font-size: 0.875rem; line-height: 1.5; color: var(--ink-2); max-width: 76ch; }
+  .a b { color: var(--ink); font-weight: 600; }
+  .tools { display: flex; flex-wrap: wrap; gap: 6px var(--s-4); }
+  @media (hover: hover) and (pointer: fine) { summary:hover .q { color: var(--accent); } }
+</style>

@@ -1,0 +1,46 @@
+---
+// The outreach as steps: how many went out, how many came back, what it turned into. A thin bar under a step
+// shows its share only where the steps count the same kind of thing.
+interface Props { panels: { title: string; scaled?: boolean; steps: { n: number; label: string; note?: string }[] }[] }
+const { panels } = Astro.props
+---
+<div class="funnel" data-play>
+  {panels.map((p) => {
+    const max = Math.max(...p.steps.map((s) => s.n))
+    return (
+      <div class="panel">
+        <p class="pt">{p.title}</p>
+        <ol>
+          {p.steps.map((s, i) => (
+            <li style={`--v: ${s.n / max}; --i: ${i}`}>
+              <span class="num">{s.n}</span>
+              <span class="l">{s.label}{s.note && <small>{s.note}</small>}</span>
+              {p.scaled && <span class="track"><i></i></span>}
+            </li>
+          ))}
+        </ol>
+      </div>
+    )
+  })}
+</div>
+
+<style>
+  .funnel { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--s-3); }
+  .panel { display: grid; align-content: start; gap: var(--s-4); padding: var(--s-5); background: var(--pane); border: 1px solid var(--rule); border-radius: var(--r-2); }
+  .pt { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3); }
+  ol { display: grid; gap: var(--s-4); }
+  li { display: grid; grid-template-columns: 4.2ch minmax(0, 1fr); column-gap: var(--s-3); row-gap: 6px; align-items: baseline; }
+  /* a step leads to the next one down */
+  li + li { padding-top: var(--s-4); border-top: 1px dashed var(--rule-strong); }
+  .num { font-size: 1.25rem; font-weight: 500; color: var(--ink); text-align: end; }
+  .l { font-size: 0.875rem; line-height: 1.4; color: var(--ink); }
+  small { display: block; font-size: 0.8125rem; color: var(--ink-3); }
+  .track { grid-column: 1 / -1; height: 6px; }
+  .track i { display: block; height: 100%; width: calc(var(--v) * 100%); min-width: 3px; background: var(--accent); border-radius: 0 3px 3px 0; transform-origin: left; }
+  :global(.js) .funnel:not([data-seen]) .track i { transform: scaleX(0); }
+  :global(.js) .funnel[data-seen] .track i { transition: transform 600ms var(--ease-out) calc(var(--i) * 90ms); }
+  @media (prefers-reduced-motion: reduce) {
+    :global(.js) .funnel:not([data-seen]) .track i { transform: none; }
+    :global(.js) .funnel[data-seen] .track i { transition: none; }
+  }
+</style>

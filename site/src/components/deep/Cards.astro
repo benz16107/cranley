@@ -1,0 +1,26 @@
+---
+// What is used and where the code is: one entry per tool or feature, linked to its docs page and its folder on GitHub.
+import { LINKS } from '../../site/links'
+interface Props { items: { title: string; href?: string; what: string; chips?: string[]; code?: string }[] }
+const { items } = Astro.props
+---
+<ul class="cards">
+  {items.map((it) => (
+    <li>
+      {it.href ? <a class="t" href={it.href}>{it.title}</a> : <span class="t">{it.title}</span>}
+      <p>{it.what}</p>
+      {it.chips && it.chips.length > 0 && <p class="chips">{it.chips.map((c) => <span>{c}</span>)}</p>}
+      {it.code && <a class="code" href={`${LINKS.github}/tree/main/${it.code}`}><code>{it.code}</code></a>}
+    </li>
+  ))}
+</ul>
+
+<style>
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: var(--s-3); }
+  li { display: grid; align-content: start; gap: var(--s-2); padding: var(--s-4); background: var(--pane); border: 1px solid var(--rule); border-radius: var(--r-2); min-width: 0; }
+  .t { font-weight: 600; font-size: 0.9375rem; color: var(--ink); }
+  p { font-size: 0.875rem; line-height: 1.45; color: var(--ink-2); }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .chips span { padding: 1px 7px; background: var(--pane-2); border-radius: 999px; font-size: 0.75rem; line-height: 1.5; color: var(--ink-2); white-space: nowrap; }
+  .code { font-size: 0.8125rem; overflow-wrap: anywhere; }
+</style>

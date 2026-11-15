@@ -530,6 +530,70 @@ def sponsor_md() -> str:
     return page("Sponsor integrations", "What each LangChain, MongoDB Atlas, Tiger Data and Photon feature is used for.", out)
 
 
+# ---------- numbers for the track pages ----------
+COUNT_WORDS = {w: i for i, w in enumerate("zero one two three four five six seven eight nine ten".split())}
+FT = 0.3048
+
+
+def deep(tools: dict, examples: dict) -> dict:
+    """Every number a track page draws (src/generated/deep.json): counted from the manifests, the made-up test scans,
+    docs/story.md and docs/feedback.md, or converted here. A page formats these; it never types one."""
+    story = (REPO / "docs/story.md").read_text()
+    fb = (REPO / "docs/feedback.md").read_text().split("## Notes for the lead")[0]
+    providers = lambda t: sorted({r.layer.split(".")[0] for r in t.manifest.requires if r.need == "required"})
+    matrix = []
+    for tid, t in tools.items():
+        ex = examples[tid]
+        folder = f"server/threshold/tools/{tid}"
+        assert (REPO / folder).is_dir(), folder
+        matrix.append({"id": tid, "slug": tid.replace("_", "-"), "title": t.manifest.title, "summary": t.manifest.summary, "code": folder,
+                       "outcome": ex["state"] if ex["state"] != "ran" else ex["result"]["verdict"]["status"], "needs": providers(t),
+                       "layers": list(dict.fromkeys(LAYER.get(r.layer, r.layer) for r in t.manifest.requires if r.need == "required"))})
+    by_need = collections.Counter(p for m in matrix for p in m["needs"])
+    by_need["inputs only"] = sum(1 for m in matrix if not m["needs"])
+    by_need["two or more providers"] = sum(1 for m in matrix if len(m["needs"]) > 1)
+
+    # what people told us, row by row (docs/feedback.md): what became of each thing said
+    said, by_tool, quotes, skipped = collections.Counter(), collections.Counter(), [], []
+    for sec in re.split(r"\n(?=## )", fb)[1:]:
+        rows = [r for r in sec.split("\n") if r.startswith("| ") and not set(r) <= set("|- ")][1:]
+        for r in rows:
+            cells = [c.strip() for c in r.strip().strip("|").split(" | ")]
+            last = cells[-1]
+            kind = ("skipped" if last.startswith("Skipped") else "changed" if re.search(r"\b[0-9a-f]{7}\b", last)
+                    else "not_in_scan" if "not in the scan" in last.lower() else "covered")
+            said[kind] += 1
+            if kind == "skipped":
+                skipped.append({"said": cells[0], "why": last})
+            ids = [i for i in dict.fromkeys(re.findall(r"`(\w+)`", last)) if i in tools]
+            if kind == "changed":
+                by_tool.update(ids)
+            if sec.startswith("## A call with Jean Ryan"):
+                quotes.append({"said": cells[0], "became": last, "kind": kind, "tools": [{"slug": i.replace("_", "-"), "title": tools[i].manifest.title} for i in ids]})
+    assert sum(said.values()) > 40 and said["changed"] > 30 and len(quotes) > 8, said
+
+    replies = re.search(r"\| (\d+) organisations and businesses[^|]*\| Email \| (\w+) people replied:.*? and (\w+) declines", story)
+    emails, replied, declined = int(replies.group(1)), COUNT_WORDS[replies.group(2).lower()], COUNT_WORDS[replies.group(3).lower()]
+    counts = dict(zip(("minutes", "people", "communities", "emails"), map(int, re.search(
+        r"(\d+)-minute phone interview.*?from (\d+) people in (\d+) online communities,? and (\d+) emails", asked()).groups())))
+    assert counts["emails"] == emails, (counts, emails)
+
+    # garage depth: what owners reported (their words, in feet) beside the lengths the garage tool parks (its own table, in metres)
+    g = re.search(r"garages built after 1999 near him are ([\d.]+) to ([\d.]+) ft deep against ([\d.]+) to ([\d.]+) ft in older homes", story)
+    bands = [{"label": "Subdivision garages built after 1999, as one owner reported", "ft": [float(g.group(1)), float(g.group(2))]},
+             {"label": "Older homes, same owner", "ft": [float(g.group(3)), float(g.group(4))]}]
+    for b in bands:
+        b["m"] = [round(x * FT, 2) for x in b["ft"]]
+    from threshold.tools.garage_fit.vehicles import VEHICLES
+    feet = lambda m: f"{int(m / FT)} ft {round((m / FT - int(m / FT)) * 12)} in"
+    vehicles = sorted(({"title": v.label, "kind": v.kind, "m": v.length, "ft": feet(v.length),
+                        "spare_m": [round(bands[0]["m"][0] - v.length, 2), round(bands[0]["m"][1] - v.length, 2)]} for v in VEHICLES.values()), key=lambda v: v["m"])
+    return {"matrix": matrix, "by_need": dict(by_need), "outcomes": dict(collections.Counter(m["outcome"] for m in matrix)),
+            "said": dict(said), "said_total": sum(said.values()), "by_tool": [{"slug": i.replace("_", "-"), "title": tools[i].manifest.title, "n": n} for i, n in by_tool.most_common(10)],
+            "quotes": quotes, "skipped": skipped, "funnel": {**counts, "replies": replied, "declines": declined, "interviews": len(re.findall(r"^## A call with", fb, re.M))},
+            "garage": {"bands": bands, "vehicles": vehicles}}
+
+
 # ---------- the hero drawing ----------
 def drawing(sid: str, tools: dict, pref: dict) -> dict:
     """The test home's plan and four real results on it, turned upright and scaled for an SVG."""
@@ -659,6 +723,7 @@ def main() -> None:
         "home": drawing(HOME, tools, pref),
     }
     write(SITE / "src/generated/site.json", json.dumps(site, indent=1))
+    write(SITE / "src/generated/deep.json", json.dumps(deep(tools, examples), indent=1))
 
     # self-check: the numbers the pages print, and nothing that looks like a real scan
     assert len(tools) >= 70 and len(people) >= 40 and n_ops >= 80, (len(tools), len(people), n_ops)

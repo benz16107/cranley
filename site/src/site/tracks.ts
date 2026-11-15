@@ -3,7 +3,7 @@
 import type { SlotId } from './slots'
 import type { ProofId } from './proof'
 
-export type Track = { slug: string; name: string; prize: string; summary: string; docs: [string, string][]; slots: SlotId[]; /** what people sent us (src/site/proof.ts) */ proof?: ProofId[]; /** the recorded interview leads the page */ interview?: true }
+export type Track = { slug: string; name: string; prize: string; summary: string; docs: [string, string][]; slots: SlotId[]; /** what people sent us (src/site/proof.ts) */ proof?: ProofId[]; /** the recorded interview leads the page */ interview?: true; /** YouTube id of the track's own video; its section shows only when this is set */ video?: string }
 
 export const TRACKS: Track[] = [
   {
