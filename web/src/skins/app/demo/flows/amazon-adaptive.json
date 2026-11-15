@@ -1,0 +1,19 @@
+{
+  "id": "amazon-adaptive",
+  "track": "Amazon",
+  "title": "A returning wheelchair user opens a new home",
+  "about": "Maya has used Cranley once before, on another house. This is her second visit.",
+  "vars": { "person": "demo_maya", "building": "<scan-id>" },
+  "steps": [
+    { "do": "open", "page": "home", "params": { "as": "$person" }, "say": "Maya uses a wheelchair. Last time she told Cranley her chair's width, removed one tool and waved off one kind of check. Cranley kept that.", "hold": 3500 },
+    { "do": "click", "label": "Cranley knows", "say": "What it knows about her. Every line says where it came from, and she can change or forget it.", "hold": 5000 },
+    { "do": "click", "label": "Close", "within": ".drawer", "hold": 400 },
+    { "do": "ask", "sid": "$building", "text": "Is this one workable for me?", "say": "A different house, and six words. She does not repeat her chair width, and Cranley does not ask.", "hold": 1500,
+      "else": { "do": "tool", "tool": "door_widths", "say": "Offline: the doorway check alone, run with the chair width Cranley already has." } },
+    { "do": "agent", "say": "What it did because of her: used her chair width, skipped the question, left out the tool she removed, kept back the checks she waved off.", "hold": 5500 },
+    { "do": "click", "label": "Checks", "within": ".run", "say": "The kinds of check she marked useful last time are listed first.", "hold": 4000 },
+    { "do": "click", "label": "Not relevant: Grab bars", "within": ".run", "say": "She fits her own rails. One click hides that kind of check, here and in every later investigation.", "hold": 3000 },
+    { "do": "click", "label": "Undo", "within": ".toast", "say": "And one click takes it back.", "hold": 1500 },
+    { "do": "click", "label": "Cranley knows", "within": ".run", "say": "Counted from her own history, not written by a model: what each visit asked, reused and kept back.", "hold": 6000 }
+  ]
+}

@@ -7,6 +7,7 @@ import { started, useSeen } from '../lib/pending.ts'
 import { go, goInvestigation, goScan, usePlace } from '../lib/place.ts'
 import { Composer } from '../pages/Home.tsx'
 import { useUi } from './store.ts'
+import { KnowsButton, useKnown } from './Knows.tsx'
 
 /* The guided first run. It asks one thing (who you are and what you need), then stands aside: the real workspace is
    on the page while the agent composes it, and a small card says which step is happening. It opens the first
@@ -34,6 +35,7 @@ export function FirstRun() {
   const [opened, setOpened] = useState<string | null>(null)
   const g = useMemo(() => guide(doc, opened), [doc, opened])
   const run = useRef(0)
+  const known = useKnown()
   // While the guide shows one building the place does not follow the agent's camera. `held` is the setting to put back.
   const held = useRef<boolean | null>(null), following = useWorkspace((s) => s.follow)
   const release = (to?: boolean) => { if (held.current != null) { useWorkspace.getState().setFollow(to ?? held.current); held.current = null } }
@@ -157,6 +159,8 @@ export function FirstRun() {
                   ? <><button type="button" className="btn solid" onClick={() => { release(true); close() }}>Follow the agent</button><button type="button" className="btn" onClick={close}>Stay here</button></>
                   : <button type="button" className="btn solid" onClick={leave}>Done</button>}
                 {!onBuilding && started(doc) && <button type="button" className="btn quiet" onClick={() => { leave(); goInvestigation(doc.id) }}>Open the investigation</button>}
+                {/* what this first run taught it is kept: the next investigation starts from it */}
+                {known > 0 && <KnowsButton className="btn quiet" />}
               </footer>
             </>
           )}

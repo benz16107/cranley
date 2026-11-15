@@ -227,3 +227,21 @@ def test_phone_readings_land_in_a_time_series_once(ms):
     assert series[1]["altitude_change_m"] == 2.0 and series[0]["tool"] == "floor_height"
     with pytest.raises(WriteError):  # the log's validator: an entry needs a workspace, a seq and an op or an undo
         ms.ops.insert_one({"workspace": "ws_x", "seq": 0, "at": t0})
+
+
+def test_the_person_profile_carries_its_source_and_lists_its_investigations(ms):
+    """What a person set in one investigation reaches the next with where it came from, and the person document
+    measures both (agent/profile.py), in MongoDB as in files."""
+    from threshold.agent import profile
+    a = Session.create(profile="maya", store=ms)
+    a.submit({"op": "brief.set", "text": "A wide chair", "summary": "A person with a wide chair."}, by="user")
+    a.submit({"op": "pref.set", "key": "access.door_width_m", "value": 0.7}, by="user")
+    b = Session.create(profile="maya", store=ms)
+    b.submit({"op": "brief.set", "text": "Another building"}, by="user")
+    kept = b.doc.prefs["access.door_width_m"]
+    assert kept.value == 0.7 and kept.origin.workspace == a.doc.id and kept.origin.investigation == "A person with a wide chair."
+    assert not any(k.startswith("session.") for k in b.doc.prefs)
+    who = profile.person(ms, "maya", here=b.doc.id)
+    assert [s["workspace"] for s in who["sessions"]] == [a.doc.id, b.doc.id] and who["investigations"] == 2
+    (fact,) = who["facts"]
+    assert fact["key"] == "access.door_width_m" and fact["why"].startswith("you set it on ") and "“A person with a wide chair.”" in fact["why"]
