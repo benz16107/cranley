@@ -62,6 +62,8 @@ def multipart(data: bytes, content_type: str, filename: str) -> tuple[bytes, str
 
 
 def upload(data: bytes, content_type: str, filename: str) -> str:
+    if env().get("PHOTON_SENDS") != "on":
+        raise SendsOff("PHOTON_SENDS is off; not uploading")
     body, ct = multipart(data, content_type, filename)
     return call("POST", "/attachments", raw=body, content_type=ct, idem=True, timeout=120)["id"]
 
@@ -71,8 +73,14 @@ def download(attachment_id: str) -> tuple[str, bytes]:
     return meta.get("contentType", ""), call("GET", f"/attachments/{attachment_id}/content", timeout=120)
 
 
+class SendsOff(RuntimeError):
+    """PHOTON_SENDS is not "on": nothing leaves this server."""
+
+
 def send(space: str, sender: str, content: dict, parent: str | None = None, idem: str | bool = True, **extra) -> str:
     """POST /messages; the new message's id. `extra` passes channel options (email, telegram)."""
+    if env().get("PHOTON_SENDS") != "on":
+        raise SendsOff(f"PHOTON_SENDS is off; not sending {content.get('type')} to {space}")
     body = {"spaceId": space, "senderId": sender, "content": content, **extra}
     if parent:
         body["parentMessageId"] = parent
@@ -103,6 +111,8 @@ def background(space: str, sender: str, png: bytes) -> str:
 
 
 def typing(space: str, sender: str, on: bool = True) -> None:
+    if env().get("PHOTON_SENDS") != "on":
+        return
     call("POST", f"/spaces/{space}/typing", {"senderId": sender, "typing": on})
 
 
