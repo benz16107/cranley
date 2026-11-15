@@ -11,7 +11,7 @@ unticked prize is not judged.
 | Tagline (200) | yes | Listings say "accessible" and "two-car garage". Cranley measures it: an agent that checks real buildings, inside and out, before you commit. |
 | Description | yes | `docs/devpost/description.md` |
 | Built with (max 25) | yes | see below |
-| Public Git Repository (29740) | yes | https://github.com/benz16107/cranley (being built from a cleaned history) |
+| Public Git Repository (29740) | yes | https://github.com/benz16107/cranley |
 | Universities (29742) | yes | fill in for every member |
 | Technology feedback (29743) | yes | see below |
 | GenAI used, dropdown (29744) | yes | Anthropic, Other |
@@ -23,6 +23,12 @@ unticked prize is not judged.
 | Rules checkbox (29750) | yes | Ben ticks |
 | Opt-in checkbox (29751) | yes | Ben ticks after choosing prizes |
 | GoDaddy Registry domains (30095) | no | none unless a domain is bought |
+
+## Try it links
+
+- Code: https://github.com/benz16107/cranley
+- Site and docs: https://cranley.app
+- Live demo: https://linuxbox.<tailnet>:10000/app (code from Ben at the table; never write the code down)
 
 ## Prizes to opt into on Devpost
 
