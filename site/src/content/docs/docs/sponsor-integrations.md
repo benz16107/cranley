@@ -113,7 +113,10 @@ Rules it keeps: every sent line is built from the tool result, never from model 
 rendered pictures leave the server; the main API stays private behind one signature-checked relay; each event is
 handled once, in order per chat.
 
-**State (4:20 am):** merged with 14 tests; the live line is up with sends limited to an allowlist; the voice line is
-wired (`edbfc67`) and Ben made the first real call at about 4 am. A full live round trip is not confirmed yet.
+**State (15 Nov, 3:46 am):** merged with 14 tests; the live line is up with sends limited to an allowlist. The first
+real phone round trip is done: a call to Cranley's Photon number reached the ElevenLabs voice agent over SIP, the caller
+asked whether a Ford F-150 fits a garage, the agent ran Cranley's `start_check` and `get_answer` tools and read the
+measured answer 1:51 into the call, and after the hang-up Cranley sent the plan picture and the answer to the caller's
+iMessage thread (Photon accepted the sends; no delivery receipt was reported). Recorded with the caller's consent.
 
 The track page: [Photon](/tracks/photon/).

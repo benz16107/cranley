@@ -79,3 +79,5 @@
 .pairs li > :last-child { color: var(--ink-2); }
 @media (max-width: 620px) { .pairs li { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
 .dsec .h3 { margin-top: var(--s-4); font-size: 1.0625rem; font-weight: 600; }
+.dsec .slot-note { font: 400 0.75rem / 1.45 var(--font-mono); font-stretch: 80%; color: var(--ink-3); max-width: 96ch; }
+.dsec .slot-note b { font-weight: 600; color: var(--accent); margin-right: 4px; }

@@ -1,0 +1,95 @@
+---
+// A recorded call you can read while it plays: the audio, every line with its speaker, and what ran behind each
+// answer at the moment it ran. Every row is a button that plays the call from there. The whole transcript is on the
+// page, so the call can be followed with the sound off.
+// The timeline is the Photon thread's format: {t, speaker, text} for speech, {t, event, tool, summary} for what ran.
+interface Row { t: number; speaker?: string; text?: string; event?: string; tool?: string; summary?: string; error?: boolean }
+interface Props { label: string; src: string; timeline: Row[]; note?: string }
+const { label, src, timeline, note } = Astro.props
+const clock = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`
+const EVENT: Record<string, string> = { tool_start: 'Tool starts', tool_end: 'Tool returns', message_sent: 'Message sent' }
+const speakers = [...new Set(timeline.filter((r) => r.speaker).map((r) => r.speaker as string))]
+---
+<figure class="call" data-call>
+  <figcaption>{label}</figcaption>
+  <div class="deck">
+    <audio controls preload="metadata" src={src}></audio>
+    <ul class="key">
+      {speakers.map((s, i) => <li><i class={i === 0 ? 'a' : 'b'}></i>{s}</li>)}
+      <li><i class="ev"></i>Behind the scenes: a tool or a message</li>
+    </ul>
+    <p class="how">Select any line to play the call from there. The transcript is complete, so it reads without sound.</p>
+    {note && <p class="how">{note}</p>}
+  </div>
+  <ol class="rows" aria-label="Transcript of the call, with what ran behind it">
+    {timeline.map((r) => (
+      <li data-t={r.t} class:list={r.event ? ['ev', { failed: r.error }] : ['say', r.speaker === speakers[0] ? 'a' : 'b']}>
+        <button type="button">
+          <span class="num">{clock(r.t)}</span>
+          {r.event
+            ? <span class="what"><span class="tag">{EVENT[r.event] ?? r.event}</span>{r.tool && <code>{r.tool}</code>}<span>{r.summary}</span></span>
+            : <span class="what"><b>{r.speaker}</b><span>{r.text}</span></span>}
+        </button>
+      </li>
+    ))}
+  </ol>
+</figure>
+
+<script is:inline>
+  document.querySelectorAll('[data-call]').forEach((box) => {
+    const audio = box.querySelector('audio')
+    const list = box.querySelector('.rows')
+    const rows = [...list.children].map((li) => [Number(li.dataset.t), li])
+    const calm = matchMedia('(prefers-reduced-motion: reduce)').matches
+    let current = null
+    const mark = () => {
+      let now = null
+      for (const [t, li] of rows) { if (t <= audio.currentTime + 0.05) now = li; else break }
+      if (now === current) return
+      if (current) current.removeAttribute('data-now')
+      current = now
+      if (!now) return
+      now.setAttribute('data-now', '')
+      // keep the line being spoken in view, scrolling the transcript only, never the page
+      const top = now.offsetTop, bottom = top + now.offsetHeight
+      if (top < list.scrollTop || bottom > list.scrollTop + list.clientHeight) list.scrollTo({ top: Math.max(0, top - list.clientHeight / 3), behavior: calm ? 'auto' : 'smooth' })
+    }
+    audio.addEventListener('timeupdate', mark)
+    audio.addEventListener('seeked', mark)
+    list.addEventListener('click', (e) => {
+      const li = e.target.closest('li[data-t]')
+      if (!li) return
+      audio.currentTime = Number(li.dataset.t)
+      audio.play()
+    })
+  })
+</script>
+
+<style>
+  .call { display: grid; grid-template-columns: minmax(0, 280px) minmax(0, 1fr); gap: var(--s-4) var(--s-5); align-items: start; padding: var(--s-5); background: var(--pane); border: 1px solid var(--rule); border-radius: var(--r-2); }
+  figcaption { grid-column: 1 / -1; font-weight: 600; line-height: 1.35; }
+  .deck { display: grid; gap: var(--s-4); }
+  audio { width: 100%; }
+  .key { display: grid; gap: 6px; font-size: 0.8125rem; color: var(--ink-2); }
+  .key li { display: flex; align-items: center; gap: 8px; }
+  .key i { flex: none; width: 12px; height: 12px; border-radius: 2px; }
+  .key .a { background: var(--accent); }
+  .key .b { background: var(--ink); }
+  .key .ev { background: none; box-shadow: inset 0 0 0 1.5px var(--ink-3); border-radius: 50%; }
+  .how { font-size: 0.8125rem; line-height: 1.45; color: var(--ink-3); }
+  .rows { position: relative; max-height: 460px; overflow-y: auto; background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r-1); }
+  .rows li + li { border-top: 1px solid var(--rule); }
+  button { display: grid; grid-template-columns: 4.5ch minmax(0, 1fr); gap: var(--s-3); width: 100%; padding: 9px 12px; font: inherit; font-size: 0.875rem; line-height: 1.45; text-align: start; color: var(--ink); background: none; border: 0; cursor: pointer; transition: background-color var(--dur-1) ease; }
+  button .num { color: var(--ink-3); }
+  .what { display: grid; gap: 2px; min-width: 0; }
+  .say b { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+  .say.a b { color: var(--accent); }
+  .ev button { font-size: 0.8125rem; color: var(--ink-2); background: var(--pane); }
+  .ev .what { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+  .tag { padding: 0 7px; border: 1px solid var(--rule-strong); border-radius: 999px; font-size: 0.75rem; white-space: nowrap; color: var(--ink-2); }
+  .failed .tag { border-color: var(--warn); color: var(--warn); }
+  /* the line being spoken */
+  li[data-now] button { background: var(--accent-wash); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent); }
+  @media (hover: hover) and (pointer: fine) { li:not([data-now]) button:hover { background: var(--pane-2); } }
+  @media (max-width: 760px) { .call { grid-template-columns: minmax(0, 1fr); padding: var(--s-4); } .rows { max-height: 380px; } }
+</style>
