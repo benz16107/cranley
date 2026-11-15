@@ -168,7 +168,9 @@ by measurement, with all three layers checking each other.
 
 **Scripted flow:** `web/src/skins/app/demo/flows/costar.json`, "Check a listing against the scan, then tour it": the agent reads the
 listing, the CoStar record and the scan side by side, the camera goes to the room where they disagree, then the tour
-plays every finding. The wheelchair path below is the spoken alternative.
+plays every finding.
+
+Team note: the wheelchair path below is the spoken alternative to the scripted flow; pick one for the pitch.
 
 **Demo path (2 minutes).**
 1. Home. Type "I use a wheelchair, 81 cm wide. Find a one-bedroom in Houston I can get into and use the bathroom."
@@ -210,21 +212,23 @@ wheelchair user the questions asked went 1, 0, 0, and the checks kept back 0, 3,
 | User-friendly design | No profile form: it fills from answers and clicks the person makes anyway; Home says in one line how much is known | Home, under the brief field |
 | Creative innovation | The proof is in the product: "How Cranley has adapted to you" counts what each investigation asked, reused and kept back, from the person's own logs | "Cranley knows", first section |
 
-What the replay shows and does not (counts from `reports/adaptation-eval.md`, run 2026-11-14 19:47, each counted
-from op logs by `threshold.agent.profile.measure`): questions asked went 1, 0, 0 in all three evaluation runs. "Checks
+What the replay shows and does not (the evaluation `threshold.agent.adapt_eval`, run 2026-11-14 19:47, each number
+counted from op logs by `threshold.agent.profile.measure`): questions asked went 1, 0, 0 in all three evaluation runs. "Checks
 that matter" uses a rule fixed before the run (a check matters unless it is a kind the person waved off or comes from a
 tool they removed), so it shows that a taste expressed once is honoured on new buildings, not that Cranley guesses
 relevance nobody told it. Time to the first result and the number of tool runs did not change in a way the replay can
 support: both follow the model's latency and choices; only the removed tool never comes back. It is one persona on three
 buildings, a replay rather than a user study. Limits: the profile holds only facts some tool input uses (about 80 keys;
 no budget or risk tolerance), it does not read facts out of free text, and there is no sign-in (the profile id lives in
-the browser, and `?as=<id>` opens any profile whose id you know).
+the browser, so anyone who has the id can open that profile).
 
 **Scripted flow:** `web/src/skins/app/demo/flows/amazon.json`, "A phone scan becomes a PDF report". Second flow:
 `amazon-adaptive.json`, "A returning wheelchair user opens a new home", about 110 s (played twice:
-111.2 s and 108.6 s, of which the agent's turn is 77 to 79 s). It needs a returning person in the demo server's store:
+111.2 s and 108.6 s, of which the agent's turn is 77 to 79 s).
+
+Team note: the adaptive flow needs a returning person in the demo server's store:
 `cd server && uv run python -m threshold.agent.adapt_eval --seed demo_maya --waves-off Bathing` with the server's
-environment (the same `THRESHOLD_STORE`), about 90 s; a judge can be Maya at `/app/?as=demo_maya`.
+environment (the same `THRESHOLD_STORE`), about 90 s; a judge can be Maya at `/app/?as=demo_maya`. Seeded on 8787.
 
 **Demo path.** Phone: scan a room with the iPhone app (demo cafe in the simulator), name the business, pick
 Accessibility, get the PDF in seconds. Desktop: the same workspace updates live. Then the wheelchair search above.
@@ -233,7 +237,7 @@ Accessibility, get the PDF in seconds. Desktop: the same workspace updates live.
 
 Judged real-world need, usability (could the business adopt it immediately), execution.
 
-**State: no business consulted yet.** See question 5. The entry is only eligible with a business name, the person's
+**State: no business consulted yet.** The entry is only eligible with a business name, the person's
 name and role, and one piece of evidence.
 
 **Angle if a business is consulted.** A small business in Princeton is not in CoStar's data. The iPhone app scans the
@@ -249,7 +253,7 @@ their space (or the demo cafe if they declined a scan), then the report.
 
 ### LangChain: Best use of deepagents
 
-Not on the Devpost prize list (question 4). Every feature below does a job in the product; what was left out, and
+Every feature below does a job in the product; what was left out, and
 why, is on the sponsor integrations page of the docs.
 
 | Feature | Why it is a real use |
@@ -343,7 +347,7 @@ rendered pictures leave the server; the main API stays private behind one signat
 handled once, in order per chat.
 
 **State (7:50 pm):** merged with 14 tests; the live line is up with sends limited to an allowlist; a first real round
-trip had not been confirmed; the phone agent needs a voice number (asked of Ben).
+trip had not been confirmed; the phone agent needs a voice number.
 
 **Demo path.** Text the line "will an F-150 fit in this garage?" with a building link, get the marked plan back, reply
 "what about two?", then "report" for the PDF. For Best Voice: call, ask the same, hang up, show the iMessage that follows.
@@ -351,7 +355,7 @@ trip had not been confirmed; the phone agent needs a voice number (asked of Ben)
 ### HackPrinceton main track (one of six)
 
 General judges score creativity, utility, charity and avidity. Charity is where the product is strongest: the
-wheelchair user, the family before a storm, the fire crew. Track pick: question 3.
+wheelchair user, the family before a storm, the fire crew.
 
 ---
 
