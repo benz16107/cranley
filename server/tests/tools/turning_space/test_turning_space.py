@@ -45,3 +45,12 @@ def test_floor_objects_shrink_the_circle_and_the_aisle():
     st = {c.id: c for c in r.checks}
     assert st["aisle.s"].status == "fail" and st["aisle.s"].measured < 0.3 and "boxes" in st["aisle.s"].rule
     assert "aisle narrower than you need" in r.verdict.text and "cannot.obstructions" in st
+
+
+def test_each_chair_turns_with_its_own_circle(ctx):
+    from threshold.tools import run_tool
+    chairs = [{"name": "Scooter", "turning_diameter_m": 3.0}, {"name": "Travel chair", "turning_diameter_m": 1.2}]
+    r = run_tool("turning_space", {"scan": "home", "chairs": chairs}, ctx)
+    st = {c.id: c for c in r.checks}
+    assert st["chair0.turn"].status != "pass" and st["chair1.turn"].status == "pass"
+    assert "By chair: Scooter turns in" in r.verdict.text

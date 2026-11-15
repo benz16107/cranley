@@ -15,7 +15,7 @@ from ...geometry._plan import VERDICT_STATUS, clear_width, floor_z, judge
 from .. import (Assumption, Check, Finding, Metric, OpeningAnchor, Pin, PinsOverlay, PointAnchor, RoomAnchor,
                 ScanScope, Source, ToolResult, Verdict, field, tool)
 from ..types import BoxOverlay, Media
-from .._access import (GEO, GEO_LOW, IN, STD, cannot, face_polygon, floor_objects, fmt, graph, has_objects,
+from .._access import (GEO, GEO_LOW, IN, STD, Chair, cannot, chair_list, face_polygon, floor_objects, fmt, graph, has_objects,
                        implausible, quality, rect_fit, room_angle, rooms)
 from .._access import look
 
@@ -37,6 +37,8 @@ class Inputs(BaseModel):
     diameter_m: float = field(1.525, pref="access.turning_diameter_m", unit="m", gt=0.3, le=3.0,
                               description="Turning circle you need")
     read_panoramas: bool = field(True, description="Find the toilet, tub or shower and grab bars in the panoramas")
+    chairs: list[Chair] = field([], pref="access.chairs", description="Each chair the person uses; each is checked "
+                                                                     "against the bathroom door and turning circle")
 
 
 def _status(ok: bool | None) -> str:
@@ -316,6 +318,17 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                 c.rule.split(": ", 1)[1] for c in checks if c.status == "fail"}))[:200] + "."}[best]
     if err:
         text += " The panoramas could not be read, so the toilet, tub and grab bars are unknown."
+    for i, ch in enumerate(c for c in chair_list(inputs.chairs, inputs.door_width_m, inputs.diameter_m) if c["name"]):
+        def fits(b):
+            got = {c.id: c.measured for c in checks if c.id.startswith(b["id"] + ".")}
+            doors = [v for k, v in got.items() if k.split(".")[1] == "door" and v is not None]
+            turn = got.get(f"{b['id']}.turn")
+            return (bool(doors) and judge(min(doors), ch["door"]) == "likely pass" and turn is not None
+                    and judge(turn, ch["turn"]) == "likely pass")
+        ok = [f"Bathroom {j + 1}" if len(baths) > 1 else "the bathroom" for j, b in enumerate(baths) if fits(b)]
+        checks.append(Check(id=f"chair{i}", rule=f"{ch['name']} (needs {fmt(ch['door'])} through the door and a "
+                            f"{fmt(ch['turn'])} circle): fits {', '.join(ok) or 'no bathroom'}", measured=len(ok),
+                            threshold=1, unit="bathrooms", status="pass" if ok else "fail", standard=STD["door"]))
     checks += ([] if has_objects(plan) else [cannot("bath_objects", "bins, vanities, cabinets and baskets: this scan "
                                                     "records walls only, so every clear space is the most there can "
                                                     "be, and one bin can make an accessible stall unusable")]) + \

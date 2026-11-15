@@ -74,3 +74,12 @@ def test_a_bin_in_front_of_the_toilet_blocks_the_front_transfer():
     f = next(f for f in blocked.findings if f.id.endswith(":T:wc_front"))
     assert "In the way: bin" in f.detail
     assert st["T.wc_side"].status == "pass"                    # beside the toilet is still clear
+
+
+def test_each_chair_is_checked_at_the_bathroom():
+    p = make_home("chairs")
+    next(o for o in p["openings"] if o["id"] == "HT")["width"] = 0.80   # 0.75 m clear with the door hung
+    chairs = [{"name": "Everyday chair", "door_width_m": 0.85}, {"name": "Travel chair", "door_width_m": 0.66}]
+    st = {c.id: c for c in _bath(p, chairs=chairs).checks}
+    assert st["chair0"].status == "fail" and st["chair0"].rule.startswith("Everyday chair")
+    assert st["chair1"].status == "pass" and "fits the bathroom" in st["chair1"].rule

@@ -8,7 +8,7 @@ from ...geometry._plan import VERDICT_STATUS, floor_z, judge
 from .. import (Assumption, Check, Finding, Legend, LensOverlay, Metric, Pin, PinsOverlay, PointAnchor, RoomAnchor,
                 ScanScope, ToolResult, Verdict, field, tool)
 from .. import Source
-from .._access import (GEO, STD, cannot, face_polygon, floor_objects, fmt, graph, has_objects, quality, rooms)
+from .._access import (GEO, STD, Chair, cannot, chair_list, face_polygon, floor_objects, fmt, graph, has_objects, quality, rooms)
 
 OBJ = Source(layer="matterport", method="geometry", confidence="medium",
              note="Room outline less the objects the phone scan measured on the floor (Apple RoomPlan)")
@@ -58,6 +58,8 @@ class Inputs(BaseModel):
     rooms: list[str] | None = field(None, description="Room types or ids to check; default every room but closets")
     aisle_width_m: float = field(0.915, pref="access.route_width_m", unit="m", gt=0.3, le=3.0,
                                  description="Clear aisle width you need between objects on the floor")
+    chairs: list[Chair] = field([], pref="access.chairs", description="Each chair the person uses; each is checked "
+                                                                     "with its own turning circle")
 
 
 @tool(id="turning_space", title="Turning space", icon="rotate",
@@ -138,6 +140,16 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     text = (f"{nf} of {len(rows)} rooms cannot hold the turning circle {empty}." if nf else
             f"Every room holds the circle {empty}, {len(warns)} only just." if warns else
             f"Every room checked holds the turning circle {empty}.")
+    named = [c for c in chair_list(inputs.chairs, 0.815, need) if c["name"]]
+    for i, ch in enumerate(named):
+        holds = [t for t in rows if judge(t["diameter"], ch["turn"]) == "likely pass"]
+        st = "pass" if len(holds) == len(rows) else "fail" if not holds else "warn"
+        checks.append(Check(id=f"chair{i}.turn", rule=f"{ch['name']} (needs a {fmt(ch['turn'])} circle): rooms that "
+                            f"hold it: {', '.join(sorted({t['label'] for t in holds})) or 'none'}",
+                            measured=len(holds), threshold=len(rows), unit="rooms", status=st, standard=STD["turn"]))
+    if len(named) > 1:
+        text += " By chair: " + "; ".join(f"{ch['name']} turns in {c.measured} of {len(rows)} rooms"
+                                          for ch, c in zip(named, [c for c in checks if c.id.startswith("chair")])) + "."
     if aisle_bad:
         text += f" {len(aisle_bad)} room{'s have' if len(aisle_bad) > 1 else ' has'} an aisle narrower than you need."
     checks += ([] if has_objects(plan) else [cannot("floor_objects", "furniture, shelves and boxes on the floor: this "
