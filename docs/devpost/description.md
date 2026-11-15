@@ -1,5 +1,5 @@
 - **Start here:** https://cranley.app
-- **Try it live:** https://cranley.app/app (access code from Ben at the table)
+- **Try it live:** https://cranley.app/app
 - **Every track in detail:** https://cranley.app/tracks/
 - **Code:** https://github.com/benz16107/cranley
 - **Conversation with Jean Ryan (7 min):** https://youtu.be/EoHyoNs2idg
