@@ -13,6 +13,7 @@ import Quotes from './Quotes.astro'
 import Asked from './Asked.astro'
 import ToolsCallout from './ToolsCallout.astro'
 import Proof from '../Proof.astro'
+import Slot from '../Slot.astro'
 import deep from '../../generated/deep.json'
 import { INTERVIEW } from '../../site/proof'
 import { REDDIT } from '../../site/reddit'
@@ -81,6 +82,7 @@ const flow = [
         { text: 'The interview is recorded and published, with her consent to be named.' },
         { text: 'When a scan cannot hold what someone asked about, the result now says so instead of staying silent.' },
       ]} />
+    <Slot id="field-visit" phones />
   </Sec>
 
   <Sec id="problem" title="The question people really ask" sub={'Jean Ryan no longer asks whether a place is "wheelchair accessible", because she has been told yes and arrived to find a step.'}>
