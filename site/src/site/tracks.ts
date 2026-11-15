@@ -1,27 +1,28 @@
 // The sponsor tracks. The body of each page is generated from docs/story.md into src/content/tracks/<slug>.md;
 // this file adds what the page links to.
 import type { SlotId } from './slots'
+import type { ProofId } from './proof'
 
-export type Track = { slug: string; name: string; prize: string; summary: string; docs: [string, string][]; slots: SlotId[] }
+export type Track = { slug: string; name: string; prize: string; summary: string; docs: [string, string][]; slots: SlotId[]; /** what people sent us (src/site/proof.ts) */ proof?: ProofId[]; /** the recorded interview leads the page */ interview?: true }
 
 export const TRACKS: Track[] = [
   {
     slug: 'costar', name: 'CoStar', prize: 'Inside and Out: AI for the Built World',
     summary: 'All three layers in one frame (Matterport interiors, Vexcel aerial and 3D city, CoStar records), and an agent that plans, fans out per building and checks claims across layers.',
     docs: [['Record versus reality', '/docs/tools/record-vs-reality/'], ['Flood rehearsal', '/docs/tools/flood-rehearsal/'], ['Garage fit', '/docs/tools/garage-fit/'], ['Search by measurement', '/docs/tools/measure-search/'], ['Site scorecard', '/docs/tools/site-scorecard/'], ['Data sources and licences', '/docs/data-sources/'], ['The agent', '/docs/concepts/agent/']],
-    slots: ['hero-loop', 'photoreal-building', 'record-vs-reality', 'flood-street'],
+    slots: ['hero-loop', 'photoreal-building', 'record-vs-reality', 'flood-street'], proof: ['costar-garage-depth'],
   },
   {
     slug: 'amazon', name: 'Amazon', prize: 'Best Practical AI Innovation',
     summary: 'Ask in plain words and get a workspace you can act on. It works on your own home through the iPhone scan.',
     docs: [['Phone and iPhone app', '/docs/phone/'], ['Personas', '/docs/reference/personas/'], ['The workspace', '/docs/concepts/workspace/'], ['Getting started', '/docs/getting-started/']],
-    slots: ['iphone-app', 'home-composer', 'pdf-report'],
+    slots: ['iphone-app', 'home-composer', 'pdf-report'], proof: ['amazon-occupational-therapists'],
   },
   {
     slug: 'peri', name: 'Peri', prize: 'Forward Deployed Challenge',
     summary: 'Built forward-deployed: we asked people and businesses what goes wrong with their buildings, by phone, in online communities and by email, then changed the tools to match.',
     docs: [['What people told us, in full (on GitHub)', 'https://github.com/benz16107/cranley/blob/main/docs/feedback.md'], ['Phone and iPhone app', '/docs/phone/'], ['Fire pre-plan', '/docs/tools/fire-preplan/'], ['Egress routes', '/docs/tools/egress-routes/'], ['Facility audit', '/docs/tools/facility-audit/'], ['Door widths', '/docs/tools/door-widths/']],
-    slots: ['field-visit', 'pdf-report', 'fire-preplan'],
+    slots: ['field-visit', 'pdf-report', 'fire-preplan'], interview: true, proof: ['quote-to-change', 'reddit-wall-2-workplaces', 'email-replies', 'outreach-at-a-glance'],
   },
   {
     slug: 'langchain', name: 'LangChain', prize: 'Best use of deepagents',

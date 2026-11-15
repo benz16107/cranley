@@ -4,6 +4,8 @@
 import { getEntry, render } from 'astro:content'
 import Base from '../../layouts/Base.astro'
 import Slot from '../../components/Slot.astro'
+import Proof from '../../components/Proof.astro'
+import { INTERVIEW } from '../../site/proof'
 import { TRACKS } from '../../site/tracks'
 import { LABELS, filesOf } from '../../site/slots'
 
@@ -22,7 +24,19 @@ const shots = track.slots.filter((id) => LABELS || filesOf(id).length > 0)
       <h1>{entry?.data.title ?? `${track.name}: ${track.prize}`}</h1>
       <p class="intro">{track.summary}</p>
       <div class="prose">
+        {track.interview && (
+          <figure class="video" id="interview">
+            <iframe src={INTERVIEW.embed} title={INTERVIEW.title} loading="lazy" allow="encrypted-media; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+            <figcaption>{INTERVIEW.caption} <a href={INTERVIEW.url}>Watch it on YouTube</a></figcaption>
+          </figure>
+        )}
         {Content && <Content />}
+        {track.proof && (
+          <>
+            <h2 id="proof">From the people we asked</h2>
+            {track.proof.map((id) => <Proof id={id} />)}
+          </>
+        )}
         {shots.length > 0 && (
           <>
             <h2>The demo</h2>
@@ -37,6 +51,9 @@ const shots = track.slots.filter((id) => LABELS || filesOf(id).length > 0)
 </Base>
 
 <style>
+  .video { display: grid; gap: var(--s-2); }
+  .video iframe { width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: var(--r-2); background: var(--pane); }
+  .video figcaption { font-size: 0.875rem; color: var(--ink-2); max-width: 70ch; }
   .shots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-5) var(--s-4); }
   .shots :global(.phones) { grid-column: 1 / -1; }
   @media (max-width: 620px) { .shots { grid-template-columns: minmax(0, 1fr); } }

@@ -1,0 +1,20 @@
+---
+// One picture of what people sent us (src/site/proof.ts), shown whole. The words inside it are small at page width,
+// so the picture links to its own file.
+import { PROOF, type ProofId } from '../site/proof'
+interface Props { id: ProofId }
+const { id } = Astro.props
+const p = PROOF[id]
+const src = `/media/${id}.webp`
+---
+<figure class="proof">
+  <a href={src}><img src={src} width={p.w} height={p.h} alt={p.alt} loading="lazy" decoding="async" /></a>
+  <figcaption>{p.caption} Select the picture to read it at full size.</figcaption>
+</figure>
+
+<style>
+  .proof { display: grid; gap: var(--s-2); min-width: 0; }
+  .proof a { display: block; border: 1px solid var(--rule); border-radius: var(--r-2); overflow: hidden; }
+  .proof img { display: block; width: 100%; height: auto; }
+  .proof figcaption { font-size: 0.875rem; color: var(--ink-2); max-width: 70ch; }
+</style>
