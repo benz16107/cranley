@@ -37,7 +37,7 @@ Each track page lists what the sponsor asked for beside what we built, and every
 
 | Amazon: what two occupational therapists check, and the checks it became | Photon: Cranley's actual replies, shown in a messages frame |
 |---|---|
-| ![Two occupational therapists' home-assessment lists and the aging-in-place checks they became](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/910/151/datas/gallery.jpg) | ![Cranley's actual replies to a garage question, shown in a messages frame](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/910/149/datas/gallery.jpg) |
+| ![Two occupational therapists' home-assessment lists and the aging-in-place checks they became](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/917/675/datas/gallery.jpg) | ![Cranley's actual replies to a garage question, shown in a messages frame](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/910/149/datas/gallery.jpg) |
 
 More detail: [All seven track pages](https://cranley.app/tracks/) · [Sponsor integrations in the docs](https://cranley.app/docs/sponsor-integrations/)
 
@@ -53,7 +53,7 @@ Jean Ryan, President of Disabled In Action of Metropolitan New York, who uses a 
 
 A truck owner on r/f150
 
-![Truck and boat owners on garage depth, and what garage fit now checks](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/910/155/datas/gallery.jpg)
+![Truck and boat owners on garage depth, and what garage fit now checks](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/917/677/datas/gallery.jpg)
 
 The scans, the aerial photos and the records that answer these questions exist, but each sits in its own product, one listing at a time.
 
@@ -84,7 +84,7 @@ Before and while building we asked people what goes wrong with their buildings: 
 
 Their answers changed the tools the same night. One Los Angeles homeowner in a Very High Fire Hazard Severity Zone told us their insurer's wildfire score comes from drone photos and an AI that checks only whether plants are present, on city permit records that are wrong for their house: the gap between the record and the real building that Cranley measures. Every quote and its change: [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md).
 
-![What people told us and what we changed that night, each with its tool and commit](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/910/140/datas/gallery.jpg)
+![What people told us and what we changed that night, each with its tool and commit](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/917/674/datas/gallery.jpg)
 
 More detail: [Peri track page](https://cranley.app/tracks/peri/) · [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md)
 
