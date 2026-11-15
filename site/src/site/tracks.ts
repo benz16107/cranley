@@ -34,13 +34,13 @@ export const TRACKS: Track[] = [
     slug: 'photon', name: 'Photon', prize: 'Build a Messaging Agent using Photon 2.0',
     summary: 'Text or call Cranley like you\'d text your real estate agent. Ask about a building the way you would ask your contractor, inspector, property manager or accessibility advisor, and the same agent and measuring tools answer in iMessage and on a phone call. The line is live for an allowlist of numbers, and on 15 Nov a real call went the whole way: the tools ran, the answer was read aloud, and the plan arrived by iMessage.',
     docs: [['Sponsor integrations', '/docs/sponsor-integrations/#photon'], ['The agent', '/docs/concepts/agent/'], ['Phone and iPhone app', '/docs/phone/'], ['Findings and reliability', '/docs/concepts/findings-and-reliability/']],
-    slots: [],
+    slots: [], video: '748tXUAYXoI',
   },
   {
     slug: 'tiger-data', name: 'MLH: Tiger Data', prize: 'Best Use of Tiger Data',
     summary: 'The building facts database: hypertables, compression, continuous aggregates, DiskANN room search, a pgai vectorizer, and forks for what-ifs.',
     docs: [['Sponsor integrations', '/docs/sponsor-integrations/#tiger-cloud'], ['Search by measurement', '/docs/tools/measure-search/'], ['Similar rooms', '/docs/tools/similar-rooms/'], ['Renovate', '/docs/tools/renovate/'], ['Facts database API', '/docs/reference/api/facts/'], ['What-if API', '/docs/reference/api/whatif/']],
-    slots: ['renovate', 'measure-search'],
+    slots: ['renovate', 'measure-search'], video: 'V98o5stF8iI',
   },
   {
     slug: 'mongodb', name: 'MLH: MongoDB Atlas', prize: 'Best Use of MongoDB Atlas',
