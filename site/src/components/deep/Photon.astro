@@ -19,10 +19,17 @@ const { track, title } = Astro.props
 const c = site.counts
 const md = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/`([^`]+)`/g, "<code>$1</code>")
 import Thread from "./Thread.astro"
+import CallPlayer from "./CallPlayer.astro"
+import call from "../../site/call.json"
+import { LABELS } from "../../site/slots"
 const sp = deep.sponsors.photon
 const stats = [{ n: sp.features.length, label: "things a person can do by message or by calling" }, { n: deep.numbers.photon.tests, label: "tests merged with it" }]
 const features = sp.features.map((f) => ({ title: f.feature, what: f.why, code: f.code }))
-const sections: [string, string][] = [["asked", "Asked and built"], ["problem", "Problem"], ["built", "A conversation"], ["features", "Products used"], ["rules", "Rules it keeps"], ["limits", "Limits"], ["writeup", "Write-up"], ["docs", "In the docs"]]
+// the recorded call: src/site/call.json holds its label, the audio's address under /media and the timeline. Until
+// they are filled in, the section shows only on a build that keeps the slot notes (a preview), never on the public site.
+const hasCall = Boolean(call.audio) && call.timeline.length > 0
+const showCall = hasCall || LABELS
+const sections: [string, string][] = [["asked", "Asked and built"], ["problem", "Problem"], ["built", "A conversation"], ...(showCall ? [["call", "A recorded call"] as [string, string]] : []), ["features", "Products used"], ["rules", "Rules it keeps"], ["limits", "Limits"], ["writeup", "Write-up"], ["docs", "In the docs"]]
 const msgs = [
   { from: "person" as const, text: "Will an F-150 fit in this garage?", note: "A person asks in plain words, with a link to the building. This uses the shared iMessage line with native replies and a typing indicator." },
   { from: "cranley" as const, kind: "Picture and verdict", text: "The floor plan marked with what was found, then the verdict, the measurements and a link to the workspace.", note: "Every sent line is built from the tool result, never from model text. Only rendered pictures leave the server, sent by attachment upload." },
@@ -59,6 +66,14 @@ const msgs = [
   <Sec id="built" title="One conversation, start to finish" sub="A drawing of the flow, not a real conversation. Select a message to read which part of Photon carries it.">
     <Thread msgs={msgs} />
   </Sec>
+
+  {showCall && (
+    <Sec id="call" title="A recorded call, line by line" sub="The audio with its transcript beside it. Each line lights up as it is spoken, and what ran behind the answer appears at the moment it ran.">
+      {hasCall
+        ? <CallPlayer label={call.label} src={call.audio} timeline={call.timeline} note={call.note} />
+        : <p class="slot-note"><b>Slot</b> The call player is built and waits for a recording: its audio in public/media and its label and timeline in src/site/call.json. Hidden on the public site until then.</p>}
+    </Sec>
+  )}
 
   <Sec id="features" title="Every Photon product we used, and how" sub="iMessage on Photon 2.0, and voice through an ElevenLabs agent over SIP. Each entry is one thing a person does and the part of Photon that carries it. See the limits below for what is not yet confirmed.">
     <Products features={sp.features} />
