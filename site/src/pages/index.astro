@@ -7,6 +7,7 @@ import HomeSteps from '../components/HomeSteps.astro'
 import Slot from '../components/Slot.astro'
 import site from '../generated/site.json'
 import { LINKS, DEMO } from '../site/links'
+import { INTERVIEW } from '../site/proof'
 import { LABELS, filesOf, type SlotId } from '../site/slots'
 
 // The headline: the first is the one in use. To swap, change the 0. The page title follows it.
@@ -65,7 +66,12 @@ const SHOW = ['wheelchair_user', 'furniture_mover', 'car_owner', 'fire_captain',
 
   <section class="band" id="asked">
     <div class="wrap">
-      <p class="asked">We asked first, then built: 1 recorded {n.minutes}-minute interview, written answers from {n.people} people in {n.communities} online communities, and {n.emails} emails. <a href="/tracks/peri/">What people told us</a></p>
+      <p class="asked">We asked first, then built: 1 recorded {n.minutes}-minute interview, written answers from {n.people} people in {n.communities} online communities, and {n.emails} emails.</p>
+      <p class="asked-row">
+        <a class="thumb" href="/tracks/peri/#proof"><img src="/media/outreach-at-a-glance-thumb.webp" width="640" height="425" alt="The outreach in numbers, on the Peri track page" loading="lazy" decoding="async" /></a>
+        <a href={INTERVIEW.url}>Watch the interview with Jean Ryan</a>
+        <a href="/tracks/peri/">What people told us</a>
+      </p>
     </div>
   </section>
 </Base>
@@ -98,5 +104,8 @@ const SHOW = ['wheelchair_user', 'furniture_mover', 'car_owner', 'fire_captain',
   @media (max-width: 900px) { .who { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   @media (max-width: 480px) { .who { grid-template-columns: minmax(0, 1fr); } }
 
+  .asked-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3) var(--s-6); margin-top: var(--s-5); font-size: 0.9375rem; }
+  .asked-row .thumb { flex: 0 0 168px; border: 1px solid var(--rule); border-radius: var(--r-2); overflow: hidden; }
+  .asked-row img { display: block; width: 100%; height: auto; }
   .asked { font-size: var(--t-lead); line-height: 1.5; max-width: 62ch; padding-top: var(--s-5); border-top: 1px solid var(--rule-strong); }
 </style>
