@@ -15,7 +15,7 @@ Ask anything about a building and get a measured answer, with its source.
 
 Listings say "accessible", "two-car garage", "fits a king bed", and nobody measures before you sign. Cranley is an agent that picks the right tools for your need, from 78 that measure real buildings inside and out: Matterport interior scans, Vexcel aerial imagery and the 3D city, CoStar records, or your own iPhone scan. Every number comes from a calculation, never from a model's text, and says where it came from.
 
-![A Houston house on its site: the scanned interior cut open inside the drone capture and the Vexcel 3D city](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/055/datas/gallery.jpg)
+![A Los Angeles home cut open in its photoreal block, every room measured](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/910/100/datas/gallery.jpg)
 
 More detail: [How Cranley works](https://cranley.app/how/) · [Getting started](https://cranley.app/docs/getting-started/)
 
@@ -37,7 +37,7 @@ Each track page lists what the sponsor asked for beside what we built, and every
 
 | Amazon: what two occupational therapists check, and the checks it became | Photon: Cranley's actual replies, shown in a messages frame |
 |---|---|
-| ![Two occupational therapists' home-assessment lists and the aging-in-place checks they became](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/256/datas/gallery.jpg) | ![Cranley's actual replies to a garage question, shown in a messages frame](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/153/datas/gallery.jpg) |
+| ![Two occupational therapists' home-assessment lists and the aging-in-place checks they became](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/910/151/datas/gallery.jpg) | ![Cranley's actual replies to a garage question, shown in a messages frame](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/910/149/datas/gallery.jpg) |
 
 More detail: [All seven track pages](https://cranley.app/tracks/) · [Sponsor integrations in the docs](https://cranley.app/docs/sponsor-integrations/)
 
@@ -53,7 +53,7 @@ Jean Ryan, President of Disabled In Action of Metropolitan New York, who uses a 
 
 A truck owner on r/f150
 
-![Truck and boat owners on garage depth, and what garage fit now checks](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/817/datas/gallery.jpg)
+![Truck and boat owners on garage depth, and what garage fit now checks](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/910/155/datas/gallery.jpg)
 
 The scans, the aerial photos and the records that answer these questions exist, but each sits in its own product, one listing at a time.
 
@@ -70,7 +70,7 @@ More detail: [About Cranley](https://cranley.app/about/) · [Why nobody measures
 5. **Change it and keep it:** "widen this door" re-runs the checks; a PDF lists fixes and what was not checked.
 6. **From anywhere:** your iPhone scan, the phone companion, iMessage, or any agent over MCP.
 
-![Four agents at once: one subagent per candidate home, each running door, route, turning and bathroom checks](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/082/datas/gallery.jpg)
+![One agent per building, all at once: five candidate homes checked for a wheelchair user](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/910/106/datas/gallery.jpg)
 
 More detail: [How it works](https://cranley.app/how/) · [The agent](https://cranley.app/docs/concepts/agent/) · [Every tool](https://cranley.app/docs/tools/)
 
@@ -80,11 +80,11 @@ More detail: [How it works](https://cranley.app/how/) · [The agent](https://cra
 
 Before and while building we asked people what goes wrong with their buildings: a recorded 31-minute interview with Jean Ryan ([the conversation, 7 min](https://youtu.be/EoHyoNs2idg)), written answers from 58 people in 17 online communities, and 491 emails, which brought six human replies.
 
-![Outreach at a glance: a recorded interview, 58 people in 17 communities, 491 emails, six human replies](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/100/datas/gallery.jpg)
+![Outreach at a glance: a recorded interview, 58 people in 17 communities, 491 emails, six human replies](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/910/138/datas/gallery.jpg)
 
 Their answers changed the tools the same night. Every quote and its change: [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md).
 
-![What people told us and what we changed that night, each with its tool and commit](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/908/113/datas/gallery.jpg)
+![What people told us and what we changed that night, each with its tool and commit](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/910/140/datas/gallery.jpg)
 
 More detail: [Peri track page](https://cranley.app/tracks/peri/) · [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md)
 
