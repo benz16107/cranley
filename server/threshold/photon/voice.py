@@ -18,7 +18,7 @@ from . import client, words
 from .state import State
 
 log = logging.getLogger("threshold.photon")
-WAIT_S = 12  # under the relay's and ElevenLabs' tool timeouts
+WAIT_S = 50  # a turn takes about a minute; one or two polls, under the relay's 65 s and ElevenLabs' 60 s
 _pool = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="voice")
 _jobs: dict[str, concurrent.futures.Future] = {}
 _lock = threading.Lock()

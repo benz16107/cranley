@@ -21,7 +21,8 @@ TOOLS = {
                     "place (city, street address) and what must fit or work (a truck, a wheelchair, a sofa).",
                     {"question": {"type": "string", "description": "The caller's question in their words"}}, 10),
     "get_answer": ("Get the result of the check started with start_check. If status is running, say a short filler "
-                   "like 'still measuring' and call it again. When status is done, read `say` exactly as written.", {}, 25),
+                   "like 'still measuring' and call it again right away; keep calling it until status is done. When status is "
+                   "done, read `say` exactly as written.", {}, 60),
     "answer_question": ("Pass the caller's answer to a question the check asked (for example their wheelchair's "
                         "width with its unit). Then call get_answer.",
                         {"answer": {"type": "string", "description": "The caller's answer in their words, with units"}}, 10),
