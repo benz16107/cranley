@@ -26,6 +26,7 @@ log = logging.getLogger("threshold.photon")
 VISIT_KINDS = ("width", "step", "alarm")          # what a person can settle by text or photo
 ALARM_WORDS = re.compile(r"\b(alarm|smoke|detector|ceiling)\b", re.IGNORECASE)
 COMMAND = re.compile(r"^\s*(help|hi|hello|hey|start|/start|new|start over|reset|visit|on site|report|pdf|voice on|voice off|stop visit)\s*[.!?]*\s*$", re.IGNORECASE)
+REFUSED = ("SHARED_LINE_INBOUND_REQUIRED", "SPACE_NOT_SENDABLE")
 _state: State | None = None
 
 
@@ -39,11 +40,20 @@ def state() -> State:
 class Chat:
     """Where replies go: one Space, as the agent user that received the message."""
 
-    def __init__(self, space: str, agent: str, platform: str, parent: str | None = None, api=client):
-        self.space, self.agent, self.platform, self.parent, self.api = space, agent, platform, parent, api
+    def __init__(self, space: str, agent: str, platform: str, parent: str | None = None, api=client, st: State | None = None):
+        self.space, self.agent, self.platform, self.parent, self.api, self.st = space, agent, platform, parent, api, st
 
     def say(self, text: str, reply: bool = True) -> str:
-        return self.api.text(self.space, self.agent, text, self.parent if reply else None)
+        try:
+            return self.api.text(self.space, self.agent, text, self.parent if reply else None)
+        except client.PhotonError as e:
+            # a shared iMessage line may refuse a late send; the words wait for the person's next message
+            if e.code not in REFUSED or self.st is None:
+                raise
+            t = self.st.thread(self.space)
+            self.st.update(self.space, pending=[*t.get("pending", []), text][-5:])
+            log.info("photon: %s refused (%s); kept for the next message", self.space, e.code)
+            return ""
 
     def image(self, png: bytes, name: str = "cranley.png", caption: str | None = None) -> str:
         return self.api.attachment(self.space, self.agent, png, "image/png", name, self.parent,
@@ -124,7 +134,12 @@ def handle(event: dict, st: State | None = None, api=client) -> None:
         return
     space, agent = m["space"]["id"], (m.get("receivedBy") or {}).get("id")
     t = st.update(space, handle=sender.get("handle"), platform=m.get("platform"), agent=agent, touched=time.time())
-    chat = Chat(space, agent, m.get("platform", ""), m["id"], api)
+    chat = Chat(space, agent, m.get("platform", ""), m["id"], api, st)
+    waiting = t.get("pending") or []
+    if waiting:
+        st.update(space, pending=[])
+        for text in waiting:
+            chat.say("Earlier answer, sent now:\n" + text, reply=False)
     try:
         route(m, t, chat, st)
     except Exception as e:

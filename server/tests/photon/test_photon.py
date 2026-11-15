@@ -147,6 +147,25 @@ def test_allowlist_keeps_strangers_unanswered(tmp_path, monkeypatch):
     assert api.sent == []
 
 
+def test_a_refused_send_waits_for_the_next_message(tmp_path):
+    from threshold.photon import client
+    st = State(tmp_path / "s.json")
+
+    class Refusing(FakeAPI):
+        refuse = True
+
+        def text(self, space, sender, words_, parent=None, idem=True):
+            if self.refuse:
+                raise client.PhotonError(403, "SHARED_LINE_INBOUND_REQUIRED", "inbound required")
+            return super().text(space, sender, words_, parent, idem)
+    api = Refusing()
+    router.handle(event("hi", "pho_msg_in6"), st, api)
+    assert api.sent == [] and st.thread("pho_spc_1")["pending"]
+    api.refuse = False
+    router.handle(event("hi", "pho_msg_in7"), st, api)
+    assert api.sent[0][1].startswith("Earlier answer, sent now:") and not st.thread("pho_spc_1")["pending"]
+
+
 def test_a_failure_tells_the_person(tmp_path, monkeypatch):
     st, api = State(tmp_path / "s.json"), FakeAPI()
     monkeypatch.setattr(router, "route", lambda *a: (_ for _ in ()).throw(RuntimeError("boom")))
