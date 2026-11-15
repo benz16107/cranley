@@ -17,6 +17,7 @@ v="export PATH=/opt/homebrew/bin:/usr/local/bin:\$PATH; vercel"
 pnpm build
 pnpm check
 cp vercel.json dist/vercel.json
+printf '.env*\n' > dist/.vercelignore   # `vercel link` writes .env.local into the folder it deploys
 
 ssh -o ConnectTimeout=10 "$host" "mkdir -p $remote/dist $remote/placeholder" || { echo "cannot reach $host; nothing was deployed"; exit 2; }
 ssh "$host" "$v whoami" >/dev/null || { echo "$host is not logged in to Vercel; nothing was deployed"; exit 2; }
@@ -42,9 +43,16 @@ for d in $(ssh "$host" "$v api /v9/projects/$project/domains --scope $scope" | g
 done
 [ "$code" = 302 ] || [ "$code" = 401 ] || { echo "the preview answered without a login"; exit 1; }
 
-# Going public, only after Ben's yes (run by hand; nothing here does it):
-#   on $host:      cd ~/$remote/dist && vercel domains add cranley.app $project --scope $scope && vercel domains add www.cranley.app $project --scope $scope
-#   on macserver:  gddy dns add cranley.app --type A --name @ --value <the A value Vercel prints> --timeout 40s
-#                  gddy dns delete cranley.app --type CNAME --name www --timeout 40s; gddy dns add cranley.app --type CNAME --name www --value cname.vercel-dns.com --timeout 40s
-#   rebuild with   PUBLIC_SLOT_LABELS=off PUBLIC_INDEX=1 pnpm build   then on $host:  vercel deploy --yes --prod --scope $scope
-#   undo:          vercel rollback <the placeholder deployment> --scope $scope
+# Going public, only after Ben's yes. Run by hand; nothing above does it.
+#   1. here:        PUBLIC_SLOT_LABELS=off PUBLIC_INDEX=1 pnpm build && pnpm check && cp vercel.json dist/ && printf '.env*\n' > dist/.vercelignore
+#                   rsync -a --delete --exclude .vercel dist/ $host:$remote/dist/
+#   2. on $host:    cd ~/$remote/dist && vercel deploy --yes --prod --scope $scope        (replaces the placeholder on cranley.vercel.app)
+#                   vercel domains add cranley.app $project --scope $scope && vercel domains add www.cranley.app $project --scope $scope
+#                   vercel domains inspect cranley.app --scope $scope                     (prints the A and CNAME values to use below)
+#   3. on macserver (the records today: A @ "Parked", CNAME www -> cranley.app; delete then add, because `dns set` fails on a CNAME):
+#                   gddy dns delete cranley.app --type A --name @ --timeout 40s
+#                   gddy dns add cranley.app --type A --name @ --data <A value from Vercel> --timeout 40s
+#                   gddy dns delete cranley.app --type CNAME --name www --timeout 40s
+#                   gddy dns add cranley.app --type CNAME --name www --data <CNAME value from Vercel> --timeout 40s
+#   4. check:       curl -sI https://cranley.app/ | head -1; curl -sI https://www.cranley.app/ | grep -i location
+#   Undo:           on $host, vercel rollback <the placeholder deployment's URL> --scope $scope  (under a minute; DNS can stay)
