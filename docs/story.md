@@ -433,7 +433,7 @@ wheelchair user, the family before a storm, the fire crew.
 
 ## Pitch notes (not published on the site)
 
-- Live demo for judges: https://linuxbox.<tailnet>:10000/app, behind an access code Ben gives in person
+- Live demo for judges: https://cranley.app/app (fallback https://linuxbox.<tailnet>:10000/app), behind an access code Ben gives in person
   (never write the code in any file or message).
 
 - Amazon adaptation: lead with questions asked 1, 0, 0 (held in all three evaluation runs). Do not claim faster first
