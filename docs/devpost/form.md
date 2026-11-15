@@ -1,6 +1,6 @@
 # Devpost form: answers ready for Ben
 
-**SUBMITTED 2026-11-15 3:12 am ET** (submission 1303844, status Submitted) with Ben's go via the lead (~3:20 am, "yeah you can submit it"), using the answers below, Discord `bennyboy0406 - Ben Zhou`, and opt-ins CoStar 109286, Amazon 109287, Peri 109288, Photon 109283, MLH Tiger Data 109145, MLH MongoDB Atlas 109148 and LangChain deepagents 109306 (LangChain appeared on Devpost's prize list after the first read). Video and the recut interview links are added later with `update_project` / a re-submit. **Re-submitted 4:06 am** with Ben's yes via the lead: only the technology feedback answer (29743) changed (ElevenLabs paragraph, the voice line is live); the same seven opt-ins passed; every other answer and the entry video left as saved.
+**SUBMITTED 2026-11-15 3:12 am ET** (submission 1303844, status Submitted) with Ben's go via the lead (~3:20 am, "yeah you can submit it"), using the answers below, Discord `bennyboy0406 - Ben Zhou`, and opt-ins CoStar 109286, Amazon 109287, Peri 109288, Photon 109283, MLH Tiger Data 109145, MLH MongoDB Atlas 109148 and LangChain deepagents 109306 (LangChain appeared on Devpost's prize list after the first read). Video and the recut interview links are added later with `update_project` / a re-submit. **Re-submitted 7:02 am** with the privacy-fixed main video W-0JnByJJss on the project and the entry (same seven opt-ins). **Re-submitted 4:06 am** with Ben's yes via the lead: only the technology feedback answer (29743) changed (ElevenLabs paragraph, the voice line is live); the same seven opt-ins passed; every other answer and the entry video left as saved.
 
 Hackathon `hackprinceton-fall-26` (id 31990). Deadline 8:00 am ET Sunday Nov 15 (Devpost closes 8:30 am; the rules say
 8:00, so treat 8:00 as the stop). Judging 9:30 am to 2 pm, 2-minute in-person demo required even with a video. Video
@@ -17,7 +17,7 @@ description, tagline, links and built-with are filled in through the Devpost MCP
 | Tagline (200) | Ask anything about a building. Get a measured answer. An agent that measures the real building, inside and out, before you commit. |
 | Description | `docs/devpost/description.md` (synced) |
 | Built with (25) | python, fastapi, langchain, deepagents, langgraph, langsmith, anthropic, mongodb-atlas, timescaledb, tiger-data, photon, postgis, pgvector, react, typescript, elevenlabs, three.js, maplibre, deck.gl, swift, swiftui, arkit, roomplan, ollama, matterport |
-| Video | https://youtu.be/cwn0x1TZYKQ (1:56, unlisted; set on the project and the entry; may be swapped for a dark-mode cut) |
+| Video | https://youtu.be/W-0JnByJJss (1:56, unlisted; set on the project and the entry; may be swapped for a dark-mode cut) |
 
 ## Custom questions (ids from `get_submission_requirements`)
 
@@ -101,4 +101,4 @@ Ollama nomic-embed-text inside Tiger through pgai, voyage-4 inside Atlas, and bg
 - Live demo: https://cranley.app/app (open, no access code since ~3:30 am; the code still exists in the data .env if Ben turns it back on)
 - Fallback if cranley.app/app is down: https://linuxbox.<tailnet>:10000/app (same door, same code)
 - Code: https://github.com/benz16107/cranley
-- Conversation with Jean Ryan (7 min): https://youtu.be/EoHyoNs2idg
+- Conversation with Jean Ryan (7 min): https://youtu.be/xFw0Rpz9pbk
