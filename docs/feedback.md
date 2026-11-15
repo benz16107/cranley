@@ -71,6 +71,22 @@ wheelchair and also owns a travel chair. She agreed to be named and quoted. Time
 | A 6 in jackplate cost about 2 ft of clearance; a mast cradle too high for the door; 2 ft cut off the tongue. | r/boating, two boat owners | Covered: a custom length and height replace the table's, and headroom under the door opening is its own check. |
 | Garage sizes such as 24 ft bays, 28 x 28 with four vehicles, 30 x 30. | r/f150, owners | Two different vehicles are now parked together; three or more different ones are not built. A motorcycle already fits as an extra (`uses`). |
 | A landlord filming influencer content during service; "Experience". | r/restaurant, r/RVLiving | Skipped: not about the building. |
+| What they measure on a home assessment: doorway widths, corridor pinch points, threshold height and depth, seat heights (preferred seat, bed, toilet), bath internal width and ledges, step widths and heights, clearance under the bed, space beside the bed. | r/OccupationalTherapy, an occupational therapist who does home assessments | `aging_in_place` now carries the therapist's list as `ot.*` checks, item by item below. It does not change the CDC checklist verdict; the verdict adds one sentence counting them. a9e156d |
+| Doorway widths | same | Measured: the narrowest doorway clear width and how many are under 32 in (`door_widths` and `step_free_route` give each one). a9e156d |
+| Corridor pinch points | same | Measured: pinch points between walls on the routes from the entrance to the bathroom and bedroom, against ADA 403.5.1's 36 in. a9e156d |
+| Threshold height and depth | same | Height measured from doorway sills (they scatter about 4 cm on flat floors, so smaller steps do not show); depth and bevel to confirm on site. a9e156d |
+| Seat heights: preferred seat, bed, toilet | same | To confirm on site: a phone scan gives an object's overall height, not its seat height. a9e156d |
+| Bath internal width and ledges | same | A phone scan's bath gives its outside width, reported as measured with the inside to confirm; ledges to confirm. a9e156d |
+| Step widths and heights | same | Rise between floors and doorway steps were already measured (`stairs_count`, `step_free_route`); tread width and depth to confirm on site. a9e156d |
+| Clearance under the bed | same | To confirm on site. a9e156d |
+| Space beside the bed | same | Measured on phone scans that found the bed: clear floor on its roomier long side, between the bed, the walls and other objects, against ADA 806.2.3's 30 x 48 in beside the bed. Wall-graph scans have no bed, so it is "not in the scan". An "OT home assessment" preset is not added: a new persona needs a composer brief and a recorded live answer in the agent workstream's files (see the notes). a9e156d |
+| One backroom for all freight, "the smallest freight volume to size ratio". | r/walmart, a store associate | `facility_audit`: the backroom (rooms labelled storage, warehouse floor or loading area) as a share of the retail floor, and the 48 x 40 in pallet spots its floor holds with a pallet jack aisle (6 ft, editable) beside every row. Floor positions only, no racking. 6d03a94 |
+| Overstock pallets lined down the sales floor, "the aisle of shame". | r/walmart, a store associate | "Not in the scan" line: pallets left in the sales aisles on the day. 6d03a94 |
+| The driveway's angle at the road makes long overhangs drag; "street and satellite views flatten the images". | r/RVLiving, an RV owner | `driveway_fit`: the change of grade where the driveway meets the road, from Vexcel's bare-ground model sampled every 0.5 m over 4 m each side of the parcel line, against the departure angle of a given overhang and ground clearance. Without both sizes the grade change is reported unchecked; without ground heights it is "not in the scan". A curb lip narrower than the sampling is not resolved. 9a6ed21 |
+| Smoke came into the dining room because the hood fan was installed backwards. | r/restaurant, a steakhouse operator | "Not in the scan" line in `facility_audit`: which way the hood fan moves air, and its make-up air. 0b6cf88 |
+| "Listings never had the garage depth." | r/f150, an owner | Quote only, no code: the listing record has no garage depth, and the scan measures it (`garage_fit`'s depth check). |
+| Zone 0 rules re-rated after the fires; insurers score homes with their own wildfire model. | r/AskLosAngeles, a resident | Lines to confirm in `wildfire_space`: which Zone 0 rules apply today (this tool's limits are screening values), and the insurer's own score, which is not published. 0b6cf88 |
+| Backrooms differ by store. | r/Target, a backroom team member | Quote only, no code: the reason the backroom share and pallet spots are measured per scan rather than assumed. |
 
 ## Notes for the lead
 
@@ -90,3 +106,7 @@ wheelchair and also owns a travel chair. She agreed to be named and quoted. Time
   geometry engine's `room_floor_z`, so it finds a sunk garage only when the scan's panoramas show the drop.
 - The Wi-Fi material losses and the doorbell numbers (90 degree vertical view, 0.6 m visitor distance, 1.5 m glare)
   are assumptions shown in each result, not measurements.
+- An "OT home assessment" preset would be a file in `threshold/agent/personas/` (tools `aging_in_place`,
+  `step_free_route`, `bathroom_clearance`, `turning_space`, `stairs_count`), plus a brief in
+  `tests/agent/composer_briefs.json` and its recorded composer answer, which takes a live model call. That is the
+  agent workstream's lane, so it is not added here.
