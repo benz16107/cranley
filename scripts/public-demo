@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+# The gated public demo for HackPrinceton judges, on linuxbox: https://linuxbox.<tailnet>:10000
+#   public-demo up        make the code if missing, build if missing, start threshold-public.service, turn the funnel on
+#   public-demo down      funnel :10000 off and the service stopped and disabled (the post-event step)
+#   public-demo status    service, funnel and a local check
+#   public-demo rebuild   build the web app (both /app and /m) from the main checkout again; the door serves it at once
+#   public-demo rebuild --from <web dir>   build from another checkout's web/ instead
+# The door itself is scripts/public-gate. Touches only port 10000 and 8790; never 443, 8443, 8470, 5173 or 8787.
+set -euo pipefail
+
+HERE=$(cd "$(dirname "$0")" && pwd)
+MAIN=~/Code/hackathons/hackprinceton26
+DATA=${THRESHOLD_DATA_DIR:-~/Code/hackathons/hackprinceton26-data}
+OUT=$DATA/public-demo/web
+PORT=8790
+FUNNEL=10000
+URL=https://linuxbox.<tailnet>:$FUNNEL
+UNIT=threshold-public.service
+UNITFILE=$HOME/.config/systemd/user/$UNIT
+PY=${PUBLIC_DEMO_PYTHON:-$MAIN/server/.venv/bin/python}  # the server's venv, for segno (the phone QR)
+export PATH=$HOME/.nvm/versions/node/v22.23.4/bin:$PATH
+
+code() {
+  grep -q '^DEMO_CODE=' "$DATA/.env" 2>/dev/null && return
+  # two short common words and a number, e.g. "maple-river-42"; written to the env file, never printed
+  local c
+  local words="amber anchor apple arrow aspen badge basil beacon birch blue bridge brook cabin canal candle canyon cedar chalk clay clover cobalt comet copper coral crane creek daisy delta dune ember falcon fern field flint forest garnet ginger glacier granite grove harbor hazel heron honey island ivory jade juniper kettle lagoon lantern lemon linen lotus maple marble meadow mesa mint moss nectar north oak ocean olive orbit otter pebble pepper pine plum pond prairie quartz raven reed ridge river robin saffron sage salt sierra slate spruce stone summit sunset thistle tide timber topaz tulip valley velvet violet walnut willow winter wren zinc"
+  c=$(tr ' ' '\n' <<<"$words" | shuf -n 2 --random-source=/dev/urandom | paste -sd- -)-$(shuf -i 10-99 -n 1 --random-source=/dev/urandom)
+  printf '\n# public demo door (scripts/public-demo); delete after HackPrinceton\nDEMO_CODE=%s\n' "$c" >> "$DATA/.env"
+  echo "made DEMO_CODE in $DATA/.env (see it with: grep DEMO_CODE $DATA/.env)"
+}
+
+rebuild() {
+  local from=$MAIN/web
+  [[ ${1:-} == --from ]] && from=$(cd "$2" && pwd)
+  mkdir -p "$DATA/public-demo"
+  rm -rf "$OUT.new"
+  echo "building $from ($(git -C "$from" rev-parse --abbrev-ref HEAD) $(git -C "$from" rev-parse --short HEAD)) into $OUT"
+  (cd "$from" && pnpm exec vite build --outDir "$OUT.new" --emptyOutDir --logLevel warn)
+  git -C "$from" log -1 --format='%h %s' > "$OUT.new/.built-from"
+  rm -rf "$OUT.old"; [[ -d $OUT ]] && mv "$OUT" "$OUT.old"
+  mv "$OUT.new" "$OUT" && rm -rf "$OUT.old"
+  echo "served now: $(cat "$OUT/.built-from")"
+}
+
+# Funnel config needs root here (no tailscale operator set); ben has passwordless sudo on linuxbox
+ts() { tailscale "$@" 2>/dev/null || sudo -n tailscale "$@"; }
+funnel_on() { tailscale funnel status 2>/dev/null | grep -q ":$FUNNEL (Funnel on)"; }
+
+up() {
+  code
+  [[ -f $OUT/index.html ]] || rebuild
+  mkdir -p "$(dirname "$UNITFILE")"
+  cat > "$UNITFILE" <<EOF
+[Unit]
+Description=Cranley public demo door for HackPrinceton judges (Funnel :$FUNNEL -> 127.0.0.1:$PORT), temporary
+After=network-online.target
+
+[Service]
+Environment=THRESHOLD_DATA_DIR=$DATA PUBLIC_DEMO_PORT=$PORT PUBLIC_DEMO_ORIGIN=$URL PYTHONUNBUFFERED=1
+ExecStart=$PY -I $HERE/public-gate
+Restart=on-failure
+RestartSec=2
+MemoryMax=300M
+StandardOutput=append:$DATA/public-demo/door.log
+StandardError=append:$DATA/public-demo/door.log
+
+[Install]
+WantedBy=default.target
+EOF
+  systemctl --user daemon-reload
+  systemctl --user enable "$UNIT" >/dev/null 2>&1
+  systemctl --user restart "$UNIT"
+  for _ in $(seq 20); do curl -s -o /dev/null "http://127.0.0.1:$PORT/" && break; sleep 0.3; done
+  funnel_on || ts funnel --bg --https=$FUNNEL "http://127.0.0.1:$PORT" >/dev/null
+  status
+}
+
+down() {
+  funnel_on && ts funnel --https=$FUNNEL off >/dev/null
+  systemctl --user disable --now "$UNIT" 2>/dev/null || true
+  status
+}
+
+status() {
+  echo "service:  $(systemctl --user is-active $UNIT 2>/dev/null || true)"
+  if funnel_on; then echo "funnel:   on  $URL"; else echo "funnel:   off"; fi
+  echo "local:    $(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/app" || true) (401 = gate answering)"
+  [[ -f $OUT/.built-from ]] && echo "build:    $(cat "$OUT/.built-from")"
+  return 0
+}
+
+case ${1:-status} in
+  up) up ;;
+  down) down ;;
+  status) status ;;
+  rebuild) shift; rebuild "$@" ;;
+  *) echo "usage: public-demo up|down|status|rebuild [--from <web dir>]" >&2; exit 2 ;;
+esac
