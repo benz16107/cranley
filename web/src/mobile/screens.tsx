@@ -417,7 +417,7 @@ export function Note({ back }: Props) {
   const [text, setText] = useState('')
   const [rec, setRec] = useState<{ stop: () => void } | null>(null)
   const [secs, setSecs] = useState(0)
-  useEffect(() => { if (!rec) return; setSecs(0); const t = setInterval(() => setSecs((n) => n + 1), 1000); return () => clearInterval(t) }, [rec])
+  useEffect(() => { if (!rec) return; const t = setInterval(() => setSecs((n) => n + 1), 1000); return () => clearInterval(t) }, [rec])
   const meta = async (): Promise<Omit<Meta, 'kind'>> => ({ scan: sid, room, note: text.trim() || undefined, fix: await getFix(2000).catch(() => null) })
   const voice = async () => {
     const type = recorderType('audio')
@@ -427,7 +427,7 @@ export function Note({ back }: Props) {
     const chunks: Blob[] = [], r = new MediaRecorder(stream, { mimeType: type })
     r.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data) }
     r.onstop = async () => { stream.getTracks().forEach((t) => t.stop()); setRec(null); if (!chunks.length) { refuse('Nothing was recorded. Check that no other app is using the microphone.'); return } await s.go({ ...(await meta()), kind: 'audio' }, new Blob(chunks, { type: type.split(';')[0] })) }
-    r.start(); setRec({ stop: () => r.stop() })
+    r.start(); setSecs(0); setRec({ stop: () => r.stop() })
     setTimeout(() => r.state !== 'inactive' && r.stop(), 60_000)
   }
   return (

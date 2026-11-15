@@ -7,7 +7,7 @@
   --text-2xs: 0.75rem; --text-xs: 0.8125rem; --text-sm: 0.9375rem; --text-md: 1.0625rem; --text-lg: 1.25rem;
   --r-1: 10px; --m-r: 14px;
   --safe-t: env(safe-area-inset-top, 0px); --safe-b: env(safe-area-inset-bottom, 0px);
-  --m-bar: color-mix(in srgb, var(--paper) 80%, transparent);
+  --m-bar: color-mix(in srgb, var(--paper) 90%, transparent);
   --m-fill: color-mix(in srgb, var(--ink) 8%, transparent); /* a quiet control's fill, on the page or on a group */
 }
 html, body { height: 100%; }
@@ -37,13 +37,13 @@ button, summary, select { -webkit-user-select: none; user-select: none; touch-ac
 .m-back { height: 44px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; color: var(--accent); font-size: var(--text-md); transition: opacity 200ms ease; }
 
 /* the large title, and what it is about */
-.m-title { padding: 2px 4px 0; display: grid; gap: 2px; }
+.m-title { padding: 2px 4px 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; }
 .m-title h1 { font-size: 1.75rem; line-height: 1.15; font-weight: 700; letter-spacing: -0.012em; }
 .m-page .m-title h1 { font-size: 1.5rem; }
 .m-title p, .m-building { font-size: var(--text-sm); color: var(--ink-3); }
 p.m-building { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .m-flag { color: var(--warn); }
-select.m-building { appearance: none; border: 0; background: none; height: 44px; margin-block: -8px; max-width: 100%; padding: 0 20px 0 0; text-overflow: ellipsis; color: var(--accent);
+select.m-building { appearance: none; border: 0; background: none; height: 44px; margin-block: -8px; width: 100%; /* a select is as wide as its longest option unless told */ padding: 0 20px 0 0; text-overflow: ellipsis; color: var(--accent);
   background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%); background-position: calc(100% - 9px) 20px, calc(100% - 4px) 20px; background-size: 5px 5px; background-repeat: no-repeat; }
 
 /* ---------- bottom: tabs on the home screen, the action on a capture screen ---------- */
