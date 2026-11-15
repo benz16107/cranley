@@ -16,7 +16,7 @@ export const TRACKS: Track[] = [
     slug: 'amazon', name: 'Amazon', prize: 'Best Practical AI Innovation',
     summary: 'Ask in plain words and get a workspace you can act on. It works on your own home through the iPhone scan.',
     docs: [['Phone and iPhone app', '/docs/phone/'], ['Personas', '/docs/reference/personas/'], ['The workspace', '/docs/concepts/workspace/'], ['Getting started', '/docs/getting-started/']],
-    slots: ['iphone-app', 'home-composer', 'pdf-report'], proof: ['amazon-occupational-therapists'],
+    slots: ['iphone-app', 'home-composer', 'pdf-report'], proof: ['amazon-occupational-therapists'], video: 'UWUWCaBKdvc',
   },
   {
     slug: 'peri', name: 'Peri', prize: 'Forward Deployed Challenge',
