@@ -173,7 +173,10 @@ def route(m: dict, t: dict, chat: Chat, st: State) -> None:
         if ct.startswith(("image/", "video/")):
             media(chat, st, t, ws, data, ct, caption)
             return
-        chat.say("I read photos, videos and voice notes. For anything else, tell me in words.")
+        if "vcard" in ct or "vcf" in ct or "text/" in ct:  # "Send My Current Location" is a vCard with a Maps link
+            text = (text + " " + data[:20000].decode("utf-8", "ignore")).strip()
+            continue
+        chat.say("I read photos, videos, voice notes and locations. For anything else, tell me in words.")
         return
 
     if not text:
@@ -181,6 +184,10 @@ def route(m: dict, t: dict, chat: Chat, st: State) -> None:
     c = COMMAND.match(text)
     if c:
         command(c.group(1).lower(), chat, st, t, ws)
+        return
+    pt = location(text)
+    if pt:
+        near(chat, st, ws, *pt)
         return
     s = session(ws)
     st.update(chat.space, workspace=s.base.id)
@@ -213,6 +220,54 @@ def command(cmd: str, chat: Chat, st: State, t: dict, ws: str | None) -> None:
     elif cmd == "stop visit":
         st.update(chat.space, visit=None)
         chat.say("Visit stopped. The checks you settled are saved in the workspace.")
+
+
+# ---- a shared location ----
+
+LOC = re.compile(r"(?:[?&](?:ll|q|sll)=|@)(-?\d{1,2}\.\d{3,}),\s*(-?\d{1,3}\.\d{3,})")
+
+
+def location(text: str) -> tuple[float, float] | None:
+    """Coordinates from an Apple or Google Maps link (a shared location, or a pasted link)."""
+    m = LOC.search(text)
+    return (float(m.group(1)), float(m.group(2))) if m else None
+
+
+def nearest(lat: float, lon: float) -> tuple[str, float] | None:
+    """The scanned building closest to a point, and how far it is in metres."""
+    import math
+    from ..sources import index
+    best = None
+    for sid, r in index.rows().items():
+        try:
+            la, lo = float(r["lat"]), float(r["lon"])
+        except (KeyError, ValueError):
+            continue
+        d = 6371000 * 2 * math.asin(math.sqrt(math.sin(math.radians(la - lat) / 2) ** 2 + math.cos(math.radians(lat))
+                                              * math.cos(math.radians(la)) * math.sin(math.radians(lo - lon) / 2) ** 2))
+        if best is None or d < best[1]:
+            best = (sid, d)
+    return best
+
+
+def near(chat: Chat, st: State, ws: str | None, lat: float, lon: float) -> None:
+    from ..agent.workspace import BriefSet, Scope
+    hit = nearest(lat, lon)
+    if not hit:
+        chat.say("I have no scanned buildings to compare that location with.")
+        return
+    sid, d = hit
+    if d > 5000:
+        chat.say(f"The nearest building I have scanned is {d / 1000:.0f} km away ({words.place_name(sid)}). I cover parts "
+                 "of Houston and Los Angeles.")
+        return
+    s = session(None)  # a new place is a new workspace; the old one stays where it was
+    s.submit(BriefSet(scope=Scope(sids=[sid])), by="user")
+    st.update(chat.space, workspace=s.base.id, visit=None)
+    dist = f"{d:.0f} m" if d < 1000 else f"{d / 1000:.1f} km"
+    msg = chat.say(f"The nearest scanned building is {words.place_name(sid)}, {dist} from you. What do you need to know "
+                   "about it? (Will something fit, can a wheelchair get around, how it floods.)")
+    st.remember(chat.space, msg, s.base.id, sid=sid)
 
 
 # ---- asking ----

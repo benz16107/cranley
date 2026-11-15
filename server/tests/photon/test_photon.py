@@ -186,3 +186,9 @@ def test_alerts_once_per_alert_with_the_source(tmp_path, monkeypatch):
     assert "Flood Warning (severe severity)" in api.sent[0][1] and "National Weather Service" in api.sent[0][1]
     st.update("pho_spc_1", alerts=False)
     assert alerts.check(st, api, fetch=lambda lat, lon: [{**nws[0], "id": "urn:a2"}]) == 0
+
+
+def test_locations_from_map_links():
+    assert router.location("https://maps.apple.com/?ll=29.5551,-95.1123&q=Dropped%20Pin") == (29.5551, -95.1123)
+    assert router.location("https://www.google.com/maps/@34.0522,-118.2437,15z") == (34.0522, -118.2437)
+    assert router.location("will a sofa fit at 12 Elm St") is None
