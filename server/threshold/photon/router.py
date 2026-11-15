@@ -117,6 +117,11 @@ def handle(event: dict, st: State | None = None, api=client) -> None:
     sender = m.get("sentBy") or {}
     if not m.get("id") or sender.get("kind") == "agent" or not st.first_time(m["id"]):
         return
+    from ..config import env
+    allow = [h.strip() for h in env().get("PHOTON_ALLOW", "").split(",") if h.strip()]
+    if allow and sender.get("handle") not in allow:  # during testing: only people the lead cleared get answers
+        log.info("photon: %s is not on PHOTON_ALLOW; not answering", sender.get("handle"))
+        return
     space, agent = m["space"]["id"], (m.get("receivedBy") or {}).get("id")
     t = st.update(space, handle=sender.get("handle"), platform=m.get("platform"), agent=agent, touched=time.time())
     chat = Chat(space, agent, m.get("platform", ""), m["id"], api)
