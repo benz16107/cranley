@@ -166,7 +166,6 @@ def which_fit(ctx, sid: str, plan: dict, g: dict, base: list) -> ToolResult:
 def house_and_power(sid: str, plan: dict, a: dict, d: Dims, inputs, z0: float, src) -> dict:
     """Steps from the house door into the garage against the parked vehicles, the charging outlet's distance, and
     the room left for storage."""
-    import shapely
     from shapely.geometry import Point, box
     out = {"checks": [], "findings": [], "metrics": []}
     f, s_ = a["frame"], a["survey"]
