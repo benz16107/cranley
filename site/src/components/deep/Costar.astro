@@ -10,6 +10,7 @@ import Cards from './Cards.astro'
 import Bars from './Bars.astro'
 import Matrix from './Matrix.astro'
 import Garage from './Garage.astro'
+import Asked from './Asked.astro'
 import DoorSchedule from '../DoorSchedule.astro'
 import Proof from '../Proof.astro'
 import deep from '../../generated/deep.json'
@@ -25,7 +26,9 @@ const need = Object.keys(WHO).filter((k) => by[k]).map((k) => ({ label: WHO[k], 
 const cross = deep.matrix.filter((m) => m.needs.includes('costar') || m.needs.length > 1)
   .map((m) => ({ title: m.title, href: `/docs/tools/${m.slug}/`, what: m.summary, chips: m.layers, code: m.code }))
 const stats = [{ n: c.tools, label: 'tools, each a manifest and a handler' }, { n: by.matterport, label: 'require the Matterport scan' }, { n: by.vexcel, label: 'require the Vexcel aerial' }, { n: by.costar, label: 'require the CoStar record' }]
-const sections: [string, string][] = [['problem', 'Problem'], ['built', 'What we built'], ['data', 'The data'], ['proof', 'Proof'], ['limits', 'Limits'], ['writeup', 'Write-up'], ['docs', 'In the docs']]
+const lu = deep.layer_use
+const f = deep.funnel
+const sections: [string, string][] = [['asked', 'Asked and built'], ['problem', 'Problem'], ['built', 'What we built'], ['data', 'Every layer used'], ['proof', 'Proof'], ['limits', 'Limits'], ['writeup', 'Write-up'], ['docs', 'In the docs']]
 const flow = [
   { label: 'Three layers', nodes: [
     { title: 'Matterport scan', what: 'Walls and doorways', note: 'The inside, as geometry: the wall outline, the rooms, and every door and window. Each interior measurement is taken from it.' },
@@ -45,6 +48,25 @@ const flow = [
 ]
 ---
 <Deep track={track} title={title} sections={sections} stats={stats}>
+  <Sec id="asked" title="What CoStar asked for, and what we built" sub="The brief asks for two of the three data layers and an agent. Cranley uses all three, and measures.">
+    <Asked sponsor="CoStar" source="The four asks are the prize text on the event's Devpost page, in its words."
+      asked={[
+        { text: 'At least two of the three data layers', met: true, how: `All three, in one frame: ${lu.matterport.tools} tools read the Matterport scan, ${lu.vexcel.tools} the Vexcel aerial data and ${lu.costar.tools} the CoStar record.` },
+        { text: 'Agentic capabilities', met: true, how: 'A deepagents investigator plans, runs one subagent per building in parallel, asks before an expensive step and resumes after a restart.' },
+        { text: 'Solves a real problem for a real person', met: true, how: `${c.personas} personas, each a real user with a named need, checked against what ${f.people} people told us in writing.` },
+        { text: 'Spatial and visual understanding', met: true, how: 'Answers are measured on the scan\'s geometry, and a vision model reads the panoramas where geometry cannot tell, such as which way a door opens.' },
+      ]}
+      beyond={[
+        { n: c.tools, text: 'tools, each a manifest and a handler, picked per question by the composer' },
+        { n: by['two or more providers'], text: 'tools that require two providers at once, so one layer checks another' },
+        { n: c.layers, text: 'map layers around the building, such as flood zones, hydrants, zoning, permits and transit' },
+        { text: 'Your own building: the iPhone app scans a room with LiDAR, and every geometry tool runs on a space that is in no dataset.' },
+        { text: 'Physics, not pictures: CFAST for smoke, USGS high-water marks for floods.' },
+        { text: 'Every number carries its layer, its method and a high, medium or low label.' },
+        { text: 'Every tool is also an MCP tool and a command-line command, so another agent can use it.' },
+      ]} />
+  </Sec>
+
   <Sec id="problem" title="A listing answers inside one listing" sub="Every CoStar product today answers questions inside one listing. Cranley answers a person's question across a whole city, by measurement, with all three layers checking each other.">
     <p class="txt">The word on a listing is a claim. Below is the made-up test home: the listing would say "accessible", and the scan gives every doorway its measured width.</p>
     <DoorSchedule />
@@ -54,7 +76,12 @@ const flow = [
     <Flow cols={flow} />
   </Sec>
 
-  <Sec id="data" title="What each tool reads, and where its code is" sub="A tool's manifest lists the layers it requires. These counts come from the manifests, not from a slide.">
+  <Sec id="data" title="Every CoStar product we used, and how" sub="The event's data came as three products: Matterport scans, Vexcel aerial data and CoStar's own records. For each one, every layer we read and how many tools read it, counted from the tool manifests.">
+    {([['matterport', 'Matterport scan', 'The inside. Every interior measurement is taken from the scan\'s walls, rooms, doors and windows.'], ['vexcel', 'Vexcel aerial data', 'The outside: ground and roof heights, the aerial photo and facts about the property.'], ['costar', 'CoStar records', 'What is claimed: the property record and the listing, set against what the scan measures.']] as const).map(([k, name, what]) => (
+      <Chart title={`${name}: ${lu[k].tools} of ${c.tools} tools read it`} sub={`${what} Dark: tools that require the layer. Light: tools that read it when it is there.`} code={lu[k].code}>
+        <Bars rows={lu[k].layers} />
+      </Chart>
+    ))}
     <Chart title={`Tools by whose data they require, of ${c.tools}`} sub={`${by['two or more providers']} tools require two providers at once, and ${by['inputs only']} need only what a person types. A tool that requires two is counted under both.`} source="Counted from the required layers in each tool's manifest when this site was built. Layers a tool reads only when present are not counted.">
       <Bars rows={need} />
     </Chart>

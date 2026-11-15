@@ -1,10 +1,11 @@
 ---
 // The frame every chart sits in: what is counted, a line of reading help, the marks, then where the count comes from.
-interface Props { title: string; sub?: string; source?: string }
-const { title, sub, source } = Astro.props
+import { LINKS } from '../../site/links'
+interface Props { title: string; sub?: string; source?: string; code?: string }
+const { title, sub, source, code } = Astro.props
 ---
 <figure class="chart">
   <figcaption><span class="ct">{title}</span>{sub && <span class="cs">{sub}</span>}</figcaption>
   <slot />
-  {source && <p class="src">{source}</p>}
+  {(source || code) && <p class="src">{source}{code && <> Read in <a href={`${LINKS.github}/blob/main/${code}`}><code>{code}</code></a>.</>}</p>}
 </figure>

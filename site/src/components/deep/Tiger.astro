@@ -8,6 +8,8 @@ import Cards from "./Cards.astro"
 import Bars from "./Bars.astro"
 import Split from "./Split.astro"
 import Lanes from "./Lanes.astro"
+import Asked from "./Asked.astro"
+import Products from "./Products.astro"
 import deep from "../../generated/deep.json"
 import site from "../../generated/site.json"
 import type { Track } from "../../site/tracks"
@@ -20,7 +22,7 @@ const sp = deep.sponsors["tiger-data"]
 const t = deep.numbers.tiger
 const stats = [{ n: t.mb[0], label: "MB before columnstore compression" }, { n: t.mb[1], label: "MB after it, on the cloud service" }, { n: t.fork_s, label: "seconds, about, until a database fork is ready" }, { n: sp.features.length, label: "Tiger features in use" }]
 const features = sp.features.map((f) => ({ title: f.feature, what: f.why, code: f.code }))
-const sections: [string, string][] = [["problem", "Problem"], ["built", "What we built"], ["features", "Features used"], ["proof", "Proof"], ["limits", "Left out"], ["writeup", "Write-up"], ["docs", "In the docs"]]
+const sections: [string, string][] = [["asked", "Asked and built"], ["problem", "Problem"], ["built", "What we built"], ["features", "Products used"], ["proof", "Proof"], ["limits", "Left out"], ["writeup", "Write-up"], ["docs", "In the docs"]]
 const flow = [
   { label: "In", nodes: [
     { title: "Tool results", what: "Facts, with their source and time", note: "Each tool result writes facts: what was measured, on which layer, and when. Facts are measured again as tools improve." },
@@ -40,6 +42,25 @@ const flow = [
 ]
 ---
 <Deep track={track} title={title} sections={sections} stats={stats}>
+  <Sec id="asked" title="What Tiger Data asked for, and what we built" sub="The brief lists four reasons to build on Tiger Data. We use all four, and one of them falls short of the figure in the brief.">
+    <Asked sponsor="Tiger Data" source="The four asks are the reasons to build that the prize text on the event's Devpost page lists, in its words."
+      asked={[
+        { text: 'Standard SQL', met: true, how: 'Every query is SQL, and the agent asks its own SQL questions of the facts through a read-only role.' },
+        { text: 'A unified data stack: relational data beside high-frequency streams', met: true, how: 'Building facts, flood simulations and the operation log live in one database, as hypertables beside ordinary tables.' },
+        { text: 'Dashboards from continuous aggregates', met: true, how: 'The Insights page reads real-time continuous aggregates that include a fact measured a second ago.' },
+        { text: '90% or more data compression', met: false, how: `Columnstore compression took ${t.mb[0]} MB to ${t.mb[1]} MB on the cloud service, a ${t.cut_pct}% cut. That is short of 90%.` },
+      ]}
+      beyond={[
+        { n: sp.features.length, text: 'features in use, across five products' },
+        { n: t.fork_s, text: 'seconds, about, for a zero-copy database fork that a city-wide what-if runs on' },
+        { text: 'Similar-room search with StreamingDiskANN, filtered by room type inside the index and blended with BM25 words.' },
+        { text: 'A pgai vectorizer embeds room descriptions inside the database when they change.' },
+        { text: 'A hierarchical continuous aggregate for neighbourhoods, and percentile_agg for medians that roll up.' },
+        { text: `An hourly job rebuilds the search graphs, added after a graph grown row by row had recall@10 of ${t.recall.toFixed(1)}.` },
+        { text: 'A retention policy deletes the analytics copy of the operation log after the event.' },
+      ]} />
+  </Sec>
+
   <Sec id="problem" title="Measurements change, so keep their history" sub="Tiger Cloud is the building facts database: what was measured, when, and how it changed.">
     <p class="txt">Facts are measured again as tools improve; the history is time series by nature.</p>
   </Sec>
@@ -48,8 +69,8 @@ const flow = [
     <Flow cols={flow} />
   </Sec>
 
-  <Sec id="features" title="Each feature, and the job it does" sub="Each links to the file or migration that uses it.">
-    <Cards items={features} />
+  <Sec id="features" title="Every Tiger Data product we used, and how" sub="TimescaleDB and its toolkit, pgvector with pgvectorscale, pgai, PostGIS and Tiger Cloud itself. Each feature is below with what it enables, a measured figure where we have one, and the file or migration it runs in.">
+    <Products features={sp.features} />
   </Sec>
 
   <Sec id="proof" title="What it saved, and a what-if to try" sub="Two things we can show without the event's data: the compression figure, and the what-if tool on our made-up test home.">

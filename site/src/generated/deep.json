@@ -1150,57 +1150,79 @@
     {
      "feature": "`create_deep_agent` with declarative subagents",
      "why": "One building or one whole property per subagent, each with its own context, so ten buildings do not crowd one context window.",
-     "code": "server/threshold/agent/investigator.py"
+     "code": "server/threshold/agent/investigator.py",
+     "product": "deepagents",
+     "figure": null
     },
     {
      "feature": "Parallel subagents, shown live",
      "why": "Buildings are independent, so they are checked at the same time; middleware reports each tool call and the panel shows one lane per subagent.",
-     "code": "server/threshold/agent/investigator.py"
+     "code": "server/threshold/agent/investigator.py",
+     "product": "deepagents",
+     "figure": null
     },
     {
      "feature": "Planning (`write_todos`)",
      "why": "The plan is the person's progress view, not hidden state.",
-     "code": "server/threshold/agent/investigator.py"
+     "code": "server/threshold/agent/investigator.py",
+     "product": "deepagents",
+     "figure": null
     },
     {
      "feature": "Virtual filesystem and CompositeBackend",
      "why": "Case notes per building in state; `/memories/` in the store; `/skills/` read-only from disk.",
-     "code": "server/threshold/agent/investigator.py"
+     "code": "server/threshold/agent/investigator.py",
+     "product": "deepagents",
+     "figure": null
     },
     {
      "feature": "StoreBackend on MongoDB (long-term memory)",
      "why": "A second investigation of a building starts from what the last one learned.",
-     "code": "server/threshold/agent/investigator.py"
+     "code": "server/threshold/agent/investigator.py",
+     "product": "deepagents",
+     "figure": null
     },
     {
      "feature": "Skills (SKILL.md)",
      "why": "Procedures for fire pre-plan, storm prep, step-free home and record check load only when the need matches.",
-     "code": "server/threshold/agent/investigator.py"
+     "code": "server/threshold/agent/investigator.py",
+     "product": "deepagents",
+     "figure": null
     },
     {
      "feature": "Human-in-the-loop (`interrupt_on`, `when` predicate)",
      "why": "A smoke simulation, a vision read of every panorama, a plan edit or a city rollup waits for \"Run it / Skip it / Always run it here\".",
-     "code": "server/threshold/agent/investigator.py"
+     "code": "server/threshold/agent/investigator.py",
+     "product": "deepagents",
+     "figure": null
     },
     {
      "feature": "MongoDB checkpointer, `Command(resume=\u2026)`",
      "why": "A paused turn resumes in any server process, even after a restart.",
-     "code": "server/threshold/agent/durable.py"
+     "code": "server/threshold/agent/durable.py",
+     "product": "LangGraph",
+     "figure": null
     },
     {
      "feature": "Rubric grader middleware",
      "why": "Catches the closing message stating numbers or claiming checks did not run; a real turn made that mistake before this existed.",
-     "code": "server/threshold/agent/investigator.py"
+     "code": "server/threshold/agent/investigator.py",
+     "product": "deepagents",
+     "figure": null
     },
     {
      "feature": "MCP tools via langchain-mcp-adapters",
      "why": "The read-only MongoDB MCP server's tools, behind a guard, answer counts over the person's own past work.",
-     "code": "server/threshold/agent/mongo_mcp.py"
+     "code": "server/threshold/agent/mongo_mcp.py",
+     "product": "langchain-mcp-adapters",
+     "figure": null
     },
     {
      "feature": "LangSmith traces, datasets and experiments",
      "why": "Every turn is one trace tagged by persona; the composer's briefs are a dataset, and each prompt change is an experiment scored per check.",
-     "code": "server/threshold/agent/evaluate.py"
+     "code": "server/threshold/agent/evaluate.py",
+     "product": "LangSmith",
+     "figure": null
     }
    ],
    "left_out": [
@@ -1227,57 +1249,79 @@
     {
      "feature": "Hypertables for facts, flood simulations and the op log",
      "why": "Facts are measured again as tools improve; the history is time series by nature.",
-     "code": "server/threshold/facts/migrations/001_schema.sql"
+     "code": "server/threshold/facts/migrations/001_schema.sql",
+     "product": "TimescaleDB",
+     "figure": null
     },
     {
      "feature": "Columnstore compression",
      "why": "234 MB to 58 MB on the cloud service.",
-     "code": "server/threshold/facts/stats.py"
+     "code": "server/threshold/facts/stats.py",
+     "product": "TimescaleDB",
+     "figure": "234 MB to 58 MB"
     },
     {
      "feature": "Continuous aggregates, real-time, plus a hierarchical one",
      "why": "The Insights page reads daily rollups that include a fact measured a second ago, and a neighbourhood rollup built on them.",
-     "code": "server/threshold/facts/migrations/002_rollups_search.sql"
+     "code": "server/threshold/facts/migrations/002_rollups_search.sql",
+     "product": "TimescaleDB",
+     "figure": null
     },
     {
      "feature": "`percentile_agg` hyperfunction",
      "why": "Medians that roll up across days and areas.",
-     "code": "server/threshold/facts/migrations/002_rollups_search.sql"
+     "code": "server/threshold/facts/migrations/002_rollups_search.sql",
+     "product": "TimescaleDB Toolkit",
+     "figure": null
     },
     {
      "feature": "PostGIS",
      "why": "Distance filters in search by measurement.",
-     "code": "server/threshold/facts/search.py"
+     "code": "server/threshold/facts/search.py",
+     "product": "PostGIS",
+     "figure": null
     },
     {
      "feature": "pgvector + pgvectorscale StreamingDiskANN with label filters, BM25",
      "why": "Similar-room search filtered by room type inside the index, blended with words.",
-     "code": "server/threshold/facts/vectorizer.py"
+     "code": "server/threshold/facts/vectorizer.py",
+     "product": "pgvector and pgvectorscale",
+     "figure": null
     },
     {
      "feature": "pgai vectorizer",
      "why": "Room descriptions embed themselves inside the database when they change (Ollama, nomic-embed-text).",
-     "code": "server/threshold/facts/vectorizer.py"
+     "code": "server/threshold/facts/vectorizer.py",
+     "product": "pgai",
+     "figure": null
     },
     {
      "feature": "TimescaleDB job",
      "why": "Rebuilds the room-search graphs hourly, because a graph grown row by row had recall@10 of 0.0.",
-     "code": "server/threshold/facts/migrations/004_jobs_retention.sql"
+     "code": "server/threshold/facts/migrations/004_jobs_retention.sql",
+     "product": "TimescaleDB",
+     "figure": "recall@10 of 0.0"
     },
     {
      "feature": "Retention policy",
      "why": "The analytics copy of the op log deletes itself after the event, as CoStar's terms require.",
-     "code": "server/threshold/facts/migrations/004_jobs_retention.sql"
+     "code": "server/threshold/facts/migrations/004_jobs_retention.sql",
+     "product": "TimescaleDB",
+     "figure": null
     },
     {
      "feature": "Read-only role for the agent's SQL",
      "why": "The agent can ask its own questions of the facts and cannot write.",
-     "code": "server/threshold/facts/ask.py"
+     "code": "server/threshold/facts/ask.py",
+     "product": "PostgreSQL on Tiger Cloud",
+     "figure": null
     },
     {
      "feature": "Database forks",
      "why": "City-wide what-if on a zero-copy fork, ready in about 31 s on the free plan, deleted after.",
-     "code": "server/threshold/facts/forks.py"
+     "code": "server/threshold/facts/forks.py",
+     "product": "Tiger Cloud",
+     "figure": "about 31 s"
     }
    ],
    "left_out": [
@@ -1304,62 +1348,86 @@
     {
      "feature": "Documents with a unique (workspace, seq) index",
      "why": "An optimistic lock: two writers cannot both append operation n.",
-     "code": "server/threshold/store/mongo.py"
+     "code": "server/threshold/store/mongo.py",
+     "product": "Atlas database",
+     "figure": null
     },
     {
      "feature": "Multi-document transactions",
      "why": "A person's operation and what it taught the agent land together.",
-     "code": "server/threshold/store/mongo.py"
+     "code": "server/threshold/store/mongo.py",
+     "product": "Atlas database",
+     "figure": null
     },
     {
      "feature": "Change streams",
      "why": "Live sync between server processes, browsers and the phone: a door width typed on the phone reaches the desktop in about a second.",
-     "code": "server/threshold/store/mongo.py"
+     "code": "server/threshold/store/mongo.py",
+     "product": "Atlas database",
+     "figure": "about a second"
     },
     {
      "feature": "`$jsonSchema` validation",
      "why": "The append-only log refuses a malformed entry.",
-     "code": "server/threshold/store/mongo.py"
+     "code": "server/threshold/store/mongo.py",
+     "product": "Atlas database",
+     "figure": null
     },
     {
      "feature": "TTL index",
      "why": "Read-only share links delete themselves.",
-     "code": "server/threshold/store/mongo.py"
+     "code": "server/threshold/store/mongo.py",
+     "product": "Atlas database",
+     "figure": null
     },
     {
      "feature": "Atlas Search (fuzzy, facets, highlights)",
      "why": "Search past investigations with counts by tool, status and city.",
-     "code": "server/threshold/store/mongo.py"
+     "code": "server/threshold/store/mongo.py",
+     "product": "Atlas Search",
+     "figure": null
     },
     {
      "feature": "Vector Search with filters, automated embedding (voyage-4)",
      "why": "Recall similar past needs per persona, with no embedding key in the app.",
-     "code": "server/threshold/store/mongo.py"
+     "code": "server/threshold/store/mongo.py",
+     "product": "Atlas Vector Search",
+     "figure": null
     },
     {
      "feature": "Hybrid search with `$rankFusion`",
      "why": "\"Could not roll a chair into the toilet\" finds \"No ADA clearance at the toilet\".",
-     "code": "server/threshold/store/mongo.py"
+     "code": "server/threshold/store/mongo.py",
+     "product": "Atlas Search",
+     "figure": null
     },
     {
      "feature": "Time series collection",
      "why": "Every phone reading (GPS, altitude, tilt, sound) as one measurement; the timeline groups by minute with `$dateTrunc`.",
-     "code": "server/threshold/store/mongo.py"
+     "code": "server/threshold/store/mongo.py",
+     "product": "Atlas database",
+     "figure": null
     },
     {
      "feature": "2dsphere and `$geoNear`",
      "why": "Shortlisted buildings near a point.",
-     "code": "server/threshold/store/mongo.py"
+     "code": "server/threshold/store/mongo.py",
+     "product": "Atlas database",
+     "figure": null
     },
     {
      "feature": "LangGraph checkpointer and store",
      "why": "Paused agent turns and long-term memory next to the workspaces.",
-     "code": "server/threshold/agent/durable.py"
+     "code": "server/threshold/agent/durable.py",
+     "product": "LangGraph on MongoDB",
+     "figure": null
     },
     {
      "feature": "MongoDB MCP server (read-only, guarded)",
      "why": "The agent counts and groups over the person's own past work.",
-     "code": "server/threshold/agent/mongo_mcp.py"
+     "code": "server/threshold/agent/mongo_mcp.py",
+     "product": "MongoDB MCP server",
+     "figure": null
     }
    ],
    "left_out": [
@@ -1386,47 +1454,65 @@
     {
      "feature": "Asks in plain words, gets the floor plan picture marked with findings, the verdict, the measurements and a workspace link",
      "why": "Shared iMessage line, native replies, attachment upload, typing indicator",
-     "code": "server/threshold/photon"
+     "code": "server/threshold/photon",
+     "figure": null,
+     "product": "iMessage on Photon 2.0"
     },
     {
      "feature": "Replies to an earlier answer (\"what about a 76 cm chair?\")",
      "why": "The reply thread is the investigation (`parentMessageId` in and out)",
-     "code": "server/threshold/photon"
+     "code": "server/threshold/photon",
+     "figure": null,
+     "product": "iMessage on Photon 2.0"
     },
     {
      "feature": "Says \"yes\", \"no\" or \"always\" to a slow step",
      "why": "Approvals by native reply",
-     "code": "server/threshold/photon"
+     "code": "server/threshold/photon",
+     "figure": null,
+     "product": "iMessage on Photon 2.0"
     },
     {
      "feature": "Sends a photo of a doorway with a bank card, a ceiling photo, a short video, a voice note, a location",
      "why": "Inbound attachments, video, audio and vCard locations each run a tool",
-     "code": "server/threshold/photon"
+     "code": "server/threshold/photon",
+     "figure": null,
+     "product": "iMessage on Photon 2.0"
     },
     {
      "feature": "Types \"visit\"",
      "why": "Unsettled checks arrive one at a time; each reply settles one and the desktop workspace updates live",
-     "code": "server/threshold/photon"
+     "code": "server/threshold/photon",
+     "figure": null,
+     "product": "iMessage on Photon 2.0"
     },
     {
      "feature": "Types \"report\"",
      "why": "The PDF arrives in the chat, ready to forward",
-     "code": "server/threshold/photon"
+     "code": "server/threshold/photon",
+     "figure": null,
+     "product": "iMessage on Photon 2.0"
     },
     {
      "feature": "Turns \"voice on\"",
      "why": "Answers also arrive as native iMessage voice messages",
-     "code": "server/threshold/photon"
+     "code": "server/threshold/photon",
+     "figure": null,
+     "product": "iMessage on Photon 2.0"
     },
     {
      "feature": "Does nothing",
      "why": "The chat background becomes the building's plan; a National Weather Service alert at that building arrives once with their own flood result",
-     "code": "server/threshold/photon"
+     "code": "server/threshold/photon",
+     "figure": null,
+     "product": "iMessage on Photon 2.0"
     },
     {
      "feature": "Calls the number",
      "why": "An ElevenLabs agent over SIP runs the same checks by voice; the plan and link follow in iMessage after the call (Best Voice Agent)",
-     "code": "server/threshold/photon"
+     "code": "server/threshold/photon",
+     "figure": null,
+     "product": "Voice, with ElevenLabs over SIP"
     }
    ]
   },
@@ -1478,6 +1564,106 @@
    ]
   }
  },
+ "layer_use": {
+  "matterport": {
+   "code": "server/threshold/sources/matterport.py",
+   "tools": 52,
+   "layers": [
+    {
+     "label": "Rooms",
+     "n": 23,
+     "n2": 2
+    },
+    {
+     "label": "Doors and windows",
+     "n": 14,
+     "n2": 4
+    },
+    {
+     "label": "360\u00b0 photos",
+     "n": 7,
+     "n2": 10
+    },
+    {
+     "label": "Wall outline",
+     "n": 13,
+     "n2": 1
+    },
+    {
+     "label": "Room names",
+     "n": 7,
+     "n2": 6
+    },
+    {
+     "label": "Scan position",
+     "n": 3,
+     "n2": 3
+    },
+    {
+     "label": "Empty-room photos",
+     "n": 0,
+     "n2": 1
+    },
+    {
+     "label": "Scan index",
+     "n": 1,
+     "n2": 0
+    }
+   ]
+  },
+  "vexcel": {
+   "code": "server/threshold/aerial/vexcel.py",
+   "tools": 23,
+   "layers": [
+    {
+     "label": "Aerial photo",
+     "n": 8,
+     "n2": 5
+    },
+    {
+     "label": "Aerial property facts",
+     "n": 8,
+     "n2": 2
+    },
+    {
+     "label": "Roof heights",
+     "n": 3,
+     "n2": 1
+    },
+    {
+     "label": "Ground heights",
+     "n": 1,
+     "n2": 2
+    },
+    {
+     "label": "Angled aerial photos",
+     "n": 2,
+     "n2": 0
+    },
+    {
+     "label": "Building footprint",
+     "n": 0,
+     "n2": 1
+    }
+   ]
+  },
+  "costar": {
+   "code": "server/threshold/sources/costar.py",
+   "tools": 18,
+   "layers": [
+    {
+     "label": "Property record",
+     "n": 7,
+     "n2": 10
+    },
+    {
+     "label": "Listing",
+     "n": 0,
+     "n2": 1
+    }
+   ]
+  }
+ },
  "numbers": {
   "amazon": {
    "asked": [
@@ -1507,6 +1693,7 @@
     234,
     58
    ],
+   "cut_pct": 75,
    "fork_s": 31,
    "recall": 0.0
   },

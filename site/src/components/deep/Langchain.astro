@@ -8,6 +8,8 @@ import Cards from "./Cards.astro"
 import Bars from "./Bars.astro"
 import Split from "./Split.astro"
 import Lanes from "./Lanes.astro"
+import Asked from "./Asked.astro"
+import Products from "./Products.astro"
 import deep from "../../generated/deep.json"
 import site from "../../generated/site.json"
 import type { Track } from "../../site/tracks"
@@ -18,7 +20,7 @@ const md = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace
 const sp = deep.sponsors.langchain
 const stats = [{ n: sp.features.length, label: "deepagents, LangGraph and LangSmith features in use" }, { n: sp.left_out.length, label: "left out, each with the reason" }, { n: c.tools, label: "tools the investigator can call" }, { n: c.personas, label: "personas, one trace tag each" }]
 const features = sp.features.map((f) => ({ title: f.feature, what: f.why, code: f.code }))
-const sections: [string, string][] = [["problem", "Problem"], ["built", "A turn, in order"], ["features", "Features used"], ["proof", "Proof"], ["limits", "Left out"], ["writeup", "Write-up"], ["docs", "In the docs"]]
+const sections: [string, string][] = [["asked", "Asked and built"], ["problem", "Problem"], ["built", "A turn, in order"], ["features", "Products used"], ["proof", "Proof"], ["limits", "Left out"], ["writeup", "Write-up"], ["docs", "In the docs"]]
 const pause = "Both lanes pause on the approval card for the smoke simulation: interrupt_on with a when predicate."
 const resume = "Command(resume=...) picks the turn up from the MongoDB checkpoint, in any server process, even after a restart."
 const segs = [
@@ -35,6 +37,22 @@ const segs = [
 ]
 ---
 <Deep track={track} title={title} sections={sections} stats={stats}>
+  <Sec id="asked" title="What LangChain asked for, and what we built" sub="The prize is for the best use of deepagents. The investigator is a deep agent, and the rest of the LangChain stack does a job around it.">
+    <Asked sponsor="LangChain" source="The prize text on the event's Devpost page is its title: best use of deepagents."
+      asked={[
+        { text: 'Built on deepagents', met: true, how: 'The investigator is one deep agent made with create_deep_agent, with declarative subagents: one building or one whole property each.' },
+      ]}
+      beyond={[
+        { n: sp.features.length, text: 'features in use across deepagents, LangGraph, langchain-mcp-adapters and LangSmith' },
+        { n: sp.left_out.length, text: 'more considered and left out, each with the reason' },
+        { text: 'Subagents run in parallel and are shown live, one lane each.' },
+        { text: 'A slow step waits for the person, and the paused turn resumes from a MongoDB checkpoint in any server process, even after a restart.' },
+        { text: 'A rubric grader catches a closing message that states numbers or claims checks did not run.' },
+        { text: 'Skills load only when the need matches, and long-term memory starts a second investigation from what the last one learned.' },
+        { text: 'In LangSmith every turn is one trace, the composer\'s briefs are a dataset, and each prompt change is an experiment.' },
+      ]} />
+  </Sec>
+
   <Sec id="problem" title="Ten buildings do not fit in one context" sub="One building or one whole property per subagent, each with its own context, so ten buildings do not crowd one context window.">
     <p class="txt">Buildings are independent, so they are checked at the same time. Middleware reports each tool call, and the panel shows one lane per subagent.</p>
   </Sec>
@@ -43,8 +61,8 @@ const segs = [
     <Lanes rows={["Investigator", "Subagent, house A", "Subagent, house B", "The person", "Grader"]} cols={7} segs={segs} />
   </Sec>
 
-  <Sec id="features" title="Each feature, and the job it does" sub="A feature is used only where it does a job. Each links to the file that uses it.">
-    <Cards items={features} />
+  <Sec id="features" title="Every LangChain product we used, and how" sub="Four products: deepagents, LangGraph, langchain-mcp-adapters and LangSmith. Each feature is below with what it enables and the file it runs in. A feature is used only where it does a job.">
+    <Products features={sp.features} />
   </Sec>
 
   <Sec id="proof" title="The mistake that became a check" sub={'An agent turn once claimed "none of the checks ran" after twelve runs. That became the rubric grader.'}>

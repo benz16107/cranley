@@ -1,0 +1,21 @@
+---
+// Every product of a sponsor that the build uses, one group per product: the feature, what it enables, a measured
+// figure where the story gives one, and the file it runs in.
+import Cards from './Cards.astro'
+interface Feature { feature: string; why: string; code: string; product: string; figure: string | null }
+interface Props { features: Feature[] }
+const { features } = Astro.props
+const groups = [...new Set(features.map((f) => f.product))].map((p) => ({ product: p, items: features.filter((f) => f.product === p) }))
+---
+{groups.map((g) => (
+  <div class="group">
+    <h3><span>{g.product}</span><span class="num">{g.items.length}</span></h3>
+    <Cards items={g.items.map((f) => ({ title: f.feature, what: f.why, chips: f.figure ? [`Measured: ${f.figure}`] : [], code: f.code }))} />
+  </div>
+))}
+
+<style>
+  .group { display: grid; gap: var(--s-3); }
+  h3 { display: flex; align-items: baseline; gap: var(--s-3); padding-bottom: 6px; border-bottom: 1px solid var(--rule-strong); font-size: 1.0625rem; font-weight: 600; }
+  h3 .num { color: var(--ink-3); font-weight: 400; }
+</style>

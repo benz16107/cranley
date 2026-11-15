@@ -16,6 +16,7 @@ const { track, title } = Astro.props
 const c = site.counts
 const md = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/`([^`]+)`/g, "<code>$1</code>")
 import Visits from "./Visits.astro"
+import Asked from "./Asked.astro"
 import Slot from "../Slot.astro"
 import Proof from "../Proof.astro"
 const n = deep.numbers.amazon
@@ -25,7 +26,8 @@ const stats = [{ n: c.personas, label: "kinds of user, each with a named need" }
 const groups = site.groups.map((g) => ({ label: g.title, n: g.personas.length }))
 const focus = am.focus.map((f) => ({ title: f.area, what: f.sees, chips: [f.where] }))
 const criteria = am.criteria.map((f) => ({ title: f.criterion, what: f.serves }))
-const sections: [string, string][] = [["problem", "Problem"], ["built", "What we built"], ["adaptive", "Say it once"], ["proof", "Proof"], ["limits", "Limits"], ["writeup", "Write-up"], ["docs", "In the docs"]]
+const f = deep.funnel
+const sections: [string, string][] = [["asked", "Asked and built"], ["problem", "Problem"], ["built", "What we built"], ["focus", "Focus areas"], ["adaptive", "Say it once"], ["proof", "Proof"], ["limits", "Limits"], ["writeup", "Write-up"], ["docs", "In the docs"]]
 const flow = [
   { label: "A person", nodes: [
     { title: "A sentence", what: "What they need, in plain words", note: "The person types what they need. The agent builds the interface for that need instead of a chat box." },
@@ -45,6 +47,27 @@ const flow = [
 ]
 ---
 <Deep track={track} title={title} sections={sections} stats={stats}>
+  <Sec id="asked" title="What Amazon asked for, and what we built" sub="The brief asks for AI that reasons, plans, acts and adapts. Cranley also measures, and says where each number came from.">
+    <Asked sponsor="Amazon" source="The six asks are the prize text on the event's Devpost page, in its words."
+      asked={[
+        { text: 'Solves a real problem for real people', met: true, how: `${c.personas} named needs, from a wheelchair user to a fire captain, and tools changed by what ${f.people} people told us.` },
+        { text: 'Goes beyond a demo', met: true, how: `About ${n.server_tests} server tests and ${n.web_tests} web tests, and every tool's page in the docs prints a real run.` },
+        { text: 'Reasons and plans', met: true, how: 'The agent picks the tools for the need and writes a plan the person watches.' },
+        { text: 'Takes action', met: true, how: 'It runs the tools, edits the workspace with the same operations a person uses, and writes the PDF.' },
+        { text: 'Adapts', met: true, how: `It keeps a profile across investigations. In a three-visit replay the questions asked went ${n.asked.join(', ')}.` },
+        { text: 'Something someone would use every day', met: true, how: 'The wheelchair, flood, fire, garage, pet and furniture tools answer questions people ask on forums every day.' },
+      ]}
+      beyond={[
+        { n: c.tools, text: 'tools that measure, where the brief asks for an application' },
+        { n: n.kept_back[last], text: 'checks kept back by the third visit, of kinds the person waved off' },
+        { text: 'Works on your own home: an iPhone scan runs every geometry tool on a space that is in no dataset.' },
+        { text: 'Each number carries its layer, its method and a high, medium or low label.' },
+        { text: 'Every line of the profile shows where it came from, with Change and Forget.' },
+        { text: 'A phone companion with live sync, and a PDF report in seconds.' },
+        { text: 'Every tool is also an MCP tool and a command-line command.' },
+      ]} />
+  </Sec>
+
   <Sec id="problem" title="An answer you can act on, without learning a tool" sub="AI someone would use every day: a person with a real need about a building gets an answer they can act on. And it works on their own home, not only on a dataset.">
     <Chart title={`Who it answers for: ${c.personas} kinds of user`} sub="Each is a named need with the tools that answer it, such as a wheelchair user, a fire captain or a truck owner." source="Counted from the persona files when this site was built.">
       <Bars rows={groups} />
@@ -57,12 +80,14 @@ const flow = [
     <Slot id="iphone-app" phones />
   </Sec>
 
+  <Sec id="focus" title="Every focus area Amazon named, and where it is" sub={`This track names no Amazon product, and we used none. It names ${am.focus.length} focus areas. Each is below with what a judge sees and where to find it in the app.`}>
+    <Cards items={focus} />
+  </Sec>
+
   <Sec id="adaptive" title="Say it once" sub={'Jean Ryan of Disabled In Action told us "a lot of people have more than one chair" and often do not know their widths, so a person should have to say it once.'}>
     <Chart title="One wheelchair user, three visits to new homes" sub="The composer stops asking what it already knows, and holds back checks of kinds the person waved off." source="The evaluation threshold.agent.adapt_eval, run 14 Nov 2026, each number counted from operation logs. One persona on three buildings: a replay, not a user study.">
       <Visits series={[{ title: "Questions the composer asked", values: n.asked, unit: "questions asked" }, { title: "Checks kept back", values: n.kept_back, unit: "checks kept back" }]} />
     </Chart>
-    <h3 class="h3">Where a judge sees it</h3>
-    <Cards items={focus} />
   </Sec>
 
   <Sec id="proof" title="What a judge can check" sub={`About ${n.server_tests} server tests and ${n.web_tests} web tests, and every tool run on a made-up scan in the docs.`}>

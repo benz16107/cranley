@@ -8,6 +8,8 @@ import Cards from "./Cards.astro"
 import Bars from "./Bars.astro"
 import Split from "./Split.astro"
 import Lanes from "./Lanes.astro"
+import Asked from "./Asked.astro"
+import Products from "./Products.astro"
 import deep from "../../generated/deep.json"
 import site from "../../generated/site.json"
 import type { Track } from "../../site/tracks"
@@ -19,7 +21,7 @@ const sp = deep.sponsors.mongodb
 const stats = [{ n: sp.features.length, label: "Atlas features in use" }, { n: sp.left_out.length, label: "left out, each with the reason" }, { n: c.personas, label: "personas whose past needs can be recalled" }]
 const features = sp.features.map((f) => ({ title: f.feature, what: f.why, code: f.code }))
 const hybrid = sp.features.find((f) => f.feature.startsWith("Hybrid search"))!.why.match(/"([^"]+)" finds "([^"]+)"/)!
-const sections: [string, string][] = [["problem", "Problem"], ["built", "Live sync, in order"], ["features", "Features used"], ["proof", "Proof"], ["limits", "Left out"], ["writeup", "Write-up"], ["docs", "In the docs"]]
+const sections: [string, string][] = [["asked", "Asked and built"], ["problem", "Problem"], ["built", "Live sync, in order"], ["features", "Products used"], ["proof", "Proof"], ["limits", "Left out"], ["writeup", "Write-up"], ["docs", "In the docs"]]
 const segs = [
   { row: 0, from: 0, to: 1, tone: "soft" as const, label: "Types a door width", note: "On site, a person types a door width on the phone." },
   { row: 1, from: 1, to: 2, label: "Appends operation n", note: "The server appends one operation to the workspace's log. Its number is the next in the sequence." },
@@ -30,6 +32,22 @@ const segs = [
 ]
 ---
 <Deep track={track} title={title} sections={sections} stats={stats}>
+  <Sec id="asked" title="What MongoDB asked for, and what we built" sub="The brief asks for a hack built with MongoDB Atlas. Atlas holds every workspace, and five of its products do a job.">
+    <Asked sponsor="MongoDB" source="The one ask is the prize text on the event's Devpost page: build a hack using MongoDB Atlas."
+      asked={[
+        { text: 'Built with MongoDB Atlas', met: true, how: 'Atlas holds the people side: workspaces, their operation logs, live sync, memory and search over past work.' },
+      ]}
+      beyond={[
+        { n: sp.features.length, text: 'features in use, across five products' },
+        { n: sp.left_out.length, text: 'more considered and left out, each with the reason' },
+        { text: 'Change streams carry a door width typed on the phone to the desktop in about a second.' },
+        { text: 'A unique index on workspace and sequence number is an optimistic lock, so two writers cannot both append the same operation.' },
+        { text: 'Hybrid search with $rankFusion finds a past result without the exact words.' },
+        { text: 'Vector Search with automated embedding recalls similar past needs, with no embedding key in the app.' },
+        { text: 'Paused agent turns and long-term memory live next to the workspaces, and a guarded read-only MCP server lets the agent count over the person\'s own past work.' },
+      ]} />
+  </Sec>
+
   <Sec id="problem" title="The people side: who changed what, in what order" sub="Atlas holds the people side: workspaces, their operation logs, live sync, memory and search over past work.">
     <p class="txt">A workspace is a document that a person and the agent edit with the same operations. Every edit is one entry in an append-only log, and that log is what the phone, the desktop and the agent share.</p>
   </Sec>
@@ -38,8 +56,8 @@ const segs = [
     <Lanes rows={["Phone", "Server", "Atlas", "Desktop"]} cols={6} segs={segs} />
   </Sec>
 
-  <Sec id="features" title="Each feature, and the job it does" sub="Each links to the file that uses it.">
-    <Cards items={features} />
+  <Sec id="features" title="Every MongoDB product we used, and how" sub="The Atlas database, Atlas Search, Atlas Vector Search, the LangGraph packages for MongoDB and the MongoDB MCP server. Each feature is below with what it enables and the file it runs in.">
+    <Products features={sp.features} />
   </Sec>
 
   <Sec id="proof" title="Search that finds what you meant" sub="Hybrid search with $rankFusion blends words and meaning, so a search does not need the exact words.">

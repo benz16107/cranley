@@ -10,6 +10,7 @@ import Bars from './Bars.astro'
 import Split from './Split.astro'
 import Funnel from './Funnel.astro'
 import Quotes from './Quotes.astro'
+import Asked from './Asked.astro'
 import Proof from '../Proof.astro'
 import deep from '../../generated/deep.json'
 import { INTERVIEW } from '../../site/proof'
@@ -20,7 +21,7 @@ const f = deep.funnel
 const said = deep.said as Record<string, number>
 const first = deep.quotes[0].said.match(/"([^"]+)"/)![1]
 const stats = [{ n: f.emails, label: 'emails sent' }, { n: f.people, label: `people answered, in ${f.communities} online communities` }, { n: deep.said_total, label: 'things said, logged one by one' }, { n: said.changed, label: 'of them changed a tool' }]
-const sections: [string, string][] = [['problem', 'Problem'], ['asked', 'Who we asked'], ['loop', 'How it worked'], ['changed', 'What changed'], ['evidence', 'Evidence'], ['limits', 'Limits'], ['writeup', 'Write-up'], ['docs', 'In the docs']]
+const sections: [string, string][] = [['asked', 'Asked and built'], ['problem', 'Problem'], ['reach', 'Who we asked'], ['loop', 'How it worked'], ['changed', 'What changed'], ['evidence', 'Evidence'], ['limits', 'Limits'], ['writeup', 'Write-up'], ['docs', 'In the docs']]
 const panels = [
   { title: 'By email', scaled: true, steps: [
     { n: f.emails, label: 'emails to organisations and businesses' },
@@ -62,12 +63,30 @@ const flow = [
 ]
 ---
 <Deep track={track} title={title} sections={sections} stats={stats}>
+  <Sec id="asked" title="What Peri asked for, and what we built" sub="A forward deployed engineer works where the problem is. We went to the people first, and the log of it is public.">
+    <Asked sponsor="Peri" source="Peri's prize text on Devpost names no requirements. These are the three things the track is judged on, as our story records them."
+      asked={[
+        { text: 'A real-world need', met: true, how: `${f.people} people answered in writing and one gave a recorded ${f.minutes}-minute interview, before and while we built.` },
+        { text: 'Usability: could a business adopt it immediately', met: false, how: 'A phone scan becomes a PDF site report in seconds. No business has adopted it yet. A theatre\'s managing director wrote that a measured report would help most when a company is moving in.' },
+        { text: 'Execution', met: true, how: `${said.changed} of ${deep.said_total} things said changed a tool the same night, each with a test and a commit.` },
+      ]}
+      beyond={[
+        { n: f.emails, text: 'emails to organisations and businesses that run buildings' },
+        { n: f.communities, text: 'online communities asked, one question in each' },
+        { n: deep.said_total, text: 'things said, each logged with what we did about it' },
+        { n: said.skipped, text: 'things we skipped, each with the reason written down' },
+        { text: 'Every quote is paired with the tool it changed and the commit, in a log anyone can read on GitHub.' },
+        { text: 'The interview is recorded and published, with her consent to be named.' },
+        { text: 'When a scan cannot hold what someone asked about, the result now says so instead of staying silent.' },
+      ]} />
+  </Sec>
+
   <Sec id="problem" title="The question people really ask" sub={'Jean Ryan no longer asks whether a place is "wheelchair accessible", because she has been told yes and arrived to find a step.'}>
     <blockquote class="pull">"{first}"<cite>Jean Ryan, President, Disabled In Action of Metropolitan New York</cite></blockquote>
     <p class="txt">Cranley started from the problem, not the data. Before and while building, we asked consumers and businesses what goes wrong with the inside and outside of their buildings, then changed the tools to match what they said.</p>
   </Sec>
 
-  <Sec id="asked" title="Who we asked, and who answered" sub="Three ways in. Email was the widest and the quietest; one reply to it became the interview.">
+  <Sec id="reach" title="Every way we went to people, and what came back" sub="Three ways in. Email was the widest and the quietest; one reply to it became the interview.">
     <Funnel panels={panels} />
     <p class="txt">Counts are from our story and the feedback log. Under "By email" and "What it turned into", the thin bars share one scale within their panel.</p>
   </Sec>
