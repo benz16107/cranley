@@ -20,3 +20,5 @@
   .wi-split[data-open='true'] { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
   .wi-pane + .wi-pane { border-left: 0; border-top: 1px solid var(--rule-strong); }
 }
+/* in the explorer the building's toolbar floats in the picture's top corner: the captions stand under it */
+.ex-scene .wi-pane > figcaption { top: 54px; left: 10px; max-width: calc(100% - 20px); overflow: hidden; white-space: nowrap; }

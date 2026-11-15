@@ -157,7 +157,7 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
       {switcher && <ViewSwitcher plan={plan} view={view} onChange={change} interior={!!state && state.interior.status !== 'none' && state.interior.status !== 'unknown'} className="th-views-in" />}
       {state && (mode === 'dollhouse' || mode === 'splat') && (() => {
         const w = state.world, s = state.scan, lines: string[] = []
-        if (view.env === 'aerial') lines.push(w.status === 'loading' ? 'Loading the surroundings' : w.status === 'missing' ? `No surroundings for this scan. ${w.note}` : w.kind ? `${state.site ? 'Drone capture round the house, ' : ''}Vexcel ${w.kind}${state.site ? ' beyond' : ''}${w.capture ? `, flown ${w.capture.slice(0, 7).replace('/', '-')}` : ''}. ${w.note}` : '')
+        if (view.env === 'aerial') lines.push(w.status === 'loading' ? 'Loading the surroundings' : w.status === 'missing' ? `No surroundings for this scan. ${w.note}` : w.kind ? `${state.site ? 'Drone capture round the house, ' : ''}Vexcel ${w.kind}${state.site ? ' beyond' : ''}${w.capture ? `, flown ${w.capture.slice(0, 7).replace('/', '-')}` : ''}.${w.placed ? '' : ` ${w.note}`}` : '') // how it was placed is said only when the placing is unsure
         if ((view.surface ?? 'model') !== 'model' && mode === 'dollhouse' && state.interior.status !== 'ready' && state.interior.status !== 'loading') lines.push(s.status === 'loading' ? 'Loading the scanned mesh' : s.status === 'missing' ? 'This scan has no scanned mesh; showing the measured model.' : s.colour === 'baking' ? `Colouring the scanned mesh from its panoramas: ${Math.round(s.progress * 100)}%` : s.colour === 'none' && s.status === 'ready' ? 'The scanned mesh could not be coloured; showing its form.' : '')
         if (mode === 'splat' && view.env === 'aerial' && state.splat.splats) lines.unshift(`Drone capture: a sample, ${(state.splat.splats / 1e6).toFixed(2)}M of its ${(state.splat.total / 1e6).toFixed(1)}M Gaussians.`)
         const text = lines.filter(Boolean)
@@ -167,13 +167,13 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
       {playing && <ShowLayer kind={playing} sink={showSink} />}
 
       {model && model.hasWalls && mode !== 'plan' && mode !== 'splat' && !shown && (
-        <div className="th-inset" data-scene-ui>
+        <div className="th-inset" data-scene-ui title="Click a scan position to stand there">
           <FloorPlan plan={plan} model={model} overlays={drawn} floor={view.floor} compact pano={mode === 'pano' ? state?.pano : null} handle={insetHandle} onPick={pickFromPlan} />
         </div>
       )}
 
       {mode === 'dollhouse' && (model?.hasWalls || (view.surface ?? 'model') !== 'model') && (
-        <label className="th-cut" data-scene-ui>
+        <label className="th-cut" data-scene-ui title="Cut the walls at this height to see into the rooms">
           <span className="th-cut-title">Cut</span>
           <input type="range" min={0.2} max={maxH} step={0.05} value={view.cut ?? maxH} aria-label="Cut-away height in metres"
             onChange={(e) => { const v = Number(e.target.value); change({ ...view, cut: v >= maxH - 0.02 ? null : v }) }} />
@@ -218,6 +218,7 @@ export function BuildingScene({ plan, overlays = NO_OVERLAYS, view: viewProp = D
             : 'Loading the drone capture'}
         </p>
       )}
+      {state?.panoFailed && <p className="th-note" role="alert" data-scene-ui>The 360° photo did not load.<button type="button" onClick={() => engine.current?.retryPano()}>Try again</button></p>}
       {state?.noWalls && mode === 'dollhouse' && <p className="th-note">This scan has no wall measurements. Showing its photo plan and scan positions; click a position to look around.</p>}
     </div>
   )

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { Slider } from '@base-ui/react/slider'
 import { Tabs } from '@base-ui/react/tabs'
 import {
-  Scene, SceneBoundary, fetchRecord, focusFinding, panoFace, runTool, useBuildingView, useBuildings, useWorkspace,
+  Scene, SceneBoundary, currentRoute, fetchRecord, focusFinding, panoFace, runTool, runToolHere, useBuildingView, useBuildings, useWorkspace,
   type Doc, type SceneCamera, type SceneMode, type SceneProps, type SceneState, type SceneView, type ScanPlan, type Status,
 } from '../../../core/index.ts'
 import { PanelView } from '../blocks/blocks.tsx'
@@ -27,12 +27,14 @@ const MODES: { id: SceneMode; label: string; icon: IconName; none: string }[] = 
 ]
 const WORST: Record<Status, number> = { fail: 0, warn: 1, unknown: 2, pass: 3 }
 type F = Doc['findings'][number]
+/** The results that check something. A tour replays other results' findings: it never speaks for the building. */
+const judged = (panels: Doc['panels']) => { const c = panels.filter((p) => p.tool !== 'tour'); return c.length ? c : panels }
 /** What the scene reports about a show (flood, fire, tour) while it plays, and what the toolbar sets to drive it. */
 type ShowState = NonNullable<Parameters<NonNullable<SceneProps['onShow']>>[0]>
 type ShowSpec = NonNullable<SceneView['show']>
 type ShowKind = ShowSpec['kind']
 const SHOWS: { id: ShowKind; label: string; icon: IconName; title: string }[] = [
-  { id: 'flood', label: 'Flood', icon: 'drop', title: 'Hurricane Harvey\'s water at this house, hour by hour' },
+  { id: 'flood', label: 'Flood', icon: 'drop', title: 'A recorded flood at this house, hour by hour' },
   { id: 'fire', label: 'Fire', icon: 'fire', title: 'A fire in these rooms and its smoke, minute by minute' },
   { id: 'tour', label: 'Tour', icon: 'walk', title: 'A camera tour of what was found here, read aloud' },
 ]
@@ -43,6 +45,13 @@ function Transport({ spec, sink, set, seek, close }: { spec: ShowSpec; sink: Rea
   const [got, setShow] = useState<ShowState | null>(null)
   useEffect(() => { sink.current = setShow; return () => { sink.current = null } }, [sink])
   const show = got?.kind === spec.kind ? got : null, ready = show?.status === 'ready'
+  // nothing to play here (the scene's own note says why), or not loaded yet: say so, with no dead controls
+  if (!ready) return (
+    <>
+      {show?.status === 'missing' ? <span className="muted small">Not available here</span> : <RunState state="running">Loading</RunState>}
+      <IconBtn icon="close" label="Close" className="btn icon quiet sm" onClick={close} />
+    </>
+  )
   return (
     <>
       <button type="button" className="btn sm" style={{ minWidth: 62 }} disabled={!ready} onClick={() => set({ playing: !spec.playing })}>{spec.playing ? 'Pause' : <><Icon name="play" size={12} />Play</>}</button>
@@ -96,7 +105,7 @@ function Summary({ plan, sid, panels, findings, onResults }: { plan: ScanPlan; s
     ['Walls', q.walls, q.walls_source === 'dxf' ? 'recovered from the drawing, not measured' : q.walls_confidence ? `${q.walls_confidence} confidence` : undefined],
     ['Room outlines', q.polygons], ['Doors and windows', q.openings], ['Room names', q.labels], ['Position on the map checked', q.georef],
   ] : []
-  const verdict = worstVerdict(panels)
+  const checked = judged(panels), verdict = worstVerdict(checked)
   // what a phone on site can settle: a check the scan could not measure, or one it was unsure of
   const open = findings.filter((f) => f.status === 'unknown' || f.status === 'warn').length
   return (
@@ -106,7 +115,7 @@ function Summary({ plan, sid, panels, findings, onResults }: { plan: ScanPlan; s
         <section className="sum-verdict" aria-label="Verdict">
           <St status={verdict.status} />
           <p className="text">{verdict.text}</p>
-          <p className="muted small">{panels.length === 1 ? verdict.title : `${verdict.title} · ${panels.length} results: ${tally(panels)}`}</p>
+          <p className="muted small">{checked.length === 1 ? verdict.title : `${verdict.title} · ${checked.length} results: ${tally(checked)}`}</p>
           <div className="row wrap">
             <button type="button" className="btn solid" onClick={() => onResults(verdict.panel)}>{verdict.status === 'pass' ? 'See the checks' : 'See what was checked'}</button>
             {open > 0 && <button type="button" className="btn" onClick={() => window.dispatchEvent(new Event('threshold:phone'))} title="Pair a phone and settle on site what the scan could not measure"><Icon name="camera" size={13} />Check on site</button>}
@@ -150,7 +159,7 @@ function Summary({ plan, sid, panels, findings, onResults }: { plan: ScanPlan; s
             <li><StatusGlyph status={plan.has.splat ? 'pass' : 'unknown'} /><span className="grow">Drone capture</span><span className="muted">{plan.has.splat ? 'yes' : 'no'}</span></li>
             <li><StatusGlyph status={plan.has.defurnished ? 'pass' : 'unknown'} /><span className="grow">Empty-room photos</span><span className="muted">{plan.has.defurnished ? 'yes' : 'no'}</span></li>
           </ul>
-          {q?.notes?.map((n) => <p key={n} className="muted small">{n}</p>)}
+          {q?.notes?.map((n) => <p key={n} className="muted small">{n.charAt(0).toUpperCase() + n.slice(1)}</p>)}
         </section>
       )}
       <section className="ins-sec">
@@ -338,7 +347,8 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
     if (s.scan.colour !== 'ready' || chose.current === sid || !plan) return
     // on its site only where the placing can be trusted: fitted to the aerial footprint, or tied to its own drone capture
     const sited = (plan as { geo?: { lat?: number | null } | null }).geo?.lat != null && (!!plan.quality?.georef || plan.has.splat)
-    v.setView((x) => ({ ...x, surface: 'scan', env: sited ? 'aerial' : x.env }))
+    // a link to a finding opens on the finding: taking the surroundings in would pull the camera back off it
+    v.setView((x) => ({ ...x, surface: 'scan', env: sited && !currentRoute().q.has('f') ? 'aerial' : x.env }))
   }
   // What if: the renovated plan beside this one. A new what-if result opens the comparison; the person can close it.
   const wi = useWhatIf(sid)
@@ -373,7 +383,14 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
   }, [doc.findings, runs, sid])
   const working = runs.filter((r) => r.status === 'running' && !panels.some((p) => p.run === r.id))
   // a run that failed leaves no result: it stays listed here until the same tool runs again on this scan
-  const failed = runs.filter((r, i) => r.status === 'failed' && !runs.slice(i + 1).some((l) => l.tool === r.tool))
+  const stopped = runs.filter((r, i) => r.status === 'failed' && !runs.slice(i + 1).some((l) => l.tool === r.tool))
+  // a tool that stopped to ask something has not failed: it waits for the answer, which the agent panel takes
+  const asked = doc.questions.find((q) => q.answer == null)
+  const waits = (r: Doc['runs'][number]) => !!asked && /^needs /.test(r.summary ?? '')
+  const failed = stopped.filter((r) => !waits(r)), waiting = stopped.filter(waits)
+  // the answer is in: run what was waiting for it, so the person is not left to press "Try again"
+  const waitingFor = waiting.map((r) => r.tool).join(','), waited = useRef('')
+  useEffect(() => { if (!asked && waited.current) waited.current.split(',').forEach((id) => runToolHere(id, sid)); waited.current = waitingFor }, [asked?.id, waitingFor]) // eslint-disable-line react-hooks/exhaustive-deps
   const catalogue = useTools()
 
   // A result that arrives while the person is on this scan is shown; so is the result of a focused finding.
@@ -456,7 +473,7 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
 
   useEffect(() => { if (v.plan) host?.bind?.({ plan: v.plan, setView: v.setView }); return () => host?.bind?.(null) }, [v.plan]) // eslint-disable-line react-hooks/exhaustive-deps
   const i = b ? b.scans.findIndex((x) => x.sid === sid) : -1
-  const verdict = worstVerdict(panels)
+  const verdict = worstVerdict(judged(panels))
   const tools = doc.tools
   const fault = (text: string): ReactNode => <div className="scene-state"><Empty icon="warn" title={text} action={<button className="btn" onClick={v.retry}>Try again</button>} /></div>
 
@@ -483,7 +500,7 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
   const work = (
         <section className="work" aria-label="Building view">
           <div className="worktools">
-            <Seg label="View" value={v.mode} onChange={v.setMode} options={MODES.map((m) => ({ id: m.id, label: m.label, icon: m.icon, disabled: !v.modes.includes(m.id), title: v.plan && !v.modes.includes(m.id) ? m.none : undefined }))} />
+            <Seg label="View" value={v.mode} onChange={v.setMode} options={MODES.map((m, k) => ({ id: m.id, label: m.label, icon: m.icon, disabled: !v.modes.includes(m.id), title: v.plan && !v.modes.includes(m.id) ? m.none : `${m.label} ( ${k + 1} )` }))} />
             {/* What the building is drawn from and what stands round it, behind one button. These edit the scene's view; the scene's own copy of the controls is switched off below. */}
             {v.plan && (v.mode === 'dollhouse' || v.mode === 'splat') && (() => {
               const placed = (v.plan as { geo?: { lat?: number | null } | null }).geo?.lat != null, doll = v.mode === 'dollhouse'
@@ -492,7 +509,7 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
               const lookSaid = [doll ? (surface === 'model' ? 'Measured' : surface === 'scan' ? 'Photoreal' : 'Splat') : 'Drone capture', v.view.env === 'aerial' ? 'on its site' : null].filter(Boolean).join(', ')
               return (
                 <>
-                  <MenuBtn trigger={<button type="button" className="btn quiet" aria-label={`How the building looks: ${lookSaid}`}><Icon name={surface === 'model' ? 'ruler' : 'camera'} size={14} /><span className="lbl">{lookSaid}</span><Icon name="down" size={11} /></button>}>
+                  <MenuBtn trigger={<button type="button" className="btn quiet look" aria-label={`How the building looks: ${lookSaid}`}><Icon name={surface === 'model' ? 'ruler' : 'camera'} size={14} /><span className="lbl">{lookSaid}</span><Icon name="down" size={11} /></button>}>
                     {doll && <>
                       <div className="mh">Drawn from</div>
                       <Menu.RadioGroup value={surface} onValueChange={(x) => { chose.current = sid; v.setView((w) => ({ ...w, surface: x as typeof surface })) }}>
@@ -508,26 +525,32 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
                       <Menu.RadioItem value="aerial" closeOnClick={false} disabled={!placed}><span className="mi-check"><Menu.RadioItemIndicator><Icon name="check" size={12} /></Menu.RadioItemIndicator></span>On its site<small>{placed ? 'from the aerial survey' : 'this scan has no position'}</small></Menu.RadioItem>
                     </Menu.RadioGroup>
                     <hr />
-                    <Menu.CheckboxItem checked={v.view.style === 'xray'} onCheckedChange={(yes) => v.setView((x) => ({ ...x, style: yes ? 'xray' : 'solid' }))}>
-                      <span className="mi-check"><Menu.CheckboxItemIndicator><Icon name="check" size={12} /></Menu.CheckboxItemIndicator></span>{doll ? 'Walls as glass (x-ray)' : 'Measured model inside the capture'}
+                    {/* glass walls are the measured model's: the photoreal surfaces have no walls to see through */}
+                    <Menu.CheckboxItem checked={v.view.style === 'xray' && !(doll && surface !== 'model')} disabled={doll && surface !== 'model'} onCheckedChange={(yes) => v.setView((x) => ({ ...x, style: yes ? 'xray' : 'solid' }))}>
+                      <span className="mi-check"><Menu.CheckboxItemIndicator><Icon name="check" size={12} /></Menu.CheckboxItemIndicator></span>{doll ? 'Walls as glass' : 'Measured model inside the capture'}{doll && surface !== 'model' && <small>Measured only</small>}
                     </Menu.CheckboxItem>
+                    {doll && <Menu.CheckboxItem checked={!!v.view.measures} onCheckedChange={(yes) => v.setView((x) => ({ ...x, measures: yes }))}>
+                      <span className="mi-check"><Menu.CheckboxItemIndicator><Icon name="check" size={12} /></Menu.CheckboxItemIndicator></span>Door and window widths
+                    </Menu.CheckboxItem>}
                     {doll && <Menu.Item onClick={() => v.setView((x) => ({ ...x, tour: (x.tour ?? 0) + 1 }))}><span className="mi-check" />Fly in from above</Menu.Item>}
                   </MenuBtn>
                 </>
               )
             })()}
+            {v.plan && v.mode === 'plan' && <button type="button" className="btn quiet" aria-pressed={!!v.view.measures} aria-label="Door and window widths" onClick={() => v.setView((x) => ({ ...x, measures: !x.measures }))} title="Show the width of every door and window"><Icon name="ruler" size={14} /><span className="lbl">Widths</span></button>}
+            {v.plan?.has.defurnished && v.mode === 'pano' && <button type="button" className="btn quiet" aria-pressed={v.view.wipe != null} aria-label="Furnished and empty" onClick={() => v.setView((x) => ({ ...x, wipe: x.wipe == null ? 0.5 : null }))} title="The same room with its furniture and empty. Drag the divider."><Icon name="split" size={14} /><span className="lbl">Furnished and empty</span></button>}
             <span className="grow" />
-            {wi.after && <button type="button" className="btn quiet" aria-pressed={showCompare} onClick={() => setCompare(!showCompare)} title="The plan as it is beside the plan after the what-if edits"><Icon name="split" size={14} /><span className="lbl">Now and after</span></button>}
+            {wi.after && (v.mode === 'dollhouse' || v.mode === 'plan') && <button type="button" className="btn quiet" aria-pressed={showCompare} aria-label="Now and after" onClick={() => setCompare(!showCompare)} title="The plan as it is beside the plan after the what-if edits"><Icon name="split" size={14} /><span className="lbl">Now and after</span></button>}
             {/* Play something on the building: a flood, a fire, a tour. Each says what it is before it starts. */}
             {v.plan && (
-              <MenuBtn align="end" trigger={<button type="button" className="btn quiet" aria-pressed={!!spec}><Icon name="play" size={13} /><span className="lbl">Play</span><Icon name="down" size={11} /></button>}>
+              <MenuBtn align="end" trigger={<button type="button" className="btn quiet" aria-pressed={!!spec} aria-label="Play" title="Play a flood, a fire or a tour on the building"><Icon name="play" size={13} /><span className="lbl">Play</span><Icon name="down" size={11} /></button>}>
                 <div className="mh">Play on the building</div>
-                {SHOWS.map((x) => <Menu.Item key={x.id} className="mi two" onClick={() => play(x.id)}><Icon name={x.icon} /><span className="grow"><b>{x.label}{spec?.kind === x.id && ' (playing, stop)'}</b><span className="s">{x.title}</span></span></Menu.Item>)}
+                {SHOWS.map((x) => <Menu.Item key={x.id} className="mi two" onClick={() => play(x.id)}><Icon name={x.icon} /><span className="grow"><b>{x.label}{spec?.kind === x.id && ' (playing, stop)'}</b><span className="s">{x.id === 'flood' && b?.metro === 'hou' ? 'Hurricane Harvey\'s water at this house, hour by hour' : x.title}</span></span></Menu.Item>)}
               </MenuBtn>
             )}
-            {v.plan && <FurnishMenu sid={sid} off={v.mode === 'dollhouse' ? undefined : 'Furniture is placed in the 3D view'} />}
+            {v.plan && v.mode === 'dollhouse' && <FurnishMenu sid={sid} />}
             {drawn.length > 0 && (
-              <MenuBtn align="end" trigger={<button type="button" className="btn quiet" aria-label={`Overlays: ${on.length} of ${drawn.length} tools drawn on the building`}><Icon name={on.length ? 'eye' : 'eyeoff'} size={14} /><span className="lbl">Overlays</span><span className="count">{on.length} of {drawn.length}</span></button>}>
+              <MenuBtn align="end" trigger={<button type="button" className="btn quiet" aria-label={`Overlays: ${on.length} of ${drawn.length} tools drawn on the building`}><Icon name={on.length ? 'eye' : 'eyeoff'} size={14} /><span className="lbl">Overlays</span>{drawn.length > 1 && <span className="count">{on.length} of {drawn.length}</span>}</button>}>
                 <div className="mh">Draw on the building</div>
                 {drawn.map((t) => (
                   <Menu.CheckboxItem key={t} checked={on.includes(t)} closeOnClick={false} onCheckedChange={(yes) => setPick(yes ? [...on, t] : on.filter((x) => x !== t))}>
@@ -583,6 +606,12 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
           </Tabs.Panel>
           <Tabs.Panel value="results" className="insp-body scroll">
             {working.map((r) => <div key={r.id} className="b-loading working"><RunState state="running">{r.label.split(' · ')[0]}</RunState>{r.summary && <p className="muted small">{r.summary}</p>}<span className="sk" style={{ width: '64%' }} /></div>)}
+            {waiting.map((r) => (
+              <div key={r.id} className="b-loading" role="status">
+                <span className="row"><b className="grow">{catalogue.find((x) => x.id === r.tool)?.title ?? r.label.split(' · ')[0]} needs one answer</b><button type="button" className="btn sm solid" onClick={() => useUi.getState().setRun(true)}>Answer</button></span>
+                <p className="muted small">{asked!.text}</p>
+              </div>
+            ))}
             {failed.map((r) => {
               const t = catalogue.find((x) => x.id === r.tool)
               return (
@@ -592,9 +621,9 @@ export function Building({ sid, host }: { sid: string; host?: BuildingHost }) {
                 </div>
               )
             })}
-            {panels.length === 0 && working.length === 0 && failed.length === 0 && citywide.length === 0 && (
+            {panels.length === 0 && working.length === 0 && stopped.length === 0 && citywide.length === 0 && (
               <Empty icon="play" title="No results on this scan" action={<RunToolMenu sid={sid} trigger={<button type="button" className="btn solid">Run a tool<Icon name="down" size={11} /></button>} />}>
-                Pick a tool to measure this scan. Its result, checks and evidence appear here, and it draws on the building.
+                Pick a tool to measure this scan.
               </Empty>
             )}
             {[...panels].reverse().map((p) => <PanelView key={p.id} panel={p} open={p.id === inView?.id} onOpen={(o) => { setChosen(o ? p.id : null); setPick(null) }} />)}

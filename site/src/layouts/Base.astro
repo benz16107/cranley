@@ -1,9 +1,9 @@
 ---
 import '../styles/base.css'
 import Mark from '../components/Mark.astro'
-import { LINKS } from '../site/links'
+import { LINKS, TEAM } from '../site/links'
 import { TRACKS } from '../site/tracks'
-interface Props { title: string; description: string; nav?: 'home' | 'tracks' }
+interface Props { title: string; description: string; nav?: 'home' | 'how' | 'tracks' }
 const { title, description, nav } = Astro.props
 const realVisuals = process.env.CRANLEY_REAL_VISUALS === '1'
 const url = new URL(Astro.url.pathname, Astro.site)
@@ -27,6 +27,7 @@ const url = new URL(Astro.url.pathname, Astro.site)
     <meta name="twitter:card" content="summary_large_image" />
     <script is:inline>
       // the colour scheme chosen in the docs carries over to these pages
+      document.documentElement.classList.add('js') // lets the styles hold a diagram back until it is on screen
       try { var t = localStorage.getItem('starlight-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t } catch (e) {}
     </script>
   </head>
@@ -36,9 +37,7 @@ const url = new URL(Astro.url.pathname, Astro.site)
       <div class="wrap">
         <a class="brand" href="/" aria-label="Cranley, home"><Mark />Cranley</a>
         <nav aria-label="Main">
-          <a class="wide" href="/#how">How it works</a>
-          <a class="wide" href="/#tools">Tools</a>
-          <a class="wide" href="/#ecosystem">Ecosystem</a>
+          <a href="/how/" aria-current={nav === 'how' ? 'page' : undefined}>How it works</a>
           <a href="/tracks/" aria-current={nav === 'tracks' ? 'page' : undefined}>Tracks</a>
           <a href="/docs/">Docs</a>
         </nav>
@@ -48,44 +47,20 @@ const url = new URL(Astro.url.pathname, Astro.site)
     <main id="main"><slot /></main>
     <footer class="foot">
       <div class="wrap">
-        <div class="note">
-          <a class="brand" href="/"><Mark />Cranley</a>
-          <p>Built at HackPrinceton Fall 2026, November 13 to 15. The code name <code>threshold</code> stays on the package, the command line and the MCP server.</p>
-          <p>{realVisuals
-            ? 'Screens of the product on this site show Matterport, Vexcel and CoStar content with CoStar\'s permission. No data files are published here.'
-            : 'No CoStar, Matterport or Vexcel data appears on this site. Its pictures show made-up test scans and our own drawings.'}</p>
-        </div>
-        <nav aria-label="Product">
-          <h2>Product</h2>
-          <ul>
-            <li><a href="/#how">How it works</a></li>
-            <li><a href="/#tools">Tools by who they are for</a></li>
-            <li><a href="/#ecosystem">Ecosystem</a></li>
-            <li><a href="/#hardware">Hardware</a></li>
-            <li><a href="/tracks/">Tracks</a></li>
-          </ul>
+        <nav aria-label="Tracks"><span>Tracks</span>{TRACKS.map((t) => <a href={`/tracks/${t.slug}/`}>{t.name}</a>)}</nav>
+        <nav aria-label="Site">
+          <span>Built by {TEAM.map((m, i) => <>{i > 0 && ', '}{m.href ? <a href={m.href}>{m.name}</a> : m.name}</>)} at HackPrinceton, fall 2026</span>
+          <a href="/how/">How it works</a>
+          <a href="/docs/">Docs</a>
+          <a href={LINKS.github}>GitHub</a>
+          {LINKS.devpost && <a href={LINKS.devpost}>Devpost</a>}
+          {LINKS.video && <a href={LINKS.video}>Video</a>}
+          <a href="/privacy/">Privacy</a>
+          <a href="/terms/">Terms</a>
         </nav>
-        <nav aria-label="Docs">
-          <h2>Docs</h2>
-          <ul>
-            <li><a href="/docs/getting-started/">Getting started</a></li>
-            <li><a href="/docs/tools/">Tool reference</a></li>
-            <li><a href="/docs/mcp/">MCP server and CLI</a></li>
-            <li><a href="/docs/reference/api/">HTTP API</a></li>
-            <li><a href="/docs/data-sources/">Data sources and licences</a></li>
-            <li><a href="/docs/faq/">FAQ</a></li>
-          </ul>
-        </nav>
-        <nav aria-label="Project">
-          <h2>Project</h2>
-          <ul>
-            <li><a href={LINKS.github}>GitHub</a></li>
-            {LINKS.devpost && <li><a href={LINKS.devpost}>Devpost</a></li>}
-            {LINKS.video && <li><a href={LINKS.video}>Video</a></li>}
-            <li><a href="/privacy/">Privacy</a></li>
-            <li><a href="/terms/">Terms</a></li>
-          </ul>
-        </nav>
+        <p>{realVisuals
+          ? 'Screens of the product on this site show Matterport, Vexcel and CoStar content with CoStar\'s permission. No data files are published here.'
+          : 'No CoStar, Matterport or Vexcel data appears on this site. Its pictures show made-up test scans and our own drawings.'}</p>
       </div>
     </footer>
   </body>

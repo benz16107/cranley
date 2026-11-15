@@ -160,7 +160,7 @@ if (on('tasks')) {
     await p.page.goBack()
     // a step, by photo: the reference chips and the camera button (no photo is taken here)
     const step = p.page.locator('section', { hasText: 'Steps and thresholds' }).locator('button.m-row').first()
-    if (await step.count()) { await step.click(); await p.page.getByRole('radio', { name: 'Photo' }).click(); await p.page.getByRole('radio', { name: 'Bank card' }).click(); await p.shot('16-step-photo-reference'); await p.page.goBack() }
+    if (await step.count()) { await step.click(); await p.page.getByRole('radio', { name: 'Photo' }).click(); await p.page.getByRole('radio', { name: 'Card' }).click(); await p.shot('16-step-photo-reference'); await p.page.goBack() }
     await p.ctx.close()
   }
 }

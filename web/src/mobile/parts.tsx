@@ -1,10 +1,19 @@
 import { useRef, useState, type ReactNode } from 'react'
+import { ICONS } from '../skins/app/design/icons.ts'
 import { StatusGlyph } from '../skins/sheet/design/ui.tsx'
 import { captureFile, captureFrame, usePhone, type Check, type Finding, type Outcome, type Points, type Result, type Room, type Status, type Task } from './api.ts'
 import type { Sense } from './sensors.ts'
 
-/* Shared pieces of the phone app. The look is the Sheet look's (its tokens, type roles, buttons and status glyphs),
-   laid out for one hand: reading at the top, the action for the thumb at the bottom. */
+/* Shared pieces of the phone app. Colours, type and status glyphs are the Sheet look's; the structure is an iPhone
+   app's (grouped lists, a large title, one action bar in reach of the thumb). */
+
+/** An icon from the App look's set (Phosphor), so the phone and the desktop draw the same marks. */
+export function Ico({ name, size = 22 }: { name: keyof typeof ICONS; size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d={ICONS[name]} /></svg>
+}
+const Chevron = () => <svg className="m-chev" width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m1 1 6 6-6 6" /></svg>
+/** A short buzz where the phone can give one (Android). iPhone Safari has no vibration: the card and the toast carry it there. */
+export function buzz(kind: 'ok' | 'error' = 'ok') { try { navigator.vibrate?.(kind === 'ok' ? 12 : [30, 50, 30]) } catch { /* not allowed before a tap */ } }
 
 export const TOOL_TITLE: Record<string, string> = { field_check: 'Field check', photo_measure: 'Photo measure', slope_check: 'Slope check', noise_level: 'Noise level', where_am_i: 'Where am I',
   window_check: 'Window check', floor_height: 'Floor height', walkthrough: 'Walk-through', door_widths: 'Door widths', step_free_route: 'Step-free route', bathroom_clearance: 'Bathroom clearance',
@@ -28,19 +37,32 @@ export function num(v: number | null | undefined, unit: string): string {
   return val(v, unit)
 }
 
-/** A capture screen: title and back at the top, content, then the actions in reach of the thumb. */
+/** A capture screen: back at the top, a large title, content, then the one action in reach of the thumb. */
 export function Page({ title, sub, onBack, children, actions }: { title: string; sub?: string | null; onBack: () => void; children: ReactNode; actions?: ReactNode }) {
   return (
     <div className="m-page">
       <header className="m-top">
         <button className="m-back" onClick={onBack} aria-label="Back">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M11 3 5 9l6 6" /></svg>
+          <svg width="11" height="19" viewBox="0 0 11 19" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9.5 1.5 1.5 9.5l8 8" /></svg><span aria-hidden="true">Back</span>
         </button>
-        <div className="m-title"><h1>{title}</h1>{sub && <p>{sub}</p>}</div>
       </header>
-      <main className="m-body">{children}</main>
+      <main className="m-body">
+        <div className="m-title"><h1>{title}</h1>{sub && <p>{sub}</p>}</div>
+        {children}
+      </main>
       {actions && <footer className="m-actions">{actions}</footer>}
     </div>
+  )
+}
+
+/** A titled group of rows or controls, as an iPhone settings list groups them. */
+export function Group({ title, count, foot, pad, children }: { title?: ReactNode; count?: number; foot?: ReactNode; pad?: boolean; children: ReactNode }) {
+  return (
+    <section className="m-group">
+      {title && <h2 className="m-group-h">{title}{count != null && <> · <span className="num">{count}</span></>}</h2>}
+      <div className="m-list" data-pad={pad || undefined}>{children}</div>
+      {foot && <p className="m-hint">{foot}</p>}
+    </section>
   )
 }
 
@@ -83,16 +105,16 @@ export function Camera({ label, video, onFile, quiet }: { label: string; video?:
 /** What to do about a sensor that is off, refused or absent. Renders nothing when it is on. */
 export function SensorGate({ state, allow, name, fallback }: { state: Sense; allow: () => void; name: string; fallback: string }) {
   if (state === 'on' || state === 'unknown') return state === 'unknown' ? <p className="m-note skeleton" aria-busy="true">Waiting for the {name}</p> : null
-  if (state === 'need-permission') return <div className="m-note"><p>This phone asks before a page may read its {name}.</p><button className="btn m-btn solid" onClick={allow}>Turn on motion sensors</button></div>
-  return <div className="m-note warn"><p>{state === 'denied' ? `The ${name} was refused. On an iPhone, close this tab and open the link again to be asked once more.` : `This device has no ${name} a page can read.`} {fallback}</p></div>
+  if (state === 'need-permission') return <div className="m-note"><p>This needs the phone's {name}.</p><button className="btn m-btn solid" onClick={allow}>Turn on motion sensors</button></div>
+  return <div className="m-note warn"><p>{state === 'denied' ? `The ${name} is off for this page. On an iPhone, close this tab and open the link again to be asked.` : `This device has no ${name} a page can read.`} {fallback}</p></div>
 }
 
 export function Progress({ value, label }: { value: number | null; label: string }) {
-  return <div className="m-progress" role="progressbar" aria-label={label} aria-valuenow={value == null ? undefined : Math.round(value * 100)} aria-valuemin={0} aria-valuemax={100}><i style={{ scale: `${value ?? 0.08} 1` }} /><span>{label}</span></div>
+  return <div className="m-progress" role="progressbar" aria-label={label} aria-valuenow={value == null ? undefined : Math.round(value * 100)} aria-valuemin={0} aria-valuemax={100}><span>{label}</span><i><b style={{ scale: `${value ?? 1} 1` }} /></i></div>
 }
 
 export function Row({ status, title, sub, right, onClick, done }: { status?: Status; title: string; sub?: ReactNode; right?: ReactNode; onClick?: () => void; done?: boolean }) {
-  const body = <><span className="m-row-glyph">{status && <StatusGlyph status={status} size={11} />}</span><span className="m-row-text"><b>{title}</b>{sub && <span>{sub}</span>}</span>{right && <span className="m-row-right num">{right}</span>}</>
+  const body = <>{status && <span className="m-row-glyph"><StatusGlyph status={status} size={11} /></span>}<span className="m-row-text"><b>{title}</b>{sub && <span>{sub}</span>}</span>{right && <span className="m-row-right num">{right}</span>}{onClick && <Chevron />}</>
   return onClick ? <button className="m-row" data-done={done || undefined} onClick={onClick}>{body}</button> : <div className="m-row" data-done={done || undefined}>{body}</div>
 }
 
@@ -100,7 +122,7 @@ export function Row({ status, title, sub, right, onClick, done }: { status?: Sta
 export function OutcomeCard({ outcome, task }: { outcome: Outcome; task: Pick<Task, 'unit' | 'scan_value' | 'threshold' | 'kind'> }) {
   return (
     <section className="m-card" data-status={outcome.status} aria-live="polite">
-      <header><StatusGlyph status={outcome.status} size={11} /><b>{SAID[outcome.verdict]}</b><span className="src">{outcome.method === 'manual' ? (task.kind === 'floor_height' ? 'Counted' : task.kind === 'alarm' ? 'Your word' : 'Tape') : outcome.method === 'vision' ? 'Photo' : 'Sensor'} · {outcome.confidence}</span></header>
+      <header><StatusGlyph status={outcome.status} size={11} /><b>{SAID[outcome.verdict]}</b><span className="src">{outcome.method === 'manual' ? (task.kind === 'floor_height' ? 'Counted' : task.kind === 'alarm' ? 'Your word' : task.kind === 'heading' ? 'Picked by hand' : 'Tape') : outcome.method === 'vision' ? 'Photo' : 'Sensor'} · {outcome.confidence}</span></header>
       <dl className="m-kv">
         {outcome.value != null && <><dt>On site</dt><dd className="num">{num(outcome.value, task.unit)}{outcome.err ? ` ± ${num(outcome.err, task.unit)}` : ''}</dd></>}
         {task.scan_value != null && task.kind !== 'floor_height' && <><dt>Scan</dt><dd className="num">{num(task.scan_value, task.unit)}</dd></>}
@@ -118,12 +140,14 @@ function CheckRow({ c }: { c: Check }) {
   return <li><StatusGlyph status={c.status} size={9} /><span>{c.rule}</span><span className="num">{val(c.measured, c.unit)}{c.threshold != null && <i> {claim ? 'was' : 'of'} {val(c.threshold, c.unit)}</i>}</span></li>
 }
 function Evidence({ f }: { f: Finding }) {
-  const shots = f.media.filter((m) => m.kind === 'phone').slice(0, 3)
+  // a reading has no picture: only captures known to be photos or clips are asked for
+  const caps = usePhone.getState().view?.captures ?? []
+  const shots = f.media.filter((m) => m.kind === 'phone' && ['photo', 'video'].includes(caps.find((c) => c.id === m.ref.split('#')[0])?.kind ?? 'photo')).slice(0, 3)
   return (
     <li>
       <StatusGlyph status={f.status} size={9} />
       <div><b>{f.title}</b><p>{f.detail}</p>
-        {shots.length > 0 && <div className="m-shots">{shots.map((m) => <img key={m.ref} src={m.ref.includes('#') ? captureFrame(m.ref) : captureFile(m.ref)} alt="" loading="lazy" width={96} height={72} onError={(e) => { e.currentTarget.style.display = 'none' /* a reading has no picture */ }} />)}</div>}
+        {shots.length > 0 && <div className="m-shots">{shots.map((m) => <img key={m.ref} src={m.ref.includes('#') ? captureFrame(m.ref) : captureFile(m.ref)} alt="" loading="lazy" width={96} height={72} onError={(e) => { e.currentTarget.style.display = 'none' }} />)}</div>}
         <span className="src">{f.source.layer} · {f.source.method} · {f.source.confidence}</span>
       </div>
     </li>

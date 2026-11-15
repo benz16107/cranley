@@ -80,7 +80,7 @@ def analyse(plan: dict, garage: dict, d: Dims, want: int | None) -> dict | None:
     size = geom.size_in(best["raw"], doors)  # measured on the floor itself, not the 2 mm search allowance
     door_h, door_measured = geom.door_limit(doors)
     ceil = s["ceiling"]
-    return {"survey": s, "frame": f, "region": region, "doors": doors, "fits": best["fits"], "tight": best["tight"],
+    return {"survey": s, "frame": f, "region": region, "raw": best["raw"], "doors": doors, "fits": best["fits"], "tight": best["tight"],
             "n": n, "status": status, "cars": cars, "which": which,
             "clear": geom.clearances(best["raw"], cars, d.width, d.length) if cars else [],
             "width": size["width"], "depth": size["depth"], "door_line": size["door_line"],
@@ -88,12 +88,20 @@ def analyse(plan: dict, garage: dict, d: Dims, want: int | None) -> dict | None:
             "door_height_measured": door_measured, "ceiling": ceil["value"], "ceiling_measured": ceil["measured"]}
 
 
+def parked(a: dict, d: Dims) -> list[tuple[float, float, float, float]]:
+    """(u, v, width, length) of every parked vehicle: the pair when two different ones are parked."""
+    if a.get("pair"):
+        return [(u, v, x.width, x.length) for (u, v), x in zip(a["pair"]["cars"], a["pair"]["order"])]
+    return [(u, v, d.width, d.length) for u, v in a["cars"]]
+
+
 def things(a: dict, d: Dims, uses: list[str]) -> list[dict]:
     """Room for each extra (bench, charger, motorcycle, bikes, rack) in the floor the parked cars leave, in order."""
     region = a["region"]
-    taken = shapely.union_all([box(u - geom.SQUEEZE_M, v - geom.REAR_M, u + d.width + geom.SQUEEZE_M, v + d.length + 0.3)
-                               for u, v in a["cars"]]) if a["cars"] else None
-    cars = shapely.union_all([box(u, v, u + d.width, v + d.length) for u, v in a["cars"]]) if a["cars"] else None
+    ps = parked(a, d)
+    taken = shapely.union_all([box(u - geom.SQUEEZE_M, v - geom.REAR_M, u + w + geom.SQUEEZE_M, v + l + 0.3)
+                               for u, v, w, l in ps]) if ps else None
+    cars = shapely.union_all([box(u, v, u + w, v + l) for u, v, w, l in ps]) if ps else None
     out = []
     for k in uses:
         (l, w, h), note = THINGS[k]
@@ -106,3 +114,37 @@ def things(a: dict, d: Dims, uses: list[str]) -> list[dict]:
             g = shapely.Polygon(spot)
             taken = g if taken is None else taken.union(g)
     return out
+
+
+def pair(a: dict, d1: Dims, d2: Dims) -> dict:
+    """Two different vehicles side by side in an analysed garage: 'fits' (doors open on every side, walk round) or
+    'tight' (squeeze out), either way round; 'fail' when neither layout fits. Positions and clearances."""
+    region, doors = a["region"], a["doors"]
+    for which in ("fits", "tight"):
+        for x, y in ((d1, d2), (d2, d1)):
+            lx, ly = level(x, which), level(y, which)
+            cars = geom.place_pair(region, [(x.width, x.length, lx["span"]), (y.width, y.length, ly["span"])],
+                                   [lx["gap"], max(lx["gap"], ly["gap"]), ly["gap"]], max(lx["front"], ly["front"]),
+                                   doors, max(lx["rear"], ly["rear"]))
+            if cars:
+                return {"status": "pass" if which == "fits" else "warn", "which": which, "order": [x, y],
+                        "cars": cars, "clear": geom.pair_clearances(a["raw"], cars, [(x.width, x.length),
+                                                                                     (y.width, y.length)])}
+    return {"status": "fail", "which": None, "order": [d1, d2], "cars": [], "clear": []}
+
+
+def storage(a: dict, d: Dims, ceiling: float | None) -> dict:
+    """Room for stuff once the vehicles are parked with their door room and a walkway ahead: free floor (m²), the
+    depth of shelving the front wall can take, and the volume over the vehicles a ceiling rack can use."""
+    region = a["region"]
+    ps = parked(a, d)
+    need = d.door if not d.towed else 0.6
+    keep = shapely.union_all([box(u - need, v - geom.REAR_M, u + w + need, v + l + geom.FRONT_FITS_M)
+                              for u, v, w, l in ps]) if ps else None
+    free = region.difference(keep) if keep is not None else region
+    clear = a["clear"] if not a.get("pair") else a["pair"]["clear"]
+    fronts = [c["front"] for c in clear if c.get("front") is not None]
+    heights = [x.height for x in (a["pair"]["order"] if a.get("pair") else [d] * len(ps))]
+    over = sum(w * l * max(0.0, (ceiling or 0) - h - 0.15) for (u, v, w, l), h in zip(ps, heights)) if ceiling else None
+    return {"floor_m2": free.area, "shelf_m": max(0.0, min(fronts) - geom.FRONT_FITS_M) if fronts else None,
+            "overhead_m3": over}

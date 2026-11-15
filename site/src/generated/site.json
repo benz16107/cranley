@@ -1684,6 +1684,12 @@
   "tiger-data"
  ],
  "asked": "Cranley was built forward-deployed. Before and while building it, we asked people and businesses what goes wrong with the inside and outside of their buildings (homes, garages, stores, kitchens, warehouses, offices), then changed the tools to match (or found they already did): one recorded 31-minute phone interview with Jean Ryan, President of Disabled In Action of Metropolitan New York, written answers from 40 people in 15 online communities, and 340 emails to organisations and businesses.",
+ "asked_counts": {
+  "minutes": 31,
+  "people": 40,
+  "communities": 15,
+  "emails": 340
+ },
  "home": {
   "sid": "u_testhome0001",
   "name": "Test home (made up)",
@@ -2324,7 +2330,7 @@
      },
      {
       "id": "stepfree.rooms",
-      "rule": "Rooms on the entrance floor reached with no step at any doorway: bathroom, bedroom, hallway, kitchen, living room",
+      "rule": "Rooms on the entrance floor reached with no step at any doorway: bathroom, bedroom (2), hallway, kitchen, living room",
       "measured": 6.0,
       "threshold": null,
       "unit": "rooms",

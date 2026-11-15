@@ -74,9 +74,12 @@ export function useHandoff(sid: string | null, stage: HTMLElement | null, onLeav
     Promise.all([fetchPlan(sid), fetchSite(sid)]).then(([plan, site]) => {
       const map = useWorld.getState().map, mesh = useWorld.getState().mesh
       if (!on) return
-      if (!site.available || !map || !stage) { land(); if (now.current === 'approach') setPhase('ready'); return } // no place in the world: a plain fade
+      if (!site.available || !stage) { land(); if (now.current === 'approach') setPhase('ready'); return } // no place in the world: a plain fade
       const r = stage.getBoundingClientRect()
       const st = x.stand = stand(plan as never, site, { w: r.width, h: r.height })
+      // a link straight to a building answers before the map has loaded: the effect below puts the map behind the
+      // scene when it arrives, and zooming out can then hand over to it
+      if (!map) { setLanded(true); if (now.current === 'approach') setPhase('ready'); return }
       void mesh?.want({ sid }, st.ring)
       mesh?.setShown(true)
       const p = x.pose = { bearing: map.getBearing(), pitch: Math.min(76, Math.max(map.getPitch(), 50)), range: st.enter }

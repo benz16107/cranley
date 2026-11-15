@@ -22,6 +22,8 @@ import type { ShowState } from '../show/types.ts'
 
 export interface SceneState {
   mode: Mode; loading: boolean; pano: string | null; hasEmpty: boolean; noWalls: boolean
+  /** The 360° photo asked for did not load: the view is still where it was. `retryPano()` asks again. */
+  panoFailed: boolean
   splat: { status: SplatView['status']; progress: number; splats: number; total: number }
   /** The surroundings: what they are drawn from, how sure the placement is, and when the pictures were taken. */
   world: { status: WorldView['status']; kind: WorldView['kind']; placed: boolean; note: string; capture: string; credit: string }
@@ -97,6 +99,7 @@ export class Engine {
   private dirty = true; private raf = 0; private last = 0
   private panoPresence = { cur: 0, goal: 0 }; private planPresence = { cur: 0, goal: 0 }
   private loading = 0
+  private panoFailed: string | null = null
   private drift = false
   private orbiting = false // view.orbit is turning the camera; a drag stops it until the value changes
   private off = { cur: [0, 0] as [number, number], from: [0, 0] as [number, number], to: [0, 0] as [number, number], t: 1 } // the picture's centre, shifted into view.frame
@@ -347,7 +350,7 @@ export class Engine {
     this.planPresence.goal = mode === 'plan' ? 1 : 0
     this.doll.anim.reveal.goal = mode === 'splat' ? 0 : 1
     this.splat.show(mode === 'splat')
-    if (mode !== 'pano') { this.doll.setPanoMode(false); this.panoContext() }
+    if (mode !== 'pano') { this.panoFailed = null; this.doll.setPanoMode(false); this.panoContext() }
     if (mode === 'dollhouse') {
       Object.assign(L, { minPol: 0.05, maxPol: 1.5, minDist: 2, maxDist: R * 9, minFov: DOLL_FOV, maxFov: DOLL_FOV })
       const p = this.dollPose()
@@ -357,7 +360,8 @@ export class Engine {
       rig.flyTo(this.planPose(), 1000)
     } else if (mode === 'pano') {
       Object.assign(L, { minPol: 0.35, maxPol: 2.8, minDist: 0.02, maxDist: 0.02, minFov: PANO_FOV_MIN, maxFov: PANO_FOV_MAX })
-      const start = this.view.pano ?? this.nearestPano(rig.pose.target.x, rig.pose.target.y)?.id
+      // "Inside" means a room: a house's scan positions include the garden and the drive, and the nearest may be one of those
+      const t = rig.pose.target, start = this.view.pano ?? (this.nearestPano(t.x, t.y, undefined, true) ?? this.nearestPano(t.x, t.y))?.id
       if (start) this.goPano(start, true)
     } else {
       Object.assign(L, { minPol: 0.25, maxPol: 1.5, minDist: 8, maxDist: 160, minFov: DOLL_FOV, maxFov: DOLL_FOV })
@@ -368,10 +372,13 @@ export class Engine {
     this.syncDots()
   }
 
-  private nearestPano(x: number, y: number, roomId?: string): Pano | null {
+  /** Rooms with an outline. A house's garden and drive are "rooms" too, with none. */
+  private get outlined() { return (this.rooms ??= new Set(this.model.plan.rooms.filter((r) => r.polygon.length > 2).map((r) => r.id))) }
+  private rooms: Set<string> | null = null
+  private nearestPano(x: number, y: number, roomId?: string, indoors = false): Pano | null {
     let best: Pano | null = null, bd = Infinity
     for (const p of this.model.plan.panos) {
-      if (roomId && p.room !== roomId) continue
+      if ((roomId && p.room !== roomId) || (indoors && !this.outlined.has(p.room ?? ''))) continue
       const d = Math.hypot(p.position[0] - x, p.position[1] - y)
       if (d < bd) { bd = d; best = p }
     }
@@ -382,7 +389,7 @@ export class Engine {
   private goPano(id: string, dive: boolean, look = false) {
     const p = this.model.plan.panos.find((q) => q.id === id)
     if (!p) return
-    this.loading++; this.pushState()
+    this.loading++; this.panoFailed = null; this.pushState()
     this.pano.show(p).then(() => {
       if (this.view.mode !== 'pano') return
       const rig = this.rig
@@ -396,9 +403,12 @@ export class Engine {
       const fov = dive ? clamp(this.view.fov ?? PANO_FOV, PANO_FOV_MIN, PANO_FOV_MAX) : rig.goal.fov
       rig.flyTo({ target: new THREE.Vector3(...p.position), az, pol, dist: 0.02, fov }, dive ? 1350 : 800)
       this.panoContext(); this.invalidate()
-    }).catch((e) => { if ((e as Error).message !== 'superseded') console.warn('[scene] panorama failed to load', e) })
+    }).catch((e) => { if ((e as Error).message !== 'superseded') { console.warn('[scene] panorama failed to load', e); this.panoFailed = id } })
       .finally(() => { this.loading--; this.pushState() })
   }
+
+  /** Ask again for a 360° photo that did not load. */
+  retryPano() { if (this.panoFailed) this.goPano(this.panoFailed, true) }
 
   private focusOn(a: Anchor) {
     // a direction from where the viewer already stands: turn to it (arriving at another position is goPano's)
@@ -430,7 +440,7 @@ export class Engine {
   private pushState() {
     const s: SceneState = {
       mode: this.view.mode, loading: this.loading > 0 || ((this.view.mode === 'splat' || this.site) && this.splat.status === 'loading') || this.interior.status === 'loading', pano: this.pano.current?.id ?? null,
-      hasEmpty: this.pano.hasEmpty, noWalls: !this.model.hasWalls,
+      hasEmpty: this.pano.hasEmpty, noWalls: !this.model.hasWalls, panoFailed: this.panoFailed != null && this.view.mode === 'pano',
       splat: { status: this.splat.status, progress: Math.round(this.splat.progress * 50) / 50, splats: this.splat.splats, total: this.splat.total },
       world: { status: this.world.status, kind: this.world.kind, placed: !!this.world.site?.georef?.verified, note: this.world.site?.georef?.note ?? this.world.site?.note ?? '',
         capture: (this.world.kind === 'city mesh' && this.world.site?.tiles3d?.capture?.[0]) || '', credit: (this.world.kind === 'city mesh' && this.world.site?.tiles3d?.copyright) || '' },

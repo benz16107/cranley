@@ -102,6 +102,8 @@ Inputs used: `headcount = 6` (an answer given for this example).
 | Meeting rooms | <span class="num">0</span> | <span class="num">1 rooms</span> | <span class="st fail">fail</span> |
 | Seats in the largest meeting room | <span class="num">0</span> | <span class="num">6 seats</span> | <span class="st warn">warn</span> |
 | Kitchen or break room | <span class="num">1</span> | <span class="num">1 rooms</span> | <span class="st pass">pass</span> |
+| Not in the scan: what is on the floor above: only one floor is scanned, so an office under a bathroom cannot be ruled out | not measured |  | <span class="st unknown">unknown</span> |
+| Not in the scan: sound through walls and floors: the scan measures rooms, not soundproofing | not measured |  | <span class="st unknown">unknown</span> |
 
 Findings: 1 fail, 1 warn.
 

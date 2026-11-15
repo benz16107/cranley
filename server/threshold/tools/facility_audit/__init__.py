@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 from ...whatif.cost import PRICES
 from .. import Check, Finding, Metric, ScanScope, Source, ToolResult, Verdict, field, run_tool, tool
+from .._access import cannot
 
 FT2_PER_M2 = 10.7639
 SF_PER_OCCUPANT = 150  # IBC 2021 Table 1004.5, business areas, gross
@@ -24,6 +25,8 @@ BOOK = Source(layer="model", method="simulation", confidence="low",
               note="What-if cost book: national averages from cost guides, not a quote, no local labour rate")
 AREA = Source(layer="matterport", method="geometry", confidence="high", note="Sum of room areas on the scan")
 SEEN_LABELS = ("smoke alarm", "sprinkler head", "exit sign", "fire extinguisher")
+HOT_WATER_M = 15.24    # IPC 2021 607.2: 50 ft of hot water pipe from the source to a fixture, then it must be kept hot
+STOCK_ROOMS = ("storage", "kitchen or break room")
 
 
 class Inputs(BaseModel):
@@ -33,6 +36,9 @@ class Inputs(BaseModel):
     read_panoramas: bool = field(True, description="Let the vision model read the panoramas (restroom fixtures, "
                                                    "life-safety objects); cached after the first run")
     cleaning: bool = field(True, description="Price a cleaning contract from the takeoff")
+    cart_m: list[float] = field([0.51, 0.66, 1.78], min_length=3, max_length=3, pref="facility.cart_m", unit="m",
+                                description="Cart or rolling rack stock moves on: width, length, height (default a "
+                                            "full-size sheet-pan rack, 20 x 26 x 70 in)")
 
 
 def price(pid: str) -> tuple[float, str]:
@@ -96,12 +102,44 @@ def fixes_for(doors: ToolResult | None, baths: ToolResult | None, egress: ToolRe
     return sorted(out, key=lambda f: (f["priority"], -(f["total"] or 0)))
 
 
-def seen_counts(plan: dict, read: bool) -> dict | None:
+def seen_objects(plan: dict, read: bool) -> list[dict] | None:
     from ..fire_preplan.common import VisionBudget, objects
-    found = objects(plan, VisionBudget(1 if read else 0))
+    return objects(plan, VisionBudget(1 if read else 0))
+
+
+def seen_counts(plan: dict, read: bool, found: list[dict] | None = None) -> dict | None:
+    found = seen_objects(plan, read) if found is None else found
     if found is None:
         return None
     return {k: sum(d["label"] == k and d["finding"]["source"]["confidence"] in ("high", "medium") for d in found) for k in SEEN_LABELS}
+
+
+def hot_water_run(found: list[dict]) -> dict | None:
+    """Straight-line distance from the water heater seen on the panoramas to the farthest sink seen, the least the
+    hot water pipe can be. None when no water heater or no sink was located."""
+    import math
+    heaters = [d for d in found if d["label"] == "water heater" and d.get("point")]
+    sinks = [d for d in found if d["label"] == "sink" and d.get("point")]
+    if not heaters or not sinks:
+        return None
+    pairs = [(min(math.dist(h["point"], s_["point"]) for h in heaters), s_) for s_ in sinks]
+    far, sink = max(pairs, key=lambda x: x[0])
+    return {"distance": far, "sink": sink, "heaters": len(heaters), "sinks": len(sinks)}
+
+
+def cart_routes(ctx, plan: dict, box: tuple) -> list[dict]:
+    """A loaded cart from the main entrance (the receiving door, if it is the main one) to each storage room and
+    kitchen: the furniture_fit carry on empty-room widths, with its bends (where a loaded rack sheds its load)."""
+    from ..furniture_fit import carry_audit
+    from ..room_labeller import facts
+    out = []
+    for r in plan.get("rooms") or []:
+        if facts.commercial(r.get("label")) in STOCK_ROOMS:
+            a = carry_audit(ctx, plan, "facility_audit", box, True, r, None, "The cart", facts.commercial(r["label"]))
+            a["room"] = r
+            a["bends"] = [t["angle_deg"] for t in a.get("corners", [])]
+            out.append(a)
+    return out
 
 
 @tool(id="facility_audit", title="Facility audit", icon="clipboard-check",
@@ -140,9 +178,10 @@ def run(ctx, i: Inputs) -> ToolResult:
                                            "findings": [f for f in egress.findings if "hose" not in f.id.lower() and "Hose" not in f.title]})
     clean = sub("takeoff_bid", {"trade": "cleaning", "label_with_vision": i.read_panoramas}) if i.cleaning else None
     try:
-        seen = seen_counts(plan, i.read_panoramas)
+        found = seen_objects(plan, i.read_panoramas)
+        seen = seen_counts(plan, i.read_panoramas, found) if found is not None else None
     except Exception as e:  # noqa: BLE001
-        seen = None
+        found, seen = None, None
         ctx.step(f"Life-safety photos not read: {str(e)[:120]}")
 
     metrics, checks, findings = [], [], []
@@ -182,6 +221,50 @@ def run(ctx, i: Inputs) -> ToolResult:
         findings.append(Finding(id=f"facility_audit:{sid}:life_safety", title="Life-safety equipment not read", status="unknown",
                                 anchor=None, source=BOOK, detail="The panoramas were not read in this run."))
 
+    # stock: a cart from the entrance to storage and the kitchen, the hot water run, what the scan cannot tell
+    from ..room_labeller import facts as rfacts
+    store_m2 = sum(r.get("area") or 0 for r in plan.get("rooms") or [] if rfacts.commercial(r.get("label")) == "storage")
+    metrics.append(Metric(id="storage_area", label="Storage room floor area", value=round(store_m2 * FT2_PER_M2),
+                          unit="ft²", source=AREA))
+    routes = cart_routes(ctx, plan, tuple(i.cart_m)) if q.get("walls", True) else []
+    for a in routes:
+        name, rid = rfacts.commercial(a["room"]["label"]), a["room"]["id"]
+        st = {"likely pass": "pass", "measure on site": "warn", "likely fail": "fail"}.get(a["result"], "unknown")
+        b = a["bends"]
+        checks.append(Check(id=f"cart.{rid}", rule=f"Cart route, entrance to {name}: "
+                            + (a["reason"] or f"{len(a['checks']) - len(b)} doors and {len(b)} bend"
+                               f"{'' if len(b) == 1 else 's'}" + (f", turning {sum(b):.0f} degrees in all, the "
+                                                                    f"sharpest {max(b):.0f}" if b else ", straight")),
+                            measured=round(a["tight"]["slack"], 3) if a.get("tight") and a["tight"]["slack"] not in
+                            (None, float("-inf")) else None, threshold=0, unit="m", status=st,
+                            standard="Carried on empty-room widths, kept upright; corner formula without tilting"))
+        findings += [f for f in a["findings"] if f.status in ("fail", "warn")][:4]
+    if routes:
+        metrics.append(Metric(id="cart_sharpest_bend", label="Sharpest bend on a cart route", unit="°", source=AREA,
+                              value=round(max((x for a in routes for x in a["bends"]), default=0))))
+    hw = hot_water_run(found) if found else None
+    vis_low = Source(layer="model", method="vision", confidence="low",
+                     note="Water heater and sinks located on the panoramas; distance by geometry, straight line")
+    if hw:
+        st = "fail" if hw["distance"] > HOT_WATER_M else "pass"
+        fid = f"facility_audit:{sid}:hot_water"
+        checks.append(Check(id="hot_water", rule="Water heater to the farthest sink seen, straight line (the pipe is "
+                            "longer)", measured=round(hw["distance"], 1), threshold=HOT_WATER_M, unit="m", status=st,
+                            standard="IPC 2021 607.2: over 50 ft (15.2 m) of pipe from the source, hot water must be "
+                                     "kept hot by recirculation or heat trace", findings=[fid] if st == "fail" else []))
+        if st == "fail":
+            findings.append(Finding(id=fid, title="Sinks far from the water heater", status="fail", source=vis_low,
+                                    anchor=None, detail=f"{hw['distance']:.1f} m in a straight line from the water heater "
+                                                        "to a sink; hot water will be slow to arrive without "
+                                                        "recirculation. Ask whether the building has it."))
+    else:
+        checks.append(cannot("hot_water", "how far the sinks are from the water heater: no water heater"
+                             + (" or sink" if found else "") + " was located on the panoramas"))
+    checks += [cannot("power", "three-phase power and panel capacity for kitchen equipment"),
+               cannot("filtration", "water filtration for an ice machine or steamer"),
+               cannot("cold_storage", "walk-in cooler and freezer capacity, unless the rooms are labelled storage"),
+               cannot("noise", "noise between the service area and neighbours: the scan measures rooms, not "
+                               "soundproofing")]
     fixes = fixes_for(doors, baths, egress, i.door_width_m)
     if seen is not None:
         for f in fixes:

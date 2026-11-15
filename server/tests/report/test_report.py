@@ -46,7 +46,8 @@ def test_accessibility_report(tmp_path, plan):
     assert {"door_widths", "bathroom_clearance"} <= set(restroom["tools"])
     assert sum((f["anchor"] or {}).get("opening") == "o1" for f in fix) == 1
     page = html_doc(rep)
-    assert page.count('class="n fail"') == sum(f["status"] == "fail" for f in fix) >= 2 and "What we did not check" in page
+    # bathroom_clearance uses the toilet the phone scan measured, 1.1 m off the side wall: no grab bar wall
+    assert page.count('class="n fail"') == sum(f["status"] == "fail" for f in fix) == 3 and "What we did not check" in page
     assert "Parking" in page                       # the kind's own limits
     assert "30 in" in page                         # the 0.76 m door, in inches on the plan
 
