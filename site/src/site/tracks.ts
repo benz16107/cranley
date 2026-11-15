@@ -28,7 +28,7 @@ export const TRACKS: Track[] = [
     slug: 'langchain', name: 'LangChain', prize: 'Best use of deepagents',
     summary: 'Planning, parallel subagents shown live, human approval that resumes from a MongoDB checkpoint, skills, memory, a rubric grader and LangSmith experiments.',
     docs: [['The agent', '/docs/concepts/agent/'], ['Sponsor integrations', '/docs/sponsor-integrations/#langchain-deepagents-langgraph-and-langsmith'], ['MCP server and CLI', '/docs/mcp/'], ['Agent and workspace API', '/docs/reference/api/agent/']],
-    slots: ['agent-lanes', 'langsmith-trace'],
+    slots: ['agent-lanes', 'langsmith-trace'], video: 'SlK6NYPWnkI',
   },
   {
     slug: 'photon', name: 'Photon', prize: 'Build a Messaging Agent using Photon 2.0',

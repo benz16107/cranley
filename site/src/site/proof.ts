@@ -11,28 +11,28 @@ export const INTERVIEW = {
   caption: 'The recorded call with Jean Ryan, President of Disabled In Action of Metropolitan New York, cut to the conversation: the emails that led to it, then each question and her answer. She agreed to be filmed and named.',
 }
 
-const BLURRED = 'Usernames are blurred.'
+const BLURRED = 'Usernames are covered.'
 export const PROOF = {
   'quote-to-change': { w: 2000, h: 1592,
     alt: 'Six things people told us, each beside the tool it changed and the commit: two quotes from the interview with Jean Ryan and four Reddit replies',
     caption: 'Six things we were told, each with the tool it changed and the commit. Names and usernames are blurred, except Jean Ryan, who agreed to be named.' },
-  'reddit-wall-2-workplaces': { w: 2000, h: 1937,
-    alt: 'Our questions in five Reddit communities for people who run stores, kitchens, restaurants, teams and emergency plans, with answers from each',
-    caption: `What we asked in five Reddit communities for people who run workplaces, and answers from each. ${BLURRED}` },
+  'reddit-wall-2-workplaces': { w: 2000, h: 1950,
+    alt: 'Our questions in Reddit communities for people who work in stores, restaurants and warehouses, with answers from each',
+    caption: `What we asked in Reddit communities for people who work in stores, restaurants and warehouses, and answers from each. ${BLURRED} A few strong words in the replies are covered too.` },
   'email-replies': { w: 2000, h: 3230,
     alt: 'The emails we sent and what came back: "Call me" from Jean Ryan, a museum director asking for a call, written answers from the managing director of a Los Angeles theatre and the artistic director of a Houston theatre company, and two declines',
     caption: 'The email we sent and each reply to it. Names, email addresses, signatures and the names of the organisations are covered, except Jean Ryan.' },
-  'outreach-at-a-glance': { w: 2000, h: 1328,
+  'outreach-at-a-glance': { w: 2000, h: 1365,
     alt: 'The outreach in numbers: the recorded interview, the people and communities who answered, the emails sent, the replies and the commits that followed',
     caption: 'The outreach, counted. It shows totals only: no names or usernames appear in it.' },
-  'amazon-occupational-therapists': { w: 2000, h: 1645,
+  'amazon-occupational-therapists': { w: 2000, h: 1665,
     alt: 'Our question to occupational therapists on Reddit, two therapists\' lists of what they check in a home, and the checks added to the tools from those lists',
     caption: `Two occupational therapists answered with what they check in a home, and their lists became checks in the tools. ${BLURRED}` },
-  'costar-garage-depth': { w: 2000, h: 1942,
+  'costar-garage-depth': { w: 2000, h: 1962,
     alt: 'Reddit answers from pickup and boat owners about garage depth, each beside the change it caused in the garage fit tool',
     caption: `Pickup and boat owners on garage depth, which listings leave out, each with the change it caused in the garage fit tool. ${BLURRED} One line of our own post, which gave a measured garage's size, is covered.` },
-  'reddit-wall-1-homes-and-vehicles': { w: 2000, h: 2619,
-    alt: 'Our questions in five Reddit communities about homes and vehicles, with answers from each and the role each person gave',
-    caption: `What we asked in five Reddit communities for pickup, boat and RV owners and occupational therapists, and answers from each. ${BLURRED} One line of our own post, which gave a measured garage's size, is covered.` },
+  'reddit-wall-1-homes-and-vehicles': { w: 2000, h: 3083,
+    alt: 'Our questions in Reddit communities about homes and vehicles, with answers from pickup and boat owners, occupational therapists and homeowners in wildfire zones, and the role each person gave',
+    caption: `What we asked in Reddit communities for pickup and boat owners, occupational therapists and homeowners in wildfire zones, and answers from each. ${BLURRED} One line of our own post, which gave a measured garage's size, is covered, and so are a few strong words in the replies.` },
 } as const
 export type ProofId = keyof typeof PROOF
