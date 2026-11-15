@@ -23,6 +23,8 @@ For the agent, the tool is described as: Largest turning circle that fits in eac
 | `scan` | string | yes |  | Scan id. Filled from the selected building. |
 | `diameter_m` | number (m) |  | `1.525` | Turning circle you need. Saved preference `access.turning_diameter_m`. Range: more than 0.3, at most 3.0. |
 | `rooms` | array |  |  | Room types or ids to check; default every room but closets. |
+| `aisle_width_m` | number (m) |  | `0.915` | Clear aisle width you need between objects on the floor. Saved preference `access.route_width_m`. Range: more than 0.3, at most 3.0. |
+| `chairs` | array |  | `[]` | Each chair the person uses; each is checked with its own turning circle. Saved preference `access.chairs`. |
 
 An input that nothing fills (the selected building, a saved preference, a persona's preset) becomes a question to the person. The agent asks only for those.
 
@@ -64,31 +66,35 @@ The tool sets the label for each value. A model never does. The tools give a sca
 
 This section was written by running the tool when the docs were built, on a hand-made RoomPlan export (no real place was scanned), with no sponsor keys and the network switched off.
 
-<p class="verdict"><span class="st fail">Fail</span> 1 of 6 rooms cannot hold the turning circle in the empty room.</p>
+<p class="verdict"><span class="st fail">Fail</span> 3 of 6 rooms cannot hold the turning circle with the scanned objects on the floor.</p>
 
 | Value | Result | Where it came from | Reliability |
 |---|---|---|---|
-| Rooms that hold the circle | <span class="num">5</span> | Measured from the scan | medium |
-| Best bathroom circle | <span class="num">1.68 m</span> | Measured from the scan | medium |
-| Kitchen circle | <span class="num">2.88 m</span> | Measured from the scan | medium |
-| Largest circle | <span class="num">4.9 m</span> | Measured from the scan | medium |
-| Living Room | <span class="num">4.9 m</span> | Measured from the scan | medium |
-| Bedroom | <span class="num">3.87 m</span> | Measured from the scan | medium |
-| Bedroom | <span class="num">3.86 m</span> | Measured from the scan | medium |
-| Kitchen | <span class="num">2.88 m</span> | Measured from the scan | medium |
-| Bathroom | <span class="num">1.68 m</span> | Measured from the scan | medium |
+| Rooms that hold the circle | <span class="num">3</span> | Measured from the scan | medium |
+| Best bathroom circle | <span class="num">0.97 m</span> | Measured from the scan | medium |
+| Kitchen circle | <span class="num">2.42 m</span> | Measured from the scan | medium |
+| Largest circle | <span class="num">3.14 m</span> | Measured from the scan | medium |
+| Living Room | <span class="num">3.14 m</span> | Measured from the scan | medium |
+| Bedroom | <span class="num">1.61 m</span> | Measured from the scan | medium |
+| Bedroom | <span class="num">1.33 m</span> | Measured from the scan | medium |
+| Kitchen | <span class="num">2.42 m</span> | Measured from the scan | medium |
+| Bathroom | <span class="num">0.97 m</span> | Measured from the scan | medium |
 | Hallway | <span class="num">1.07 m</span> | Measured from the scan | medium |
 
 | Check | Measured | Against | Status |
 |---|---|---|---|
+| Turning circle, Bathroom, objects on the floor counted (1.68 m empty) | <span class="num">0.967</span> | <span class="num">1.525 m</span> | <span class="st fail">fail</span> |
+| Aisle from the doorway to the turning spot, Bathroom, objects on the floor: bathtub, sink, toilet | <span class="num">0.966</span> | <span class="num">0.915 m</span> | <span class="st pass">pass</span> |
 | Turning circle, Hallway | <span class="num">1.072</span> | <span class="num">1.525 m</span> | <span class="st fail">fail</span> |
-| Turning circle, Bathroom | <span class="num">1.678</span> | <span class="num">1.525 m</span> | <span class="st pass">pass</span> |
-| Turning circle, Kitchen | <span class="num">2.883</span> | <span class="num">1.525 m</span> | <span class="st pass">pass</span> |
-| Turning circle, Bedroom | <span class="num">3.86</span> | <span class="num">1.525 m</span> | <span class="st pass">pass</span> |
-| Turning circle, Bedroom | <span class="num">3.872</span> | <span class="num">1.525 m</span> | <span class="st pass">pass</span> |
-| Turning circle, Living Room | <span class="num">4.901</span> | <span class="num">1.525 m</span> | <span class="st pass">pass</span> |
+| Turning circle, Bedroom, objects on the floor counted (3.86 m empty) | <span class="num">1.33</span> | <span class="num">1.525 m</span> | <span class="st fail">fail</span> |
+| Aisle from the doorway to the turning spot, Bedroom, objects on the floor: bed, storage | <span class="num">1.33</span> | <span class="num">0.915 m</span> | <span class="st pass">pass</span> |
+| Turning circle, Bedroom, objects on the floor counted (3.87 m empty) | <span class="num">1.608</span> | <span class="num">1.525 m</span> | <span class="st pass">pass</span> |
+| Aisle from the doorway to the turning spot, Bedroom, objects on the floor: bed | <span class="num">1.453</span> | <span class="num">0.915 m</span> | <span class="st pass">pass</span> |
+| Turning circle, Kitchen, objects on the floor counted (2.88 m empty) | <span class="num">2.418</span> | <span class="num">1.525 m</span> | <span class="st pass">pass</span> |
 
-Findings: 1 fail.
+4 more checks are in the full result.
+
+Findings: 3 fail.
 
 What it reported while it ran:
 
