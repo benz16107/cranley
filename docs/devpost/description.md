@@ -17,13 +17,13 @@ Every track has its own page with what we built, the features used, the proof an
 
 | Track | What we built | Strongest proof | Page |
 |---|---|---|---|
-| CoStar | All three layers in one frame; an agent that plans, checks many buildings at once and tests claims across layers (record vs reality, flood, garage, site) | 78 tools run through the real API on 15 places: 266 answers, 62 honest "cannot answer here", 0 judged wrong | [page](https://cranley.app/tracks/costar/) |
-| Amazon | Ask in plain words; it learns the person once and adapts every later investigation, with the adaptation counted on screen | Questions asked over three homes for a returning wheelchair user: 1, 0, 0 | [page](https://cranley.app/tracks/amazon/) |
-| Peri | Built forward-deployed: a recorded interview with Jean Ryan, President of Disabled In Action of Metropolitan New York, changed the wheelchair tools the same night | 12 groups of changes from what people told us, each with its commit in [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md) | [page](https://cranley.app/tracks/peri/) |
-| LangChain | A deepagents investigator: plans, one subagent per building in parallel, approval before slow steps, skills, memory, a rubric grader, LangSmith experiments | Two houses checked at once; both paused before the CFAST smoke model and resumed from a MongoDB checkpoint on "Run it" | [page](https://cranley.app/tracks/langchain/) |
-| Photon | The same agent over iMessage and a phone call: plan pictures, reply threads as investigations, photos and voice notes in, the PDF in the chat | Every reply built from the tool result, never model text; 14 tests | [page](https://cranley.app/tracks/photon/) |
-| MongoDB Atlas | Workspaces and their op log, change-stream live sync with the phone, hybrid `$rankFusion` search, time series, vector memory | A door width typed on the phone reaches the desktop in about a second | [page](https://cranley.app/tracks/mongodb/) |
-| Tiger Data | The building facts database: hypertables, compression, continuous aggregates, DiskANN room search, pgai vectorizer, forks | A zero-copy fork ready in 31 s for a city-wide what-if; 234 MB compressed to 58 MB | [page](https://cranley.app/tracks/tiger-data/) |
+| CoStar | All three layers in one frame; an agent that checks many buildings at once and tests claims across layers | 78 tools run through the real API on 15 places: 266 answers, 62 honest "cannot answer here", 0 judged wrong | [page](https://cranley.app/tracks/costar/) |
+| Amazon | Ask in plain words; it learns you once and adapts every later investigation, counted on screen | Questions asked over three homes for a returning wheelchair user: 1, 0, 0 | [page](https://cranley.app/tracks/amazon/) |
+| Peri | A recorded interview with Jean Ryan, President of Disabled In Action of Metropolitan New York, changed the tools the same night | 12 groups of changes, each with its commit in [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md) | [page](https://cranley.app/tracks/peri/) |
+| LangChain | A deepagents investigator: parallel subagents, approvals, skills, memory, a rubric grader, LangSmith | Two houses checked at once, both paused before the smoke model and resumed from a MongoDB checkpoint | [page](https://cranley.app/tracks/langchain/) |
+| Photon | The same agent over iMessage and a phone call: plan pictures, reply threads, photos and voice notes, the PDF in the chat | Every reply built from the tool result, never model text; 14 tests | [page](https://cranley.app/tracks/photon/) |
+| MongoDB Atlas | Workspaces and op log, change-stream live sync, `$rankFusion` search, time series, vector memory | A door width typed on the phone reaches the desktop in about a second | [page](https://cranley.app/tracks/mongodb/) |
+| Tiger Data | The building facts database: hypertables, compression, continuous aggregates, DiskANN, pgai, forks | A zero-copy fork ready in 31 s for a city-wide what-if; 234 MB compressed to 58 MB | [page](https://cranley.app/tracks/tiger-data/) |
 
 ## The problem
 
@@ -32,11 +32,11 @@ Jean Ryan, who uses a 400-pound powered wheelchair, no longer asks whether a pla
 ## How it works
 
 1. **Say what you need.** "I use a wheelchair, 81 cm wide. Find a one-bedroom in Houston I can get into and use the bathroom."
-2. **It picks the tools.** The agent chooses from 78 and asks only what is missing.
-3. **It checks many buildings at once.** One subagent per building; slow steps such as a smoke simulation wait for your yes.
-4. **It shows the evidence.** The route through the photoreal building, the step or narrow door in red, and each number's source and a high, medium or low label.
-5. **Change it and keep it.** "Widen this door" re-runs the checks and prices the work; a PDF report lists fixes and what was not checked.
-6. **From anywhere.** Your own iPhone LiDAR scan, the phone companion, iMessage, or any agent over MCP.
+2. **It picks the tools** from 78 and asks only what is missing.
+3. **It checks many buildings at once,** one subagent each; slow steps wait for your yes.
+4. **It shows the evidence:** the route through the photoreal building, the step in red, each number's source.
+5. **Change it and keep it:** "widen this door" re-runs the checks; a PDF lists fixes and what was not checked.
+6. **From anywhere:** your iPhone scan, the phone companion, iMessage, or any agent over MCP.
 
 ## Built forward-deployed
 
@@ -44,20 +44,19 @@ Before and while building we asked people what goes wrong with their buildings: 
 
 ## Proof
 
-- **Tools:** 78 tools, each run through the real API on a 15-place demo set: 266 answers, 62 honest "cannot answer here", 1 error from a bad input, 0 judged wrong (29 wrong before the review pass).
+- **Tools:** 78 tools run through the real API on 15 places: 266 answers, 62 honest "cannot answer here", 0 judged wrong (29 before the review pass).
 - **Tests:** 810 server tests and 118 web tests.
 - **Agent:** a wheelchair brief composed 6 tools and ran 25 tool runs on 5 buildings in 3.7 minutes.
 - **Adaptation:** one returning wheelchair user over three homes: questions asked 1, 0, 0; checks kept back 0, 3, 9 (counted from the op logs; a replay, not a user study).
 - **Photoreal:** interior Gaussian splats for four buildings, 16 to 23 minutes each on an AMD mini PC's integrated GPU, no NVIDIA.
-- **Live:** a phone reading reaches the desktop in about a second; a Tiger fork is ready in 31 s.
 
 ## How we built it
 
-- **Server (Python, FastAPI):** shared engines for routes, clearance, rule packs, takeoff, georeference, water and vision; each tool returns a typed result with its sources.
-- **Agent (LangChain deepagents, LangGraph):** a composer picks tools; an investigator plans, fans out, pauses for approval and is graded before it speaks.
+- **Server (Python, FastAPI):** shared engines for routes, clearance, rules, takeoff, georeference and vision; each tool returns a typed result with sources.
+- **Agent (deepagents, LangGraph):** a composer picks tools; an investigator plans, fans out and asks before slow steps.
 - **Data:** MongoDB Atlas for people's work, Tiger Cloud for building facts.
 - **Web (React, three.js, MapLibre, deck.gl):** one view from the map into the room, with 66 public map layers.
-- **Phone and messaging:** a QR-paired phone companion, a SwiftUI RoomPlan app, iMessage and voice through Photon 2.0 and ElevenLabs, an MCP server and CLI.
+- **Phone and messaging:** a phone companion, a SwiftUI RoomPlan app, iMessage and voice (Photon, ElevenLabs), an MCP server and CLI.
 - **Physics:** NIST CFAST for smoke, USGS high-water marks for Hurricane Harvey.
 
 ## Limits
