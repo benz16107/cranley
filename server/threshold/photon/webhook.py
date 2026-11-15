@@ -47,7 +47,7 @@ def _origin() -> str:
 
 def _forward(path: str, body: bytes) -> Response:
     try:
-        r = httpx.post(_origin() + path, content=body, timeout=25,
+        r = httpx.post(_origin() + path, content=body, timeout=65,
                        headers={"content-type": "application/json", "x-cranley-internal": env().get("PHOTON_INTERNAL_TOKEN", "")})
     except httpx.HTTPError:
         return Response(status_code=503)  # Photon retries 5xx
