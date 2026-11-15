@@ -46,7 +46,7 @@ const msgs = [
     <Asked sponsor="Photon" source="The two asks are the prize names on the event's Devpost page: a messaging agent using Photon 2.0, and Best Voice Agent."
       asked={[
         { text: 'A messaging agent using Photon 2.0', met: false, how: `Built and merged with ${deep.numbers.photon.tests} tests. The live line is up, with sends limited to an allowlist of numbers. After the first real call Cranley sent the plan and the answer by iMessage: Photon accepted the sends and reported no delivery receipt, so a full round trip is not confirmed.` },
-        { text: 'A voice agent', met: true, how: 'An ElevenLabs agent runs the same checks by voice. Ben made the first real phone call on 15 Nov: it ran the garage check and read the measured answer aloud.' },
+        { text: 'A voice agent', met: false, how: 'An ElevenLabs agent runs the same checks by voice. In the first real phone call, on 15 Nov, it ran the garage check and read the measured answer aloud. A second question in that call got no check.' },
       ]}
       beyond={[
         { n: sp.features.length, text: 'things a person can do by message or by calling' },
