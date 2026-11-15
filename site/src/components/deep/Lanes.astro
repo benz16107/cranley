@@ -1,0 +1,41 @@
+---
+// The order of events across a few actors, one row each. It shows sequence, not timing: every column is one step.
+// Pointing at a block, or tabbing to it, explains it in the line underneath.
+interface Seg { row: number; from: number; to: number; label: string; note: string; tone?: 'main' | 'wait' | 'soft' }
+interface Props { rows: string[]; cols: number; segs: Seg[] }
+const { rows, cols, segs } = Astro.props
+const first = segs[0]
+---
+<div class="lanes" data-scope data-play>
+  <div class="scroll">
+    <div class="grid" style={`--cols: ${cols}`}>
+      {rows.map((r, i) => <span class="who" style={`grid-row: ${i + 1}`}>{r}</span>)}
+      {rows.map((_, i) => <span class="rail" style={`grid-row: ${i + 1}`} aria-hidden="true"></span>)}
+      {segs.map((s, i) => (
+        <button type="button" class:list={['seg', s.tone ?? 'main']} style={`grid-row: ${s.row + 1}; grid-column: ${s.from + 2} / ${s.to + 2}; --i: ${i}`} data-say={`${s.label}. ${s.note}`} data-on={i === 0 ? '' : undefined}>{s.label}</button>
+      ))}
+    </div>
+  </div>
+  <p class="readout" aria-live="polite">{first.label}. {first.note}</p>
+</div>
+
+<style>
+  .lanes { display: grid; gap: var(--s-4); min-width: 0; }
+  .scroll { overflow-x: auto; padding-bottom: 4px; }
+  .grid { display: grid; grid-template-columns: max-content repeat(var(--cols), minmax(72px, 1fr)); gap: 8px 4px; align-items: center; min-width: 640px; }
+  .who { grid-column: 1; padding-inline-end: var(--s-4); font-size: 0.8125rem; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+  .rail { grid-column: 2 / -1; height: 1px; background: var(--rule); }
+  .seg { min-width: 0; height: 30px; padding: 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: inherit; font-size: 0.75rem; line-height: 28px; text-align: start; border: 1px solid transparent; border-radius: var(--r-1); cursor: pointer; transition: border-color var(--dur-1) ease; }
+  .seg.main { background: var(--accent); color: var(--on-accent); }
+  .seg.soft { background: var(--pane-2); color: var(--ink); border-color: var(--rule-strong); }
+  /* hatching: the turn is waiting on a person */
+  .seg.wait { background: repeating-linear-gradient(135deg, var(--warn-wash) 0 6px, var(--pane) 6px 9px); color: var(--ink); border-color: var(--warn); }
+  .seg[data-on] { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+  .seg:active { scale: 0.98; }
+  :global(.js) .lanes:not([data-seen]) .seg { opacity: 0; translate: -8px 0; }
+  :global(.js) .lanes[data-seen] .seg { transition: opacity 380ms var(--ease-out) calc(var(--i) * 70ms), translate 380ms var(--ease-out) calc(var(--i) * 70ms), border-color var(--dur-1) ease; }
+  @media (prefers-reduced-motion: reduce) {
+    :global(.js) .lanes:not([data-seen]) .seg { translate: none; }
+    :global(.js) .lanes[data-seen] .seg { transition: opacity 200ms ease; }
+  }
+</style>

@@ -68,3 +68,11 @@
   .js .bars[data-play]:not([data-seen]) .track i { transform: none; }
   .js .bars[data-seen] .track i { transition: none; }
 }
+
+/* two columns of words: a thing, and the reason beside it */
+.pairs { display: grid; border-top: 1px solid var(--rule-strong); }
+.pairs li { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: var(--s-5); padding: 12px 0; border-bottom: 1px solid var(--rule); font-size: 0.875rem; line-height: 1.5; }
+.pairs li > :first-child { font-weight: 600; }
+.pairs li > :last-child { color: var(--ink-2); }
+@media (max-width: 620px) { .pairs li { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+.dsec .h3 { margin-top: var(--s-4); font-size: 1.0625rem; font-weight: 600; }

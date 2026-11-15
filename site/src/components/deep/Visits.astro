@@ -1,0 +1,43 @@
+---
+// One measure across a few visits, as columns from zero with the value written on each. A zero keeps its place.
+interface Props { series: { title: string; values: number[]; unit: string }[] }
+const { series } = Astro.props
+---
+<div class="visits" data-scope data-play>
+  <div class="multi">
+    {series.map((s) => {
+      const max = Math.max(...s.values, 1)
+      return (
+        <div class="one">
+          <p class="st">{s.title}</p>
+          <ol>
+            {s.values.map((v, i) => (
+              <li tabindex="0" style={`--v: ${v / max}; --i: ${i}`} data-say={`${s.title}, visit ${i + 1}: ${v}.`}>
+                <span class="num">{v}</span><span class="col"><i></i></span><span class="x">Visit {i + 1}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )
+    })}
+  </div>
+  <p class="readout" aria-live="polite">Point at a column to read it.</p>
+</div>
+
+<style>
+  .visits { display: grid; gap: var(--s-4); }
+  .multi { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--s-5) var(--s-7); }
+  .st { font-size: 0.875rem; font-weight: 600; margin-bottom: var(--s-3); }
+  ol { display: grid; grid-template-columns: repeat(3, minmax(0, 72px)); gap: var(--s-4); align-items: end; }
+  li { display: grid; grid-template-rows: auto 96px auto; justify-items: center; gap: 4px; border-radius: var(--r-1); cursor: default; }
+  .col { align-self: stretch; display: flex; align-items: flex-end; justify-content: center; border-bottom: 1px solid var(--rule-strong); width: 100%; }
+  .col i { display: block; width: 26px; height: calc(var(--v) * 100%); background: var(--accent); border-radius: 4px 4px 0 0; transform-origin: bottom; }
+  li[data-on] .col i { background: var(--ink); }
+  .x { font-size: 0.8125rem; color: var(--ink-3); }
+  :global(.js) .visits:not([data-seen]) .col i { transform: scaleY(0); }
+  :global(.js) .visits[data-seen] .col i { transition: transform 600ms var(--ease-out) calc(var(--i) * 80ms), background-color var(--dur-1) ease; }
+  @media (prefers-reduced-motion: reduce) {
+    :global(.js) .visits:not([data-seen]) .col i { transform: none; }
+    :global(.js) .visits[data-seen] .col i { transition: none; }
+  }
+</style>

@@ -3,14 +3,16 @@
 import { LINKS } from '../../site/links'
 interface Props { items: { title: string; href?: string; what: string; chips?: string[]; code?: string }[] }
 const { items } = Astro.props
+// names and reasons come from docs/story.md, where code is in backticks
+const md = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/`([^`]+)`/g, '<code>$1</code>')
 ---
 <ul class="cards">
   {items.map((it) => (
     <li>
-      {it.href ? <a class="t" href={it.href}>{it.title}</a> : <span class="t">{it.title}</span>}
-      <p>{it.what}</p>
+      {it.href ? <a class="t" href={it.href} set:html={md(it.title)} /> : <span class="t" set:html={md(it.title)} />}
+      <p set:html={md(it.what)} />
       {it.chips && it.chips.length > 0 && <p class="chips">{it.chips.map((c) => <span>{c}</span>)}</p>}
-      {it.code && <a class="code" href={`${LINKS.github}/tree/main/${it.code}`}><code>{it.code}</code></a>}
+      {it.code && <a class="code" href={`${LINKS.github}/${/\.\w+$/.test(it.code) ? 'blob' : 'tree'}/main/${it.code}`}><code>{it.code}</code></a>}
     </li>
   ))}
 </ul>

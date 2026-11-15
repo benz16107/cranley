@@ -1,0 +1,79 @@
+---
+// The Photon track. Sentences are docs/story.md's. The message thread is our own drawing of the flow: it shows no
+// real conversation, address or building.
+import Deep from "./Deep.astro"
+import Sec from "./Sec.astro"
+import Chart from "./Chart.astro"
+import Flow from "./Flow.astro"
+import Cards from "./Cards.astro"
+import Bars from "./Bars.astro"
+import Split from "./Split.astro"
+import Lanes from "./Lanes.astro"
+import deep from "../../generated/deep.json"
+import site from "../../generated/site.json"
+import type { Track } from "../../site/tracks"
+interface Props { track: Track; title: string }
+const { track, title } = Astro.props
+const c = site.counts
+const md = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/`([^`]+)`/g, "<code>$1</code>")
+import Thread from "./Thread.astro"
+const sp = deep.sponsors.photon
+const stats = [{ n: sp.features.length, label: "things a person can do by message or by calling" }, { n: deep.numbers.photon.tests, label: "tests merged with it" }]
+const features = sp.features.map((f) => ({ title: f.feature, what: f.why, code: f.code }))
+const sections: [string, string][] = [["problem", "Problem"], ["built", "A conversation"], ["features", "What a person can do"], ["rules", "Rules it keeps"], ["limits", "Limits"], ["writeup", "Write-up"], ["docs", "In the docs"]]
+const msgs = [
+  { from: "person" as const, text: "Will an F-150 fit in this garage?", note: "A person asks in plain words, with a link to the building. This uses the shared iMessage line with native replies and a typing indicator." },
+  { from: "cranley" as const, kind: "Picture and verdict", text: "The floor plan marked with what was found, then the verdict, the measurements and a link to the workspace.", note: "Every sent line is built from the tool result, never from model text. Only rendered pictures leave the server, sent by attachment upload." },
+  { from: "person" as const, text: "What about two?", note: "A reply to an earlier answer. The reply thread is the investigation: parentMessageId in and out." },
+  { from: "cranley" as const, kind: "Approval", text: "A slow step asks before it runs.", note: 'The person says "yes", "no" or "always" to a slow step: approvals by native reply.' },
+  { from: "person" as const, text: "yes", note: 'The person says "yes", "no" or "always" to a slow step: approvals by native reply.' },
+  { from: "person" as const, text: "report", note: 'The person types "report".' },
+  { from: "cranley" as const, kind: "PDF", text: "The report, ready to forward.", note: "The PDF arrives in the chat, ready to forward." },
+  { from: "person" as const, kind: "A phone call", text: "Calls the number and asks the same.", note: "An ElevenLabs agent over SIP runs the same checks by voice. The plan and the link follow in iMessage after the call." },
+]
+---
+<Deep track={track} title={title} sections={sections} stats={stats}>
+  <Sec id="problem" title="Nobody checks a building from a desk" sub="The people who need a building checked are rarely at a desk: they are walking through a viewing, driving to one, or standing in a doorway with a tape measure.">
+    <p class="txt">On Photon, the same agent and the same measuring tools answer in iMessage and on a phone call.</p>
+  </Sec>
+
+  <Sec id="built" title="One conversation, start to finish" sub="A drawing of the flow, not a real conversation. Select a message to read which part of Photon carries it.">
+    <Thread msgs={msgs} />
+  </Sec>
+
+  <Sec id="features" title="What a person can do, and what carries it" sub="Each row is one thing a person does and the part of Photon 2.0 that makes it work.">
+    <Cards items={features} />
+  </Sec>
+
+  <Sec id="rules" title="Rules it keeps" sub="A message is a result, so it follows the same rules as the screen.">
+    <ul class="txt">
+      <li>Every sent line is built from the tool result, never from model text.</li>
+      <li>A typed size needs a unit.</li>
+      <li>Only rendered pictures leave the server.</li>
+      <li>The main API stays private behind one signature-checked relay.</li>
+      <li>Each event is handled once, in order per chat.</li>
+    </ul>
+  </Sec>
+
+  <Sec id="limits" title="Where it stands" sub="As of the evening of 14 Nov 2026.">
+    <ul class="txt">
+      <li>The live line is up, with sends limited to an allowlist of numbers.</li>
+      <li>A first real round trip had not been confirmed.</li>
+      <li>The phone agent needs a voice number.</li>
+    </ul>
+  </Sec>
+
+  {track.video && (
+    <Sec id="video" title="The track in a video">
+      <figure class="video"><iframe src={`https://www.youtube-nocookie.com/embed/${track.video}`} title={`${track.name}: Cranley`} loading="lazy" allow="encrypted-media; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></figure>
+    </Sec>
+  )}
+
+  <Sec id="writeup" title="The write-up for the judges" sub="The track's section of our story, as written.">
+    <div class="prose"><slot /></div>
+  </Sec>
+
+  <Sec id="docs" title="In the docs">
+    <ul class="docs-links">{track.docs.map(([label, href]) => <li><a href={href}>{label}</a></li>)}</ul>
+  </Sec>
+</Deep>
