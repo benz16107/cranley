@@ -217,3 +217,14 @@ def test_an_f150_and_a_highlander_side_by_side():
     assert check(wide, "pair").status == "pass"                                             # 26 ft wide
     narrow = run(garage_plan("pair3", door_w=3.0, size=4.5), vehicle="ford_f150", second_vehicle="toyota_highlander")
     assert check(narrow, "pair").status == "fail" and narrow.verdict.status == "fail"
+
+
+def test_the_garage_picks_the_car():
+    # a Tesla owner's garage was too short for a Cybertruck, so they bought a Model S
+    r = run(garage_plan("rev", depth=5.85), which_fit=True)            # 5.75 m (18.9 ft) deep inside
+    st = {c.id: c for c in r.checks}
+    assert st["fits.tesla_cybertruck"].status == "fail" and st["fits.tesla_cybertruck"].measured < 0
+    assert st["fits.tesla_model_3"].status in ("pass", "warn")
+    assert st["fits.class_a_rv"].status == "fail"
+    assert r.checks[0].status == "pass" and r.verdict.text.startswith(f"{int(r.metrics[0].value)} of ")
+    assert "The longest that fits" in r.verdict.text

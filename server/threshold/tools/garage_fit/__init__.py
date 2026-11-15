@@ -59,6 +59,8 @@ class Inputs(BaseModel):
     lifter_height_m: float = field(1.78, gt=1.2, le=2.2, unit="m", pref="garage.lifter_height_m",
                                    description="Height of the person pressing overhead, for the home gym check")
     room: str | None = field(None, description="Room id of the garage, if not the one found")
+    which_fit: bool = field(False, description="Turn it round: try every vehicle in the table in this garage and "
+                                               "list the ones that fit, with the room to spare")
     search_city: Literal["Houston", "Los Angeles", "any"] | None = field(
         None, description="Search every scanned house in this city for a garage that fits `count` of the vehicle "
                           "(default two) instead of checking one scan")
@@ -116,6 +118,47 @@ def pair_part(sid: str, a: dict, d: Dims, d2: Dims, z0: float, src) -> dict:
                    "warn": f" The {names} fit side by side only tight: you squeeze out of the doors.",
                    "fail": f" The {names} do not fit side by side."}[pr["status"]]
     return out
+
+
+def which_fit(ctx, sid: str, plan: dict, g: dict, base: list) -> ToolResult:
+    """Every vehicle in the table parked alone in this garage, best fits first, with depth and side room to spare."""
+    rows = []
+    for vid in VEHICLES:
+        d = catalog_dims(vid)
+        a = analyse(plan, g, d, 1)
+        if a is None:
+            return ToolResult(scope=ScanScope(sid=sid), assumptions=base, verdict=Verdict(status="unknown", text=(
+                "The scan has a garage but no outline for it, so it cannot be measured.")))
+        dh, measured = a["door_height"], a["door_height_measured"]
+        h = judge_h(round(dh - d.height, 3)) if measured else "warn" if d.height + geom.HEIGHT_TIGHT_M > dh else "pass"
+        st = max((a["status"], h), key=["pass", "warn", "fail"].index)
+        c = (a["clear"] or [{}])[0]
+        sides = [x for x in (c.get("left"), c.get("right")) if x is not None]
+        depth = round(a["depth"] - d.length - geom.REAR_M - geom.FRONT_FITS_M, 2) if a["depth"] else None
+        rows.append((st, vid, d, depth, round(min(sides) - (d.door if not d.towed else 0.6), 2) if sides else None))
+    rows.sort(key=lambda r: (["pass", "warn", "fail"].index(r[0]), -r[2].length))
+    word = {"pass": "fits with doors open", "warn": "fits tight", "fail": "does not fit"}
+    checks = [Check(id=f"fits.{vid}", rule=f"{d.label}: {word[st]}; " + (f"{fmt(dep)} " + ("to spare in depth" if dep >= 0
+                    else "short in depth") if dep is not None else "depth not measured") +
+                    (f", {fmt(side)} {'to spare' if side >= 0 else 'short'} beside it to open a door" if side is not None
+                     else ""), measured=dep, threshold=0, unit="m", status=st) for st, vid, d, dep, side in rows]
+    ok = [r for r in rows if r[0] == "pass"]
+    tight = [r for r in rows if r[0] == "warn"]
+    ctx.step(f"Parked each of {len(rows)} vehicles alone in the garage: {len(ok)} fit, {len(tight)} tight")
+    longest = max(ok or tight, key=lambda r: r[2].length, default=None)
+    text = (f"{len(ok)} of {len(rows)} vehicles in the table fit with doors open and {len(tight)} more fit tight."
+            + (f" The longest that fits{'' if ok else ' tight'} is the {longest[2].label} ({fmt(longest[2].length)})."
+               if longest else " None fits."))
+    a0 = analyse(plan, g, catalog_dims(rows[0][1]), 1)
+    src = GEO_LOW if g["how"] == "wide door" else GEO
+    return ToolResult(scope=ScanScope(sid=sid), verdict=Verdict(status="pass" if ok else "warn" if tight else "fail",
+                                                                 text=text), checks=checks, assumptions=base[6:],
+                      metrics=[Metric(id="fit_count", label="Vehicles that fit with doors open", value=len(ok), unit="",
+                                      source=src),
+                               Metric(id="tight_count", label="Vehicles that fit tight", value=len(tight), unit="",
+                                      source=src),
+                               Metric(id="garage.depth", label="Inside depth", value=a0["depth"], unit="m", source=src),
+                               Metric(id="garage.width", label="Inside width", value=a0["width"], unit="m", source=src)])
 
 
 def short(d: Dims) -> str:
@@ -223,6 +266,8 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     room = g["room"]
     ctx.step(f"Garage: {room.get('label') or 'unlabelled room'} of {room.get('area') or 0:.0f} m2 "
              f"({ {'label': 'its label', 'chosen': 'the room you chose'}.get(g['how'], 'a ground-floor room with a car-wide door')})")
+    if inputs.which_fit:
+        return which_fit(ctx, sid, plan, g, base)
     a = analyse(plan, g, d, 1 if inputs.second_vehicle else inputs.count)
     if a is None:
         return ToolResult(scope=scope, assumptions=base, verdict=Verdict(status="unknown", text=(
