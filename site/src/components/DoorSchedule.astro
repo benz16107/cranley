@@ -1,0 +1,44 @@
+---
+// The door widths result behind the home page's drawing, as a schedule: every doorway of the made-up test home,
+// what the engine measured, and where the number came from. Read from src/generated/site.json.
+import site from '../generated/site.json'
+import St from './St.astro'
+const home = site.home
+const doors = home.results.door_widths
+const src = doors.source!
+---
+<figure class="schedule">
+  <div class="verdict">
+    <span class="tool">{doors.title}</span>
+    <St status={doors.verdict.status as 'fail'} />
+    <p>{doors.verdict.text}</p>
+  </div>
+  <ol>
+    {doors.checks.map((d) => (
+      <li>
+        <span class="name">{d.rule.replace(/^Doorway width, /, '')}</span>
+        <span class="w num">{d.measured} {d.unit}</span>
+        <St status={d.status as 'fail'} label={d.status === 'warn' ? 'Close' : undefined} />
+      </li>
+    ))}
+  </ol>
+  <figcaption>
+    {home.name}, {home.area} m² in {home.rooms.length} rooms: a hand-made phone scan, no real place. The engine's result for the preset
+    "{home.persona}" (needs <span class="num">{doors.checks[0].threshold} {doors.checks[0].unit}</span>), drawn on the <a href="/">home page</a>.
+    Measured from the scan, {src.confidence} reliability: {src.note!.charAt(0).toLowerCase() + src.note!.slice(1)}.
+  </figcaption>
+</figure>
+
+<style>
+  .schedule { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 9fr); gap: var(--s-4) var(--s-6); border-top: 1px solid var(--rule-strong); padding-top: var(--s-4); min-width: 0; }
+  .verdict { display: grid; gap: 4px; align-content: start; }
+  .verdict .tool { font-size: 0.8125rem; color: var(--ink-3); }
+  .verdict p { font-size: 0.9375rem; line-height: 1.45; }
+  ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--s-5); }
+  li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 var(--s-2); align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--rule); font-size: 0.875rem; }
+  li .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  li .w { grid-column: 1; color: var(--ink-2); }
+  li :global(.st) { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 0.8125rem; }
+  figcaption { grid-column: 1 / -1; font-size: 0.8125rem; line-height: 1.5; color: var(--ink-3); }
+  @media (max-width: 700px) { .schedule { grid-template-columns: minmax(0, 1fr); } ol { grid-template-columns: minmax(0, 1fr); } }
+</style>
