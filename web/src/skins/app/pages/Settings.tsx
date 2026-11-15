@@ -4,6 +4,7 @@ import { Copy, Icon, Seg } from '../design/ui.tsx'
 import { useSeen } from '../lib/pending.ts'
 import { go } from '../lib/place.ts'
 import { Learned } from '../shell/RunPanel.tsx'
+import { KnowsButton, useKnown } from '../shell/Knows.tsx'
 import { SHORTCUTS } from '../shell/Shell.tsx'
 import { useTheme, type Theme } from '../shell/theme.ts'
 import { useUi } from '../shell/store.ts'
@@ -35,6 +36,7 @@ export function Settings() {
   const live = useCatalog((s) => s.live), shared = useCatalog((s) => s.shared), tools = useToolCatalog()
   const seen = useSeen((s) => Object.keys(s.all).length)
   const { rail, setRail } = useUi()
+  const known = useKnown()
   // layout choices share the prefix of the list of investigations: resetting the layout leaves that list alone
   const LIST = 'threshold.app.investigations'
   const clear = (prefix: string) => { try { for (const k of Object.keys(localStorage)) if (k.startsWith(prefix) && (prefix === LIST || k !== LIST)) localStorage.removeItem(k) } catch { /* nothing kept */ } window.location.reload() }
@@ -54,7 +56,11 @@ export function Settings() {
         <div className="set"><div><b>Server</b><p>{live == null ? 'Checking.' : live ? `Connected. ${tools.length} tools listed.` : 'Not answering. Starting points play back a recorded composition.'}</p></div><span className="rs" data-state={live ? 'done' : 'pending'}><Icon name={live ? 'check' : 'clock'} size={12} />{live ? 'Connected' : live == null ? 'Checking' : 'Scripted'}</span></div>
       </section>
       <section className="card">
-        <header><h2>What has been learned</h2><p className="grow">Answers and changed settings the tools reuse. Each can be undone.</p></header>
+        <header><h2>What Cranley knows about you</h2></header>
+        <div className="set"><div><b>{known ? `${known} ${known === 1 ? 'thing' : 'things'} kept between investigations` : 'Nothing kept yet'}</b><p>Your answers, the settings you changed, the tools you removed and the checks you marked. A new investigation starts from them and asks only what it does not know. Each says where it came from and can be changed or forgotten.</p></div><KnowsButton className="btn" /></div>
+      </section>
+      <section className="card">
+        <header><h2>Learned in this investigation</h2><p className="grow">Answers, changed settings and corrections to this building. Each can be undone.</p></header>
         <Learned />
       </section>
       <section className="card">

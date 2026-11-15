@@ -9,6 +9,7 @@ import { CityMap, useMap } from '../map/CityMap.tsx'
 import { QuestionForm, openRun } from '../shell/RunPanel.tsx'
 import { useIsPhone, useUi } from '../shell/store.ts'
 import { useScheme } from '../shell/theme.ts'
+import { KnowsButton, useKnown } from '../shell/Knows.tsx'
 
 export const STATUS: Record<Seen['status'], { label: string; state: 'pending' | 'running' | 'done' }> = {
   setup: { label: 'Setting up', state: 'pending' }, working: { label: 'Working', state: 'running' }, waiting: { label: 'Needs an answer', state: 'pending' }, done: { label: 'Finished', state: 'done' },
@@ -28,6 +29,7 @@ export function Composer({ first, bare, onStart = compose }: { first: boolean; b
   const [text, setText] = useState('')
   const live = useCatalog((s) => s.live)
   const phone = useIsPhone()
+  const known = useKnown()
   const field = useRef<HTMLTextAreaElement>(null), needs = useRef<HTMLUListElement>(null)
   const send = () => { if (text.trim()) void onStart(text.trim()) }
   // On a first visit starting is the one thing to do, so the field has the focus. With work open it does not: the
@@ -64,6 +66,8 @@ export function Composer({ first, bare, onStart = compose }: { first: boolean; b
           <button className="btn solid" disabled={!text.trim()}>{bare ? 'Start' : 'Compose'}<span className="kbd">Enter</span></button>
         </div>
       </form>
+      {/* a returning person: a new brief starts from what the earlier ones taught, so they need not say it again */}
+      {!bare && known > 0 && <p className="h-known"><span>Cranley already knows {known} {known === 1 ? 'thing' : 'things'} about you. A new brief starts from {known === 1 ? 'it' : 'them'} and asks only what is missing.</span><KnowsButton className="btn sm" /></p>}
       {live === false && <p className="note"><Icon name="info" size={13} /><span>The agent server is not answering. A need below plays back a recorded composition; only the step-free access investigation runs.</span></p>}
       <ul className="h-needs" ref={needs} aria-label="Or start from a need">
         {NEEDS.map((n, i) => (
