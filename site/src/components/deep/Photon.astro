@@ -35,11 +35,11 @@ const msgs = [
 ]
 ---
 <Deep track={track} title={title} sections={sections} stats={stats}>
-  <Sec id="asked" title="What Photon asked for, and what we built" sub="The brief asks for a messaging agent on Photon 2.0, with a separate prize for voice. Both are built. Neither is confirmed end to end yet, and this page says so.">
+  <Sec id="asked" title="What Photon asked for, and what we built" sub="The brief asks for a messaging agent on Photon 2.0, with a separate prize for voice. Both are built, and the voice agent has answered a real phone call. A full round trip through iMessage is not confirmed yet, and this page says so.">
     <Asked sponsor="Photon" source="The two asks are the prize names on the event's Devpost page: a messaging agent using Photon 2.0, and Best Voice Agent."
       asked={[
-        { text: 'A messaging agent using Photon 2.0', met: false, how: `Built and merged with ${deep.numbers.photon.tests} tests. The live line is up, with sends limited to an allowlist of numbers. A first real round trip had not been confirmed when our story was written.` },
-        { text: 'A voice agent', met: false, how: 'An ElevenLabs agent runs the same checks by voice, and it has answered in a recorded web call. That was an ElevenLabs web call, not a phone call: the phone line is pending.' },
+        { text: 'A messaging agent using Photon 2.0', met: false, how: `Built and merged with ${deep.numbers.photon.tests} tests. The live line is up, with sends limited to an allowlist of numbers. After the first real call Cranley sent the plan and the answer by iMessage: Photon accepted the sends and reported no delivery receipt, so a full round trip is not confirmed.` },
+        { text: 'A voice agent', met: true, how: 'An ElevenLabs agent runs the same checks by voice. Ben made the first real phone call on 15 Nov: it ran the garage check and read the measured answer aloud.' },
       ]}
       beyond={[
         { n: sp.features.length, text: 'things a person can do by message or by calling' },
@@ -77,8 +77,9 @@ const msgs = [
   <Sec id="limits" title="Where it stands" sub="As of the early morning of 15 Nov 2026.">
     <ul class="txt">
       <li>The live line is up, with sends limited to an allowlist of numbers.</li>
-      <li>A first real round trip had not been confirmed.</li>
-      <li>The voice agent has answered in a recorded ElevenLabs web call. It has not yet taken a phone call: the phone line is pending.</li>
+      <li>The voice line is wired, and Ben made the first real phone call on 15 Nov. The agent ran the garage check and read the measured answer aloud. A second question in the same call got no check.</li>
+      <li>After the call Cranley sent the plan picture and the answer to his iMessage thread. Photon accepted the sends and reported no delivery receipt, so a full live round trip is not confirmed yet.</li>
+      <li>The recordings of these calls measure a real home, so they are not shown on this site.</li>
     </ul>
   </Sec>
 
