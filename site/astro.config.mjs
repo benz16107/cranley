@@ -17,6 +17,8 @@ export default defineConfig({
       customCss: ['./src/styles/docs.css'],
       components: { SocialIcons: './src/components/DocsLinks.astro' },
       disable404Route: true,
+      // a plain code block: no terminal-window dots round a shell command
+      expressiveCode: { defaultProps: { frame: 'code' }, styleOverrides: { borderRadius: '5px' } },
       credits: false,
       head: noindex,
       tableOfContents: { minHeadingLevel: 2, maxHeadingLevel: 2 },

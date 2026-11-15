@@ -1,5 +1,5 @@
 ---
-title: "CoStar: Inside and Out, AI for the Built World (main target)"
+title: "CoStar: Inside and Out, AI for the Built World"
 ---
 
 Judged 30% use of the data, 30% agentic depth, 25% usefulness, 15% demo and polish.

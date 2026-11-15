@@ -11,7 +11,7 @@ const schedule = doors.checks.map((c, i) => ({ ...c, n: i + 1, name: c.rule.repl
 
 // Where each door's tag sits, so it stays off the route. A door not named here gets its tag on its centre.
 const TAG: Record<string, [number, number]> = { o0: [54, -30], o1: [72, 0], o2: [66, 0], o3: [-34, 0], o4: [-34, 0], o10: [0, 36] }
-const ROOM: Record<string, [number, number]> = { 'Living Room': [130, 0], Bathroom: [-52, 46], Hallway: [76, 12] }
+const ROOM: Record<string, [number, number]> = { 'Living Room': [130, 0], Bathroom: [-52, 46], Hallway: [64, 12] }
 const tag = (o: (typeof home.openings)[number]) => [o.c[0] + (TAG[o.id]?.[0] ?? 0), o.c[1] + (TAG[o.id]?.[1] ?? 0)]
 const pts = (p: number[][]) => p.map((q) => q.join(',')).join(' ')
 // the route as far as the first doorway that fails, then the rest of it
@@ -23,7 +23,7 @@ const src = doors.source!
 <figure class="plan">
   <svg viewBox="-30 -62 1065 890" role="img" aria-label={`Floor plan of a made-up test home with six rooms. A route runs from the entrance to the bathroom and stops at the bathroom doorway, which is ${schedule[0].measured} metres wide against the ${schedule[0].threshold} metres needed.`}>
     <g class="rooms">
-      {home.rooms.map((r) => <text x={r.c[0] + (ROOM[r.label]?.[0] ?? 0)} y={r.c[1] + (ROOM[r.label]?.[1] ?? 0)} text-anchor="middle">{r.label}</text>)}
+      {home.rooms.map((r) => <text class:list={{ tiny: r.area < 4 }} x={r.c[0] + (ROOM[r.label]?.[0] ?? 0)} y={r.c[1] + (ROOM[r.label]?.[1] ?? 0)} text-anchor="middle">{r.label}</text>)}
     </g>
     <g class="walls">{home.walls.map((w) => <line x1={w.a[0]} y1={w.a[1]} x2={w.b[0]} y2={w.b[1]} />)}</g>
     <g class="gaps">{home.openings.map((o) => <line x1={o.a[0]} y1={o.a[1]} x2={o.b[0]} y2={o.b[1]} />)}</g>
@@ -114,6 +114,7 @@ const src = doors.source!
   @media (max-width: 560px) {
     ol { grid-template-columns: minmax(0, 1fr); }
     .rooms text { font-size: 34px; }
+    .rooms .tiny { display: none; }
   }
 
   /* The page's one moving part: the route draws once, then the doorways and their schedule arrive. The finished

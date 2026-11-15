@@ -479,7 +479,7 @@ def tracks_md() -> dict[str, str]:
         slug = next((s for key, s in (("CoStar", "costar"), ("Amazon", "amazon"), ("Peri", "peri"), ("LangChain", "langchain"), ("Photon", "photon"),
                                       ("Tiger", "tiger-data"), ("MongoDB", "mongodb"), ("HackPrinceton", "hackprinceton")) if key in head), None)
         if slug and slug != "hackprinceton":  # the main-track note is a choice still open, not a page
-            out[slug] = f"---\ntitle: {json.dumps(re.sub(r' \\(main target\\)', '', head[4:].strip()))}\n---\n\n{body.strip()}\n"
+            out[slug] = f"---\ntitle: {json.dumps(head[4:].strip().replace(' (main target)', ''))}\n---\n\n{body.strip()}\n"
     return out
 
 
