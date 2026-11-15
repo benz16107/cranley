@@ -585,6 +585,13 @@ def media(shots: pathlib.Path) -> None:
         subprocess.run(["cwebp", "-quiet", "-q", "84", "-resize", "660", "0", str(shots / src), "-o", str(SITE / "public/media" / f"{name}.webp")], check=True)
 
 
+def asked() -> str:
+    """The story's forward-deployed opening, with its own counts, for the home page."""
+    m = re.search(r"^Cranley was built forward-deployed\..*?(?=\n\n)", (REPO / "docs/story.md").read_text(), re.S | re.M)
+    assert m, "docs/story.md has lost its forward-deployed opening"
+    return re.sub(r"\s+", " ", m.group(0).replace(" (Peri section)", ""))
+
+
 def main() -> None:
     if "--media" in sys.argv:
         media(pathlib.Path(sys.argv[sys.argv.index("--media") + 1]))
@@ -638,6 +645,7 @@ def main() -> None:
                                               "tools": [{"slug": t.replace("_", "-"), "title": tools[t].manifest.title} for t in index[i]["tools"] if t in tools]}
                                              for i in ids if i in index]} for g, ids in by_group.items() if any(i in index for i in ids)],
         "tracks": sorted(tracks),
+        "asked": asked(),
         "home": drawing(HOME, tools, pref),
     }
     write(SITE / "src/generated/site.json", json.dumps(site, indent=1))

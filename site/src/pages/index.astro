@@ -23,6 +23,7 @@ const showMotion = LABELS || motion.some((id) => filesOf(id).length > 0)
       <div class="pitch">
         <h1>The listing says accessible. The bathroom door is 71 cm.</h1>
         <p class="lead">Every decision about a building is made blind. Cranley is an agent that picks the tools your need requires and measures the real building, inside and out, before you sign. Every number comes from a calculation, never from a model's text.</p>
+        <p class="asked">{site.asked} <a href="/tracks/peri/">What they told us</a></p>
         <p class="cta">
           <a class="btn solid" href="/docs/">Read the docs</a>
           <a class="btn" href="#how">See how it works</a>
@@ -216,6 +217,7 @@ const showMotion = LABELS || motion.some((id) => filesOf(id).length > 0)
   .hero .wrap { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--s-6) var(--s-8); align-items: center; }
   .hero h1 { font-size: var(--t-display); font-stretch: 108%; letter-spacing: -0.025em; line-height: 1.04; }
   .hero .lead { margin-top: var(--s-5); color: var(--ink-2); max-width: 46ch; }
+  .hero .asked { margin-top: var(--s-4); font-size: 0.9375rem; line-height: 1.55; color: var(--ink-2); max-width: 54ch; }
   .cta { display: flex; flex-wrap: wrap; gap: var(--s-3); margin-top: var(--s-5); }
   .proof { display: flex; flex-wrap: wrap; gap: var(--s-3) var(--s-6); margin-top: var(--s-6); padding-top: var(--s-4); border-top: 1px solid var(--rule); }
   .proof dt { font-size: 0.75rem; color: var(--ink-3); }
