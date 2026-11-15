@@ -119,6 +119,9 @@ or, with the API running, `claude mcp add --transport http threshold-http http:/
 The `threshold` command (`threshold tools`, `run`, `search`, `building`, `ask`) wraps the same registry. Claude Desktop,
 Cursor and a LangChain deep agent over MCP are in [`docs/MCP.md`](docs/MCP.md).
 
+Demo flows: six scripted walkthroughs, one per sponsor track, live in `web/src/skins/app/demo/flows/` (how they run,
+record and replay offline: [`web/src/skins/app/demo/README.md`](web/src/skins/app/demo/README.md)).
+
 ## Credits
 
 All code here was written during the event. We built on: FastAPI, Pydantic, Shapely, NumPy, LangChain deepagents,
