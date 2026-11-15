@@ -19,7 +19,7 @@ export const TRACKS: Track[] = [
   },
   {
     slug: 'peri', name: 'Peri', prize: 'Forward Deployed Challenge',
-    summary: 'A small business is in no dataset. The iPhone app scans the shop, and the owner keeps a PDF with numbered fixes and a list of what was not checked.',
+    summary: 'Built forward-deployed: we asked people and businesses what goes wrong with their buildings, in one phone interview, written answers from 40 people in 15 online communities and 340 emails, then changed the tools to match.',
     docs: [['Phone and iPhone app', '/docs/phone/'], ['Fire pre-plan', '/docs/tools/fire-preplan/'], ['Egress routes', '/docs/tools/egress-routes/'], ['Facility audit', '/docs/tools/facility-audit/'], ['Door widths', '/docs/tools/door-widths/']],
     slots: ['field-visit', 'pdf-report', 'fire-preplan'],
   },
