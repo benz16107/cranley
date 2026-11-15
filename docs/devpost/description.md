@@ -72,7 +72,7 @@ More detail: [About Cranley](https://cranley.app/about/) · [Why nobody measures
 
 ![One agent per building, all at once: five candidate homes checked for a wheelchair user](https://d112y698adiu2z.cloudfront.net/photos/production/software_photos/005/910/106/datas/gallery.jpg)
 
-More detail: [How it works](https://cranley.app/how/) · [The agent](https://cranley.app/docs/concepts/agent/) · [Every tool](https://cranley.app/docs/tools/)
+More detail: [How it works](https://cranley.app/how/) · [The agent](https://cranley.app/docs/concepts/agent/) · [Every tool](https://cranley.app/tools/)
 
 ---
 
