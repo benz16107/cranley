@@ -4,6 +4,8 @@ Listings say "accessible", "two-car garage", "fits a king bed". Nobody measures 
 place where an agent assembles the tools your need requires, from a city map down to a measured doorway, and checks
 real buildings inside and out. Every number comes from a calculation, never from a model's text.
 
+Site and docs: https://cranley.app
+
 Built at HackPrinceton Fall 2026 (November 13 to 15) for CoStar's "Inside and Out: AI for the Built World" track, on
 Matterport interior scans, Vexcel aerial imagery and CoStar records, plus your own iPhone scan for any building.
 
