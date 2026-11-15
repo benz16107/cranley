@@ -19,7 +19,5 @@ Atlas holds the people side: workspaces, their operation logs, live sync, memory
 | LangGraph checkpointer and store | Paused agent turns and long-term memory next to the workspaces. |
 | MongoDB MCP server (read-only, guarded) | The agent counts and groups over the person's own past work. |
 
-**Scripted flow:** `web/src/skins/app/demo/flows/mongodb.json`, "Live sync between two windows, then search past work".
-
 **Demo path.** Pair the phone by QR, type a door width on the phone, watch it land on the desktop; Copy link opens a
 read-only shared workspace; search past work for a phrase that is not in it word for word.

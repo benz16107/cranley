@@ -14,7 +14,9 @@ const fileOf = (path) => {
   return existsSync(p) && statSync(p).isFile() ? p : existsSync(join(p, 'index.html')) ? join(p, 'index.html') : null
 }
 const bad = []
-const FORBID = [[/(?<![\w.-])\/(?:home|Users)\/\w/, 'a home path'], [/\bts\.net\b|tailb\d+/, 'a tailnet name'], [/\b(?:linuxbox|macserver|benmac)\b/, 'a machine name'], [/—/, 'an em dash']]
+const FORBID = [[/(?<![\w.-])\/(?:home|Users)\/\w/, 'a home path'], [/\bts\.net\b|tailb\d+/, 'a tailnet name'], [/\b(?:linuxbox|macserver|benmac)\b/, 'a machine name'], [/—/, 'an em dash'],
+  // notes to the team that must never reach a page (docs/story.md is also the team's working file)
+  [/lead(?:'|’|&#39;|&#x27;)s server/i, 'a note to the team'], [/\?as=/, 'the profile switch'], [/not merged yet/i, 'a stale branch note'], [/hackprinceton26-data/, 'the data folder'], [/Team note/, 'a team note'], [/\breports\/[\w-]+\.md\b/, 'a report in the data folder']]
 const TEST_SCANS = new Set(['u_testhome0001', 'u_testcafe0001'])
 
 for (const [file, s] of html) {
