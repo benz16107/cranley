@@ -157,7 +157,7 @@ def test_feedback_and_the_person_document(tmp_path, monkeypatch):
     assert c.post(f"/api/workspace/{ws}/feedback", json={"finding": "nope", "verdict": "useful"}).status_code == 404
     who = c.get(f"/api/person/maya?workspace={ws}").json()
     assert who["schema"] == "person/1" and [f["label"] for f in who["facts"]] == ["Not relevant to you"]
-    assert who["facts"][0]["why"] == "you marked it in this investigation"
+    assert who["facts"][0]["why"] == "you marked one not relevant in this investigation"
     assert c.get(f"/api/workspace/{ws}/because").json()["notes"] == []
     assert c.post(f"/api/workspace/{ws}/undo", json={"seq": r["undo"]}).status_code == 200
     assert c.get("/api/person/maya").json()["facts"] == []

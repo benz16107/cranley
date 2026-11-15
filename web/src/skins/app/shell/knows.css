@@ -36,8 +36,12 @@
 .flist li > button { border-bottom: 0; }
 .flist li[data-first] > button .t::after { content: 'Listed first'; margin-left: 8px; font-size: var(--text-2xs); font-weight: 500; color: var(--accent); white-space: nowrap; }
 .marks { display: flex; gap: 2px; padding: 0 var(--s-4) 6px calc(var(--s-4) + 18px - 8px); }
-.marks .btn { color: var(--ink-3); }
-@media (hover: hover) and (pointer: fine) { .marks .btn:hover { color: var(--ink); background: var(--pane-2); } .because:hover { border-color: var(--accent); } }
+/* `.flist button` is the row itself (full width, ruled): these two are not rows */
+.flist .marks .btn { display: inline-flex; width: auto; padding: 0 8px; border-bottom: 0; color: var(--ink-3); }
+@media (hover: hover) and (pointer: fine) { .flist .marks .btn:hover { color: var(--ink); background: var(--pane-2); } .because:hover { border-color: var(--accent); } }
+
+/* a toast that can be taken back: the look's toast is unstyled Sonner, so its action button is drawn here */
+.toast [data-button] { flex: none; align-self: center; margin-left: auto; height: 24px; padding: 0 8px; border: 1px solid color-mix(in srgb, var(--pane) 40%, var(--ink)); border-radius: var(--r-1); color: var(--pane); font-size: var(--text-xs); font-weight: 560; white-space: nowrap; }
 
 /* Home: the line that says a returning person is known */
 .h-known { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; color: var(--ink-2); font-size: var(--text-xs); }

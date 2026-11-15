@@ -90,15 +90,16 @@ def fmt(value: Any, unit: str | None = None) -> str:
     return f"{value} {unit}" if unit and unit not in ("None",) else str(value)
 
 
-def why(o: Origin | dict | None, here: str | None = None) -> str:
-    """Where a fact came from, said to the person: "you told me on 14 Nov in “…”"."""
+def why(o: Origin | dict | None, here: str | None = None, key: str = "") -> str:
+    """Where a fact came from, said to the person: "you told me on 14 Nov in “…”". `key` words a mark on a check."""
     if not o:
         return "from an earlier investigation"
     o = o if isinstance(o, Origin) else Origin.model_validate(o)
+    verb = "you marked one not relevant" if key.startswith("less.") else "you marked one useful" if key.startswith("more.") else VERB[o.how]
     if o.workspace == here:
-        return f"{VERB[o.how]} in this investigation"
+        return f"{verb} in this investigation"
     when = time.strftime("%-d %b", time.localtime(o.at))
-    return f"{VERB[o.how]} on {when}" + (f" in “{o.investigation}”" if o.investigation else "")
+    return f"{verb} on {when}" + (f" in “{o.investigation}”" if o.investigation else "")
 
 
 def fact(p: dict, here: str | None = None) -> dict:
@@ -116,7 +117,7 @@ def fact(p: dict, here: str | None = None) -> dict:
         (text, unit), shown = label(key), fmt(value)
     _, schema = _inputs().get(key, (None, {}))
     return {"key": key, "group": group(key), "label": text, "value": value, "shown": shown, "unit": unit,
-            "origin": p.get("origin"), "why": why(p.get("origin"), here), "said": p.get("reason") or "",
+            "origin": p.get("origin"), "why": why(p.get("origin"), here, key), "said": p.get("reason") or "",
             "at": (p.get("origin") or {}).get("at") or p.get("at"),
             # a number or a short word can be edited in place; a list or a mark can only be forgotten
             "edit": ({"type": schema.get("type"), "min": schema.get("minimum", schema.get("exclusiveMinimum")),
@@ -232,7 +233,7 @@ def because(doc: Workspace) -> dict:
 
     def note(kind: str, key: str, text: str, **at) -> None:
         p = doc.prefs[key]
-        notes.append({"kind": kind, "key": key, "text": text, "why": why(p.origin, doc.id),
+        notes.append({"kind": kind, "key": key, "text": text, "why": why(p.origin, doc.id, key),
                       "origin": p.origin.model_dump() if p.origin else None, **at})
 
     used: dict[str, list[str]] = {}  # the person's own value in a tool input: from the profile, or said in this investigation
