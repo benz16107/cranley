@@ -80,7 +80,7 @@ code, .num { font-family: var(--font-mono); font-stretch: 80%; font-size: 0.86em
 /* ---------- status marks: one scale, always with its glyph ---------- */
 .st { display: inline-flex; align-items: center; gap: 6px; font-weight: 560; white-space: nowrap; }
 .st svg { width: 11px; height: 11px; flex: none; }
-.st.pass { color: var(--pass); } .st.warn { color: var(--warn); } .st.fail { color: var(--fail); } .st.unknown { color: var(--ink-3); }
+.st.pass { color: var(--pass); } .st.warn { color: var(--warn-text); } .st.fail { color: var(--fail); } .st.unknown { color: var(--ink-3); }
 
 /* ---------- footer ---------- */
 .foot { border-top: 1px solid var(--rule); padding-block: var(--s-7) var(--s-8); margin-top: var(--s-8); font-size: 0.875rem; color: var(--ink-2); }
