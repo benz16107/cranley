@@ -1,0 +1,15 @@
+---
+// About: the sections that were on the Devpost page until it was shortened, word for word. scripts/generate.py copies
+// them from docs/devpost/about.md to src/generated/about.md; edit them there, not here.
+import Base from '../layouts/Base.astro'
+import { Content } from '../generated/about.md'
+---
+<Base title="About Cranley" description="What makes Cranley different, what we ran into while building it, what we are proud of, what we learned, and what it is built with.">
+  <article class="page">
+    <div class="wrap">
+      <h1>About Cranley</h1>
+      <p class="intro">What makes it different, what we ran into while building it, and what we learned. For how it works, see <a href="/how/">How it works</a>.</p>
+      <div class="prose"><Content /></div>
+    </div>
+  </article>
+</Base>
