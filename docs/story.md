@@ -294,7 +294,7 @@ wheelchair user, the family before a storm, the fire crew. Track pick: question 
 
 ## Built (synced to `main`)
 
-Checked against `git log main` at `34f3a12` (2026-11-14, 5:40 pm ET). Update at each merge.
+Checked against `git log main` at `f3c29d1` (2026-11-14, 6:56 pm ET). Update at each merge.
 
 **Merged**
 - [x] Data layer: Matterport, Vexcel and CoStar sources, normalized plan format with quality flags (`ws/data`)
@@ -325,6 +325,7 @@ Checked against `git log main` at `34f3a12` (2026-11-14, 5:40 pm ET). Update at 
 - [x] World explorer: one continuous view from the map to aerial to the 3D city to the scanned building, inspector beside it, sun and shadow slider (`ws/explorer`)
 - [x] 66 map layers in eight groups (live, people, rules, hazards, getting around, services, imagery, coverage), most from free public sources, each served with its source and fetch date; area profile, zoning check, permit history, hazard profile and connectivity tools (`ws/datalayers`)
 - [x] Real 3D models for vehicles and furniture, scaled to each tool's exact dimensions, drag to place with live clearance (`ws/models`)
+- [x] App look motion polish: shorter exits, switch and copy feedback, staggered tool list (`ws/motion`)
 - [x] MCP server (stdio and `/mcp`), `threshold` CLI, deep agent over MCP, `docs/MCP.md` (`ws/mcp`)
 
 **Not merged yet (building tonight)**
