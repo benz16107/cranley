@@ -18,6 +18,18 @@ remote=.cache/cranley-site
 v="export PATH=/opt/homebrew/bin:/usr/local/bin:\$PATH; vercel"
 prod=; [ "${1:-}" = "--prod" ] && prod=1
 
+# Files the site shows but git must not hold (a recorded call about a real home): copied from the data folder into
+# ignored paths on every build. Without that folder the Photon page builds without its call player.
+private=${THRESHOLD_DATA_DIR:-~/Code/hackathons/hackprinceton26-data}/site-private
+if [ -f "$private/call.json" ] && [ -f "$private/cranley-phone-call.mp3" ]; then
+  mkdir -p public/media/real
+  cp "$private/cranley-phone-call.mp3" public/media/real/ && cp "$private/call.json" src/site/call.local.json
+  echo "recorded call: included, from $private"
+else
+  rm -f public/media/real/cranley-phone-call.mp3 src/site/call.local.json
+  echo "recorded call: NOT included (no $private)"
+fi
+
 if [ -n "$prod" ]; then
   PUBLIC_DEEP=1 PUBLIC_SLOT_LABELS=off PUBLIC_INDEX=1 pnpm build   # PUBLIC_DEEP: the redesigned track pages, live since 2026-11-15 (Ben, 3:55 am)
   # the public site shows no empty picture frame and no slot note
