@@ -219,13 +219,18 @@ export function WorldMap(props: Props) {
     const ensure = () => { try { if (mesh && map.isStyleLoaded() && !map.getLayer(mesh.id)) map.addLayer(mesh, SLOT.solid) } catch { /* the style is still changing: the next event tries again */ } }
     let raf = 0, tipRaf = 0
     const onMove = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { useWorld.setState((s) => ({ tick: s.tick + 1, zoom: map.getZoom(), pitch: map.getPitch(), bearing: map.getBearing() })); draw() }) }
+    // MapLibre's wheel zoom ends with no originalEvent, so "the person did this" is also: they touched the map a moment ago
+    let input = 0, lastZ = map.getZoom()
+    const touched = () => { input = performance.now() }
+    for (const t of ['wheel', 'pointerdown', 'dblclick', 'keydown']) el.current!.addEventListener(t, touched, { passive: true, capture: true })
     const settle = (e?: { originalEvent?: unknown }) => {
       const z = map.getZoom(), c = map.getCenter(), now = live.current
+      const closer = z > lastZ + 0.01; lastZ = z // zooming out past a building (on the way back from one) must not open it again
       mesh?.setShown(z >= MESH_Z - 0.2)
       if (!now.held && z >= MESH_Z) void mesh?.want({ lat: c.lat, lon: c.lng })
       mesh?.shadowsAt(c.lng, c.lat)
       loadGrid()
-      if (!e?.originalEvent || now.held || z < ENTER_Z) return
+      if (!(e?.originalEvent || performance.now() - input < 1200) || !closer || now.held || z < ENTER_Z) return
       // the person zoomed right in: a scanned building at the middle of the view is the one they mean
       const near = now.buildings.map((b) => [metres(c, b), b] as const).sort((p, q) => p[0] - q[0])[0]
       if (near && near[0] < Math.max(35, 9000 / 2 ** (z - 12))) now.onNear?.(near[1])
