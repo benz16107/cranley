@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro'
 import { TRACKS } from '../../site/tracks'
+import SponsorLogo from '../../components/SponsorLogo.astro'
 ---
 <Base title="Tracks: Cranley" description="What Cranley built for each HackPrinceton sponsor track, with the docs and the demo path." nav="tracks">
   <section class="page">
@@ -9,7 +10,7 @@ import { TRACKS } from '../../site/tracks'
       <p class="intro">Cranley is one product. Each sponsor track sees a different part of it. Every page says what serves each judging criterion and links to the docs behind it.</p>
       <div class="prose">
         <ul class="ledger">
-          {TRACKS.map((t) => <li><span class="k"><a href={`/tracks/${t.slug}/`}>{t.name}</a><br /><span class="muted small">{t.prize}</span></span><span class="v">{t.summary}</span></li>)}
+          {TRACKS.map((t) => <li><span class="k"><span class="lg"><SponsorLogo slug={t.slug} height={24} /></span><a href={`/tracks/${t.slug}/`}>{t.name}</a><br /><span class="muted small">{t.prize}</span></span><span class="v">{t.summary}</span></li>)}
         </ul>
       </div>
     </div>
@@ -18,4 +19,5 @@ import { TRACKS } from '../../site/tracks'
 
 <style>
   .ledger { list-style: none; padding: 0; max-width: none; display: block; }
+  .lg { display: block; margin-bottom: 6px; }
 </style>

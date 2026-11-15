@@ -4,6 +4,7 @@
 import Base from '../../layouts/Base.astro'
 import type { Track } from '../../site/tracks'
 import '../../styles/deep.css'
+import SponsorLogo from '../SponsorLogo.astro'
 interface Props { track: Track; title: string; sections: [string, string][]; stats?: { n: number; label: string }[] }
 const { track, title, sections: own, stats } = Astro.props
 // a track's deep-dive video leads its page, once its YouTube id is in src/site/tracks.ts
@@ -13,6 +14,7 @@ const sections: [string, string][] = track.video ? [['video', 'Deep-dive video']
   <div class="deep wrap">
     <header class="deep-head">
       <p class="small"><a href="/tracks/">Tracks</a></p>
+      <p class="deep-logo"><SponsorLogo slug={track.slug} height={30} /></p>
       <h1>{title}</h1>
       <p class="lead">{track.summary}</p>
       {stats && <ul class="deep-stats">{stats.map((s) => <li><span class="num">{s.n}</span><span>{s.label}</span></li>)}</ul>}
