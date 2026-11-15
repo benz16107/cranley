@@ -15,7 +15,7 @@ from .. import (Action, ToolError, Assumption, Check, Finding, Metric, OpeningAn
 from ..types import BoxOverlay
 from .._access import cannot, fmt, has_objects
 from . import geom
-from .park import Dims, analyse, things
+from .park import Dims, analyse, pair, things
 from .vehicles import THING_MODEL, THINGS, VEHICLES, model_of
 
 IN = 0.0254
@@ -34,6 +34,9 @@ class Inputs(BaseModel):
     vehicle: Literal[tuple(VEHICLES)] = field("ford_f150", ask="Which vehicle? " + "; ".join(
         f"{k}: {v.label}" for k, v in VEHICLES.items()), pref="garage.vehicle",
         description="A vehicle from the built-in table; its sizes are editable assumptions")
+    second_vehicle: Literal[tuple(VEHICLES)] | None = field(
+        None, pref="garage.second_vehicle", description="A second, different vehicle to park beside the first (an "
+                                                       "F-150 and a Highlander); checks both, each with its own doors")
     count: int | None = field(None, ge=0, le=5, pref="garage.count",
                               description="How many of the vehicle must fit side by side; empty for as many as fit, "
                                           "0 for none (an empty garage for a gym or workshop)")
@@ -71,6 +74,48 @@ def dims(inputs: Inputs) -> Dims:
                 length=inputs.length_m or stored or v.length, width=w,
                 mirrors=inputs.mirror_width_m or max(v.mirrors, w), towed=v.towed, ramp=v.ramp, door=v.door,
                 height=round((inputs.height_m or v.height) + inputs.lift_in * IN + inputs.roof_load_m, 3))
+
+
+def catalog_dims(vid: str) -> Dims:
+    v = VEHICLES[vid]
+    return Dims(label=v.label, length=v.length, width=v.width, mirrors=v.mirrors, height=v.height, door=v.door,
+                ramp=v.ramp, towed=v.towed)
+
+
+def pair_part(sid: str, a: dict, d: Dims, d2: Dims, z0: float, src) -> dict:
+    """Checks, findings, boxes and a sentence for two different vehicles side by side."""
+    pr = a["pair"] = pair(a, d, d2)  # kept on the analysis so extras and storage go round both vehicles
+    f = a["frame"]
+    out = {"status": pr["status"], "checks": [], "findings": [], "boxes": []}
+    names = f"{short(d)} and {short(d2)}"
+    out["checks"].append(Check(id="pair", rule=f"{names} side by side", measured=None, threshold=None, unit="",
+                               status=pr["status"], standard="Each vehicle keeps its own door room beside it and "
+                                                             f"{geom.FRONT_FITS_M:.2f} m ahead to walk round; tight "
+                                                             f"down to {geom.SQUEEZE_M:.2f} m to squeeze out"))
+    for k, (car, (u, v), c) in enumerate(zip(pr["order"], pr["cars"], pr["clear"])):
+        tag = short(car)
+        need = car.door if not car.towed else 0.6
+        for side in ("left", "right"):
+            if c.get(side) is None:
+                continue
+            st = "pass" if c[side] >= need - 0.01 else "warn" if c[side] >= geom.SQUEEZE_M - 0.01 else "fail"
+            out["checks"].append(Check(id=f"pair{k}.{side}", rule=f"{tag}, {side} side: room to open the doors",
+                                       measured=round(c[side], 3), threshold=round(need, 3), unit="m", status=st))
+        if c.get("front") is not None:
+            st = "pass" if c["front"] >= geom.FRONT_FITS_M - 0.01 else "warn" if c["front"] >= geom.FRONT_TIGHT_M - 0.01 \
+                else "fail"
+            out["checks"].append(Check(id=f"pair{k}.front", rule=f"{tag}: room ahead of the bumper to walk round",
+                                       measured=round(c["front"], 3), threshold=geom.FRONT_FITS_M, unit="m", status=st))
+        out["boxes"].append(_box(f, u, v, car.width, car.length, car.height, z0, tag, pr["status"]))
+    if pr["status"] == "fail":
+        out["findings"].append(Finding(id=f"garage_fit:{sid}:pair", title=f"{names} do not fit side by side",
+                                       status="fail", source=src, anchor=None,
+                                       detail=f"Not even squeezed: {fmt(d.width)} and {fmt(d2.width)} wide with "
+                                              f"{geom.SQUEEZE_M:.2f} m beside each, in {fmt(a['width'])} inside."))
+    out["text"] = {"pass": f" The {names} fit side by side with room to open the doors.",
+                   "warn": f" The {names} fit side by side only tight: you squeeze out of the doors.",
+                   "fail": f" The {names} do not fit side by side."}[pr["status"]]
+    return out
 
 
 def short(d: Dims) -> str:
@@ -178,7 +223,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     room = g["room"]
     ctx.step(f"Garage: {room.get('label') or 'unlabelled room'} of {room.get('area') or 0:.0f} m2 "
              f"({ {'label': 'its label', 'chosen': 'the room you chose'}.get(g['how'], 'a ground-floor room with a car-wide door')})")
-    a = analyse(plan, g, d, inputs.count)
+    a = analyse(plan, g, d, 1 if inputs.second_vehicle else inputs.count)
     if a is None:
         return ToolResult(scope=scope, assumptions=base, verdict=Verdict(status="unknown", text=(
             "The scan has a garage but no outline for it, so it cannot be measured.")))
@@ -305,6 +350,12 @@ def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base
                                         detail=", ".join(f"{s} {fmt(c[s])}" for s in ("left", "right", "front") if c.get(s) is not None)
                                         + f" clear; doors need {fmt(lv_need)} beside the body."))
             overlays.append(_box(f, u, v, d.width, d.length, d.height, z0, tag, st, model_of(inputs.vehicle)))
+    pp = None
+    if inputs.second_vehicle and n:
+        pp = pair_part(sid, a, d, catalog_dims(inputs.second_vehicle), z0, src)
+        overlays = [o for o in overlays if not isinstance(o, BoxOverlay)] + pp["boxes"]
+        checks += pp["checks"]
+        findings += pp["findings"]
     # extras
     for t in things(a, d, list(inputs.uses)):
         k, spot = t["id"], t["spot"]
@@ -343,6 +394,8 @@ def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base
     fits, tight = a["fits"], a["tight"]
     statuses = [c.status for c in checks if c.id in ("door_width", "door_height", "ceiling")] + [a["status"]] \
         if n else [c.status for c in checks if c.id.startswith(("room.", "gym."))]
+    if pp:
+        statuses.append(pp["status"])
     status = "fail" if "fail" in statuses else "warn" if "warn" in statuses else "pass"
     many = lambda k: f"{WORD.get(k, k)} {name}{'s' if k > 1 else ''}"
     if n == 0:
@@ -355,7 +408,7 @@ def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base
         text = f"{many(n)} {'fits' if n == 1 else 'fit'}" + (
             (" with room to walk round" if d.towed else " with room to open the doors") if a["which"] == "fits" else
             (", tight: little room to walk round" if d.towed else ", tight: you squeeze out of the doors"))
-        text += "." if inputs.count is not None or fits == tight else f" ({fits} with doors fully open, {tight} tight)."
+        text += "." if inputs.count is not None or inputs.second_vehicle or fits == tight else f" ({fits} with doors fully open, {tight} tight)."
     why = {"door_width": " The garage door is narrow for it: fold the mirrors.",
            "door_height": " Headroom under the garage door is tight." if measured else
            (" It is taller than even an 8 ft garage door; the scan did not measure this one."
@@ -371,6 +424,8 @@ def result(sid: str, plan: dict, g: dict, a: dict, d: Dims, inputs: Inputs, base
                 c.id == "ceiling" and not a["ceiling_measured"] else \
                 {"door_width": " The garage door is too narrow for it.", "door_height": " It does not clear the garage door.",
                  "ceiling": " It does not clear the ceiling."}[c.id]
+    if pp:
+        text += pp["text"]
     if g["how"] == "wide door":
         text += " The room is unlabelled; it was taken for the garage because of its car-wide door."
     if n and not has_objects(plan):

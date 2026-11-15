@@ -289,3 +289,42 @@ def corners_center(corners) -> tuple[tuple[float, float], float, tuple[float, fl
     (ax, ay), (bx, by), (cx, cy) = corners[0], corners[1], corners[2]
     return (((ax + cx) / 2, (ay + cy) / 2), math.degrees(math.atan2(by - ay, bx - ax)),
             (math.dist((ax, ay), (bx, by)), math.dist((bx, by), (cx, cy))))
+
+
+def place_pair(region, cars: list[tuple[float, float, float]], gaps: list[float], front: float, doors: list[dict],
+               rear: float = REAR_M):
+    """Two different vehicles nose-in side by side: cars = [(width, length, span), ...]; gaps = [left, between,
+    right]. Each needs its own length plus `rear` and `front` in depth. Lower-left (u, v) of each, or None.
+    shortcut: the same 5 cm by 10 cm grid as `place`."""
+    (w1, l1, s1), (w2, l2, s2) = cars
+    x0, y0, x1, y1 = region.bounds
+    bw = gaps[0] + w1 + gaps[1] + w2 + gaps[2]
+    if bw > x1 - x0 + 1e-9 or max(l1, l2) + rear + front > y1 - y0 + 1e-9:
+        return None
+    shapely.prepare(region)
+    vmax = y0 + (0.6 if doors else y1 - y0 - max(l1, l2) - rear - front)
+    for v0 in np.arange(y0 + 0.003, vmax + 1e-9, 0.1):
+        for u0 in np.arange(x0 + 0.003, x1 - bw + 1e-9, STEP_M):
+            ua = u0 + gaps[0]
+            ub = ua + w1 + gaps[1]
+            if doors and not (lines_up(ua + w1 / 2, s1, doors) and lines_up(ub + w2 / 2, s2, doors)):
+                continue
+            a = box(u0, v0, ua + w1 + gaps[1] / 2, v0 + rear + l1 + front)
+            b = box(ua + w1 + gaps[1] / 2, v0, u0 + bw, v0 + rear + l2 + front)
+            if region.contains(a) and region.contains(b):
+                return [(ua, v0 + rear), (ub, v0 + rear)]
+    return None
+
+
+def pair_clearances(region, cars: list[tuple], sizes: list[tuple[float, float]]) -> list[dict]:
+    """`clearances` for two vehicles of different sizes: room left, right, ahead and behind each."""
+    (ua, va), (ub, vb) = cars
+    (wa, la), (wb, lb) = sizes
+    out = []
+    for (u, v), (w, l), left_of, right_of in (((ua, va), (wa, la), None, ub), ((ub, vb), (wb, lb), ua + wa, None)):
+        side = interval_at(region, "u", v + l / 2, u + w / 2)
+        ahead = interval_at(region, "v", u + w / 2, v + l / 2)
+        out.append({"left": (u - left_of) if left_of is not None else (u - side[0] if side else None),
+                    "right": (right_of - u - w) if right_of is not None else (side[1] - u - w if side else None),
+                    "front": (ahead[1] - v - l) if ahead else None, "rear": (v - ahead[0]) if ahead else None})
+    return out

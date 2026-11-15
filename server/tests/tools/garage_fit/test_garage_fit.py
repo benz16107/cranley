@@ -203,3 +203,17 @@ def test_an_8_ft_trailer_does_not_clear_an_8_ft_door():
     r = run(garage_plan("trailer", door_w=2.44), vehicle="utility_trailer", width_m=2.44, count=1)
     c = check(r, "door_width")
     assert c.status == "fail" and "fenders and side lights" in c.rule
+
+
+def test_an_f150_and_a_highlander_side_by_side():
+    # one owner's case: the truck and his wife's Highlander in one two-car garage, parked snug
+    r = run(garage_plan("pair"), vehicle="ford_f150", second_vehicle="toyota_highlander")   # 6.1 x 6.1 m inside
+    c = check(r, "pair")
+    assert c.status == "warn" and "Highlander fit side by side only tight" in r.verdict.text
+    sides = [x for x in r.checks if x.id.startswith("pair") and x.id.endswith(("left", "right"))]
+    assert len(sides) == 4 and min(x.measured for x in sides) < 0.9 <= max(x.threshold for x in sides) + 0.01
+    assert {o.label for o in r.overlays if o.kind == "box"} >= {"Ford F-150 SuperCrew", "Toyota Highlander"}
+    wide = run(garage_plan("pair2", door_w=7.0, size=8.0), vehicle="ford_f150", second_vehicle="toyota_highlander")
+    assert check(wide, "pair").status == "pass"                                             # 26 ft wide
+    narrow = run(garage_plan("pair3", door_w=3.0, size=4.5), vehicle="ford_f150", second_vehicle="toyota_highlander")
+    assert check(narrow, "pair").status == "fail" and narrow.verdict.status == "fail"
