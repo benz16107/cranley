@@ -209,6 +209,10 @@ def route(m: dict, t: dict, chat: Chat, st: State) -> None:
     if qs:
         answer(chat, st, s, qs, text)
         return
+    if not replied and (s.doc.brief.persona or s.doc.brief.summary):
+        # a new question, not a reply: a fresh workspace (a composed one starts no new tools); replies keep theirs
+        s = session(None)
+        st.update(chat.space, workspace=s.base.id)
     ask(chat, st, s, text)
 
 

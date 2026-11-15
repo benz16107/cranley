@@ -127,7 +127,7 @@ rejects any number it states.
 | Phone companion (`/m`) | Pairs by QR with a desktop workspace; GPS, camera, mic, barometer, tilt and typed measurements feed tools live | merged |
 | iPhone LiDAR app | RoomPlan scan of your own space, LiDAR tape measure, barometer floor height, compass window facing, scan-to-report | merged; builds and runs in the simulator; not on a phone yet (Apple licence agreement) |
 | Offline demo copy | The laptop replays the six demo flows with recorded model answers when the venue network fails | merged |
-| iMessage and phone (Photon 2.0) | Ask by text or call; plan pictures, reply threads, photos and voice notes in, PDF in the chat | merged; live round trip not yet confirmed |
+| iMessage and phone (Photon 2.0) | Ask by text or call; plan pictures, reply threads, photos and voice notes in, PDF in the chat | merged; first real phone round trip done 15 Nov, 3:46 am |
 | Website and docs | https://cranley.app: home, a page per track (generated from this file's Tracks section), privacy and terms, docs generated from the tool manifests and the OpenAPI schema, a live demo button (access code given in person) with FAQ and privacy text for the demo | merged and live |
 | PDF reports | Site report for any workspace: plan with numbered fixes, evidence, occupant load, smoke-alarm census, what was not checked | merged |
 | MCP server and CLI | Every tool for Claude Code, Claude Desktop, Cursor or a LangChain agent; resources and prompts; `threshold` on the command line | merged |
@@ -420,8 +420,11 @@ Rules it keeps: every sent line is built from the tool result, never from model 
 rendered pictures leave the server; the main API stays private behind one signature-checked relay; each event is
 handled once, in order per chat.
 
-**State (4:20 am):** merged with 14 tests; the live line is up with sends limited to an allowlist; the voice line is
-wired (`edbfc67`) and Ben made the first real call at about 4 am. A full live round trip is not confirmed yet.
+**State (15 Nov, 3:46 am):** merged with 14 tests; the live line is up with sends limited to an allowlist. The first
+real phone round trip is done: a call to Cranley's Photon number reached the ElevenLabs voice agent over SIP, the caller
+asked whether a Ford F-150 fits a garage, the agent ran Cranley's `start_check` and `get_answer` tools and read the
+measured answer 1:51 into the call, and after the hang-up Cranley sent the plan picture and the answer to the caller's
+iMessage thread (Photon accepted the sends; no delivery receipt was reported). Recorded with the caller's consent.
 
 **Demo path.** Text the line "will an F-150 fit in this garage?" with a building link, get the marked plan back, reply
 "what about two?", then "report" for the PDF. For Best Voice: call, ask the same, hang up, show the iMessage that follows.
@@ -463,7 +466,7 @@ wheelchair user, the family before a storm, the fire crew.
 
 ## Built (synced to `main`)
 
-Checked against `git log main` at `9acfb37` (2026-11-15, 3:49 am ET). Update at each merge.
+Checked against `git log main` at `fa64b95` (2026-11-15, 3:57 am ET). Update at each merge.
 
 **Merged**
 - [x] Data layer: Matterport, Vexcel and CoStar sources, normalized plan format with quality flags (`ws/data`)
@@ -496,7 +499,7 @@ Checked against `git log main` at `9acfb37` (2026-11-15, 3:49 am ET). Update at 
 - [x] Real 3D models for vehicles and furniture, scaled to each tool's exact dimensions, drag to place with live clearance (`ws/models`)
 - [x] App look motion polish: shorter exits, switch and copy feedback, staggered tool list (`ws/motion`)
 - [x] Six scripted demo flows, one per track, with spoken lines and recorded model answers; an offline laptop copy (`scripts/demo-sync`, `scripts/demo-up`) that replays without the network (`ws/demo`)
-- [x] Cranley over iMessage and voice on Photon 2.0: plan pictures, reply threads as investigations, approvals, photo/video/voice/location in, field visits, PDF in chat, weather alerts, ElevenLabs phone agent (`ws/photon`)
+- [x] Cranley over iMessage and voice on Photon 2.0: plan pictures, reply threads as investigations, approvals, photo/video/voice/location in, field visits, PDF in chat, weather alerts, ElevenLabs phone agent; first real phone round trip at 3:46 am (`ws/photon`)
 - [x] Person profile across investigations, "Cranley knows" with Change and Forget, checks kept back by kind, measured adaptation in the app, `amazon-adaptive` flow (`ws/adaptive`)
 - [x] Changes from discovery: steps first, several chairs, bathroom door swing and clear space, aisles, elevators, garage depth and trailer checks (`ws/feedback` part 1); facility audit rack route, storage area, water heater distance and office-under-restroom check from the workplace answers, and `docs/feedback.md` (part 2)
 - [x] Audit passes on the shell, scene and phone: failed 360 photos say so with a retry, layers a city lacks are hidden, phone layout fixes, ids read as names (`audit/*`, partial merges)

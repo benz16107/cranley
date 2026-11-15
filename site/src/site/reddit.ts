@@ -1,0 +1,30 @@
+// The public Reddit threads behind the Peri page: Ben's question in each community, with whatever replies it drew.
+// Copied by hand from the outreach record (which lives outside the repo), with the address recorded for each post.
+// Two posts that their communities' AutoModerators removed are left out. No username is in any address.
+export const REDDIT: { sub: string; title: string; url: string; note?: string }[] = [
+  { sub: 'r/Garages', title: 'What did you wish you\'d measured before buying a house with "a two-car garage"?', url: 'https://www.reddit.com/r/garages/comments/1xwfk8i/' },
+  { sub: 'r/wheelchairs', title: 'All surveys, research and product design questions', url: 'https://www.reddit.com/r/wheelchairs/comments/1wlhv34/comment/19sn864vx82is/', note: 'Ben\'s comment in the community\'s research thread' },
+  { sub: 'r/EmergencyManagement', title: 'For those who use pre-incident plans: what\'s usually missing or out of date when you actually need one?', url: 'https://www.reddit.com/r/EmergencyManagement/comments/1xwfn5q/' },
+  { sub: 'r/f150', title: 'SuperCrew owners: how much room do you actually have in your garage, and what did you have to change?', url: 'https://www.reddit.com/r/f150/comments/1xwfnc3/' },
+  { sub: 'r/OccupationalTherapy', title: 'Home assessments: which measurements do you take every time, and which ones do you wish clients already had?', url: 'https://www.reddit.com/r/OccupationalTherapy/comments/1xwfne2/' },
+  { sub: 'r/Filmmakers', title: 'Location scouts and ADs: what do you wish you knew about a location before the recce?', url: 'https://www.reddit.com/r/Filmmakers/comments/1xwg9zs/' },
+  { sub: 'r/HomeInsurance', title: 'Got a wildfire non-renewal or an inspection notice? What did the insurer actually flag?', url: 'https://www.reddit.com/r/HomeInsurance/comments/1xwga3n/' },
+  { sub: 'r/RVLiving', title: 'What do you check at a house, storage lot or driveway before you commit to parking the rig there?', url: 'https://www.reddit.com/r/RVLiving/comments/1xwga5j/' },
+  { sub: 'r/wildfire', title: 'Homeowners and inspectors: what do people usually get wrong about defensible space around their own house?', url: 'https://www.reddit.com/r/Wildfire/comments/1xwga79/' },
+  { sub: 'r/cybertruck', title: 'Did your garage need changes for the Cybertruck? Which dimension was the problem?', url: 'https://www.reddit.com/r/cybertruck/comments/1xwgg2h/' },
+  { sub: 'r/asklosangeles', title: 'LA homeowners: since the January 2025 fires, what did you change around your house for fire, and what did the inspector or insurer care about?', url: 'https://www.reddit.com/r/AskLosAngeles/comments/1xwgg7v/' },
+  { sub: 'r/TruckCampers', title: 'Where do you keep the camper when it\'s off the truck, and what did you have to measure for that?', url: 'https://www.reddit.com/r/TruckCampers/comments/1xwggac/' },
+  { sub: 'r/HomeNetworking', title: 'When you planned access point placement, what did you wish you\'d known about the house first?', url: 'https://www.reddit.com/r/HomeNetworking/comments/1xwghh1/' },
+  { sub: 'r/boating', title: 'If you keep a trailered boat in your garage, what limited it: length, height with the tower, or backing in?', url: 'https://www.reddit.com/r/boating/comments/1xwgn3b/' },
+  { sub: 'r/homeautomation', title: 'Security cameras: how did you work out placement so there are no blind spots at the doors?', url: 'https://www.reddit.com/r/homeautomation/comments/1xwgnw6/' },
+  { sub: 'r/smallbusinessowner', title: 'What did you find out about your space only after you signed the lease?', url: 'https://www.reddit.com/r/smallbusinessowner/comments/1xwhn6e/' },
+  { sub: 'r/Coworking', title: 'Operators: before you sign for a new location, what do you check that the broker package never has?', url: 'https://www.reddit.com/r/CoWorking/comments/1xwhniv/' },
+  { sub: 'r/walmart', title: 'Receiving and back room folks: what about your store\'s building makes truck day harder?', url: 'https://www.reddit.com/r/walmart/comments/1xwi3d3/' },
+  { sub: 'r/restaurant', title: 'Owners and managers: what about your building caused the most trouble after you opened?', url: 'https://www.reddit.com/r/restaurant/comments/1xwi3h7/' },
+  { sub: 'r/warehouseworkers', title: 'What\'s the building problem you fight every shift: docks, racking, aisles, or something else?', url: 'https://www.reddit.com/r/Warehouseworkers/comments/1xwi3kh/' },
+  { sub: 'r/FoodService', title: 'What\'s one thing about your building\'s layout that makes every shift harder?', url: 'https://www.reddit.com/r/FoodService/comments/1xwi46p/' },
+  { sub: 'r/Chefit', title: 'Chefs: when you took over a kitchen, what about the space did you wish you\'d known first?', url: 'https://www.reddit.com/r/Chefit/comments/1xwi8on/' },
+  { sub: 'r/AskManagers', title: 'Managers who opened or moved a location: what do you wish you\'d checked about the space before signing?', url: 'https://www.reddit.com/r/askmanagers/comments/1xwi8r2/' },
+  { sub: 'r/managers', title: 'Managers who run a site: what building issue ate the most of your time this year?', url: 'https://www.reddit.com/r/managers/comments/1xwi8wb/' },
+  { sub: 'r/Target', title: 'Fulfillment and backroom team: what about your store\'s back room or dock slows you down most?', url: 'https://www.reddit.com/r/Target/comments/1xwi9as/' },
+]

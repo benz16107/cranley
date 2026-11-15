@@ -4,9 +4,11 @@ title: "Photon: Build a Messaging Agent using Photon 2.0"
 
 Prizes: winner, runner-up, and Best Voice Agent. Built on `ws/photon` (merged at `a8c7348`); details in `docs/PHOTON.md`.
 
-**Angle.** The people who need a building checked are rarely at a desk: they are walking through a viewing, driving to
-one, or standing in a doorway with a tape measure. On Photon, the same agent and the same measuring tools answer in
-iMessage and on a phone call.
+**Angle.** Cranley on Photon works like texting or calling your real estate agent. You have a question about a place,
+so you text or call, and it answers with measurements. The same number can act as your contractor, inspector, property
+manager or accessibility advisor. The people who need a building checked are rarely at a desk: they are walking through
+a viewing, driving to one, or standing in a doorway with a tape measure. The same agent and the same measuring tools
+answer in iMessage and on a phone call.
 
 | What a person does | Why it is a real use of Photon 2.0 |
 |---|---|
@@ -24,8 +26,8 @@ Rules it keeps: every sent line is built from the tool result, never from model 
 rendered pictures leave the server; the main API stays private behind one signature-checked relay; each event is
 handled once, in order per chat.
 
-**State (7:50 pm):** merged with 14 tests; the live line is up with sends limited to an allowlist; a first real round
-trip had not been confirmed; the phone agent needs a voice number.
+**State (4:20 am):** merged with 14 tests; the live line is up with sends limited to an allowlist; the voice line is
+wired (`edbfc67`) and Ben made the first real call at about 4 am. A full live round trip is not confirmed yet.
 
 **Demo path.** Text the line "will an F-150 fit in this garage?" with a building link, get the marked plan back, reply
 "what about two?", then "report" for the PDF. For Best Voice: call, ask the same, hang up, show the iMessage that follows.

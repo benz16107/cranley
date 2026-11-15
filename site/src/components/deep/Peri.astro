@@ -14,6 +14,7 @@ import Asked from './Asked.astro'
 import Proof from '../Proof.astro'
 import deep from '../../generated/deep.json'
 import { INTERVIEW } from '../../site/proof'
+import { REDDIT } from '../../site/reddit'
 import type { Track } from '../../site/tracks'
 interface Props { track: Track; title: string }
 const { track, title } = Astro.props
@@ -116,6 +117,11 @@ const flow = [
       <figcaption>{INTERVIEW.caption} <a href={INTERVIEW.url}>Watch it on YouTube</a></figcaption>
     </figure>
     {track.proof?.map((id) => <Proof id={id} />)}
+    <h3 class="h3" id="reddit">The conversations, on Reddit</h3>
+    <p class="txt">The {REDDIT.length} threads that are still up. They are public: each link opens Ben's question and the replies it drew, where it has any.</p>
+    <ul class="threads">
+      {REDDIT.map((t) => <li><span class="num">{t.sub}</span><a href={t.url}>{t.title}</a><span class="what">{t.note ?? "Ben's question and the replies"}</span></li>)}
+    </ul>
   </Sec>
 
   <Sec id="limits" title="What we did not build" sub="Each thing we skipped is in the log with its reason.">
@@ -136,6 +142,11 @@ const flow = [
   .pull { max-width: 30ch; font-size: clamp(1.375rem, 1.1rem + 1.2vw, 1.875rem); font-stretch: 104%; letter-spacing: -0.015em; line-height: 1.25; text-wrap: balance; }
   .pull cite { display: block; margin-top: var(--s-3); font-size: 0.875rem; font-style: normal; letter-spacing: 0; line-height: 1.4; color: var(--ink-3); }
   .h3 { margin-top: var(--s-4); font-size: 1.0625rem; font-weight: 600; }
+  .threads { display: grid; border-top: 1px solid var(--rule-strong); }
+  .threads li { display: grid; grid-template-columns: 11.5rem minmax(0, 1fr) max-content; gap: 2px var(--s-4); align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--rule); font-size: 0.875rem; line-height: 1.4; }
+  .threads .num { color: var(--ink-2); overflow-wrap: anywhere; }
+  .threads .what { font-size: 0.8125rem; color: var(--ink-3); }
+  @media (max-width: 900px) { .threads li { grid-template-columns: minmax(0, 1fr); } }
   .skipped { display: grid; border-top: 1px solid var(--rule-strong); }
   .skipped li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-5); padding: 12px 0; border-bottom: 1px solid var(--rule); font-size: 0.875rem; line-height: 1.5; }
   .skipped li span:last-child { color: var(--ink-2); }
