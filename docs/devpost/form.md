@@ -17,7 +17,7 @@ description, tagline, links and built-with are filled in through the Devpost MCP
 | Tagline (200) | Ask anything about a building. Get a measured answer. An agent that measures the real building, inside and out, before you commit. |
 | Description | `docs/devpost/description.md` (synced) |
 | Built with (25) | python, fastapi, langchain, deepagents, langgraph, langsmith, anthropic, mongodb-atlas, timescaledb, tiger-data, photon, postgis, pgvector, react, typescript, elevenlabs, three.js, maplibre, deck.gl, swift, swiftui, arkit, roomplan, ollama, matterport |
-| Video | the 2-minute YouTube link, when uploaded |
+| Video | https://youtu.be/cwn0x1TZYKQ (1:56, unlisted; set on the project and the entry; may be swapped for a dark-mode cut) |
 
 ## Custom questions (ids from `get_submission_requirements`)
 
@@ -97,7 +97,7 @@ Ollama nomic-embed-text inside Tiger through pgai, voyage-4 inside Atlas, and bg
 ## Try it links
 
 - Start here: https://cranley.app
-- Live demo: https://cranley.app/app (code from Ben at the table; never write the code down)
+- Live demo: https://cranley.app/app (open, no access code since ~3:30 am; the code still exists in the data .env if Ben turns it back on)
 - Fallback if cranley.app/app is down: https://linuxbox.<tailnet>:10000/app (same door, same code)
 - Code: https://github.com/benz16107/cranley
 - Conversation with Jean Ryan (7 min): https://youtu.be/EoHyoNs2idg
