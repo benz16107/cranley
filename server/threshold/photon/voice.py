@@ -52,6 +52,7 @@ def _turn(caller: str, text: str | None) -> dict:
     rec = _call(caller)
     s = session(rec.get("workspace"))
     rec["workspace"] = s.base.id
+    words.scope_named(s, text)
     out = core.ask(text or "", workspace_id=s.base.id)
     rec["runs"] = list(dict.fromkeys([*rec["runs"], *[r["id"] for r in out.get("runs") or []]]))[-10:]
     rec["questions"] = open_questions(s)[:1]

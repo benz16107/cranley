@@ -230,3 +230,16 @@ def test_no_native_reply_out_on_a_shared_imessage_line(tmp_path):
     e["data"]["object"]["receivedBy"]["details"] = {"type": "shared"}
     router.handle(e, st, api)
     assert api.sent[0][2] is None
+
+
+def test_the_sample_home_is_found_by_name(tmp_path, monkeypatch):
+    import json
+    for sid, name, made in (("u_aaa", "Sample home", "2026-11-14T01"), ("u_bbb", "Sample home", "2026-11-14T09"),
+                            ("u_ccc", "Test cafe (hand-made, not a real place)", "2026-11-14T05")):
+        (tmp_path / "user_scans" / sid).mkdir(parents=True)
+        (tmp_path / "user_scans" / sid / "meta.json").write_text(json.dumps({"name": name, "created": made}))
+    monkeypatch.setattr("threshold.config.DATA", tmp_path)
+    assert words.named_scan("Can a 76 cm wheelchair get through every door of the sample home?") == "u_bbb"
+    assert words.named_scan("check the test cafe for me") == "u_ccc"
+    assert words.named_scan("will a sofa fit at 12 Elm St") is None
+    assert words.place_name("u_ccc").startswith("Test cafe")

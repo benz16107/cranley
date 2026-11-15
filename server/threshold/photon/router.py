@@ -311,6 +311,7 @@ def near(chat: Chat, st: State, ws: str | None, lat: float, lon: float) -> None:
 
 def ask(chat: Chat, st: State, s, text: str | None) -> None:
     from ..mcp import core
+    words.scope_named(s, text)
     with chat.typing():
         out = core.ask(text or "", workspace_id=s.base.id)
     deliver(chat, st, s, out)
