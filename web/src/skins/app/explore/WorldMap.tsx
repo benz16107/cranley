@@ -30,11 +30,23 @@ const NO_GEO: GeoMarks = { paths: [], pins: [] }
 const EMPTY: LayerCollection = { type: 'FeatureCollection', features: [] }
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-const palette = () => ({
-  ground: tokenCss('--paper'), water: tokenCss('--map-water'), waterLine: tokenCss('--map-water-line'), green: tokenCss('--map-green'),
-  road: tokenCss('--map-road'), roadMajor: tokenCss('--map-road-major'), rail: tokenCss('--map-road'), building: tokenCss('--map-building'),
-  label: tokenCss('--ink'), labelMuted: tokenCss('--ink-3'), halo: tokenCss('--paper'),
-})
+/** A token's dark side, whatever the scheme: the tokens are light-dark() pairs, which resolve where they are used. */
+function darkCss(name: string) {
+  const probe = document.createElement('i')
+  probe.style.cssText = `color-scheme: dark; color: var(${name})`
+  document.body.append(probe)
+  const c = getComputedStyle(probe).color
+  probe.remove()
+  return c
+}
+const palette = (base: BaseView) => {
+  const t = base === 'dark' ? darkCss : tokenCss
+  return {
+    ground: t('--paper'), water: t('--map-water'), waterLine: t('--map-water-line'), green: t('--map-green'),
+    road: t('--map-road'), roadMajor: t('--map-road-major'), rail: t('--map-road'), building: t('--map-building'),
+    label: t('--ink'), labelMuted: t('--ink-3'), halo: t('--paper'),
+  }
+}
 /** The token each data layer is drawn in: the hue of the tool family it belongs with. Also its swatch in the layer list.
     A layer that is not here (one a source module added later) brings its own in the catalogue, or is drawn neutral. */
 export const hueOf = (l: MapLayer) => LAYER_HUE[l.id] ?? (/^--[a-z0-9-]+$/.test(l.hue) ? l.hue : '--ink-2')
@@ -46,7 +58,7 @@ const LAYER_HUE: Record<string, string> = {
 /** The map style for a base view with the chosen data layers spliced in over the 3D city and under the names. A pure
     function of what is shown, so every change is one `setStyle` and the map works out the difference. */
 function styleFor(base: BaseView, city: CityId, layers: MapLayer[], on: string[], grid: Map<string, LayerCollection>) {
-  const style = mapStyle(palette(), { base, closeUp: CLOSE_Z })
+  const style = mapStyle(palette(base), { base, closeUp: CLOSE_Z, globe: true })
   const sources: Record<string, unknown> = {}, drawn: unknown[] = []
   const paper = tokenCss('--pane')
   for (const L of layers) {
@@ -142,7 +154,11 @@ export function WorldMap(props: Props) {
     const { buildings: data, selected: sel, marks: agentMarks, geo: marksGeo, fonts, on: shown, covered: behind } = live.current
     const hover = useWorld.getState().hover
     const z = map.getZoom()
-    const ink = tokenRgba('--ink'), paper = tokenRgba('--paper'), accent = tokenRgba('--accent')
+    const accent = tokenRgba('--accent')
+    // a building's dot is dark on the drawn map and light on a photo or a dark ground, with the other as its edge
+    const a = tokenRgba('--ink'), b2 = tokenRgba('--paper'), lum = (c: number[]) => c[0] * 0.3 + c[1] * 0.6 + c[2] * 0.1
+    const [dim, bright] = lum(a) < lum(b2) ? [a, b2] : [b2, a], onDark = live.current.base !== 'streets' || lum(a) > lum(b2)
+    const ink = onDark ? bright : dim, paper = onDark ? dim : bright
     const far = Math.max(0, Math.min(1, (12.4 - z) / 1.2)) // 1 at city scale, 0 once single buildings read
     const px = (b: Building) => 2.2 + Math.sqrt(b.count) * 1.5
     const grow = Math.max(0.75, Math.min(2.6, 1 + (z - 12) * 0.32))
@@ -211,7 +227,7 @@ export function WorldMap(props: Props) {
     const start = live.current.selected
     const map = new MapLibre({
       container: el.current!, style: styleFor(base, city, layers, on, grid.current), attributionControl: false,
-      center: start ? [start.lon, start.lat] : CITIES[city].center, zoom: start ? 15 : CITIES[city].zoom, minZoom: 3, maxZoom: 21.4, maxPitch: 80,
+      center: start ? [start.lon, start.lat] : CITIES[city].center, zoom: start ? 15 : CITIES[city].zoom, minZoom: 0.8, maxZoom: 21.4, maxPitch: 80,
     })
     map.setVerticalFieldOfView(SCENE_FOV) // the building scene's lens, so the two cameras can be laid on each other
     let mesh: CityMesh | null = null, gone = false
@@ -221,10 +237,10 @@ export function WorldMap(props: Props) {
     let raf = 0, tipRaf = 0
     const onMove = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { useWorld.setState((s) => ({ tick: s.tick + 1, zoom: map.getZoom(), pitch: map.getPitch(), bearing: map.getBearing() })); draw() }) }
     // MapLibre's wheel zoom ends with no originalEvent, so "the person did this" is also: they touched the map a moment ago
-    let input = 0, lastZ = map.getZoom()
-    const touched = () => { input = performance.now() }
+    let input = 0, lastZ = map.getZoom(), pointer: [number, number] | null = null // where the wheel was turned: what the person is aiming at
+    const touched = (e: Event) => { input = performance.now(); pointer = e.type === 'wheel' ? [(e as WheelEvent).clientX, (e as WheelEvent).clientY] : null }
     for (const t of ['wheel', 'pointerdown', 'dblclick', 'keydown']) el.current!.addEventListener(t, touched, { passive: true, capture: true })
-    const settle = (e?: { originalEvent?: unknown }) => {
+    const settle = () => {
       const z = map.getZoom(), c = map.getCenter(), now = live.current
       const closer = z > lastZ + 0.01; lastZ = z // zooming out past a building (on the way back from one) must not open it again
       mesh?.setShown(z >= MESH_Z - 0.2)
@@ -235,11 +251,31 @@ export function WorldMap(props: Props) {
       }
       mesh?.shadowsAt(c.lng, c.lat)
       loadGrid()
-      if (!(e?.originalEvent || performance.now() - input < 1200) || !closer || now.held || z < ENTER_Z) return
-      // the person zoomed right in: a scanned building at the middle of the view is the one they mean
-      const near = now.buildings.map((b) => [metres(c, b), b] as const).sort((p, q) => p[0] - q[0])[0]
+      if (closer) aim()
+    }
+    /** The person zoomed right in: a scanned building under the pointer, or at the middle of the view, is the one they mean. */
+    const aim = () => {
+      const z = map.getZoom(), c = map.getCenter(), now = live.current
+      if (now.held || z < ENTER_Z || performance.now() - input > 1200) return
+      const r = el.current!.getBoundingClientRect(), at = pointer ? map.unproject([pointer[0] - r.left, pointer[1] - r.top]) : c
+      const near = now.buildings.map((b) => [Math.min(metres(c, b), metres(at, b)), b] as const).sort((p, q) => p[0] - q[0])[0]
       if (near && near[0] < Math.max(35, 9000 / 2 ** (z - 12))) now.onNear?.(near[1])
     }
+    // a wheel kept turning has no moveend until it stops: look as the zoom passes, so the map does not run on to its limit first
+    let looked = 0
+    map.on('zoom', () => { if (map.getZoom() > lastZ && performance.now() - looked > 250) { looked = performance.now(); aim() } })
+    // Satellite tiles one zoom level in from the view, asked for while the map rests: the next step in finds them in
+    // the browser's cache. Only the world mosaic (it is the far-out picture), each tile once, at most 16 a rest.
+    const warmed = new Set<string>()
+    const warm = () => {
+      const url = (map.getSource('sat') as { tiles?: string[] } | undefined)?.tiles?.[0], z = Math.floor(map.getZoom() + 1) + 1 // 256 px tiles are drawn one level above the map's zoom
+      if (!url || z < 4 || z > 13 || live.current.held) return
+      for (const [x, y] of tilesIn(map, z, 16)) {
+        const u = url.replace('{z}', String(z)).replace('{x}', String(x)).replace('{y}', String(y))
+        if (!warmed.has(u)) { warmed.add(u); void fetch(u).catch(() => warmed.delete(u)) }
+      }
+    }
+    map.on('idle', warm)
     map.on('move', onMove)
     map.on('moveend', settle)
     map.on('styledata', ensure); map.on('idle', ensure)
@@ -275,7 +311,7 @@ export function WorldMap(props: Props) {
   }, [])
 
   const map = useWorld((s) => s.map), mesh = useWorld((s) => s.mesh)
-  useEffect(draw, [buildings, selected, marks, geo, map, onKey, covered]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(draw, [buildings, selected, marks, geo, map, onKey, covered, base, scheme]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // The style follows what is shown: the base view, the scheme's colours, the city's files, the layers that are on.
   const styleKey = `${base}|${scheme}|${city}|${onKey}|${layers.length}`, drawnStyle = useRef(styleKey)
