@@ -15,6 +15,10 @@ by measurement, with all three layers checking each other.
 | Usefulness (25%) | 50 personas, each a real user with a named need: wheelchair user, fire captain, Houston homeowner before a storm, truck dispatcher, office tenant, CoStar researcher, insurance underwriter, daycare operator, car owner. For the people who open CoStar every morning: a tenant rep's weighted site scorecard across candidates, market comps from CoStar records, industrial fit (clear height, docks, truck court), retail site screening, commute fit for a whole team, and a facility audit PDF. PDF report a person can hand to a landlord. |
 | Demo and polish (15%) | Photoreal building on its site, flood rising in the street, smoke filling rooms, the agent's lanes working in parallel. A dense working tool, not a showcase. |
 
+**Scripted flow:** `web/src/skins/app/demo/flows/costar.json`, "Check a listing against the scan, then tour it": the agent reads the
+listing, the CoStar record and the scan side by side, the camera goes to the room where they disagree, then the tour
+plays every finding.
+
 **Demo path (2 minutes).**
 1. Home. Type "I use a wheelchair, 81 cm wide. Find a one-bedroom in Houston I can get into and use the bathroom."
 2. The composer adds step-free route, door widths, turning space and bathroom clearance, asks nothing (width given).

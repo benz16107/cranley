@@ -13,5 +13,7 @@ route from the door to the counter, door widths, occupant load from the measured
 in photos. The output is a PDF the owner keeps, with numbered fixes and what was not checked. They could use it the
 same day.
 
+**Scripted flow:** `web/src/skins/app/demo/flows/peri.json`, "A business checks an office and keeps the report".
+
 **Demo path.** The owner's quote and photo first, then their problem in their words, then the scan-to-report flow on
 their space (or the demo cafe if they declined a scan), then the report.

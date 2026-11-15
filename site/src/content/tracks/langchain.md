@@ -2,7 +2,7 @@
 title: "LangChain: Best use of deepagents"
 ---
 
-Not on the Devpost prize list. Every feature below does a job in the product; what was left out, and
+Every feature below does a job in the product; what was left out, and
 why, is on the sponsor integrations page of the docs.
 
 | Feature | Why it is a real use |
@@ -18,6 +18,8 @@ why, is on the sponsor integrations page of the docs.
 | Rubric grader middleware | Catches the closing message stating numbers or claiming checks did not run; a real turn made that mistake before this existed. |
 | MCP tools via langchain-mcp-adapters | The read-only MongoDB MCP server's tools, behind a guard, answer counts over the person's own past work. |
 | LangSmith traces, datasets and experiments | Every turn is one trace tagged by persona; the composer's briefs are a dataset, and each prompt change is an experiment scored per check. |
+
+**Scripted flow:** `web/src/skins/app/demo/flows/langchain.json`, "Subagents in parallel, approval before a slow step".
 
 **Demo path.** A fire captain's brief over two houses: the todo list appears, two lanes run in parallel, both pause
 on the CFAST approval card, "Run it" resumes from the checkpoint, the rubric verdict and the LangSmith trace close it.
