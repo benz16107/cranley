@@ -9,6 +9,8 @@ import Cards from "./Cards.astro"
 import Bars from "./Bars.astro"
 import Split from "./Split.astro"
 import Lanes from "./Lanes.astro"
+import Asked from "./Asked.astro"
+import Products from "./Products.astro"
 import deep from "../../generated/deep.json"
 import site from "../../generated/site.json"
 import type { Track } from "../../site/tracks"
@@ -20,7 +22,7 @@ import Thread from "./Thread.astro"
 const sp = deep.sponsors.photon
 const stats = [{ n: sp.features.length, label: "things a person can do by message or by calling" }, { n: deep.numbers.photon.tests, label: "tests merged with it" }]
 const features = sp.features.map((f) => ({ title: f.feature, what: f.why, code: f.code }))
-const sections: [string, string][] = [["problem", "Problem"], ["built", "A conversation"], ["features", "What a person can do"], ["rules", "Rules it keeps"], ["limits", "Limits"], ["writeup", "Write-up"], ["docs", "In the docs"]]
+const sections: [string, string][] = [["asked", "Asked and built"], ["problem", "Problem"], ["built", "A conversation"], ["features", "Products used"], ["rules", "Rules it keeps"], ["limits", "Limits"], ["writeup", "Write-up"], ["docs", "In the docs"]]
 const msgs = [
   { from: "person" as const, text: "Will an F-150 fit in this garage?", note: "A person asks in plain words, with a link to the building. This uses the shared iMessage line with native replies and a typing indicator." },
   { from: "cranley" as const, kind: "Picture and verdict", text: "The floor plan marked with what was found, then the verdict, the measurements and a link to the workspace.", note: "Every sent line is built from the tool result, never from model text. Only rendered pictures leave the server, sent by attachment upload." },
@@ -33,6 +35,23 @@ const msgs = [
 ]
 ---
 <Deep track={track} title={title} sections={sections} stats={stats}>
+  <Sec id="asked" title="What Photon asked for, and what we built" sub="The brief asks for a messaging agent on Photon 2.0, with a separate prize for voice. Both are built. Neither is confirmed end to end yet, and this page says so.">
+    <Asked sponsor="Photon" source="The two asks are the prize names on the event's Devpost page: a messaging agent using Photon 2.0, and Best Voice Agent."
+      asked={[
+        { text: 'A messaging agent using Photon 2.0', met: false, how: `Built and merged with ${deep.numbers.photon.tests} tests. The live line is up, with sends limited to an allowlist of numbers. A first real round trip had not been confirmed when our story was written.` },
+        { text: 'A voice agent', met: false, how: 'An ElevenLabs agent runs the same checks by voice, and it has answered in a recorded web call. That was an ElevenLabs web call, not a phone call: the phone line is pending.' },
+      ]}
+      beyond={[
+        { n: sp.features.length, text: 'things a person can do by message or by calling' },
+        { text: 'It is the same agent, the same measuring tools and the same workspace document as the web app.' },
+        { text: 'A reply to an earlier answer continues that investigation.' },
+        { text: 'A photo of a doorway with a bank card in it gets measured.' },
+        { text: 'Typing "visit" sends the unsettled checks one at a time, and the desktop workspace updates live.' },
+        { text: 'Typing "report" brings the PDF into the chat, ready to forward.' },
+        { text: 'Every sent line is built from the tool result, never from model text.' },
+      ]} />
+  </Sec>
+
   <Sec id="problem" title="Nobody checks a building from a desk" sub="The people who need a building checked are rarely at a desk: they are walking through a viewing, driving to one, or standing in a doorway with a tape measure.">
     <p class="txt">On Photon, the same agent and the same measuring tools answer in iMessage and on a phone call.</p>
   </Sec>
@@ -41,8 +60,8 @@ const msgs = [
     <Thread msgs={msgs} />
   </Sec>
 
-  <Sec id="features" title="What a person can do, and what carries it" sub="Each row is one thing a person does and the part of Photon 2.0 that makes it work.">
-    <Cards items={features} />
+  <Sec id="features" title="Every Photon product we used, and how" sub="iMessage on Photon 2.0, and voice through an ElevenLabs agent over SIP. Each entry is one thing a person does and the part of Photon that carries it. See the limits below for what is not yet confirmed.">
+    <Products features={sp.features} />
   </Sec>
 
   <Sec id="rules" title="Rules it keeps" sub="A message is a result, so it follows the same rules as the screen.">
@@ -55,11 +74,11 @@ const msgs = [
     </ul>
   </Sec>
 
-  <Sec id="limits" title="Where it stands" sub="As of the evening of 14 Nov 2026.">
+  <Sec id="limits" title="Where it stands" sub="As of the early morning of 15 Nov 2026.">
     <ul class="txt">
       <li>The live line is up, with sends limited to an allowlist of numbers.</li>
       <li>A first real round trip had not been confirmed.</li>
-      <li>The phone agent needs a voice number.</li>
+      <li>The voice agent has answered in a recorded ElevenLabs web call. It has not yet taken a phone call: the phone line is pending.</li>
     </ul>
   </Sec>
 
