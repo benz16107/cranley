@@ -28,6 +28,9 @@ For the agent, the tool is described as: Wi-Fi signal estimate per room through 
 | `router_floor` | string |  |  | Floor id of router_point, when the scan has several floors. |
 | `router` | string |  | `"typical"` | typical: 20 dBm at 2.4 GHz, 23 dBm at 5 GHz. long_range: 4 dB more. Saved preference `wifi.router_class`. One of: `typical`, `long_range`. |
 | `targets` | array |  |  | Room ids that must have good signal; default the bedrooms and office. |
+| `wall_materials` | object |  | `{}` | Walls the scan cannot tell apart by thickness: wall id or room id (all its walls) to a material (metal ductwork, coated glass, clear glass, masonry, drywall). |
+| `outbuilding_m` | number (m) |  |  | A detached garage or studio this far from the house; estimates the signal inside it. Saved preference `wifi.outbuilding_m`. |
+| `outbuilding_wall` | string |  | `"masonry"` | What the detached building's wall facing the house is (a metal garage door: metal ductwork). Saved preference `wifi.outbuilding_wall`. One of: `metal ductwork`, `coated glass`, `clear glass`, `masonry`, `drywall`. |
 
 An input that nothing fills (the selected building, a saved preference, a persona's preset) becomes a question to the person. The agent asks only for those.
 
