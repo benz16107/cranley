@@ -33,6 +33,9 @@ DATA = pathlib.Path(os.environ.get("THRESHOLD_DATA_DIR", "~/Code/hackathons/hack
 WEB = DATA / "public-demo" / "web"
 PORT = int(os.environ.get("PUBLIC_DEMO_PORT", "8790"))
 PUBLIC = os.environ.get("PUBLIC_DEMO_ORIGIN", "https://linuxbox.<tailnet>:10000")
+# cranley.app proxies /app, /m, /api, /assets, /models and /enter here (site/vercel.json). A request that came that way
+# names its host in X-Forwarded-Host; only a host on this list is ever written into a link.
+SITES = {h.strip() for h in os.environ.get("PUBLIC_DEMO_SITES", "cranley.app").split(",") if h.strip()}
 UPSTREAM = ("127.0.0.1", int(os.environ.get("PUBLIC_DEMO_UPSTREAM_PORT", "8787")))  # another port only for a test door
 NOTICE = ("Demo for HackPrinceton, Nov 14-15 2026. The building data is used under the event's terms "
           "and is deleted after the event.")
@@ -189,6 +192,11 @@ class Door(BaseHTTPRequestHandler):
     def cookie_for(self, vid: str) -> str:
         return f"{COOKIE}={vid}.{sign('visitor:' + vid)}; Path=/; Max-Age={COOKIE_AGE}; HttpOnly; Secure; SameSite=Lax"
 
+    def origin(self) -> str:
+        """Where this visitor is: the site that proxied the request, when it is one of ours, else this door."""
+        host = (self.headers.get("X-Forwarded-Host") or "").strip().lower()
+        return f"https://{host}" if host in SITES else PUBLIC
+
     def client(self) -> str:
         # the last address is the one Funnel added; earlier ones are whatever the client sent
         return (self.headers.get("X-Forwarded-For") or self.client_address[0]).split(",")[-1].strip()
@@ -286,12 +294,13 @@ class Door(BaseHTTPRequestHandler):
                 raw = r.read()
                 if r.getheader("Content-Encoding") == "gzip":
                     raw = gzip.decompress(raw)
-                return self.send(200, pair_here(raw), "application/json")
+                return self.send(200, pair_here(raw, self.origin()), "application/json")
             self.send_response(r.status)
             length = r.getheader("Content-Length")
             for k, v in r.getheaders():
                 if k.lower() not in HOP and k.lower() not in ("server", "date"):
-                    self.send_header(k, v)
+                    # everything here is behind the code: a cache between us and the browser must never keep it
+                    self.send_header(k, private(v) if k.lower() == "cache-control" else v)
             if length is None and r.status not in (204, 304):  # a stream (SSE) or chunked: end it by closing the connection
                 self.send_header("Connection", "close")
                 self.close_connection = True
@@ -326,16 +335,21 @@ def gzipped(f: pathlib.Path, raw: bytes) -> bytes:
     return hit
 
 
-def pair_here(raw: bytes) -> bytes:
-    """The server's phone link points at the tailnet; point it at this door, with a pass that lets the phone in."""
+def private(cache_control: str) -> str:
+    return cache_control if re.search(r"private|no-store", cache_control, re.I) else "private, " + cache_control
+
+
+def pair_here(raw: bytes, origin: str = PUBLIC) -> bytes:
+    """The server's phone link points at the tailnet; point it at the address the visitor is on (this door, or the
+    site in front of it), with a pass that lets the phone in."""
     import segno
 
     p = json.loads(raw)
     t = p["token"]
     path = "/m?" + urllib.parse.urlencode({"t": t, "pass": sign("pair:" + t)})
     svg = io.BytesIO()
-    segno.make(PUBLIC + path, error="m").save(svg, kind="svg", border=2, xmldecl=False, svgns=True, nl=False, omitsize=True)
-    return json.dumps({**p, "path": path, "url": PUBLIC + path, "secure": True, "qr": svg.getvalue().decode()}).encode()
+    segno.make(origin + path, error="m").save(svg, kind="svg", border=2, xmldecl=False, svgns=True, nl=False, omitsize=True)
+    return json.dumps({**p, "path": path, "url": origin + path, "secure": True, "qr": svg.getvalue().decode()}).encode()
 
 
 if __name__ == "__main__":
@@ -345,6 +359,7 @@ if __name__ == "__main__":
     assert REFUSED.search("/mcp") and REFUSED.search("/api/facts/sql") and not REFUSED.search("/api/scans")
     assert RUN.match("/api/agent/turn") and safe_next("//evil.com") == "/app" and safe_next("/m?t=x") == "/m?t=x"
     assert safe_next("/app/scan/x") == "/app/scan/x" and safe_next("https://evil.com") == "/app" and safe_next("/\\evil") == "/app"
+    assert private("max-age=86400") == "private, max-age=86400" and private("no-store") == "no-store" and private("private, max-age=5") == "private, max-age=5"
     if not (WEB / "index.html").is_file():
         raise SystemExit(f"no build at {WEB} (run scripts/public-demo rebuild)")
     print(f"cranley public demo on 127.0.0.1:{PORT}, serving {WEB}", flush=True)

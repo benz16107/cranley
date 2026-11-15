@@ -1,8 +1,48 @@
 {
-  "git": { "deploymentEnabled": false },
-  "cleanUrls": true,
-  "trailingSlash": true,
+  "git": {
+    "deploymentEnabled": false
+  },
   "redirects": [
-    { "source": "/(.*)", "has": [{ "type": "host", "value": "www.cranley.app" }], "destination": "https://cranley.app/$1", "permanent": true }
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.cranley.app"
+        }
+      ],
+      "destination": "https://cranley.app/$1",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/:door(app|m|enter)",
+      "destination": "https://linuxbox.<tailnet>:10000/:door"
+    },
+    {
+      "source": "/:door(app|m|api|assets|models)/:path(.*)",
+      "destination": "https://linuxbox.<tailnet>:10000/:door/:path"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/:door(app|m|enter)",
+      "headers": [
+        {
+          "key": "x-vercel-enable-rewrite-caching",
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "source": "/:door(app|m|api|assets|models)/:path(.*)",
+      "headers": [
+        {
+          "key": "x-vercel-enable-rewrite-caching",
+          "value": "0"
+        }
+      ]
+    }
   ]
 }
