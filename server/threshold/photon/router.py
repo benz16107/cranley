@@ -291,7 +291,7 @@ def set_background(chat: Chat, st: State, run: dict, plan: dict) -> None:
 
 def to_jpeg(data: bytes, ct: str) -> bytes:
     """HEIC from an iPhone becomes JPEG (Pillow here cannot read HEIC); other images pass through."""
-    if "heic" not in ct and "heif" not in ct:
+    if "heic" not in ct and "heif" not in ct and data[4:12] not in (b"ftypheic", b"ftypheix", b"ftypmif1", b"ftyphevc"):
         return data
     import subprocess
     import tempfile
