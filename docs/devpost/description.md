@@ -1,5 +1,6 @@
 Code: https://github.com/benz16107/cranley
 Site and docs: https://cranley.app
+Live demo: https://linuxbox.<tailnet>:10000/app (access code from Ben at the table)
 Video (2:00): [link goes here]
 
 ## Measure the building before you commit

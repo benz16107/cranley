@@ -415,6 +415,9 @@ wheelchair user, the family before a storm, the fire crew.
 
 ## Pitch notes (not published on the site)
 
+- Live demo for judges: https://linuxbox.<tailnet>:10000/app, behind an access code Ben gives in person
+  (never write the code in any file or message).
+
 - Amazon adaptation: lead with questions asked 1, 0, 0 (held in all three evaluation runs). Do not claim faster first
   results or fewer tool runs. Say "replay of one user", not "study". `demo_maya` is seeded on the 8787 store (`/app/?as=demo_maya`); reseed after a store reset (Amazon section).
 - Forward-deployed thread: open with one line ("we asked first, then built"), then the numbers as written: one
@@ -441,7 +444,7 @@ wheelchair user, the family before a storm, the fire crew.
 
 ## Built (synced to `main`)
 
-Checked against `git log main` at `f69fd81` (2026-11-14, 9:36 pm ET). Update at each merge.
+Checked against `git log main` at `164a061` (2026-11-14, 9:40 pm ET). Update at each merge.
 
 **Merged**
 - [x] Data layer: Matterport, Vexcel and CoStar sources, normalized plan format with quality flags (`ws/data`)
