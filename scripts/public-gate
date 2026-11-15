@@ -33,7 +33,7 @@ DATA = pathlib.Path(os.environ.get("THRESHOLD_DATA_DIR", "~/Code/hackathons/hack
 WEB = DATA / "public-demo" / "web"
 PORT = int(os.environ.get("PUBLIC_DEMO_PORT", "8790"))
 PUBLIC = os.environ.get("PUBLIC_DEMO_ORIGIN", "https://linuxbox.<tailnet>:10000")
-UPSTREAM = ("127.0.0.1", 8787)
+UPSTREAM = ("127.0.0.1", int(os.environ.get("PUBLIC_DEMO_UPSTREAM_PORT", "8787")))  # another port only for a test door
 NOTICE = ("Demo for HackPrinceton, Nov 14-15 2026. The building data is used under the event's terms "
           "and is deleted after the event.")
 COOKIE = "cranley_demo"
@@ -251,7 +251,11 @@ class Door(BaseHTTPRequestHandler):
             return self.send(200, page, headers={"Cache-Control": "no-store"})
         ctype = mimetypes.guess_type(f.name)[0] or "application/octet-stream"
         cache = "private, max-age=31536000, immutable" if path.startswith("/assets/") else "private, max-age=600"
-        self.send(200, f.read_bytes(), ctype, {"Cache-Control": cache})
+        headers = {"Cache-Control": cache, "Vary": "Accept-Encoding"}
+        body = f.read_bytes()
+        if COMPRESSIBLE.search(f.name) and "gzip" in (self.headers.get("Accept-Encoding") or ""):
+            body, headers["Content-Encoding"] = gzipped(f, body), "gzip"
+        self.send(200, body, ctype, headers)
 
     def proxy(self, vid: str, path: str) -> None:
         if self.headers.get("Transfer-Encoding"):
@@ -298,6 +302,25 @@ class Door(BaseHTTPRequestHandler):
             self.close_connection = True
         finally:
             up.close()
+
+
+COMPRESSIBLE = re.compile(r"\.(js|mjs|css|html|json|svg|wasm|txt|map)$")
+_gz: dict[tuple, bytes] = {}
+_gz_lock = threading.Lock()
+
+
+def gzipped(f: pathlib.Path, raw: bytes) -> bytes:
+    """A static file gzipped once per build (the JS is 11 MB raw, about a third of that gzipped)."""
+    key = (str(f), f.stat().st_mtime_ns)
+    with _gz_lock:
+        hit = _gz.get(key)
+    if hit is None:
+        hit = gzip.compress(raw, 9)
+        with _gz_lock:
+            if len(_gz) > 400:  # a rebuild leaves the old build's entries behind
+                _gz.clear()
+            _gz[key] = hit
+    return hit
 
 
 def pair_here(raw: bytes) -> bytes:
