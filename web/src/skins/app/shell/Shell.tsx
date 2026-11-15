@@ -26,12 +26,17 @@ import { useScheme } from './theme.ts'
 import { useIsPhone, useUi } from './store.ts'
 
 // The map and the building view bring MapLibre, deck.gl and the scene with them (about 2 MB), which Home and the list
-// pages never draw. They load on their own: at once when the address is already one of theirs, else when the page is idle.
-const loadExplore = () => import('../pages/Explore.tsx')
-const loadBuilding = () => import('../pages/Building.tsx')
-const Explore = lazy(() => loadExplore().then((m) => ({ default: m.Explore })))
-const Building = lazy(() => loadBuilding().then((m) => ({ default: m.Building })))
-if (/\/(map|scan)(\/|$)/.test(location.pathname)) void loadExplore()
+// pages never draw. They load on their own: before the first render when the address is already one of theirs (`ready`
+// in ../index.tsx, started early by the registry's PRELOAD), else when the page is idle.
+let explore: typeof import('../pages/Explore.tsx').Explore | null = null
+let building: typeof import('../pages/Building.tsx').Building | null = null
+export const loadExplore = () => import('../pages/Explore.tsx').then((m) => { explore = m.Explore })
+const loadBuilding = () => import('../pages/Building.tsx').then((m) => { building = m.Building })
+// A page already loaded goes to React at once, through a thenable that answers when asked: a lazy page that suspends,
+// even for a moment, is held back 300 ms by React's fallback throttle.
+const now = <T,>(c: T) => ({ then: (done: (m: { default: T }) => void) => done({ default: c }) }) as unknown as Promise<{ default: T }>
+const Explore = lazy(() => (explore ? now(explore) : loadExplore().then(() => ({ default: explore! }))))
+const Building = lazy(() => (building ? now(building) : loadBuilding().then(() => ({ default: building! }))))
 const whenIdle = (f: () => void) => ('requestIdleCallback' in window ? requestIdleCallback(f, { timeout: 4000 }) : setTimeout(f, 2000))
 
 export const SHORTCUTS: [keys: string, what: string][] = [
