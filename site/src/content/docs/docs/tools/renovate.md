@@ -69,14 +69,14 @@ The tool sets the label for each value. A model never does. The tools give a sca
 
 This section was written by running the tool when the docs were built, on a hand-made RoomPlan export (no real place was scanned), with no sponsor keys and the network switched off.
 
-<p class="verdict"><span class="st warn">Warn</span> 5 edits fix 8 of 8 failing checks; still failing: Turning circle, Hallway.</p>
+<p class="verdict"><span class="st warn">Warn</span> 5 edits fix 8 of 16 failing checks; still failing: Turning circle, Bathroom, objects on the floor counted (1.68 m empty), Turning circle, Hallway, Turning circle, Bedroom, objects on the floor counted (3.86 m empty) and 6 more.</p>
 
 | Value | Result | Where it came from | Reliability |
 |---|---|---|---|
 | Estimated cost | <span class="num">4250 $</span> | Simulated | low |
 | Checks fixed | <span class="num">8</span> | Measured from the scan | medium |
-| Failing now | <span class="num">8</span> | Measured from the scan | medium |
-| Failing after | <span class="num">1</span> | Measured from the scan | medium |
+| Failing now | <span class="num">16</span> | Measured from the scan | medium |
+| Failing after | <span class="num">9</span> | Measured from the scan | medium |
 | Widen door, Bathroom to Hallway | <span class="num">2</span> | Measured from the scan | medium |
 | Widen door, Bathroom to Hallway | <span class="num">1200 $</span> | Simulated | low |
 | Widen door, Bathroom to Hallway | <span class="num">1.67</span> | Simulated | low |
@@ -96,6 +96,8 @@ This section was written by running the tool when the docs were built, on a hand
 | Step-free route, entrance to Bedroom 1: 9.0 m from the entrance through 3 doorways; narrowest 0.86 m. (fixed: 0.71 to 0.86 m) | <span class="num">0.86</span> | <span class="num">0.815 m</span> | <span class="st pass">pass</span> |
 | Step-free route, entrance to Bedroom 2: 7.5 m from the entrance through 2 doorways; narrowest 0.86 m. (fixed: 0.76 to 0.86 m) | <span class="num">0.86</span> | <span class="num">0.815 m</span> | <span class="st pass">pass</span> |
 | Bathroom: door clear width (fixed: 0.66 to 0.865 m) | <span class="num">0.865</span> | <span class="num">0.815 m</span> | <span class="st pass">pass</span> |
+
+1 more checks are in the full result.
 
 Findings: 5 pass.
 

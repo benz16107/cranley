@@ -102,6 +102,8 @@ code, .num { font-family: var(--font-mono); font-stretch: 80%; font-size: 0.86em
 .prose h3 { font-size: 1.0625rem; margin-top: var(--s-3); }
 .prose ul { list-style: disc; padding-left: 1.2em; display: grid; gap: 6px; max-width: 62ch; }
 .prose ol { list-style: decimal; padding-left: 1.4em; display: grid; gap: 6px; max-width: 62ch; }
+/* a quotation: set in from the text, in the reading size */
+.prose blockquote { padding-left: var(--s-5); max-width: 62ch; font-size: var(--t-lead); line-height: 1.5; }
 .prose table { width: 100%; border-collapse: collapse; font-size: 0.9375rem; display: block; overflow-x: auto; }
 .prose th { text-align: left; font-weight: 580; font-size: 0.8125rem; color: var(--ink-3); }
 .prose th, .prose td { padding: 10px 16px 10px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }

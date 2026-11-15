@@ -26,6 +26,7 @@ For the agent, the tool is described as: Route audit for a wheelchair or walker 
 | `min_width_m` | number (m) |  | `0.815` | Clear width you need through doors. Saved preference `access.door_width_m`. Range: more than 0.3, at most 2.0. |
 | `entrance` | string |  |  | Opening id of the entrance to start from; default the main one. |
 | `read_panoramas` | boolean |  | `true` | Ask the panoramas about steps and about doorways whose width is a data error. |
+| `chairs` | array |  | `[]` | Each chair the person uses (everyday, travel...); the route is checked for each. A chair without a width uses min_width_m. Saved preference `access.chairs`. |
 
 An input that nothing fills (the selected building, a saved preference, a persona's preset) becomes a question to the person. The agent asks only for those.
 
@@ -72,7 +73,7 @@ This section was written by running the tool when the docs were built, on a hand
 
 Inputs used: `min_width_m = 0.815` (preset of the persona "Planning for an older parent").
 
-<p class="verdict"><span class="st fail">Fail</span> No step-free route wide enough to: bathroom, bedroom. The entrance is a doorway with a room on one side only; the scan cannot tell outside from unscanned.</p>
+<p class="verdict"><span class="st fail">Fail</span> Steps from the entrance: bathroom, none found at 3 doorways; bedroom, none found at 3 doorways; kitchen, none found at 2 doorways. Too narrow for you: bathroom, bedroom. The entrance is a doorway with a room on one side only; the scan cannot tell outside from unscanned.</p>
 
 | Value | Result | Where it came from | Reliability |
 |---|---|---|---|
@@ -84,10 +85,16 @@ Inputs used: `min_width_m = 0.815` (preset of the persona "Planning for an older
 
 | Check | Measured | Against | Status |
 |---|---|---|---|
+| Any steps or level changes between the entrance and bathroom: none found at 3 doorways | <span class="num">0</span> | <span class="num">0.013 m</span> | <span class="st pass">pass</span> |
+| Any steps or level changes between the entrance and bedroom: none found at 3 doorways | <span class="num">0</span> | <span class="num">0.013 m</span> | <span class="st pass">pass</span> |
+| Any steps or level changes between the entrance and bedroom: none found at 2 doorways | <span class="num">0</span> | <span class="num">0.013 m</span> | <span class="st pass">pass</span> |
+| Any steps or level changes between the entrance and kitchen: none found at 2 doorways | <span class="num">0</span> | <span class="num">0.013 m</span> | <span class="st pass">pass</span> |
 | Step-free route, entrance to Bathroom: 7.7 m from the entrance through 3 doorways; narrowest 0.66 m. | <span class="num">0.66</span> | <span class="num">0.815 m</span> | <span class="st fail">fail</span> |
 | Step-free route, entrance to Bedroom 1: 9.0 m from the entrance through 3 doorways; narrowest 0.71 m. | <span class="num">0.71</span> | <span class="num">0.815 m</span> | <span class="st fail">fail</span> |
 | Step-free route, entrance to Bedroom 2: 7.5 m from the entrance through 2 doorways; narrowest 0.76 m. | <span class="num">0.76</span> | <span class="num">0.815 m</span> | <span class="st fail">fail</span> |
 | Step-free route, entrance to Kitchen: 6.5 m from the entrance through 2 doorways; narrowest 0.86 m. | <span class="num">0.86</span> | <span class="num">0.815 m</span> | <span class="st pass">pass</span> |
+
+4 more checks are in the full result.
 
 Findings: 1 warn, 3 fail.
 

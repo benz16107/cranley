@@ -25,6 +25,7 @@ For the agent, the tool is described as: Wheelchair bathroom audit for one scan:
 | `door_width_m` | number (m) |  | `0.815` | Clear width you need through the bathroom door. Saved preference `access.door_width_m`. Range: more than 0.3, at most 2.0. |
 | `diameter_m` | number (m) |  | `1.525` | Turning circle you need. Saved preference `access.turning_diameter_m`. Range: more than 0.3, at most 3.0. |
 | `read_panoramas` | boolean |  | `true` | Find the toilet, tub or shower and grab bars in the panoramas. |
+| `chairs` | array |  | `[]` | Each chair the person uses; each is checked against the bathroom door and turning circle. Saved preference `access.chairs`. |
 
 An input that nothing fills (the selected building, a saved preference, a persona's preset) becomes a question to the person. The agent asks only for those.
 
@@ -55,6 +56,8 @@ Sources this tool gave on the test home:
 | Where it came from | Layer | Method | Reliability | Note |
 |---|---|---|---|---|
 | Measured from the scan | `matterport` | `geometry` | medium | Matterport wall graph, empty rooms; door widths are the opening in the wall |
+| Measured from the scan | `matterport` | `geometry` | low | Matterport wall graph; part of this answer rests on an assumption named in the result |
+| Measured from the scan | `matterport` | `geometry` | medium | Object measured by the phone scan (Apple RoomPlan); its footprint blocks the floor |
 
 The tool sets the label for each value. A model never does. The tools give a scan's wall graph the layer `matterport` whichever device made the scan, so a phone scan's geometry carries that label too.
 
@@ -70,7 +73,7 @@ This section was written by running the tool when the docs were built, on a hand
 
 Inputs used: `door_width_m = 0.815` (preset of the persona "Planning for an older parent").
 
-<p class="verdict"><span class="st fail">Fail</span> Every bathroom fails at least one check: door clear width.</p>
+<p class="verdict"><span class="st fail">Fail</span> Every bathroom fails at least one check: 30 x 48 in clear floor space outside the door swing; 60 x 56 in clearance around the toilet; FHA clear floor space at the toilet; clear floor beside the toilet (side transfer), 48 in deep; clear floor.</p>
 
 | Value | Result | Where it came from | Reliability |
 |---|---|---|---|
@@ -82,10 +85,16 @@ Inputs used: `door_width_m = 0.815` (preset of the persona "Planning for an olde
 |---|---|---|---|
 | Bathroom: turning circle in the empty room | <span class="num">1.678</span> | <span class="num">1.525 m</span> | <span class="st pass">pass</span> |
 | Bathroom: door clear width | <span class="num">0.66</span> | <span class="num">0.815 m</span> | <span class="st fail">fail</span> |
-| Bathroom: 30 x 48 in clear floor space outside the door swing | not measured |  | <span class="st pass">pass</span> |
-| Bathroom: room could hold a 60 x 56 in toilet clearance somewhere | not measured |  | <span class="st pass">pass</span> |
+| Bathroom: 30 x 48 in clear floor space outside the door swing | not measured |  | <span class="st fail">fail</span> |
+| Bathroom: which way the door opens: not in the scan | not measured |  | <span class="st unknown">unknown</span> |
+| Bathroom: clear floor in front of the toilet (front transfer), 30 in wide | <span class="num">0</span> | <span class="num">1.219 m</span> | <span class="st fail">fail</span> |
+| Bathroom: clear floor beside the toilet (side transfer), 48 in deep | <span class="num">0.42</span> | <span class="num">0.762 m</span> | <span class="st fail">fail</span> |
+| Bathroom: 60 x 56 in clearance around the toilet | not measured |  | <span class="st fail">fail</span> |
+| Bathroom: FHA clear floor space at the toilet | not measured |  | <span class="st fail">fail</span> |
 
-Findings: 1 fail.
+4 more checks are in the full result.
+
+Findings: 7 fail, 1 unknown.
 
 What it reported while it ran:
 

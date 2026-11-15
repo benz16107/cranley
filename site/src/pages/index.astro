@@ -7,7 +7,7 @@ import Ecosystem from '../components/Ecosystem.astro'
 import Slot from '../components/Slot.astro'
 import St from '../components/St.astro'
 import site from '../generated/site.json'
-import { LINKS, TEAM } from '../site/links'
+import { LINKS, TEAM, DEMO } from '../site/links'
 import { TRACKS } from '../site/tracks'
 import { LABELS, filesOf, type SlotId } from '../site/slots'
 
@@ -25,9 +25,11 @@ const showMotion = LABELS || motion.some((id) => filesOf(id).length > 0)
         <p class="lead">Every decision about a building is made blind. Cranley is an agent that picks the tools your need requires and measures the real building, inside and out, before you sign. Every number comes from a calculation, never from a model's text.</p>
         <p class="asked">{site.asked} <a href="/tracks/peri/">What they told us</a></p>
         <p class="cta">
-          <a class="btn solid" href="/docs/">Read the docs</a>
-          <a class="btn" href="#how">See how it works</a>
+          {LINKS.demo && <a class="btn solid" href={LINKS.demo}>{DEMO.label}</a>}
+          <a class:list={['btn', { solid: !LINKS.demo }]} href="/docs/">Read the docs</a>
+          {!LINKS.demo && <a class="btn" href="#how">See how it works</a>}
         </p>
+        {LINKS.demo && <p class="demo-note">{DEMO.notice}</p>}
         <dl class="proof">
           <div><dt>Tools</dt><dd class="num">{c.tools}</dd></div>
           <div><dt>Kinds of user</dt><dd class="num">{c.personas}</dd></div>
@@ -202,11 +204,13 @@ const showMotion = LABELS || motion.some((id) => filesOf(id).length > 0)
       <div class="body">
         <p>Built by {TEAM.map((m, i) => <>{i > 0 && (i === TEAM.length - 1 ? ' and ' : ', ')}{m.href ? <a href={m.href}>{m.name}</a> : m.name}</>)} at HackPrinceton Fall 2026, November 13 to 15, on Matterport interior scans, Vexcel aerial imagery and CoStar records, plus your own iPhone scan for any building. All of the code was written during the event.</p>
         <p class="cta">
-          <a class="btn solid" href="/docs/">Read the docs</a>
+          {LINKS.demo && <a class="btn solid" href={LINKS.demo}>{DEMO.label}</a>}
+          <a class:list={['btn', { solid: !LINKS.demo }]} href="/docs/">Read the docs</a>
           <a class="btn" href={LINKS.github}>Code on GitHub</a>
           {LINKS.devpost && <a class="btn" href={LINKS.devpost}>Devpost</a>}
           {LINKS.video && <a class="btn" href={LINKS.video}>Watch the video</a>}
         </p>
+        {LINKS.demo && <p class="demo-note">{DEMO.notice}</p>}
       </div>
     </div>
   </section>
@@ -218,6 +222,7 @@ const showMotion = LABELS || motion.some((id) => filesOf(id).length > 0)
   .hero h1 { font-size: var(--t-display); font-stretch: 108%; letter-spacing: -0.025em; line-height: 1.04; }
   .hero .lead { margin-top: var(--s-5); color: var(--ink-2); max-width: 46ch; }
   .hero .asked { margin-top: var(--s-4); font-size: 0.9375rem; line-height: 1.55; color: var(--ink-2); max-width: 54ch; }
+  .demo-note { margin-top: var(--s-2); font-size: 0.8125rem; line-height: 1.45; color: var(--ink-3); max-width: 56ch; }
   .cta { display: flex; flex-wrap: wrap; gap: var(--s-3); margin-top: var(--s-5); }
   .proof { display: flex; flex-wrap: wrap; gap: var(--s-3) var(--s-6); margin-top: var(--s-6); padding-top: var(--s-4); border-top: 1px solid var(--rule); }
   .proof dt { font-size: 0.75rem; color: var(--ink-3); }
