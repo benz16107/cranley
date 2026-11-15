@@ -71,6 +71,7 @@ if online; then net="online: the agent asks the real model and saves its answers
   net="offline: the agent answers from the recordings"; export LANGSMITH_TRACING=false
   [[ "$MODE" == live ]] && echo "warning: --live with no network: every agent turn will fail"
 fi
+[[ "$MODE" == replay ]] && net="replay: the agent answers only from the recordings, network or not"
 
 nohup python3 "$ROOT/scripts/demo-llm" --port "$LLM" --mode "$MODE" >"$RUN/llm.log" 2>&1 </dev/null & echo $! >"$RUN/llm.pid"
 cd "$ROOT/server"
