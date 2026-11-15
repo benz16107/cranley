@@ -250,7 +250,7 @@ def run(ctx, inputs: Inputs) -> ToolResult:
         text += " The scan labels no office, so only bedrooms were targeted."
     if inputs.outbuilding_m:
         from shapely.ops import unary_union
-        edge = unary_union([p for k, p in polys.items() if rooms[k]["floor"] == src[2]]).exterior.distance(_pt(src))
+        edge = unary_union([p for k, p in polys.items() if rooms[k]["floor"] == src[2]]).boundary.distance(_pt(src))
         ob = {b: outbuilding(eirp[b], b, edge, inputs.outbuilding_m, inputs.outbuilding_wall) for b in ("5", "2.4")}
         g = grade(ob["2.4"])  # the check grades 5 GHz like every room; the sentence says whether 2.4 GHz reaches
         checks.insert(0, Check(id="outbuilding", rule=f"Detached building {inputs.outbuilding_m:.0f} m from the house: "

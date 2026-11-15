@@ -40,3 +40,17 @@ def test_no_wall_scan_still_gives_a_plan(monkeypatch, tmp_path):
     egress = next(f for f in r.findings if f.title == "§6.2.2 Means of egress")
     assert egress.status == "unknown" and "floor plan images" in egress.detail
     assert any(f.title.startswith("§5.2.2.5 Layout") for f in r.findings)
+
+
+def test_a_library_gets_collection_supplies_to_confirm(monkeypatch, tmp_path):
+    # an emergency planner at a university library: no sheeting for the stacks, no fallback if the backup lights fail
+    _offline(monkeypatch, tmp_path)
+    plain = {f.title: f for f in run_tool("fire_preplan", {"scan": "unit"}, ToolContext(plans=plans(unit()))).findings}
+    assert plain["§6 Wayfinding if the emergency lighting fails"].status == "unknown"
+    assert "§8 Covers for the collections" not in plain
+    lib = run_tool("fire_preplan", {"scan": "unit", "collections": True}, ToolContext(plans=plans(unit())))
+    items = {f.title: f for f in lib.findings}
+    assert "visqueen" in items["§8 Covers for the collections"].detail
+    assert items["§7 Special suppression"].status == "unknown"
+    assert {m.id: m.value for m in lib.metrics}["to_confirm"] > {m.id: m.value for m in run_tool(
+        "fire_preplan", {"scan": "unit"}, ToolContext(plans=plans(unit()))).metrics}["to_confirm"]

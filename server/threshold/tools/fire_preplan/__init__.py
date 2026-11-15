@@ -64,6 +64,20 @@ class Inputs(BaseModel):
     max_scans_read: int = field(2, ge=0, le=12, description="At most this many unread scans go to the vision model")
     min_width_m: float = field(0.813, pref="access.door_width_m", unit="m", gt=0.3, le=3.0,
                                description="Clear width an exit door needs")
+    collections: bool = field(False, pref="preplan.collections",
+                              description="The building holds collections (a library, museum or archive): add the "
+                                          "supplies that protect them to the walk-around")
+
+
+# What a routine inspection misses and a scan cannot show (an emergency planner's review of a university library)
+WALK_AROUND = [("6", "Wayfinding if the emergency lighting fails", "A way to direct people out in the dark, such as "
+                "rechargeable flashlights plugged in at the desks: confirm on the walk-around."),
+               ("8", "Flood plan", "What moves first, where to, and who moves it: confirm on the walk-around; Flood "
+                "rehearsal measures the water levels.")]
+COLLECTION_LINES = [("8", "Covers for the collections", "Plastic sheeting (visqueen) on hand to cover stacks against "
+                     "sprinkler water and leaks, and where it is kept: confirm on the walk-around."),
+                    ("7", "Special suppression", "Clean-agent or halon systems in special collections rooms, and the "
+                     "shut-off: confirm on the walk-around.")]
 
 
 class Sheet:
@@ -421,6 +435,9 @@ def build(ctx, inputs: Inputs) -> tuple[ToolResult, dict]:
         if unread:
             sh.add("4.3", "Panoramas not read", f"{len(unread)} scans were not sent to the vision model in this run.",
                    "unknown", NODATA)
+
+    for sec, item, value in WALK_AROUND + (COLLECTION_LINES if inputs.collections else []):
+        sh.add(sec, item, value, "unknown", NODATA)
 
     # ---- assemble -----------------------------------------------------------------------------------
     findings = sh.findings()

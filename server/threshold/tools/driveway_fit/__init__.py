@@ -48,6 +48,56 @@ class Inputs(Where):
                                                                 "two must fit end to end")
 
 
+    overhang_m: float | None = field(None, gt=0, le=8, unit="m", pref="driveway.overhang_m",
+                                     description="Rear overhang behind the back axle (long on RVs and trailers)")
+    ground_clearance_m: float | None = field(None, gt=0.05, le=1, unit="m", pref="driveway.ground_clearance_m",
+                                             description="Ground clearance under that overhang")
+
+
+GRADE_SPAN_M = 4.0   # grade measured over this far each side of the parcel line
+PROFILE_M = 0.5
+
+
+def grade_change(dist: list[float], heights: list[float], at: float) -> float | None:
+    """Degrees between the ground's slope over GRADE_SPAN_M inside the lot line and the slope beyond it (the road
+    or sidewalk), from a ground profile along the driveway. None without enough points on each side."""
+    import numpy as np
+    d, h = np.asarray(dist, float), np.asarray(heights, float)
+    ok = np.isfinite(h)
+    sides = []
+    for lo, hi in ((at - GRADE_SPAN_M, at), (at, at + GRADE_SPAN_M)):
+        m = ok & (d >= lo) & (d <= hi)
+        if m.sum() < 3:
+            return None
+        sides.append(np.polyfit(d[m], h[m], 1)[0])
+    return abs(math.degrees(math.atan(sides[0]) - math.atan(sides[1])))
+
+
+def departure_deg(overhang: float, clearance: float) -> float:
+    return math.degrees(math.atan2(clearance, overhang))
+
+
+def road_profile(s, p0, u, to_lot: float, lat0: float) -> tuple[list[float], list[float]]:
+    """Bare-ground heights every 0.5 m along the driveway axis, GRADE_SPAN_M each side of the parcel line."""
+    from ...world import terrain
+    from ...world.frame import lonlat_to_enu
+    g = terrain.grid(s.lat, s.lon, 100.0, 200, kind="dtm")
+    b, H = g["bounds_enu"], g["heights"]
+    n = H.shape[0]
+    cell = (b[2] - b[0]) / n
+    back = to_m(lat0)[1]
+    dist, hs = [], []
+    d = to_lot - GRADE_SPAN_M
+    while d <= to_lot + GRADE_SPAN_M + 1e-9:
+        lon, lat = back(p0[0] + u[0] * d, p0[1] + u[1] * d)
+        e, nn = lonlat_to_enu(s.lat, s.lon, lon, lat)
+        c, r = int((e - b[0]) / cell), int((b[3] - nn) / cell)
+        dist.append(d)
+        hs.append(float(H[r, c]) if 0 <= r < n and 0 <= c < n else float("nan"))
+        d += PROFILE_M
+    return dist, hs
+
+
 HITCH_M = 0.3  # coupler and hitch between a truck's bumper and the trailer's tongue (an assumption, editable as length)
 
 
@@ -192,13 +242,38 @@ def run(ctx, inputs: Inputs) -> ToolResult:
     # the long vehicle
     checks = long_checks(length, width, vl, vw, name)
     st_l, st_w = checks[0].status, checks[1].status
-    status = "fail" if "fail" in (st_l, st_w) else "warn" if "warn" in (st_l, st_w) or st_w == "unknown" else "pass"
+    st_a = "pass"
+    try:
+        dg = grade_change(*road_profile(s, p0, u, to_lot, lat0), to_lot)
+    except Exception as e:  # noqa: BLE001  no ground model here: the angle is not known
+        ctx.step(f"Ground model unavailable: {str(e)[:100]}")
+        dg = None
+    if dg is None:
+        from .._access import cannot
+        checks.append(cannot("road_angle", "the change of grade where the driveway meets the road, which drags long "
+                                           "overhangs; the ground model has no heights there"))
+    else:
+        dep = departure_deg(inputs.overhang_m, inputs.ground_clearance_m) \
+            if inputs.overhang_m and inputs.ground_clearance_m else None
+        checks.append(Check(id="road_angle", rule=f"Change of grade at the road: {dg:.1f} degrees" + (
+            f" against the {dep:.1f} degree departure angle of the overhang" if dep else
+            "; give the overhang and ground clearance to check it drags"), measured=round(dg, 1),
+            threshold=round(dep, 1) if dep else None, unit="°",
+            status="unknown" if dep is None else "fail" if dg >= dep else "warn" if dg >= dep - 2 else "pass",
+            standard="Vexcel bare-ground model sampled every 0.5 m, slope over 4 m each side of the parcel line; "
+                     "a curb or gutter lip narrower than that is not resolved"))
+        st_a = checks[-1].status if dep else "pass"
+    status = "fail" if "fail" in (st_l, st_w, st_a) else \
+        "warn" if "warn" in (st_l, st_w, st_a) or st_w == "unknown" else "pass"
     short = name.split(",")[0].split(" (")[0]  # garage_fit.short() takes its Dims; this is the same cut
     text = (f"The driveway is about {length:.0f} m long and {width:.1f} m wide: room for {cars} car{'s' if cars != 1 else ''}"
             if width else f"The driveway is about {length:.0f} m long (width not measured): room for {rows} car{'s' if rows != 1 else ''} in a line")
     text += {"pass": f", and the {short.lower() if short[0].islower() else short} fits off the street.",
              "warn": f"; the {short} is a tight fit, measure before buying.",
-             "fail": f"; the {short} would stick out into the sidewalk or street."}[status]
+             "fail": f"; the {short} would stick out into the sidewalk or street."}[
+        "fail" if "fail" in (st_l, st_w) else "warn" if "warn" in (st_l, st_w) or st_w == "unknown" else "pass"]
+    if st_a in ("warn", "fail"):
+        text += " Its overhang " + ("drags" if st_a == "fail" else "nearly drags") + " where the driveway meets the road."
     text += " Aerial estimate."
     back = to_m(lat0)[1]
     end = (p0[0] + u[0] * length, p0[1] + u[1] * length)

@@ -73,6 +73,7 @@ export function MapNav() {
 export function Legend({ layers, on, base, marks, drawn }: { layers: MapLayer[]; on: string[]; base: BaseView; marks: number; drawn: boolean }) {
   const close = useWorld((s) => s.zoom >= CLOSE_Z - 0.6), city3d = useWorld((s) => s.city3d), deep = useWorld((s) => s.zoom >= CLOSE_Z - 0.2)
   const shown = layers.filter((l) => on.includes(l.id) && l.available && l.shape !== 'readout')
+  const photo = base === 'aerial' || base === 'terrain'
   return (
     <p className="maplegend">
       {shown.map((l) => (
@@ -84,7 +85,7 @@ export function Legend({ layers, on, base, marks, drawn }: { layers: MapLayer[];
       ))}
       {marks > 0 && <span><i className="ringmark" />In this investigation ({marks})</span>}
       {drawn && <span><i className="pathmark" />Drawn by a tool</span>}
-      <span className="muted">{close && base !== 'aerial' ? MAP_CREDIT.close : MAP_CREDIT[base]}{close && base === 'aerial' ? ` · ${MAP_CREDIT.close}` : ''}{deep && city3d.status !== 'idle' && city3d.status !== 'none' ? ` · 3D city mesh${city3d.capture ? `, flown ${city3d.capture}` : ''}` : ''}</span>
+      <span className="muted credit">{close && !photo ? MAP_CREDIT.close : MAP_CREDIT[base]}{close && photo ? ` · ${MAP_CREDIT.close}` : ''}{deep && city3d.status !== 'idle' && city3d.status !== 'none' ? ` · 3D city mesh${city3d.capture ? `, flown ${city3d.capture}` : ''}` : ''}</span>
       {deep && city3d.status === 'loading' && <span className="muted" role="status">Loading the 3D city, {Math.round(city3d.progress * 100)}%</span>}
     </p>
   )

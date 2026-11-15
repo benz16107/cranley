@@ -27,6 +27,9 @@ AREA = Source(layer="matterport", method="geometry", confidence="high", note="Su
 SEEN_LABELS = ("smoke alarm", "sprinkler head", "exit sign", "fire extinguisher")
 HOT_WATER_M = 15.24    # IPC 2021 607.2: 50 ft of hot water pipe from the source to a fixture, then it must be kept hot
 STOCK_ROOMS = ("storage", "kitchen or break room")
+BACKROOM = ("storage", "warehouse floor", "loading area")
+SALES = ("retail floor",)
+PALLET = (1.219, 1.016)   # a 48 x 40 in GMA pallet: 48 in into the row, 40 in along the aisle
 
 
 class Inputs(BaseModel):
@@ -36,6 +39,8 @@ class Inputs(BaseModel):
     read_panoramas: bool = field(True, description="Let the vision model read the panoramas (restroom fixtures, "
                                                    "life-safety objects); cached after the first run")
     cleaning: bool = field(True, description="Price a cleaning contract from the takeoff")
+    pallet_aisle_m: float = field(1.83, gt=0.8, le=5, unit="m", pref="facility.pallet_aisle_m",
+                                  description="Aisle a pallet jack needs between pallet rows (6 ft by default)")
     cart_m: list[float] = field([0.51, 0.66, 1.78], min_length=3, max_length=3, pref="facility.cart_m", unit="m",
                                 description="Cart or rolling rack stock moves on: width, length, height (default a "
                                             "full-size sheet-pan rack, 20 x 26 x 70 in)")
@@ -125,6 +130,52 @@ def hot_water_run(found: list[dict]) -> dict | None:
     pairs = [(min(math.dist(h["point"], s_["point"]) for h in heaters), s_) for s_ in sinks]
     far, sink = max(pairs, key=lambda x: x[0])
     return {"distance": far, "sink": sink, "heaters": len(heaters), "sinks": len(sinks)}
+
+
+def pallet_positions(poly, aisle: float) -> int:
+    """48 x 40 in pallet spots on the floor of one room, square to its longest wall: pairs of rows back to back
+    sharing an aisle, then a last single row if there is room for it and an aisle. Floor positions, not racking."""
+    import math
+
+    import numpy as np
+    import shapely
+    from shapely import affinity
+    from .._access import room_angle
+    if poly is None or poly.is_empty:
+        return 0
+    best = 0
+    for turn in (0.0, math.pi / 2):
+        r = affinity.rotate(poly, -(room_angle(poly) + turn), origin=poly.centroid, use_radians=True)
+        x0, y0, x1, y1 = r.bounds
+        rows, y, P, end = [], y0, PALLET[0], y1 + 1e-9
+        while True:  # pairs of rows with an aisle between pairs; every row has an aisle on one side
+            if rows:
+                y += aisle
+            room_after = 0.0 if rows else aisle  # the first unit needs an aisle after it
+            if y + 2 * P + room_after <= end:
+                rows += [y, y + P]
+                y += 2 * P
+            elif y + P + room_after <= end:
+                rows.append(y)
+                break
+            else:
+                break
+        xs = np.arange(x0, x1 - PALLET[1] + 1e-9, PALLET[1])
+        boxes = [shapely.box(x, yy, x + PALLET[1], yy + PALLET[0]) for yy in rows for x in xs]
+        n = int(shapely.contains(r.buffer(1e-6), boxes).sum()) if boxes else 0
+        best = max(best, n)
+    return best
+
+
+def backroom(plan: dict, aisle: float) -> dict:
+    """Backroom (storage, warehouse floor, loading area) against the sales floor, and the pallet spots it holds."""
+    from ..room_labeller import facts as rfacts
+    from .._access import face_polygon
+    back = [r for r in plan.get("rooms") or [] if rfacts.commercial(r.get("label")) in BACKROOM]
+    sales = [r for r in plan.get("rooms") or [] if rfacts.commercial(r.get("label")) in SALES]
+    b_m2, s_m2 = sum(r.get("area") or 0 for r in back), sum(r.get("area") or 0 for r in sales)
+    return {"back_m2": b_m2, "sales_m2": s_m2, "share": (b_m2 / s_m2) if s_m2 else None,
+            "pallets": sum(pallet_positions(face_polygon(plan, r["id"]), aisle) for r in back), "rooms": len(back)}
 
 
 def cart_routes(ctx, plan: dict, box: tuple) -> list[dict]:
@@ -226,6 +277,17 @@ def run(ctx, i: Inputs) -> ToolResult:
     store_m2 = sum(r.get("area") or 0 for r in plan.get("rooms") or [] if rfacts.commercial(r.get("label")) == "storage")
     metrics.append(Metric(id="storage_area", label="Storage room floor area", value=round(store_m2 * FT2_PER_M2),
                           unit="ft²", source=AREA))
+    br = backroom(plan, i.pallet_aisle_m)
+    if br["rooms"]:
+        if br["share"] is not None:
+            metrics.append(Metric(id="backroom_share", label="Backroom as a share of the sales floor",
+                                  value=round(100 * br["share"]), unit="%", source=AREA))
+        metrics.append(Metric(id="pallet_positions", label="48 x 40 in pallet spots on the backroom floor",
+                              value=br["pallets"], unit="", source=Source(
+                                  layer="matterport", method="geometry", confidence="medium",
+                                  note=f"Rows back to back with a {i.pallet_aisle_m:.2f} m pallet jack aisle; floor "
+                                       "only, no racking; empty rooms")))
+        checks.append(cannot("overstock", "pallets of overstock left in the sales aisles on the day"))
     routes = cart_routes(ctx, plan, tuple(i.cart_m)) if q.get("walls", True) else []
     for a in routes:
         name, rid = rfacts.commercial(a["room"]["label"]), a["room"]["id"]
@@ -262,6 +324,8 @@ def run(ctx, i: Inputs) -> ToolResult:
                              + (" or sink" if found else "") + " was located on the panoramas"))
     checks += [cannot("power", "three-phase power and panel capacity for kitchen equipment"),
                cannot("filtration", "water filtration for an ice machine or steamer"),
+               cannot("hood", "which way the kitchen hood fan moves air (one installed backwards blows smoke into the "
+                              "dining room) and its make-up air"),
                cannot("cold_storage", "walk-in cooler and freezer capacity, unless the rooms are labelled storage"),
                cannot("noise", "noise between the service area and neighbours: the scan measures rooms, not "
                                "soundproofing")]

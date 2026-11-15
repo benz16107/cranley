@@ -36,15 +36,17 @@ export function Split({ className, vertical, off, children }: { className?: stri
         // The sizes come from the layout given here; a pane asked for its size during a key press still says the old one.
         onLayoutChanged={(layout, meta) => {
           const all = (vertical ? el.current?.clientHeight : el.current?.clientWidth) ?? 0
-          for (const [id, px] of resized(mine, layout, all, meta.isUserInteraction)) write(id, px)
+          for (const [id, px] of resized(mine, layout, all, meta.isUserInteraction)) if (px >= 1) write(id, px) // dragged shut is not a width to remember
         }}>{children}</Group>
     </Live>
   )
 }
 
 /** A pane with a size of its own: a sidebar, an inspector, a drawer. `size` is the designed size, in pixels or as
-    a share of the split ("44%"). `fixed` holds it at that size: its edges do not drag. */
-export function Pane({ id, size, min, max, fixed, className, children }: { id: string; size: Size; min?: Size; max?: Size; fixed?: boolean; className?: string; children: ReactNode }) {
+    a share of the split ("44%"). `fixed` holds it at that size: its edges do not drag. With `onCollapse` its edge
+    can be dragged past half its smallest size, where it snaps shut and says so; the owner then takes it away. Its
+    width is on the element as `--pane-w`, for a look that slides it in or out. */
+export function Pane({ id, size, min, max, fixed, onCollapse, className, children }: { id: string; size: Size; min?: Size; max?: Size; fixed?: boolean; onCollapse?: () => void; className?: string; children: ReactNode }) {
   const live = use(Live), ref = usePanelRef()
   useEffect(() => {
     if (!live) return
@@ -56,8 +58,20 @@ export function Pane({ id, size, min, max, fixed, className, children }: { id: s
     live.add(e); panes.set(id, e)
     return () => { live.delete(e); if (panes.get(id) === e) panes.delete(id) }
   }, [live, id, size, ref])
+  // Dragged shut: it says so once the drag is let go (dragging back out before that opens it again). The split keeps
+  // the layout of the panes it has had, so the pane is first put back to its width: taken away at nothing, it would
+  // come back at nothing.
+  const shut = useRef(false)
+  useEffect(() => {
+    if (!live || !onCollapse) return
+    const done = () => setTimeout(() => { if (!shut.current) return; shut.current = false; ref.current?.resize(read(id) ?? size); onCollapse() }) // after the split's own end of the drag
+    window.addEventListener('pointerup', done); window.addEventListener('keyup', done)
+    return () => { window.removeEventListener('pointerup', done); window.removeEventListener('keyup', done) }
+  }, [live, onCollapse, id, size, ref])
   if (!live) return className ? <div className={className}>{children}</div> : <>{children}</>
-  return <Panel id={id} panelRef={ref} className={className ? `pane ${className}` : 'pane'} defaultSize={fixed ? size : read(id) ?? size} minSize={fixed ? size : min} maxSize={fixed ? size : max} disabled={fixed} groupResizeBehavior="preserve-pixel-size">{children}</Panel>
+  const start = fixed ? size : read(id) ?? size
+  return <Panel id={id} panelRef={ref} className={className ? `pane ${className}` : 'pane'} style={{ ['--pane-w' as string]: typeof start === 'number' ? `${start}px` : start }} defaultSize={start} minSize={fixed ? size : min} maxSize={fixed ? size : max} disabled={fixed} groupResizeBehavior="preserve-pixel-size"
+    collapsible={!!onCollapse} collapsedSize={0} onResize={onCollapse && ((s) => { shut.current = s.inPixels < 1 })}>{children}</Panel>
 }
 
 /** The pane that takes what the others leave: the page, the 3D view, the map. */

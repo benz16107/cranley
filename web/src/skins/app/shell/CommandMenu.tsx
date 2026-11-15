@@ -56,6 +56,7 @@ export function CommandMenu() {
           <Command.Group heading="Actions">
             <Command.Item value="new investigation start over brief" onSelect={run(newInvestigation)}><Icon name="plus" /><span className="grow">New investigation</span></Command.Item>
             <Command.Item value="agent panel plan runs" onSelect={run(() => useUi.getState().setRun(!useUi.getState().run))}><Icon name="runs" /><span className="grow">Show or hide the agent panel</span><span className="kbd">]</span></Command.Item>
+            <Command.Item value="sidebar show hide collapse navigation" onSelect={run(() => useUi.getState().toggleSide())}><Icon name="panel" /><span className="grow">Show or hide the sidebar</span><span className="kbd">Ctrl B</span></Command.Item>
             <Command.Item value="undo my last change" onSelect={run(undo)}><Icon name="undo" /><span className="grow">Undo my last change</span><span className="kbd">Ctrl Z</span></Command.Item>
             <Command.Item value="keyboard shortcuts help" onSelect={run(() => useUi.setState({ keys: true }))}><Icon name="help" /><span className="grow">Keyboard shortcuts</span><span className="kbd">?</span></Command.Item>
             <Command.Item value="appearance theme light" onSelect={run(() => setTheme('light'))}><Icon name="sun" /><span className="grow">Light appearance</span></Command.Item>

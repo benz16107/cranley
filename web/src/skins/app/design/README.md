@@ -10,12 +10,18 @@ a tool a person works in all day. Tokens are in `tokens.css`, shared classes in 
   page. `lib/place.ts` maps the address to a page.
 - **Pages** (`pages/`): Home, Explore, Building, Investigations, Buildings, Insights, Tools, Settings. A page is either
   a document that scrolls (`.page > .inner`) or a work surface that fills the window (`.listpage`, `.ex`, `.bld`).
-  Home is two columns that fold into one under 1000 px of page width: on the left the field for a brief, the open
-  investigation and its buildings as aerial photos; on the right the map of scanned addresses and one activity feed
-  (runs, failures, questions, phone captures). What it lists is worked out in `lib/home.ts`. A building's picture is
-  the 256 px aerial the server keeps on disk, one image per card, never a 3D view.
+  Home (`pages/Home.tsx`, parts in `home/`) is one column, 760 px at most: one entry, then the person's own work.
+  The entry (`home/Ask.tsx`) is a heading that asks what you need, a field for a sentence with a building picker in
+  its bar ("Any building" until one is chosen), and a row of starting points by who the person is ("Start as":
+  `home/starts.ts`), each of which writes its sentence into the field. What Start does is decided from what was
+  given, a sentence, a building or both (`home/entry.ts`, tested). While a brief is being set up, its tools and
+  questions take the entry's place (`home/Setup.tsx`). Under it, Recent lists the investigations kept in this
+  browser, the open one first, one line each with a status and when it last changed (`home/Work.tsx`); the feed of
+  runs, failures, questions and phone captures is behind its Activity button (`home/Activity.tsx`). There is no map
+  on Home; the map is Explore. A building's picture is the 256 px aerial the server keeps on disk, one small image
+  in the picker, never a 3D view. Home's styles are in `pages/home.css`.
 - **The guided first run** (`shell/FirstRun.tsx`, steps worked out in `lib/firstrun.ts`): on a first visit to Home a
-  dialog asks one thing, who you are and what you need, in one line or one tap. Then it stands aside. The real
+  dialog asks one thing, who you are and what you need, in one line or one tap (`home/FirstAsk.tsx`). Then it stands aside. The real
   workspace is on the page while the agent composes it, and a small card in the corner says which step is happening:
   tools chosen, a plan, a building opened, first results. It opens one of the agent's picks (one that is photoreal
   and on its site when there is one) and holds the page there until that building has results, then says what was
@@ -69,6 +75,10 @@ a tool a person works in all day. Tokens are in `tokens.css`, shared classes in 
     (arrow keys, Home, End). A pane keeps its pixels when the window changes, is remembered per browser under
     `threshold.app.size.<id>`, and goes back to its designed size on a double click. A new side panel is a `<Pane>`
     in a `<Split>`, never a fixed grid column. On a phone a split is off and nothing drags.
+    The sidebar has three states: full, icons (a fixed 52 px) and hidden. The button in its header and Ctrl B hide
+    it, the button at the left of the top bar brings it back, and dragging its edge past half its smallest width
+    hides it too (`<Pane onCollapse>`). A press with a pointer slides the width in 200 ms and out in 160; the
+    keyboard, a drag and reduced motion do not slide. `[` still swaps full and icons. Remembered per browser.
 14. **One thing first on every screen, the rest behind a fold.** A building leads with its verdict: a status beside
     its name, and a Summary tab that says the worst result in the tool's own words, then what to do next
     (`lib/verdict.ts`). Above the building there is one row of tools: the view, one button for how it looks, Play, and
@@ -97,6 +107,6 @@ frosted blur, Inter, Geist and Space Grotesk, coloured left stripes, bento grids
 pricing tiers, soft radius everywhere, purple and black, glow orbs, dot grids, sparkles, animated arrows, hover
 motion, neon, pastels, em dashes and "not X but Y" copy.
 
-Partial, and why: Home's five needs sit three and two in bordered tiles at 1440 px. They are buttons that start an
-investigation, with no icon and no marketing line, and one row of five on a wide page. The tool keys use seven hues, one per tool family; they are
-18 px squares and the only place those hues appear.
+Partial, and why: the tool keys use seven hues, one per tool family; they are 18 px squares and the only place
+those hues appear. The first run's dialog lists five needs as bordered rows: they are buttons that start an
+investigation, with no icon and no marketing line.

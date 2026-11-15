@@ -37,6 +37,19 @@ LIMITS = {"zone0": {"canopy": (5, 15), "veg": (10, 25)}, "zone1": {"canopy": (30
 TREE_M, GREEN, DARK = 2.0, 0.05, 70   # canopy height, excess-green index, brightness below which green is faint
 GRID_M, CELLS = 100.0, 200            # 0.5 m cells
 BURNS = ("wood", "shake")
+OVER_ROOF_M2 = 1.0   # green canopy over the roof above this much is branches over it (smaller is pixel noise)
+# What an inspector checks on the walk-around that the aerial photos and terrain cannot show
+WALK_AROUND = (("deck", "nothing that burns stored under a wood deck, and metal mesh round its base against embers"),
+               ("vents", "ember-resistant mesh on attic and crawl-space vents"),
+               ("gutters", "gutters clean of leaves and needles, ideally screened"),
+               ("propane", "no propane tank on or next to the deck"),
+               ("firewood", "firewood stacked at least 30 ft from the house"),
+               ("windows", "double-paned windows, closed when a fire is near"),
+               ("debris", "no pine needles, clippings or leaves against the walls or on the roof"),
+               ("zone0_rules", "which Zone 0 (0 to 5 ft) rules apply to this home today; check CAL FIRE and the "
+                               "city, since this tool's limits are screening values"),
+               ("insurer_score", "the wildfire score an insurer's own model gives this home, which decides cover and "
+                                 "price and is not published"))
 VEG = Source(layer="vexcel", method="vision", confidence="medium",
              note="Green in the orthophoto (excess-green index); dry grass and bare dirt both read as not green")
 CANOPY = Source(layer="vexcel", method="geometry", confidence="medium",
@@ -89,6 +102,8 @@ def cover(s, outline, lat0, lon0, land=None) -> dict:
     off = float(np.nanpercentile(diff[~house], 10))
     ndsm = np.nan_to_num(diff - off, nan=0.0)
     green, canopy = classify(ortho_grid(o, lat0, lon0, b), ndsm)
+    roof = shapely.contains_xy(outline.buffer(-0.5), ce, cn)  # half a metre in, clear of the footprint's edge
+    over_roof = float((canopy & roof).sum() * cell * cell)
     green &= ~house
     canopy &= ~house
     cx, cy = outline.centroid.x, outline.centroid.y
@@ -117,7 +132,8 @@ def cover(s, outline, lat0, lon0, land=None) -> dict:
     A = np.c_[ce[near], cn[near], np.ones(near.sum())]
     (gx, gy, _), *_ = np.linalg.lstsq(A, dtm["heights"][near], rcond=None)
     slope = {"pct": round(100 * math.hypot(gx, gy), 1), "downhill": compass(math.degrees(math.atan2(-gx, -gy)))}
-    return {"zones": out, "slope": slope, "offset_m": round(off, 2)}
+    return {"zones": out, "slope": slope, "offset_m": round(off, 2), "over_roof_m2": round(over_roof, 1),
+            "roof_m2": round(float(roof.sum() * cell * cell), 1)}
 
 
 def judge(key: str, z: dict) -> str:
@@ -276,15 +292,32 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                                 detail=(f"{hz['zone']} hazard ({hz['responsibility']}). In a Very High zone, Zone 0 rules "
                                         "apply as the Board of Forestry adopts them, and a home sale needs a defensible "
                                         "space inspection." if hz["zone"] else hz["note"] + ".")))
+    over = cv["over_roof_m2"]
+    ov_st = "warn" if over > OVER_ROOF_M2 else "pass"
+    fid = f"wildfire_space:{k}:over_roof"
+    checks.append(Check(id="over_roof", rule="Tree branches over the roof", measured=over, threshold=OVER_ROOF_M2,
+                        unit="m²", status=ov_st, findings=[fid] if ov_st != "pass" else [],
+                        standard="CAL FIRE Zone 1: no branches over the roof, 10 ft from the chimney; insurers order "
+                                 "it trimmed"))
+    if ov_st != "pass":
+        findings.append(Finding(id=fid, title="Branches over the roof", status="warn", anchor=geo(lon0, lat0),
+                                source=CANOPY, detail=f"About {over:.0f} m² of the {cv['roof_m2']:.0f} m² roof is under "
+                                                      "green tree canopy on the aerial photo. Embers and dry leaves land "
+                                                      "on the roof; insurers ask for branches over it to be cut back."))
+    from .._access import cannot
+    checks += [cannot(f"walk.{cid}", f"{what} (confirm on the walk-around)") for cid, what in WALK_AROUND]
     order = ["zone0", "zone1", "zone2"]
     first = next((z for z in order if statuses[z] == "fail"), None) or next((z for z in order if statuses[z] == "warn"), None)
-    worst = "fail" if "fail" in statuses.values() or roof_st == "fail" else "warn" if "warn" in statuses.values() else "pass"
+    worst = "fail" if "fail" in statuses.values() or roof_st == "fail" else \
+        "warn" if "warn" in statuses.values() or ov_st == "warn" else "pass"
     names = {key: f"{name} ({span})" for key, name, span, _, _ in ZONES}
     text = ("Every zone is clear enough." if not first else
             f"{names[first]} needs work first: {cv['zones'][first]['todo']}.")
     text += " " + "; ".join(f"{names[z]} {statuses[z]}" for z in order) + "."
     if roof_st == "fail":
         text = "The roof is wood or shake, the first thing to replace. " + text
+    if ov_st == "warn":
+        text += f" Tree branches cover about {over:.0f} m² of the roof: cut them back."
     if hz and hz["zone"]:
         text += f" CAL FIRE maps this house in a {hz['zone']} Fire Hazard Severity Zone."
     if not ca:

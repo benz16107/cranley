@@ -104,17 +104,26 @@ def run(ctx, inputs: Inputs) -> ToolResult:
                                 f"of the tub and up from the toilet (grab bars seen: {fx['grab_bars']})",
                                 measured=None, threshold=None, unit="", status="pass" if ok else "warn",
                                 standard=STD["steadi"] + ", Bathrooms", findings=[fid]))
+    if quality(plan).get("walls"):  # an occupational therapist's home assessment, as far as the scan measures it
+        from .ot import ot_checks
+        checks += ot_checks(ctx, plan)
     for cid, q, why in NOT_FROM_SCAN:
         checks.append(Check(id=f"not_scan.{cid}", rule=f"{q} Not answerable: {why}.", measured=None, threshold=None,
                             unit="", status="unknown", standard=STD["steadi"]))
     hazards = [f for f in findings if f.status in ("fail", "warn")]
-    st = [c.status for c in checks if not c.id.startswith("not_scan")] if quality(plan).get("walls") else ["unknown"]
+    st = [c.status for c in checks if not c.id.startswith(("not_scan", "cannot.", "ot."))] \
+        if quality(plan).get("walls") else ["unknown"]
     status = "fail" if "fail" in st else "warn" if "warn" in st else "unknown" if all(s == "unknown" for s in st) \
         else "pass"
     text = {"fail": f"{len(hazards)} places to fix or check, at least one clear hazard.",
             "warn": f"{len(hazards)} places to check on site; nothing clearly fails.",
             "pass": "Every checklist item the scan can answer looks fine.",
             "unknown": "This scan cannot answer the checklist (no wall graph or room labels)."}[status]
+    ot = [c for c in checks if c.id.startswith("ot.")]
+    if ot:
+        bad = [c for c in ot if c.status in ("warn", "fail")]
+        text += (f" Home assessment: {len(ot) - sum(c.status == 'unknown' for c in ot)} of a therapist's measures "
+                 f"come from the scan, {len(bad)} need attention; the rest are to confirm on site.")
     ctx.step(text)
     return ToolResult(
         scope=ScanScope(sid=sid), verdict=Verdict(status=status, text=text), checks=checks, findings=findings,
