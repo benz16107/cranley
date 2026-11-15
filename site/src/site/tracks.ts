@@ -22,7 +22,7 @@ export const TRACKS: Track[] = [
     slug: 'peri', name: 'Peri', prize: 'Forward Deployed Challenge',
     summary: 'Built forward-deployed: we asked people and businesses what goes wrong with their buildings, by phone, in online communities and by email, then changed the tools to match.',
     docs: [['What people told us, in full (on GitHub)', 'https://github.com/benz16107/cranley/blob/main/docs/feedback.md'], ['Phone and iPhone app', '/docs/phone/'], ['Fire pre-plan', '/docs/tools/fire-preplan/'], ['Egress routes', '/docs/tools/egress-routes/'], ['Facility audit', '/docs/tools/facility-audit/'], ['Door widths', '/docs/tools/door-widths/']],
-    slots: ['field-visit', 'pdf-report', 'fire-preplan'], interview: true, proof: ['quote-to-change', 'reddit-wall-2-workplaces', 'email-replies', 'outreach-at-a-glance'],
+    slots: ['field-visit', 'pdf-report', 'fire-preplan'], interview: true, proof: ['quote-to-change', 'reddit-wall-2-workplaces', 'outreach-at-a-glance'],
   },
   {
     slug: 'langchain', name: 'LangChain', prize: 'Best use of deepagents',

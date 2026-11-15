@@ -1,8 +1,8 @@
 // What people sent us, as pictures: public/media/<id>.webp, 2000 px wide (the home page's thumbnail is
 // outreach-at-a-glance-thumb.webp). They are copied in by hand, not by `generate.py --media`: each one was read for
-// names, usernames, addresses and scan data first, and three carry blurs added for this site (the email replies, and
-// the two that show our r/f150 post, where one line gave a measured garage's size). Copying a fresh render over
-// them undoes that.
+// names, usernames, addresses and scan data first, and the two that show our r/f150 post carry a blur added for this site (one
+// line gave a measured garage's size). Copying a fresh render over them undoes that. The picture of the email replies
+// is held back until the proof thread's redacted version arrives: two of the people in it have not agreed to be shown.
 export const INTERVIEW = {
   url: 'https://youtu.be/q5reRgHfS8Y',
   embed: 'https://www.youtube-nocookie.com/embed/q5reRgHfS8Y',
@@ -18,9 +18,6 @@ export const PROOF = {
   'reddit-wall-2-workplaces': { w: 2000, h: 1937,
     alt: 'Our questions in five Reddit communities for people who run stores, kitchens, restaurants, teams and emergency plans, with six of the answers',
     caption: `What we asked in five Reddit communities for people who run workplaces, and six of the answers. ${BLURRED}` },
-  'email-replies': { w: 2000, h: 2758,
-    alt: 'The emails we sent and what came back: "Call me" from Jean Ryan, a museum director asking for a call, written answers from a theatre\'s managing director, and two declines',
-    caption: 'The email we sent and each reply to it. Names, email addresses, signatures and the names of the organisations are blurred, except Jean Ryan.' },
   'outreach-at-a-glance': { w: 2000, h: 1328,
     alt: 'The outreach in numbers: the recorded interview, the people and communities who answered, the emails sent, the replies and the commits that followed',
     caption: 'The outreach, counted. It shows totals only: no names or usernames appear in it.' },
