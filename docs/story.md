@@ -270,8 +270,8 @@ what they said.
 4. Aisles: turning space counts the objects a phone scan measured on the floor and checks the aisle from the doorway to
    the turning spot between them.
 5. Floors and elevators: other floors say "elevator only" when the scan has one.
-6. What a scan cannot tell: the step, bathroom and turning checks each end with it (for example a temporary obstruction
-   or an elevator out of service).
+6. What a scan cannot tell: the step-free route and bathroom checks each end with a list of it, and turning space says
+   when a scan recorded walls only.
 7. From the truck and boat owners: garage fit checks depth to the back wall on its own, clear of objects the scan
    measured, with a "not in the scan" line for fittings on the wall; boats and trailers use the maker's storage length;
    the door opening is checked at a trailer's fenders and side lights.
