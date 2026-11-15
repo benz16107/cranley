@@ -18,5 +18,7 @@ Tiger Cloud is the building facts database: what was measured, when, and how it 
 | Read-only role for the agent's SQL | The agent can ask its own questions of the facts and cannot write. |
 | Database forks | City-wide what-if on a zero-copy fork, ready in about 31 s on the free plan, deleted after. |
 
+**Scripted flow:** `web/src/skins/app/demo/flows/tiger.json`, "A renovation what-if on a database fork".
+
 **Demo path.** Search by measurement (one query, a ranked table), then renovate: widen a door, re-run city-wide on a
 fork, compare Now and After, the fork deleted.

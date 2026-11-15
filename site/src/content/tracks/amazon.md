@@ -29,15 +29,19 @@ wheelchair user the questions asked went 1, 0, 0, and the checks kept back 0, 3,
 | User-friendly design | No profile form: it fills from answers and clicks the person makes anyway; Home says in one line how much is known | Home, under the brief field |
 | Creative innovation | The proof is in the product: "How Cranley has adapted to you" counts what each investigation asked, reused and kept back, from the person's own logs | "Cranley knows", first section |
 
-What the replay shows and does not (run 2026-11-14 19:47, each counted
-from op logs by `threshold.agent.profile.measure`): questions asked went 1, 0, 0 in all three evaluation runs. "Checks
+What the replay shows and does not (the evaluation `threshold.agent.adapt_eval`, run 2026-11-14 19:47, each number
+counted from op logs by `threshold.agent.profile.measure`): questions asked went 1, 0, 0 in all three evaluation runs. "Checks
 that matter" uses a rule fixed before the run (a check matters unless it is a kind the person waved off or comes from a
 tool they removed), so it shows that a taste expressed once is honoured on new buildings, not that Cranley guesses
 relevance nobody told it. Time to the first result and the number of tool runs did not change in a way the replay can
 support: both follow the model's latency and choices; only the removed tool never comes back. It is one persona on three
 buildings, a replay rather than a user study. Limits: the profile holds only facts some tool input uses (about 80 keys;
 no budget or risk tolerance), it does not read facts out of free text, and there is no sign-in (the profile id lives in
-the browser).
+the browser, so anyone who has the id can open that profile).
+
+**Scripted flow:** `web/src/skins/app/demo/flows/amazon.json`, "A phone scan becomes a PDF report". Second flow:
+`amazon-adaptive.json`, "A returning wheelchair user opens a new home", about 110 s (played twice:
+111.2 s and 108.6 s, of which the agent's turn is 77 to 79 s).
 
 **Demo path.** Phone: scan a room with the iPhone app (demo cafe in the simulator), name the business, pick
 Accessibility, get the PDF in seconds. Desktop: the same workspace updates live. Then the wheelchair search above.
