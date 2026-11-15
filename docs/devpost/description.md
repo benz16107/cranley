@@ -14,6 +14,7 @@ It is for the person the listing fails: a wheelchair user signing a lease, a Hou
 | CoStar: Inside and Out | All three layers (Matterport interiors, Vexcel aerial and 3D city, CoStar records) in one frame; an agent that plans, fans out per building and checks claims across layers | Record versus reality, flood, garage and driveway fit, site tools, search by measurement |
 | Amazon: Practical AI | Ask in plain words, get a workspace you can act on; works on your own home through the iPhone scan | Home, the phone companion, PDF reports |
 | LangChain deepagents | Planning, parallel subagents shown live, human approval with resume from a MongoDB checkpoint, skills, memory, a rubric grader, LangSmith experiments | The agent panel on any investigation |
+| Photon 2.0 | The same agent over iMessage and a phone call: marked plan pictures, reply threads as investigations, approvals by reply, photos and voice notes in, the PDF in the chat | Text or call the Cranley line |
 | MLH Tiger Data | The building facts database: hypertables, compression, continuous aggregates, DiskANN room search, pgai vectorizer, forks for what-ifs | Search by measurement, Insights, Renovate |
 | MLH MongoDB Atlas | Workspaces and their operation log, change-stream live sync with the phone, hybrid search, time series, vector memory, guarded MCP | Investigations, the phone, share links |
 
@@ -40,6 +41,7 @@ The same workspace works for 50 kinds of user. A Houston homeowner watches Hurri
 - **Physics, not pictures.** CFAST for smoke. USGS high-water marks for floods.
 - **The building in its city.** One continuous view from the map through the aerial and the 3D city into the room, with 66 map layers around it (flood zones, Harvey high-water marks, hydrants, zoning, permits, transit, live weather), each labelled with its source and fetch date.
 - **Search by what is measured inside.** "One-floor houses with three bedrooms and every door at least 81 cm" is one query.
+- **Where people already are.** Over Photon 2.0, ask by iMessage or a phone call from the viewing itself; a photo of a doorway with a bank card in it gets measured, and the PDF arrives in the chat.
 - **Any agent can use it.** Every tool is also an MCP tool and a `threshold` CLI command, so Claude Code can ask "will an F-150 fit in this garage" and answer from the result.
 - **Honest by construction.** Each number carries its layer, its method and a high, medium or low label. A scan that cannot answer gets an "unknown" verdict with the reason.
 
