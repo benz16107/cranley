@@ -202,3 +202,7 @@
   /* a wide control goes under its label; a switch stays beside it */
   .settings .set > div:first-child { flex: 1 1 200px; }
 }
+
+/* The look switcher's and the phone link's tabs sit on the window's bottom-left edge, over the full sidebar. With the
+   sidebar at icons or hidden they are over the page instead: a list's footer clears them, as it does on a phone. */
+.app:is([data-rail], [data-side]) :is(.listpage, .tabbody) > .tblwrap > .tblfoot { padding-bottom: 20px; min-height: 54px; }

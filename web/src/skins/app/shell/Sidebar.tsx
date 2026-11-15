@@ -4,7 +4,7 @@ import { go, goInvestigation, goScan, usePlace, type Page } from '../lib/place.t
 import { openSeen, started, statusOf, useSeen } from '../lib/pending.ts'
 import { STATUS } from '../pages/Home.tsx'
 import { useTheme, type Theme } from './theme.ts'
-import { useUi } from './store.ts'
+import { pressSide, useUi } from './store.ts'
 
 const NAV: { page: Exclude<Page, 'building' | 'investigation'>; label: string; icon: IconName; key: string; also?: Page }[] = [
   { page: 'home', label: 'Home', icon: 'home', key: 'H' },
@@ -36,6 +36,7 @@ export function Sidebar({ onPick }: { onPick?: () => void }) {
 
   return (
     <nav className="side" data-rail={rail || undefined} aria-label="Main">
+      <div className="head">
       <MenuBtn trigger={
         <button type="button" className="ws" aria-label={`Investigation: ${title}. Switch or start a new one.`}>
           <span className="mk"><Mark /></span>
@@ -50,6 +51,8 @@ export function Sidebar({ onPick }: { onPick?: () => void }) {
         <Menu.Item onClick={pick(newInvestigation)}><Icon name="plus" />New investigation</Menu.Item>
         <Menu.Item onClick={pick(() => go('investigations'))}><Icon name="table" />All investigations</Menu.Item>
       </MenuBtn>
+      {!onPick && <IconBtn icon="panel" label="Hide the sidebar" kbd="Ctrl B" data-side-toggle="" onClick={pressSide} />}
+      </div>
 
       <ul className="nav">
         {NAV.map((n) => {
@@ -94,7 +97,7 @@ export function Sidebar({ onPick }: { onPick?: () => void }) {
             <Menu.Item onClick={() => useUi.setState({ keys: true })}><Icon name="help" />Keyboard shortcuts<small>?</small></Menu.Item>
             <Menu.Item onClick={pick(() => go('settings'))}><Icon name="gear" />Settings</Menu.Item>
           </MenuBtn>
-          {!onPick && <IconBtn icon="panel" label={rail ? 'Widen the sidebar' : 'Narrow the sidebar'} kbd="[" onClick={() => useUi.getState().setRail(!rail)} />}
+          {!onPick && <IconBtn icon={rail ? 'right' : 'left'} label={rail ? 'Widen the sidebar' : 'Narrow the sidebar to icons'} kbd="[" onClick={() => useUi.getState().setRail(!rail)} />}
         </div>
       </div>
     </nav>

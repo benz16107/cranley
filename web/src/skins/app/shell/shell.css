@@ -25,7 +25,10 @@
 .side .foot { margin-top: auto; display: grid; gap: 6px; }
 .side .conn { display: flex; align-items: center; gap: 7px; padding: 0 8px; font-size: var(--text-2xs); color: var(--ink-3); line-height: 1.3; }
 .side .conn i { width: 6px; height: 6px; border-radius: 50%; border: 1px solid var(--ink-3); flex: none; }
-.side .acct { display: flex; align-items: center; gap: 2px; border-top: 1px solid var(--rule); padding-top: 8px; margin-bottom: 14px; }
+/* Under the account row is where core's look switcher and the phone link put their tabs: 18 px tall, on the window's
+   bottom edge. They are drawn flat-bottomed, as tabs on that edge. 4 px under the row they read as cut off, so the
+   row leaves them 10 px of air. */
+.side .acct { display: flex; align-items: center; gap: 2px; border-top: 1px solid var(--rule); padding-top: 8px; margin-bottom: 20px; }
 .side .who { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; height: 36px; padding: 0 6px; border-radius: var(--r-1); }
 .side .who .av { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--pane-2); color: var(--ink-2); flex: none; }
 .side .who .grow { display: grid; line-height: 1.25; }
@@ -35,9 +38,23 @@
   .side .ws:hover, .side .who:hover, .side .nav button:not([aria-current='page']):hover { background: var(--pane-2); color: var(--ink); }
 }
 @media (pointer: coarse) { .side .nav button { height: 44px; } }
+.side .head { display: flex; align-items: center; gap: 2px; flex: none; }
+.side .head .ws { flex: 1; min-width: 0; width: auto; }
+/* Hidden is the third state. After a press of its button the pane's width travels: in over the look's drawer time,
+   out in 80% of it. The sidebar keeps its own width meanwhile, so its words are uncovered, not squeezed. From the
+   keyboard nothing travels, and reduced motion (tokens.css) brings both times to nothing. */
+.sidepane { overflow: hidden; }
+.sidepane.in { animation: side-in var(--dur-3) var(--ease-out); }
+.sidepane.out { animation: side-out calc(var(--dur-3) * 0.8) var(--ease-out) forwards; }
+.sidepane:is(.in, .out) > .side { min-width: var(--pane-w); }
+@keyframes side-in { from { max-width: 0; } to { max-width: var(--pane-w); } }
+@keyframes side-out { from { max-width: var(--pane-w); } to { max-width: 0; } }
+.top[data-side='hidden'] { padding-left: var(--s-2); }
 .side[data-rail] { padding: 8px 6px; align-items: stretch; }
 .side[data-rail] .grow, .side[data-rail] .count, .side[data-rail] .ws > svg { display: none; }
 .side[data-rail] .ws { padding: 0; justify-content: center; }
+.side[data-rail] .head { flex-direction: column; gap: 4px; }
+.side[data-rail] .head .ws { flex: none; width: 100%; }
 .side[data-rail] .nav button { justify-content: center; padding: 0; height: 32px; }
 .side[data-rail] .acct { flex-direction: column; }
 .side[data-rail] .who { padding: 0; justify-content: center; flex: none; width: 100%; }

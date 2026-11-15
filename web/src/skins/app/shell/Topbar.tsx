@@ -3,7 +3,7 @@ import { useBuildings, useCatalog, useWorkspace } from '../../../core/index.ts'
 import { Icon, IconBtn } from '../design/ui.tsx'
 import { go, usePlace } from '../lib/place.ts'
 import { leaveShared, useSeen } from '../lib/pending.ts'
-import { useIsPhone, useUi } from './store.ts'
+import { pressSide, useIsPhone, useUi } from './store.ts'
 import { DemoMenu } from '../demo/DemoMenu.tsx'
 import { isApproval, useStopped } from './AgentLive.tsx'
 
@@ -25,7 +25,7 @@ function useCrumbs(): Crumb[] {
 export function Topbar({ actions }: { actions?: ReactNode }) {
   const crumbs = useCrumbs()
   const phone = useIsPhone()
-  const run = useUi((s) => s.run), setRun = useUi((s) => s.setRun)
+  const run = useUi((s) => s.run), setRun = useUi((s) => s.setRun), hidden = useUi((s) => s.hidden)
   const doc = useWorkspace((s) => s.doc)
   const shared = useCatalog((s) => s.shared?.state === 'ready')
   const running = doc.runs.filter((r) => r.status === 'running').length, open = doc.questions.filter((q) => q.answer == null).length
@@ -33,8 +33,9 @@ export function Topbar({ actions }: { actions?: ReactNode }) {
   const approving = doc.questions.some((q) => q.answer == null && isApproval(q)) // paused for the person: a dot, not a spinner
   const working = !stopped && !approving && (running > 0 || doc.plan.some((s) => s.status === 'active'))
   return (
-    <header className="top">
+    <header className="top" data-side={!phone && hidden ? 'hidden' : undefined}>
       {phone && <IconBtn icon="menu" label="Open the navigation" onClick={() => useUi.setState({ nav: true })} />}
+      {!phone && hidden && <IconBtn icon="panel" label="Show the sidebar" kbd="Ctrl B" data-side-toggle="" onClick={pressSide} />}
       <nav className="crumbs" aria-label="Where you are">
         {crumbs.map((c, i) => (
           <Fragment key={i}>
