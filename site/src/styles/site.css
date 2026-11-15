@@ -15,6 +15,7 @@
   --s-10: 128px;
   /* the app sets --warn for its pane; as small text on paper it reads 4.36:1, so text takes this darker mix */
   --warn-text: color-mix(in srgb, var(--warn) 78%, var(--ink));
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1); /* on-screen movement: the hero's line. The app has --ease-out only */
   --wrap: 1160px;
   --gutter: clamp(16px, 4vw, 40px);
 }

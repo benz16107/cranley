@@ -17,6 +17,8 @@ const bad = []
 const FORBID = [[/(?<![\w.-])\/(?:home|Users)\/\w/, 'a home path'], [/\bts\.net\b|tailb\d+/, 'a tailnet name'], [/\b(?:linuxbox|macserver|benmac)\b/, 'a machine name'], [/—/, 'an em dash'],
   // notes to the team that must never reach a page (docs/story.md is also the team's working file)
   [/lead(?:'|’|&#39;|&#x27;)s server/i, 'a note to the team'], [/\?as=/, 'the profile switch'], [/not merged yet/i, 'a stale branch note'], [/hackprinceton26-data/, 'the data folder'], [/Team note/, 'a team note'], [/\breports\/[\w-]+\.md\b/, 'a report in the data folder']]
+// the live demo's own address is on a tailnet name by design; everything else on a page still may not be
+const DEMO = readFileSync('src/site/links.ts', 'utf8').match(/demo: '([^']+)'/)?.[1]
 const TEST_SCANS = new Set(['u_testhome0001', 'u_testcafe0001'])
 
 for (const [file, s] of html) {
@@ -34,7 +36,7 @@ for (const [file, s] of html) {
   }
   for (const [, hash] of s.matchAll(/\shref="#([^"]+)"/g)) if (!ids.get(file).has(decodeURIComponent(hash)) && hash !== '_top') bad.push(`${file}: #${hash} has no such anchor`)
   for (const [img] of s.matchAll(/<img\b[^>]*>/g)) if (!/\salt[=\s>]/.test(img)) bad.push(`${file}: an image has no alt text`)
-  const text = s.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, '')
+  const text = s.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, '').replaceAll(DEMO ?? '\0', '')
   for (const [re, what] of FORBID) { const m = text.match(re); if (m) bad.push(`${file}: ${what} (${text.slice(Math.max(0, m.index - 40), m.index + 40).replace(/\s+/g, ' ')})`) }
   for (const [id] of text.matchAll(/\bu_[0-9a-z]{8,}\b/g)) if (!TEST_SCANS.has(id)) bad.push(`${file}: scan id ${id}`)
 }

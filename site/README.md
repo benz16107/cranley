@@ -1,6 +1,6 @@
 # Cranley site
 
-The public site and docs: a home page, sponsor track pages, privacy and terms, and docs under `/docs`. Astro and
+The public site and docs: a short home page, the long version at `/how/`, sponsor track pages, privacy and terms, and docs under `/docs`. Astro and
 Starlight, static output, no server.
 
 ```sh

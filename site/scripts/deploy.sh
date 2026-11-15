@@ -36,7 +36,7 @@ if [ -n "$prod" ]; then
   ssh "$host" "cd $remote/dist && $v deploy --yes --prod --scope $scope" | tail -3
   echo
   sleep 5
-  [ "$(curl -s https://cranley.app/ | grep -c 'The listing says')" = 1 ] || { echo "https://cranley.app does not serve the home page"; exit 1; }
+  [ "$(curl -s https://cranley.app/ | grep -c 'data-slot="hero-loop"')" = 1 ] || { echo "https://cranley.app does not serve the home page"; exit 1; }
   echo "live: https://cranley.app  ($(curl -s -o /dev/null -w 'HTTP %{http_code}' https://cranley.app/docs/); www answers $(curl -s -o /dev/null -w '%{http_code}' https://www.cranley.app/))"
 else
   url=$(ssh "$host" "cd $remote/dist && $v deploy --yes --target=preview --scope $scope" | grep -o 'https://[a-z0-9-]*\.vercel\.app' | head -1)
