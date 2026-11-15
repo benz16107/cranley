@@ -104,7 +104,7 @@ export function Shell() {
 
   return (
     <Tooltip.Provider delay={450} closeDelay={0}>
-      <div className="app" data-page={place.page} data-rail={rail || undefined} data-run={(run && !phone) || undefined}>
+      <div className="app" data-page={place.page} data-rail={rail || undefined} data-side={(hidden && !phone) || undefined} data-run={(run && !phone) || undefined}>
         <a className="skip" href="#main">Skip to the page</a>
         {/* Sidebar, page and agent panel resize by the edges between them. The sidebar has three states: full, a fixed
             52 px of icons, and hidden. Dragging the full one's edge past half its smallest width hides it. */}

@@ -25,7 +25,10 @@
 .side .foot { margin-top: auto; display: grid; gap: 6px; }
 .side .conn { display: flex; align-items: center; gap: 7px; padding: 0 8px; font-size: var(--text-2xs); color: var(--ink-3); line-height: 1.3; }
 .side .conn i { width: 6px; height: 6px; border-radius: 50%; border: 1px solid var(--ink-3); flex: none; }
-.side .acct { display: flex; align-items: center; gap: 2px; border-top: 1px solid var(--rule); padding-top: 8px; margin-bottom: 14px; }
+/* Under the account row is where core's look switcher and the phone link put their tabs: 18 px tall, on the window's
+   bottom edge. They are drawn flat-bottomed, as tabs on that edge. 4 px under the row they read as cut off, so the
+   row leaves them 10 px of air. */
+.side .acct { display: flex; align-items: center; gap: 2px; border-top: 1px solid var(--rule); padding-top: 8px; margin-bottom: 20px; }
 .side .who { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; height: 36px; padding: 0 6px; border-radius: var(--r-1); }
 .side .who .av { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--pane-2); color: var(--ink-2); flex: none; }
 .side .who .grow { display: grid; line-height: 1.25; }
