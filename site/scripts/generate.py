@@ -771,9 +771,9 @@ def drawing(sid: str, tools: dict, pref: dict) -> dict:
             "notes": plan["quality"]["notes"]}
 
 
-MEDIA = {  # source under <shots>/ -> public/media/<slot id>.webp (src/site/slots.ts). Checked by eye: test home and test cafe only.
-    "ios/02-scan-plan.png": "iphone-app-1", "ios/03-scan-tools.png": "iphone-app-2", "ios/04-scan-tools-more.png": "iphone-app-3",
-    "field/sim/01-home.png": "field-visit-1", "field/sim/04-visit-on-site.png": "field-visit-2"}
+MEDIA = {  # source under <shots>/ -> public/media/<slot id>.webp (src/site/slots.ts). Every screenshot on the site is dark (Ben, 2026-11-15):
+    # the light simulator shots of the iPhone app and the site visit came down, and return when they are shot in dark.
+    "proof/out/dark/10-phone-app.png": "iphone-app-1"}
 
 
 def media(shots: pathlib.Path) -> None:

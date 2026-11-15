@@ -1,8 +1,9 @@
 // What people sent us, as pictures: public/media/<id>.webp, 2000 px wide (the home page's thumbnail is
-// outreach-at-a-glance-thumb.webp). They are copied in by hand, not by `generate.py --media`: each one was read for
-// names, usernames, addresses and scan data first, and the two that show our r/f150 post carry a blur added for this site (one
-// line gave a measured garage's size). Copying a fresh render over them undoes that. The picture of the email replies
-// is held back until the proof thread's redacted version arrives: two of the people in it have not agreed to be shown.
+// outreach-at-a-glance-thumb.webp). They are the proof thread's dark renders: every screenshot on the site is in dark
+// mode (Ben's rule, 2026-11-15). They are copied in by hand, not by `generate.py --media`: each one is read for names,
+// usernames, addresses and scan data first, in both polarities, and the bytes get the public sync's scans. The line of
+// our r/f150 post that gave a measured garage's size is a flat box at source. The picture of the email replies is held
+// back: two of the people in it have not agreed to be shown.
 export const INTERVIEW = {
   url: 'https://youtu.be/EoHyoNs2idg', // the conversation cut (15 Nov, 3:25 am): each question, then her answer
   embed: 'https://www.youtube-nocookie.com/embed/EoHyoNs2idg',
@@ -26,9 +27,9 @@ export const PROOF = {
     caption: `Two occupational therapists answered with what they check in a home, and their lists became checks in the tools. ${BLURRED}` },
   'costar-garage-depth': { w: 2000, h: 1932,
     alt: 'Reddit answers from pickup and boat owners about garage depth, each beside the change it caused in the garage fit tool',
-    caption: `Pickup and boat owners on garage depth, which listings leave out, each with the change it caused in the garage fit tool. ${BLURRED} So is one line of our own post that gave a measured garage's size.` },
+    caption: `Pickup and boat owners on garage depth, which listings leave out, each with the change it caused in the garage fit tool. ${BLURRED} One line of our own post, which gave a measured garage's size, is covered.` },
   'reddit-wall-1-homes-and-vehicles': { w: 2000, h: 2010,
     alt: 'Our questions in five Reddit communities about homes and vehicles, with seven of the answers and the role each person gave',
-    caption: `What we asked in five Reddit communities for pickup, boat and RV owners and occupational therapists, and seven of the answers. ${BLURRED} So is one line of our own post that gave a measured garage's size.` },
+    caption: `What we asked in five Reddit communities for pickup, boat and RV owners and occupational therapists, and seven of the answers. ${BLURRED} One line of our own post, which gave a measured garage's size, is covered.` },
 } as const
 export type ProofId = keyof typeof PROOF
