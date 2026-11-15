@@ -25,6 +25,7 @@ For the agent, the tool is described as: For a business auditing its current bui
 | `door_width_m` | number (m) |  | `0.813` | Clear width a door needs (32 in, ADA 404.2.3). Saved preference `access.door_width_m`. Range: more than 0.3, at most 2.0. |
 | `read_panoramas` | boolean |  | `true` | Let the vision model read the panoramas (restroom fixtures, life-safety objects); cached after the first run. |
 | `cleaning` | boolean |  | `true` | Price a cleaning contract from the takeoff. |
+| `cart_m` | array (m) |  | `[0.51, 0.66, 1.78]` | Cart or rolling rack stock moves on: width, length, height (default a full-size sheet-pan rack, 20 x 26 x 70 in). Saved preference `facility.cart_m`. |
 
 An input that nothing fills (the selected building, a saved preference, a persona's preset) becomes a question to the person. The agent asks only for those.
 
@@ -82,6 +83,8 @@ Inputs used: `door_width_m = 0.813` (preset of the persona "Facility manager").
 | Occupant load (150 ft² each) | <span class="num">6 people</span> | Measured from a model | medium |
 | Priced fixes | <span class="num">1850 $</span> | Simulated | low |
 | Fixes found | <span class="num">3</span> | Simulated | low |
+| Storage room floor area | <span class="num">0 ft²</span> | Measured from the scan | high |
+| Sharpest bend on a cart route | <span class="num">0 °</span> | Measured from the scan | high |
 | Widen doorways well under 32 in | <span class="num">1200 $</span> | Simulated | low |
 | Grab bars at the toilet (side and rear) | <span class="num">400 $</span> | Simulated | low |
 | Swing-clear hinges on doors just under 32 in | <span class="num">250 $</span> | Simulated | low |
@@ -95,6 +98,10 @@ Inputs used: `door_width_m = 0.813` (preset of the persona "Facility manager").
 | Doorway width, Kitchen to outside | <span class="num">0.86</span> | <span class="num">0.813 m</span> | <span class="st warn">warn</span> |
 | Bathroom: door clear width | <span class="num">0.71</span> | <span class="num">0.815 m</span> | <span class="st fail">fail</span> |
 | Bathroom: free wall behind the toilet for a rear grab bar | <span class="num">0</span> | <span class="num">0.914 m</span> | <span class="st fail">fail</span> |
+| Cart route, entrance to kitchen or break room: 2 doors and 0 bends, straight | <span class="num">0.25</span> | <span class="num">0 m</span> | <span class="st pass">pass</span> |
+| Not in the scan: how far the sinks are from the water heater: no water heater was located on the panoramas | not measured |  | <span class="st unknown">unknown</span> |
+
+4 more checks are in the full result.
 
 Findings: 4 warn, 4 fail, 1 unknown.
 
