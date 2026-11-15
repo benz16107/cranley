@@ -2,7 +2,7 @@
 - **Try it live:** https://cranley.app/app (access code from Ben at the table)
 - **Every track in detail:** https://cranley.app/tracks/
 - **Code:** https://github.com/benz16107/cranley
-- **Interview with Jean Ryan (4 min):** https://youtu.be/q5reRgHfS8Y
+- **Conversation with Jean Ryan (7 min):** https://youtu.be/EoHyoNs2idg
 
 ---
 
@@ -26,7 +26,7 @@ Each track page has the details.
 |---|---|---|---|---|
 | CoStar | [page](https://cranley.app/tracks/costar/) | Asked for an agent using at least two of the three layers; we built one using all three in one frame, plus 78 tools, parallel subagents, a photoreal 3D city, iPhone scans and PDF reports | 50 tools run through the real API on 15 places: 266 answers, 62 honest "cannot answer here", 0 judged wrong | |
 | Amazon | [page](https://cranley.app/tracks/amazon/) | Asked for AI that reasons, plans, acts and adapts; we built that, plus a profile that learns you once with the adaptation counted on screen, a phone companion, iMessage and an iPhone LiDAR app | Questions asked over three homes for a returning wheelchair user: 1, 0, 0 | |
-| Peri | [page](https://cranley.app/tracks/peri/) | Asked to solve one consulted business's problem; we interviewed Jean Ryan, President of Disabled In Action of Metropolitan New York, asked 58 more people online, emailed 491 organisations, and shipped 12 groups of changes that night | 12 groups of changes, each with its commit in [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md) | [Interview (4 min)](https://youtu.be/q5reRgHfS8Y)<br>[Teaser (44 s)](https://youtu.be/KLdkvYwNQaA) |
+| Peri | [page](https://cranley.app/tracks/peri/) | Asked to solve one consulted business's problem; we interviewed Jean Ryan, President of Disabled In Action of Metropolitan New York, asked 58 more people online, emailed 491 organisations, and shipped 12 groups of changes that night | 12 groups of changes, each with its commit in [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md) | [Conversation (7 min)](https://youtu.be/EoHyoNs2idg)<br>[Teaser (32 s)](https://youtu.be/M5G2j62ZYGQ) |
 | LangChain | [page](https://cranley.app/tracks/langchain/) | Asked for a deepagent; we built a deepagents investigator with planning, parallel subagents, approvals that resume from a MongoDB checkpoint, skills, long-term memory, a rubric grader, MCP tools and LangSmith experiments | Two houses checked at once, both paused before the smoke model and resumed from a MongoDB checkpoint | |
 | Photon | [page](https://cranley.app/tracks/photon/) | Asked for a messaging agent on Photon 2.0; we built an iMessage agent (plan pictures, reply threads as investigations, photos, video, voice and location in, the PDF in the chat) and a phone voice agent. The voice agent waits on a phone number, and the first live round trip is unconfirmed | Every reply built from the tool result, never model text; 14 tests | |
 | MongoDB Atlas | [page](https://cranley.app/tracks/mongodb/) | Asked to build with Atlas; we use 12 Atlas features: op log with transactions, change streams, Atlas Search, Vector Search with automated embedding, `$rankFusion`, time series, TTL, 2dsphere, schema validation, LangGraph checkpointer and store, MCP | A door width typed on the phone reaches the desktop in about a second | |
@@ -69,7 +69,7 @@ The scans, the aerial photos and the records that answer these questions exist, 
 
 ## Built forward-deployed
 
-Before and while building we asked people what goes wrong with their buildings: a recorded 31-minute interview with Jean Ryan ([4-minute highlights](https://youtu.be/q5reRgHfS8Y)), written answers from 58 people in 17 online communities, and 491 emails, which brought six human replies.
+Before and while building we asked people what goes wrong with their buildings: a recorded 31-minute interview with Jean Ryan ([the conversation, 7 min](https://youtu.be/EoHyoNs2idg)), written answers from 58 people in 17 online communities, and 491 emails, which brought six human replies.
 
 Their answers changed the tools the same night. Every quote and its change: [docs/feedback.md](https://github.com/benz16107/cranley/blob/main/docs/feedback.md).
 

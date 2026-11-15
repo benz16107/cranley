@@ -100,4 +100,4 @@ Ollama nomic-embed-text inside Tiger through pgai, voyage-4 inside Atlas, and bg
 - Live demo: https://cranley.app/app (code from Ben at the table; never write the code down)
 - Fallback if cranley.app/app is down: https://linuxbox.<tailnet>:10000/app (same door, same code)
 - Code: https://github.com/benz16107/cranley
-- Interview with Jean Ryan (4 min): https://youtu.be/q5reRgHfS8Y
+- Conversation with Jean Ryan (7 min): https://youtu.be/EoHyoNs2idg
