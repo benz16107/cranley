@@ -192,10 +192,36 @@ without learning a tool. And it works on their own home, not only on a dataset.
 | Technical | About 600 server tests and 90 web tests; every tool run on a 15-place demo set with a matrix of results (see Proof); FastAPI, deepagents, two cloud databases, our own 3D renderer and splat training. |
 | User experience | The App look: one thing first on every screen, the rest folded; plain-word reliability chips; every panel resizable; guided first run; both themes; phone companion with live sync. |
 
-**Adaptive intelligence** (a named focus area): the agent's memory per building and per person, "what I learned about
-you" with undo per item, past investigations searchable by words and meaning.
+**Adaptive intelligence** (a named focus area; on `ws/adaptive`, not merged yet): Cranley keeps a profile of the
+person across investigations. It holds who they are, what they answered, the settings they changed, the tools they
+removed and the kinds of check they marked useful or not relevant, each with where it came from and a way to change or
+forget it. A new investigation starts from it: the composer asks only what it does not know, tool inputs taken from it
+say so on the result, and checks of a kind the person waved off are kept back. In a three-visit replay of one
+wheelchair user the questions asked went 1, 0, 0, and the checks kept back 0, 3, 9.
 
-**Scripted flow:** `web/src/skins/app/demo/flows/amazon.json`, "A phone scan becomes a PDF report".
+| Amazon focus area | What a judge sees | Where |
+|---|---|---|
+| Agentic behavior | The agent also decides what not to do from what it knows: skip a question, leave out a tool, keep back checks; each decision is one row under "Because of what Cranley knows about you" | Agent panel, top |
+| Real-world impact | A chair width said once is used on every later home: doorways, step-free route and bathroom door, with "Using your doorway width: 0.7 m" on each result | Any result drawer |
+| Adaptive intelligence | A profile across investigations, each line with its source, Change and Forget; "Not relevant" hides that kind now and later, "Useful" lists it first | "Cranley knows" (agent panel, Home, Settings); Checks tab |
+| User-friendly design | No profile form: it fills from answers and clicks the person makes anyway; Home says in one line how much is known | Home, under the brief field |
+| Creative innovation | The proof is in the product: "How Cranley has adapted to you" counts what each investigation asked, reused and kept back, from the person's own logs | "Cranley knows", first section |
+
+How to say the numbers (from `reports/adaptation-eval.md`, run 2026-11-14 19:47; every number counted from op logs by
+`threshold.agent.profile.measure`): lead with questions asked 1, 0, 0, which held in all three evaluation runs.
+"Checks that matter" uses a rule fixed before the run (a check matters unless it is a kind the person waved off or from
+a tool they removed), so it shows a taste expressed once is honoured on new buildings, not that Cranley guesses
+relevance. Do not claim faster first results (model latency dominated: 24.0, 19.9, 19.1 s in one run, flat in others)
+or fewer tool runs (they drift with the model; only the removed tool, Tour, never comes back). One persona, three
+buildings: a replay, not a user study. Limits: the profile holds only facts some tool input uses (about 80 keys, no
+budget or risk tolerance); it does not read facts out of free text; there is no sign-in (the profile id lives in the
+browser, and `?as=<id>` opens any profile whose id you know).
+
+**Scripted flow:** `web/src/skins/app/demo/flows/amazon.json`, "A phone scan becomes a PDF report". Second flow (on
+`ws/adaptive`): `amazon-adaptive.json`, "A returning wheelchair user opens a new home", about 110 s (played twice:
+111.2 s and 108.6 s, of which the agent's turn is 77 to 79 s). It needs a returning person in the demo server's store:
+`cd server && uv run python -m threshold.agent.adapt_eval --seed demo_maya --waves-off Bathing` with the server's
+environment (`THRESHOLD_STORE=mongo` on the lead's server), about 90 s; a judge can be Maya at `/app/?as=demo_maya`.
 
 **Demo path.** Phone: scan a room with the iPhone app (demo cafe in the simulator), name the business, pick
 Accessibility, get the PDF in seconds. Desktop: the same workspace updates live. Then the wheelchair search above.
@@ -336,6 +362,9 @@ wheelchair user, the family before a storm, the fire crew. Track pick: question 
 - Interior splats: four buildings, 16 to 23 minutes each on the integrated AMD GPU, 15 to 18 dB held-out PSNR.
 - Photoreal view renders at 56 to 60 fps.
 - Live sync: phone to desktop in about a second.
+- Adaptation (pending `ws/adaptive`): one scripted wheelchair user over three homes, real composer and agent.
+  Questions asked 1, 0, 0; tool inputs filled from the profile 0, 3, 3; checks kept back as not relevant 0, 3, 9.
+  The app shows the same counts for a real person from their own logs.
 - Tiger: 234 MB to 58 MB compressed; a fork ready in 31 s; room descriptions embedded in-database at about nine a second.
 
 ## Built (synced to `main`)
@@ -376,7 +405,7 @@ Checked against `git log main` at `a8c7348` (2026-11-14, 7:40 pm ET). Update at 
 - [x] Cranley over iMessage and voice on Photon 2.0: plan pictures, reply threads as investigations, approvals, photo/video/voice/location in, field visits, PDF in chat, weather alerts, ElevenLabs phone agent (`ws/photon`)
 - [x] MCP server (stdio and `/mcp`), `threshold` CLI, deep agent over MCP, `docs/MCP.md` (`ws/mcp`)
 
-**Not merged yet:** none of the planned build branches (all merged by 7:36 pm).
+**Not merged yet:** person profile across investigations and the measured adaptation, plus the `amazon-adaptive` flow (`ws/adaptive`).
 
 **Not merged on purpose:** the Overflight look (`ws/design2`).
 
