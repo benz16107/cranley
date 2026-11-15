@@ -2,8 +2,8 @@
 // outreach-at-a-glance-thumb.webp). They are the proof thread's dark renders: every screenshot on the site is in dark
 // mode (Ben's rule, 2026-11-15). They are copied in by hand, not by `generate.py --media`: each one is read for names,
 // usernames, addresses and scan data first, in both polarities, and the bytes get the public sync's scans. The line of
-// our r/f150 post that gave a measured garage's size is a flat box at source. The picture of the email replies is held
-// back: two of the people in it have not agreed to be shown.
+// our r/f150 post that gave a measured garage's size is a flat box at source. In the picture of the email replies, the two people who have
+// not agreed to be named are covered by flat boxes: names, addresses, signatures, the museum's event and the theatre's footer.
 export const INTERVIEW = {
   url: 'https://youtu.be/EoHyoNs2idg', // the conversation cut (15 Nov, 3:25 am): each question, then her answer
   embed: 'https://www.youtube-nocookie.com/embed/EoHyoNs2idg',
@@ -19,6 +19,9 @@ export const PROOF = {
   'reddit-wall-2-workplaces': { w: 2000, h: 1937,
     alt: 'Our questions in five Reddit communities for people who run stores, kitchens, restaurants, teams and emergency plans, with six of the answers',
     caption: `What we asked in five Reddit communities for people who run workplaces, and six of the answers. ${BLURRED}` },
+  'email-replies': { w: 2000, h: 2758,
+    alt: 'The emails we sent and what came back: "Call me" from Jean Ryan, a museum director asking for a call, written answers from a theatre\'s managing director, and two declines',
+    caption: 'The email we sent and each reply to it. Names, email addresses, signatures and the names of the organisations are covered, except Jean Ryan.' },
   'outreach-at-a-glance': { w: 2000, h: 1328,
     alt: 'The outreach in numbers: the recorded interview, the people and communities who answered, the emails sent, the replies and the commits that followed',
     caption: 'The outreach, counted. It shows totals only: no names or usernames appear in it.' },
